@@ -88,6 +88,9 @@ class NotificationTrigger(str, Enum):
     
     # Polls
     POLL_REMINDER = "poll_reminder"  # Reminder to respond to active poll
+    
+    # Admin-only triggers (not user-controllable)
+    ADMIN_LOGIN_REMINDER = "admin_login_reminder"  # Admin-controlled login reminders
 
 
 class FrequencyType(str, Enum):
@@ -585,3 +588,56 @@ class ScheduledNotificationUpdate(BaseModel):
     
     class Config:
         use_enum_values = True
+
+
+# ============================================
+# Admin Inactivity Tracking Models
+# ============================================
+
+class AdminInactivityTracking(BaseModel):
+    """Track admin-controlled inactivity reminders"""
+    username: str
+    jobExecutionId: str
+    escalationDays: int
+    channels: List[str]
+    sentAt: datetime
+    templateData: Dict[str, Any] = {}
+    deliveryStatus: Dict[str, Dict[str, bool]] = {}
+    userResponse: Dict[str, Optional[datetime]] = {}
+    
+    class Config:
+        use_enum_values = True
+        populate_by_name = True
+
+
+class InactivityAnalytics(BaseModel):
+    """Analytics for inactivity reminder performance"""
+    totalInactive: int
+    escalationTiers: Dict[str, Dict[str, int]]
+    channelEffectiveness: Dict[str, Dict[str, int]]
+    reactivationRate: float
+    optOutRate: float
+    
+    class Config:
+        use_enum_values = True
+
+
+class InactivityTestRequest(BaseModel):
+    """Request for test inactivity reminder"""
+    username: str
+    escalationDays: int
+    channels: List[str]
+    
+    @validator('escalationDays')
+    def validate_days(cls, v):
+        if v < 7 or v > 365:
+            raise ValueError('escalationDays must be between 7 and 365')
+        return v
+    
+    @validator('channels')
+    def validate_channels(cls, v):
+        valid_channels = ['email', 'sms', 'push']
+        for channel in v:
+            if channel not in valid_channels:
+                raise ValueError(f'Invalid channel: {channel}')
+        return v

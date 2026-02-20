@@ -54,6 +54,7 @@ import ContributionCancel from './components/ContributionCancel';
 import ContributionPopupWrapper from './components/ContributionPopupWrapper';
 import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
+import InactiveUsersPage from './components/InactiveUsersPage';
 import L3V3LInfo from './components/L3V3LInfo';
 import HelpPage from './components/HelpPage';
 import ProfileCompletionChecker from './components/ProfileCompletionChecker';
@@ -403,6 +404,7 @@ function AppContent() {
               <Route path="/email-templates" element={<ProtectedRoute><EmailTemplatePreview /></ProtectedRoute>} />
               <Route path="/email-analytics" element={<ProtectedRoute><EmailAnalytics /></ProtectedRoute>} />
               <Route path="/activity-logs" element={<ProtectedRoute><ActivityLogs /></ProtectedRoute>} />
+              <Route path="/admin/inactive-users" element={<ProtectedRoute><InactiveUsersPage /></ProtectedRoute>} />
               <Route path="/pause-analytics" element={<ProtectedRoute><PauseAnalyticsDashboard /></ProtectedRoute>} />
               <Route path="/invitations" element={<ProtectedRoute><InvitationManager /></ProtectedRoute>} />
               <Route path="/invite-friends" element={<ProtectedRoute><InviteFriends /></ProtectedRoute>} />

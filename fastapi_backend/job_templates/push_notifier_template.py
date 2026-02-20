@@ -199,7 +199,7 @@ class PushNotifierTemplate(JobTemplate):
                         
                         # Profile Interactions
                         "profile_view": {
-                            "title": "Someone viewed your profile! 👀",
+                            "title": "{match_firstName} viewed your profile! 👀",
                             "body": "Login to L3V3LMATCHES.com to see who"
                         },
                         "profile_view_multiple": {
@@ -225,11 +225,11 @@ class PushNotifierTemplate(JobTemplate):
                             "body": "You both favorited each other! Login to connect"
                         },
                         "shortlist_added": {
-                            "title": "Someone shortlisted you! ⭐",
+                            "title": "{match_firstName} shortlisted you! ⭐",
                             "body": "Login to L3V3LMATCHES.com to see who"
                         },
                         "favorited": {
-                            "title": "Someone favorited your profile! ❤️",
+                            "title": "{match_firstName} favorited your profile! ❤️",
                             "body": "Login to L3V3LMATCHES.com to see who"
                         },
                         "daily_matches": {

@@ -48,6 +48,8 @@ from routers.site_settings import router as site_settings_router
 from routers.notes import router as notes_router
 from routers.stripe_payments import router as stripe_payments_router
 from routers.braintree_payments import router as braintree_payments_router
+from routers.admin_engagement import router as admin_engagement_router
+from routers.inactive_users_report import router as inactive_users_report_router
 from routers.paypal_payments import router as paypal_payments_router
 from config import settings
 from websocket_manager import sio
@@ -365,9 +367,11 @@ app.include_router(promo_codes_router)  # Promo codes routes (already has /api/p
 app.include_router(payments_router)  # Payment history routes (already has /api/payments prefix)
 app.include_router(site_settings_router)  # Site settings routes (already has /api/site-settings prefix)
 app.include_router(notes_router)  # Profile notes routes (already has /api/notes prefix)
-app.include_router(stripe_payments_router)  # Stripe payment routes (already has /api/payments prefix)
-app.include_router(braintree_payments_router)  # Braintree/PayPal payment routes (already has /api/braintree prefix)
-app.include_router(paypal_payments_router)  # PayPal direct checkout routes (already has /api/paypal prefix)
+app.include_router(stripe_payments_router)  # Stripe payment routes
+app.include_router(braintree_payments_router)  # Braintree/PayPal payment routes
+app.include_router(paypal_payments_router)  # PayPal direct checkout routes
+app.include_router(admin_engagement_router)  # Admin engagement routes (already has /api/admin/engagement prefix)
+app.include_router(inactive_users_report_router, prefix="/api/admin", tags=["admin-reports"])  # Inactive users report routes
 
 # Health check endpoint
 @app.get("/health")

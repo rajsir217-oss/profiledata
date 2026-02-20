@@ -290,7 +290,11 @@ class SMSNotifierTemplate(JobTemplate):
     
     async def _render_sms(self, service, notification, db) -> str:
         """Render SMS content from template (max 160 chars)"""
-        PREFIX = "[L3V3LMATCHES] "
+        # Include username for admin login reminders for better personalization
+        if notification.trigger == "admin_login_reminder":
+            PREFIX = f"[L3V3LMATCHES | {notification.username}] "
+        else:
+            PREFIX = "[L3V3LMATCHES] "
         
         template = await db.notification_templates.find_one({
             "trigger": notification.trigger,
@@ -403,7 +407,7 @@ class SMSNotifierTemplate(JobTemplate):
                 message = message.replace("{match_firstName}", requester_name)
                 message = message.replace("{match.firstName}", requester_name)
             
-            # Add prefix if not already present
+            # Add prefix if not already present (check for both standard and username formats)
             if not message.startswith("[L3V3LMATCHES]"):
                 message = f"{PREFIX}{message}"
             

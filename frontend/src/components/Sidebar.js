@@ -282,6 +282,20 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       items.push({ isHeader: true, label: 'ANALYTICS & REPORTS' });
       
       items.push({
+        icon: '📈',
+        label: 'Activity Logs',
+        subLabel: 'Monitor user activities',
+        action: () => navigate('/activity-logs')
+      });
+      
+      items.push({
+        icon: '📊',
+        label: 'Admin Reports',
+        subLabel: 'System reports & analytics',
+        action: () => navigate('/admin-reports')
+      });
+      
+      items.push({
         icon: '📧',
         label: 'Email Analytics',
         subLabel: 'Track opens & clicks',
@@ -289,17 +303,17 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
-        icon: '📊',
-        label: 'Activity Logs',
-        subLabel: 'Monitor user activities',
-        action: () => navigate('/activity-logs')
+        icon: '📧',
+        label: 'Email Templates',
+        subLabel: 'Preview & manage templates',
+        action: () => navigate('/email-templates')
       });
       
       items.push({
-        icon: '📈',
-        label: 'Admin Reports',
-        subLabel: 'User analytics & charts',
-        action: () => navigate('/admin-reports')
+        icon: '🔍',
+        label: 'Inactive Users Report',
+        subLabel: 'User engagement analysis',
+        action: () => navigate('/admin/inactive-users')
       });
       
       items.push({
@@ -314,13 +328,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         label: 'Pause Analytics',
         subLabel: 'Track pause patterns',
         action: () => navigate('/pause-analytics')
-      });
-      
-      items.push({
-        icon: '📧',
-        label: 'Email Templates',
-        subLabel: 'Preview & manage templates',
-        action: () => navigate('/email-templates')
       });
       
       items.push({
