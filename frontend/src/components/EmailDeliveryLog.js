@@ -15,8 +15,7 @@ import LoadMore from './LoadMore';
 import './EmailDeliveryLog.css';
 import useAdminAuth from '../hooks/useAdminAuth';
 import useNotificationStatus from '../hooks/useNotificationStatus';
-import useNotificationData from '../hooks/useNotificationData';
-import { API_ENDPOINTS } from '../constants/notificationTriggers';
+import { getBackendUrl } from '../config/apiConfig';
 
 // Error Boundary Component
 class EmailDeliveryLogErrorBoundary extends React.Component {
@@ -59,32 +58,71 @@ const EmailDeliveryLog = () => {
   
   // Shared hooks
   const { getStatusClass } = useNotificationStatus();
-  const { data: logs, loading, error, refresh } = useNotificationData(
-    `${API_ENDPOINTS.LOGS}?channel=email&limit=1000`,
-    null, // Manual refresh only
-    {
-      transformData: (data) => {
-        // Transform and validate log data
-        const transformed = (data?.logs || data || []).map(log => ({
-          ...log,
-          id: log._id || log.id,
-          username: log.username || 'unknown',
-          trigger: log.trigger || log.type,
-          status: log.status || 'unknown',
-          sentAt: log.sentAt || log.createdAt || log.created_at,
-          createdAt: log.createdAt || log.created_at,
-          lineage: log.lineage || null,
-          error: log.error || null,
-          attempts: log.attempts || 1,
-          templateId: log.templateId || null
-        }));
-        return transformed;
-      },
-      enableCache: true,
-      cacheKey: 'email_logs_cache',
-      initialData: []
+  
+  // Direct state management (replacing useNotificationData hook)
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Load logs function
+  const loadLogs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Not authenticated');
+        setLoading(false);
+        return;
+      }
+      
+      const backendUrl = getBackendUrl();
+      const url = `${backendUrl}/api/notifications/logs?channel=email&limit=500`;
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Transform log data
+      const rawData = data?.logs || data || [];
+      const transformed = rawData.map(log => ({
+        ...log,
+        id: log._id || log.id,
+        username: log.username || 'unknown',
+        trigger: log.trigger || log.type,
+        status: log.status || 'unknown',
+        sentAt: log.sentAt || log.createdAt || log.created_at,
+        createdAt: log.createdAt || log.created_at,
+        lineage: log.lineage || null,
+        error: log.error || null,
+        attempts: log.attempts || 1,
+        templateId: log.templateId || null
+      }));
+      
+      setLogs(transformed);
+      
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  );
+  }, []);
+  
+  // Load on mount
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
+  
+  // Refresh function
+  const refresh = useCallback(() => {
+    loadLogs();
+  }, [loadLogs]);
 
   // State management
   const [filter, setFilter] = useState('all');
@@ -106,6 +144,7 @@ const EmailDeliveryLog = () => {
     sortTime: 0
   });
 
+  
   // Memoized available triggers
   const availableTriggers = useMemo(() => {
     const triggers = [...new Set(logs.map(log => log.trigger || log.type).filter(Boolean))];
@@ -273,23 +312,10 @@ const EmailDeliveryLog = () => {
             >
               {useVirtualScroll ? '📱 Virtual Scroll' : '📄 Regular Scroll'}
             </button>
-          </div>
+                      </div>
         </div>
 
-        {/* Performance Monitor (Development Only) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="performance-monitor">
-            <small>
-              Logs: {logs.length} | 
-              Filtered: {filteredLogs.length} | 
-              Displayed: {displayedLogs.length} | 
-              Renders: {performanceRef.current.renderCount} | 
-              Filter: {performanceRef.current.filterTime}ms | 
-              Sort: {performanceRef.current.sortTime}ms
-            </small>
-          </div>
-        )}
-
+        
         {/* Filters */}
         <div className="log-filters">
           <div className="filter-row">
@@ -450,15 +476,15 @@ const EmailDeliveryLog = () => {
                 </div>
                 
                 {/* Load More Button */}
-                {displayedLogs.length < filteredLogs.length && (
-                  <LoadMore
-                    onLoadMore={loadMore}
-                    loading={loading}
-                    hasMore={displayedLogs.length < filteredLogs.length}
-                    count={displayedLogs.length}
-                    total={filteredLogs.length}
-                  />
-                )}
+                <LoadMore
+                  onLoadMore={loadMore}
+                  loading={loading}
+                  currentCount={displayedLogs.length}
+                  totalCount={filteredLogs.length}
+                  itemsPerLoad={PAGE_SIZE}
+                  itemLabel="logs"
+                  buttonText="Load more logs"
+                />
               </>
             )}
           </>

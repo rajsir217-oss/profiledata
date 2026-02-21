@@ -290,11 +290,15 @@ class SMSNotifierTemplate(JobTemplate):
     
     async def _render_sms(self, service, notification, db) -> str:
         """Render SMS content from template (max 160 chars)"""
-        # Include username for admin login reminders for better personalization
-        if notification.trigger == "admin_login_reminder":
-            PREFIX = f"[L3V3LMATCHES | {notification.username}] "
-        else:
-            PREFIX = "[L3V3LMATCHES] "
+        # Get recipient's first name for personalization
+        recipient_name = ""
+        user = await db.users.find_one({"username": notification.username})
+        if user:
+            recipient_name = user.get("firstName") or user.get("name", "").split()[0] if user.get("name") else ""
+        
+        # Build personalized prefix
+        PREFIX = "[L3V3LMATCHES] "
+        GREETING = f"Hi {recipient_name}, " if recipient_name else ""
         
         template = await db.notification_templates.find_one({
             "trigger": notification.trigger,
@@ -325,70 +329,70 @@ class SMSNotifierTemplate(JobTemplate):
         
         if not template:
             # User-friendly fallback messages for each trigger type
-            # Use direct string formatting since template variables may not be substituted
+            # Messages now include personalized greeting with recipient's name
             trigger_messages = {
                 # Contact Info Requests
-                "pending_pii_request": f"{requester_name} requested your contact info! Login to respond.",
-                "pii_request": f"{requester_name} requested your contact info! Login to respond.",
-                "pii_granted": "Your contact info request was approved! Login to view.",
-                "pii_denied": "Your contact info request was declined. Login for details.",
+                "pending_pii_request": f"{GREETING}{requester_name} requested your contact info! Login to respond.",
+                "pii_request": f"{GREETING}{requester_name} requested your contact info! Login to respond.",
+                "pii_granted": f"{GREETING}Your contact info request was approved! Login to view.",
+                "pii_denied": f"{GREETING}Your contact info request was declined. Login for details.",
                 
                 # Messaging
-                "new_message": "You have a new message! Login to read it.",
-                "unread_messages": "You have unread messages waiting! Login to catch up.",
-                "conversation_cold": "Your conversation is getting cold! Send a message to rekindle the connection.",
-                "message_reminder": "You have an unread message! Login to respond.",
+                "new_message": f"{GREETING}You have a new message! Login to read it.",
+                "unread_messages": f"{GREETING}You have unread messages waiting! Login to catch up.",
+                "conversation_cold": f"{GREETING}Your conversation is getting cold! Send a message to rekindle.",
+                "message_reminder": f"{GREETING}You have an unread message! Login to respond.",
                 
                 # Profile Interactions
-                "profile_view": "Someone viewed your profile! Login to see who.",
-                "profile_view_multiple": "Multiple people viewed your profile! Login to see who.",
-                "profile_complete": "Complete your profile to get better matches! Login now.",
-                "photo_upload_reminder": "Add photos to get 10x more responses! Login to upload.",
+                "profile_view": f"{GREETING}Someone viewed your profile! Login to see who.",
+                "profile_view_multiple": f"{GREETING}Multiple people viewed your profile! Login to see who.",
+                "profile_complete": f"{GREETING}Complete your profile to get better matches! Login now.",
+                "photo_upload_reminder": f"{GREETING}Add photos to get 10x more responses! Login to upload.",
                 
                 # Matching & Favorites
-                "new_match": "You have a new match! Login to connect.",
-                "mutual_favorite": "It's a match! You both favorited each other! Login to connect.",
-                "shortlist_added": "Someone added you to their shortlist! Login to see who.",
-                "favorited": "Someone favorited your profile! Login to see who.",
-                "daily_matches": "New daily matches waiting! Login to view them.",
-                "smart_matches": "Smart matches found! Login to connect.",
+                "new_match": f"{GREETING}You have a new match! Login to connect.",
+                "mutual_favorite": f"{GREETING}It's a match! You both favorited each other! Login to connect.",
+                "shortlist_added": f"{GREETING}Someone added you to their shortlist! Login to see who.",
+                "favorited": f"{GREETING}Someone favorited your profile! Login to see who.",
+                "daily_matches": f"{GREETING}New daily matches waiting! Login to view them.",
+                "smart_matches": f"{GREETING}Smart matches found! Login to connect.",
                 
                 # Subscription & Premium
-                "subscription_expired": "Your subscription has expired! Login to renew.",
-                "subscription_renewal": "Your subscription will renew soon! Login to manage settings.",
-                "premium_feature": "Unlock premium features! Login to upgrade.",
-                "trial_ending": "Your free trial ends soon! Login to subscribe.",
+                "subscription_expired": f"{GREETING}Your subscription has expired! Login to renew.",
+                "subscription_renewal": f"{GREETING}Your subscription will renew soon! Login to manage.",
+                "premium_feature": f"{GREETING}Unlock premium features! Login to upgrade.",
+                "trial_ending": f"{GREETING}Your free trial ends soon! Login to subscribe.",
                 
                 # Activity & Engagement
-                "login_reminder": "We miss you! Login to see new matches.",
-                "weekly_summary": "You have new activity this week! Login to view.",
-                "success_story": "Inspiring success story! Login to read it.",
-                "event_invite": "Upcoming matchmaking event! Login to RSVP.",
+                "login_reminder": f"{GREETING}We miss you! Login to see new matches.",
+                "weekly_summary": f"{GREETING}You have new activity this week! Login to view.",
+                "success_story": f"{GREETING}Inspiring success story! Login to read it.",
+                "event_invite": f"{GREETING}Upcoming matchmaking event! Login to RSVP.",
                 
                 # Safety & Verification
-                "verify_email": "Please verify your email address! Check your inbox for link.",
-                "verify_phone": "Verify your phone number for better security! Login to verify.",
-                "safety_tip": "New safety tip available! Login to read it.",
-                "account_suspended": "Account action required! Login for details.",
+                "verify_email": f"{GREETING}Please verify your email! Check your inbox for link.",
+                "verify_phone": f"{GREETING}Verify your phone number for better security! Login to verify.",
+                "safety_tip": f"{GREETING}New safety tip available! Login to read it.",
+                "account_suspended": f"{GREETING}Account action required! Login for details.",
                 
                 # Contributions & Donations
-                "contribution_reminder": "Support our platform! Login to contribute.",
-                "contribution_thank_you": "Thank you for your contribution! Your support helps us grow.",
-                "popup_shown": "Check out our premium features! Login to learn more.",
+                "contribution_reminder": f"{GREETING}Support our platform! Login to contribute.",
+                "contribution_thank_you": f"{GREETING}Thank you for your contribution!",
+                "popup_shown": f"{GREETING}Check out our premium features! Login to learn more.",
                 
                 # Admin & Support
-                "admin_message": "Important message from admin! Login to read.",
-                "support_response": "Support has responded to your ticket! Login to view.",
-                "profile_approved": "Your profile has been approved! Login to connect.",
-                "profile_rejected": "Profile update needed! Login to fix issues.",
-                "status_reactivated": "Your account has been reactivated! Login to access all features.",
-                "status_banned": "Your account has been banned. Contact support for details.",
-                "pii_revoked": "Your PII access has been revoked. Login to view details.",
+                "admin_message": f"{GREETING}Important message from admin! Login to read.",
+                "support_response": f"{GREETING}Support has responded to your ticket! Login to view.",
+                "profile_approved": f"{GREETING}Your profile has been approved! Login to connect.",
+                "profile_rejected": f"{GREETING}Profile update needed! Login to fix issues.",
+                "status_reactivated": f"{GREETING}Your account has been reactivated! Welcome back!",
+                "status_banned": f"{GREETING}Your account has been banned. Contact support.",
+                "pii_revoked": f"{GREETING}Your PII access has been revoked. Login for details.",
             }
             
             message = trigger_messages.get(
                 notification.trigger,
-                "You have a new notification! Login to view"
+                f"{GREETING}You have a new notification! Login to view"
             )
             message = f"{PREFIX}{message}"
         else:
