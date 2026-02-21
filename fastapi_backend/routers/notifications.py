@@ -468,6 +468,7 @@ async def get_notification_logs(
     current_user: dict = Depends(get_current_user),
     limit: int = Query(100, ge=1, le=500),
     skip: int = Query(0, ge=0),
+    channel: Optional[str] = Query(None, description="Filter by channel (email, sms, push)"),
     service: NotificationService = Depends(get_notification_service)
 ):
     """Get notification logs (sent notifications history)"""
@@ -479,10 +480,14 @@ async def get_notification_logs(
     # Build query based on role
     query = {} if is_admin else {"username": username}
     
+    # Add channel filter if specified
+    if channel:
+        query["channel"] = channel
+    
     # Debug logging
     import logging
     logger = logging.getLogger(__name__)
-    logger.info(f"📋 Fetching notification logs - user: {username}, role: {user_role}, is_admin: {is_admin}, query: {query}")
+    logger.info(f"📋 Fetching notification logs - user: {username}, role: {user_role}, is_admin: {is_admin}, channel: {channel}, query: {query}")
     
     logs = await service.db["notification_log"].find(
         query

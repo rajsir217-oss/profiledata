@@ -284,16 +284,12 @@
 }
 
 /* Multi-Select Dropdown for Trigger Filter */
-.email-delivery-log .trigger-filter {
+.email-delivery-log .multi-select-dropdown {
   position: relative;
+  display: inline-block;
 }
 
-.email-delivery-log .multi-select-container {
-  position: relative;
-  min-width: 140px;
-}
-
-.email-delivery-log .multi-select-trigger {
+.email-delivery-log .multi-select-button {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -309,19 +305,15 @@
   transition: border-color 0.2s;
 }
 
-.email-delivery-log .multi-select-trigger:hover {
+.email-delivery-log .multi-select-button:hover {
   border-color: var(--primary-color);
 }
 
-.email-delivery-log .dropdown-arrow {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-
-.email-delivery-log .multi-select-dropdown {
+.email-delivery-log .dropdown-menu {
   position: absolute;
   top: 100%;
   left: 0;
+  z-index: 1000;
   margin-top: 4px;
   background: var(--card-background);
   border: 1px solid var(--border-color);
@@ -359,6 +351,26 @@
   overflow-y: auto;
   max-height: 220px;
   padding: 8px 0;
+}
+
+.email-delivery-log .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.email-delivery-log .dropdown-item:hover {
+  background: var(--hover-background);
+}
+
+.email-delivery-log .dropdown-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-color);
+  cursor: pointer;
 }
 
 .email-delivery-log .multi-select-option {

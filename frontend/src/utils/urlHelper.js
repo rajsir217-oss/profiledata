@@ -11,6 +11,12 @@ import logger from './logger';
  */
 export const getBackendApiUrl = (path) => {
   const backend = getBackendUrl();
+  
+  // If path is already a full URL, return it as-is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${backend}${cleanPath}`;
 };
