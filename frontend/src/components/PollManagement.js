@@ -498,7 +498,7 @@ const PollManagement = () => {
                   📈 Results
                 </button>
                 
-                {(poll.status === 'active' || poll.status === 'draft') && (
+                {(poll.status === 'active' || poll.status === 'draft' || poll.status === 'closed') && (
                   <button 
                     className="poll-action-btn poll-action-edit"
                     onClick={() => handleOpenEdit(poll)}
@@ -526,12 +526,21 @@ const PollManagement = () => {
                 )}
                 
                 {poll.status === 'closed' && (
-                  <button 
-                    className="poll-action-btn poll-action-archive"
-                    onClick={() => handleStatusChange(poll._id, 'archived')}
-                  >
-                    📦 Archive
-                  </button>
+                  <>
+                    <button 
+                      className="poll-action-btn poll-action-reopen"
+                      onClick={() => handleStatusChange(poll._id, 'active')}
+                      title="Reopen this poll"
+                    >
+                      🔄 Reopen
+                    </button>
+                    <button 
+                      className="poll-action-btn poll-action-archive"
+                      onClick={() => handleStatusChange(poll._id, 'archived')}
+                    >
+                      📦 Archive
+                    </button>
+                  </>
                 )}
                 
                 <button 
