@@ -280,6 +280,12 @@
   color: var(--warning-color);
 }
 
+.poll-action-reopen:hover {
+  border-color: var(--success-color);
+  color: var(--success-color);
+  background: var(--success-light, rgba(16, 185, 129, 0.1));
+}
+
 .poll-action-archive:hover {
   border-color: var(--text-secondary);
 }

@@ -93,10 +93,18 @@ class PollAutoCloseTemplate(JobTemplate):
             context.log("info", f"📊 Checking for polls with event_date before {cutoff_time.isoformat()}")
             
             # Find active polls with event_date in the past
-            # We need to handle polls that have event_date set
+            # IMPORTANT: event_date is stored as local time, so we need to add timezone offset
+            # Assuming event_date is in US Pacific Time (UTC-8/UTC-7 based on DST)
+            # For now, we'll be more conservative and only close polls that are significantly past
+            # Add 24 hours buffer to account for timezone differences
+            timezone_buffer = timedelta(hours=24)
+            adjusted_cutoff_time = cutoff_time - timezone_buffer
+            
+            context.log("info", f"📊 Using adjusted cutoff time with timezone buffer: {adjusted_cutoff_time.isoformat()}")
+            
             query = {
                 "status": "active",
-                "event_date": {"$ne": None, "$lt": cutoff_time}
+                "event_date": {"$ne": None, "$lt": adjusted_cutoff_time}
             }
             
             expired_polls = await db.polls.find(query).to_list(length=None)
@@ -137,7 +145,58 @@ class PollAutoCloseTemplate(JobTemplate):
                     errors.append(error_msg)
                     context.log("error", f"❌ {error_msg}")
             
-            context.log("info", f"📊 Poll Auto-Close Summary: {polls_closed} closed out of {polls_checked} expired")
+            context.log("info", f"📊 Poll Auto-Close Summary: {polls_closed} closed out of {polls_checked} expired (with 24h timezone buffer)")
+            
+            # Check for polls that were incorrectly closed and reopen them
+            if not dry_run and polls_checked > 0:
+                try:
+                    now = datetime.utcnow()
+                    # Look for polls closed in the last 48 hours with future event dates
+                    recent_cutoff = now - timedelta(hours=48)
+                    future_cutoff = now + timedelta(hours=1)  # 1 hour from now
+                    
+                    query = {
+                        "status": "closed",
+                        "closed_at": {"$gte": recent_cutoff},
+                        "closed_reason": "auto_closed_event_passed",
+                        "event_date": {"$gt": future_cutoff}
+                    }
+                    
+                    incorrectly_closed = await db.polls.find(query).to_list(length=None)
+                    
+                    if incorrectly_closed:
+                        context.log("info", f"🔧 Found {len(incorrectly_closed)} polls to reopen (timezone fix)")
+                        
+                        for poll in incorrectly_closed:
+                            poll_id = str(poll["_id"])
+                            poll_title = poll.get("title", "Untitled")
+                            event_date = poll.get("event_date")
+                            
+                            result = await db.polls.update_one(
+                                {"_id": poll["_id"]},
+                                {
+                                    "$set": {
+                                        "status": "active",
+                                        "updated_at": datetime.utcnow(),
+                                        "reopened_at": datetime.utcnow(),
+                                        "reopened_reason": "timezone_mismatch_fix"
+                                    },
+                                    "$unset": {
+                                        "closed_at": "",
+                                        "closed_reason": ""
+                                    }
+                                }
+                            )
+                            
+                            if result.modified_count > 0:
+                                context.log("info", f"✅ Reopened poll: {poll_title} (event: {event_date})")
+                            else:
+                                context.log("warning", f"⚠️ Failed to reopen poll: {poll_title}")
+                    else:
+                        context.log("info", "🔧 No incorrectly closed polls found")
+                        
+                except Exception as e:
+                    context.log("error", f"❌ Error reopening polls: {str(e)}")
             
             return JobResult(
                 status="success" if len(errors) == 0 else "partial",

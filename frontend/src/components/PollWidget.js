@@ -22,6 +22,10 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
   const [showModal, setShowModal] = useState(false); // Modal state for inline mode
   const [selectedPollId, setSelectedPollId] = useState(null); // Which poll to show in modal
   const [autoPopupShown, setAutoPopupShown] = useState(false); // Track if auto-popup was shown this session
+  
+  // Check if user is admin
+  const userRole = localStorage.getItem('userRole');
+  const isAdmin = userRole === 'admin';
 
   useEffect(() => {
     fetchActivePolls();
@@ -393,6 +397,15 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
                 {polls.length > 1 && (
                   <span className="poll-count-badge">{getCurrentPollIndex()}/{polls.length}</span>
                 )}
+                {isAdmin && (
+                  <button 
+                    className="poll-edit-btn"
+                    onClick={() => window.open(`/admin/polls?edit=${selectedPoll._id}`, '_blank')}
+                    title="Edit poll in admin panel"
+                  >
+                    ✏️
+                  </button>
+                )}
                 {/* Navigation arrow - next */}
                 {polls.length > 1 && (
                   <button className="poll-nav-btn poll-nav-next" onClick={goToNextPoll} title="Next poll">
@@ -440,6 +453,15 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
                   <span className="poll-responded-badge">✓ Responded</span>
                 )}
               </div>
+              {isAdmin && (
+                <button 
+                  className="poll-edit-btn"
+                  onClick={() => window.open(`/admin/polls?edit=${poll._id}`, '_blank')}
+                  title="Edit poll in admin panel"
+                >
+                  ✏️
+                </button>
+              )}
             </div>
             {renderPollForm(poll)}
           </div>

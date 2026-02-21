@@ -118,6 +118,33 @@
   border-radius: 20px;
 }
 
+/* Edit Button */
+.poll-edit-btn {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.poll-edit-btn:hover {
+  background: var(--hover-background);
+  color: var(--primary-color);
+  transform: scale(1.05);
+}
+
+.poll-edit-btn:active {
+  transform: scale(0.95);
+}
+
 /* Description */
 .poll-description {
   margin: 0 0 1rem 0;
