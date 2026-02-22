@@ -225,5 +225,9 @@ def initialize_templates():
     # Register enhanced login reminder template
     registry.register(EnhancedLoginReminderJob())
     
+    # Register activity cleanup template
+    from .contribution_popup_activity_cleanup_job import ContributionPopupActivityCleanupJob
+    registry.register(ContributionPopupActivityCleanupJob())
+    
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry

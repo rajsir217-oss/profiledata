@@ -6,15 +6,9 @@ import './ContributionPopup.css';
 const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [selectedAmount, setSelectedAmount] = useState(15);
   const [customAmount, setCustomAmount] = useState('');
-  // eslint-disable-next-line no-unused-vars
-  const [paymentType, setPaymentType] = useState('one-time'); // 'one-time' or 'monthly' - default to one-time for PayPal
-  // eslint-disable-next-line no-unused-vars
-  const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'stripe' or 'paypal' - default to PayPal
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [hasLoggedShown, setHasLoggedShown] = useState(false);
-  const [paypalConfigured, setPaypalConfigured] = useState(false);
-  const [paypalClientId, setPaypalClientId] = useState(null);
+  const [paypalConfig, setPaypalConfig] = useState(null);
   const [paypalReady, setPaypalReady] = useState(false);
   const [paypalFailed, setPaypalFailed] = useState(false);
   const paypalContainerRef = useRef(null);
@@ -45,7 +39,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   };
 
-  // ESC key handler
+  // ESC key handler with proper cleanup
   useEffect(() => {
     const handleEscKey = (event) => {
       if (event.key === 'Escape' && !loading) {
@@ -56,36 +50,46 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     if (isOpen) {
       document.addEventListener('keydown', handleEscKey);
     }
+
     return () => {
       document.removeEventListener('keydown', handleEscKey);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, loading]);
 
-  // Prevent body scroll when modal is open & log popup shown
+  // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      // Log popup shown only once per open
-      if (!hasLoggedShown) {
-        logActivity('popup_shown');
-        setHasLoggedShown(true);
+      logActivity('popup_shown');
+      // Check PayPal config only if not already cached
+      if (!paypalConfig) {
+        checkPayPalConfig();
+      } else if (paypalConfig?.configured && !paypalFailed) {
+        // Initialize PayPal if config is ready
+        initializePayPal();
       }
-      // Check PayPal config
-      checkPayPalConfig();
     } else {
       document.body.style.overflow = 'unset';
-      setHasLoggedShown(false);
       // Clear PayPal timeout when popup closes
-      if (paypalTimeoutRef.current) clearTimeout(paypalTimeoutRef.current);
+      if (paypalTimeoutRef.current) {
+        clearTimeout(paypalTimeoutRef.current);
+      }
+      // Clear PayPal container
+      if (paypalContainerRef.current) {
+        paypalContainerRef.current.innerHTML = '';
+      }
+      setPaypalReady(false);
     }
+
     return () => {
       document.body.style.overflow = 'unset';
-      if (paypalTimeoutRef.current) clearTimeout(paypalTimeoutRef.current);
+      if (paypalTimeoutRef.current) {
+        clearTimeout(paypalTimeoutRef.current);
+      }
     };
-  }, [isOpen, hasLoggedShown]);
+  }, [isOpen, paypalConfig, paypalFailed]);
 
-  // Check PayPal configuration
+  // Check PayPal configuration (cached)
   const checkPayPalConfig = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -93,44 +97,29 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      setPaypalConfigured(data.configured);
-      if (data.configured && data.client_id) {
-        setPaypalClientId(data.client_id);
-      }
+      setPaypalConfig(data);
     } catch (err) {
       console.debug('PayPal config check failed:', err);
+      setPaypalConfig({ configured: false });
     }
   };
 
-  // Initialize PayPal when selected and one-time payment
-  useEffect(() => {
-    if (paymentMethod === 'paypal' && paypalConfigured && paypalClientId && paymentType === 'one-time') {
-      initializePayPal();
-    }
-    const containerRef = paypalContainerRef.current;
-    return () => {
-      if (containerRef) {
-        containerRef.innerHTML = '';
-      }
-      setPaypalReady(false);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentMethod, paypalConfigured, paypalClientId, paymentType, selectedAmount, customAmount]);
-
+  // Initialize PayPal only when needed
   const initializePayPal = async () => {
-    // Set a timeout - if PayPal doesn't load in 8s (ad blocker), fallback to Stripe
+    if (!paypalConfig?.configured || !paypalConfig?.client_id) return;
+    
+    // Set timeout for PayPal SDK loading
     if (paypalTimeoutRef.current) clearTimeout(paypalTimeoutRef.current);
     paypalTimeoutRef.current = setTimeout(() => {
       if (!paypalReady && !paypalFailed) {
         console.debug('PayPal SDK timed out - falling back to Stripe');
         setPaypalFailed(true);
-        setPaymentMethod('stripe');
       }
     }, 8000);
 
     if (!window.paypal) {
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`;
+      script.src = `https://www.paypal.com/sdk/js?client-id=${paypalConfig.client_id}&currency=USD&disable-funding=credit`;
       script.async = true;
       script.onload = () => {
         if (paypalTimeoutRef.current) clearTimeout(paypalTimeoutRef.current);
@@ -140,7 +129,6 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         if (paypalTimeoutRef.current) clearTimeout(paypalTimeoutRef.current);
         console.debug('PayPal SDK blocked - falling back to Stripe');
         setPaypalFailed(true);
-        setPaymentMethod('stripe');
       };
       document.body.appendChild(script);
     } else {
@@ -166,7 +154,8 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           color: 'gold',
           shape: 'rect',
           label: 'paypal',
-          height: 40
+          height: 40,
+          tagline: false
         },
         createOrder: async () => {
           const response = await fetch(`${getBackendUrl()}/api/paypal/create-order`, {
@@ -260,7 +249,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         },
         body: JSON.stringify({
           amount: amount,
-          paymentType: paymentType
+          paymentType: 'one-time'
         })
       });
 
@@ -268,7 +257,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
       if (data.success && data.url) {
         // Log proceed to payment action
-        logActivity('proceed_to_payment', amount, paymentType);
+        logActivity('proceed_to_payment', amount, 'one-time');
         // Record that popup was shown
         localStorage.setItem('contribution_popup_last_shown', Date.now().toString());
         // Redirect to Stripe Checkout
@@ -292,7 +281,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         <div className="contribution-popup-header">
           <h2>
             <span className="contribution-icon">🔔</span>
-            Support the Platform
+            PLEASE SUPPORT THE PLATFORM
           </h2>
           <button 
             className="contribution-popup-close" 
@@ -409,7 +398,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           )} */}
 
           {/* PayPal Buttons (hidden when PayPal failed/blocked) */}
-          {paymentMethod === 'paypal' && paymentType === 'one-time' && !paypalFailed && (
+          {paypalConfig?.configured && !paypalFailed && (
             <div className="contribution-paypal-container">
               <div ref={paypalContainerRef} id="contribution-paypal-buttons"></div>
               {!paypalReady && (
@@ -421,8 +410,8 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             </div>
           )}
 
-          {/* Stripe Checkout fallback (auto-enabled when PayPal blocked, or always for monthly) */}
-          {(paymentMethod === 'stripe' || paypalFailed) && (
+          {/* Stripe Checkout fallback (auto-enabled when PayPal blocked) */}
+          {(!paypalConfig?.configured || paypalFailed) && (
             <button 
               className="contribution-proceed-btn"
               onClick={handleProceedToPayment}
