@@ -4845,9 +4845,11 @@ async def search_users(
             occupation_queries = []
             for occ in occupation_list:
                 if occ.strip():
-                    occ_text = occ.strip().lower()  # workType is stored in lowercase
-                    # Exact match on workType (case-insensitive)
+                    occ_text = occ.strip()  # Keep original case for exact match
+                    # Try exact match first (case-sensitive)
                     occupation_queries.append({"workExperience.workType": occ_text})
+                    # Also try lowercase version for compatibility
+                    occupation_queries.append({"workExperience.workType": occ_text.lower()})
                     # Keep backward compatibility with old occupation field
                     occupation_queries.append({"occupation": {"$regex": occ_text, "$options": "i"}})
             
