@@ -850,11 +850,10 @@
 
 /* Status Radio Group */
 .status-radio-group {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 20px;
-  /*  */
 }
 
 .status-radio-option {
@@ -1210,5 +1209,10 @@
   .status-modal-footer .btn-confirm {
     flex: 1;
     padding: 12px 16px;
+  }
+
+  /* Switch status radio group to single column on mobile */
+  .status-radio-group {
+    grid-template-columns: 1fr;
   }
 }
