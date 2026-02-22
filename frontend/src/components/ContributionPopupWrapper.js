@@ -7,7 +7,7 @@ import useContributionPopup from '../hooks/useContributionPopup';
  * Should be rendered inside authenticated routes
  */
 const ContributionPopupWrapper = () => {
-  const { showPopup, closePopup } = useContributionPopup();
+  const { showPopup, closePopup, contributionConfig } = useContributionPopup();
   const [forceShow, setForceShow] = useState(false);
 
   // Listen for force-show event (for testing)
@@ -28,7 +28,8 @@ const ContributionPopupWrapper = () => {
   return (
     <ContributionPopup 
       isOpen={showPopup || forceShow} 
-      onClose={handleClose} 
+      onClose={handleClose}
+      contributionConfig={contributionConfig}
     />
   );
 };

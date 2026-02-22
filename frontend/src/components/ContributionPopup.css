@@ -25,7 +25,7 @@
   background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 100%);
   border-radius: 28px;
   width: 100%;
-  max-width: 360px;
+  max-width: 780px;
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
@@ -89,7 +89,7 @@
 /* Header - Cute Style */
 .contribution-popup-header {
   background: transparent;
-  padding: 20px 20px 10px 20px;
+  padding: 20px 24px 10px 24px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -105,7 +105,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  line-height: 1.4;
+  line-height: 1.1;
   flex: 1;
   padding-right: 10px;
 }
@@ -160,7 +160,7 @@
 
 /* Body */
 .contribution-popup-body {
-  padding: 10px 20px 20px 20px;
+  padding: 10px 24px 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -191,28 +191,36 @@
   text-align: center;
 }
 
-/* Amount Options - Horizontal Row */
+/* Amount Options - Column Layout */
 .contribution-amounts {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+
+@media (max-width: 480px) {
+  .contribution-amounts {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
 }
 
 .contribution-amount-option {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 16px;
+  padding: 12px 8px;
   background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
   border: 2px solid transparent;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.25s ease;
   position: relative;
   overflow: hidden;
+  flex-direction: column;
+  min-height: 65px;
   flex: 1;
-  min-width: 70px;
 }
 
 .theme-dark .contribution-amount-option {
@@ -256,7 +264,7 @@
 }
 
 .contribution-amount-label {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: #374151;
   display: flex;
@@ -291,27 +299,34 @@
   50% { opacity: 0.7; }
 }
 
-/* Custom Amount - Full Width Below */
+/* Custom Amount - Column Layout */
 .custom-option {
-  flex: 100%;
-  min-width: 100%;
+  grid-column: span 1;
 }
 
 .custom-option .contribution-amount-label {
-  justify-content: flex-start;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
 }
 
 .custom-amount-input {
   background: white;
   border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 6px 10px;
+  border-radius: 6px;
+  padding: 6px 8px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: #374151;
-  width: 90px;
-  margin-left: 4px;
+  width: 60px;
+  text-align: center;
   transition: all 0.2s ease;
+}
+
+.custom-amount-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .theme-dark .custom-amount-input {
@@ -320,10 +335,9 @@
   color: #e5e7eb;
 }
 
-.custom-amount-input:focus {
-  outline: none;
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+.theme-dark .custom-amount-input:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
 }
 
 .custom-amount-input::placeholder {
