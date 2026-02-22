@@ -3,8 +3,8 @@ import { getBackendUrl } from '../config/apiConfig';
 import toastService from '../services/toastService';
 import './ContributionPopup.css';
 
-const ContributionPopup = ({ isOpen, onClose }) => {
-  const [selectedAmount, setSelectedAmount] = useState(10);
+const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
+  const [selectedAmount, setSelectedAmount] = useState(15);
   const [customAmount, setCustomAmount] = useState('');
   // eslint-disable-next-line no-unused-vars
   const [paymentType, setPaymentType] = useState('one-time'); // 'one-time' or 'monthly' - default to one-time for PayPal
@@ -20,7 +20,8 @@ const ContributionPopup = ({ isOpen, onClose }) => {
   const paypalContainerRef = useRef(null);
   const paypalTimeoutRef = useRef(null);
 
-  const amounts = [5, 10, 15];
+  // Use amounts from config or fallback to default
+  const amounts = contributionConfig?.amounts || [10, 15, 25];
 
   // Log activity to backend (fire and forget)
   const logActivity = async (action, amount = null, pType = null) => {
@@ -48,7 +49,7 @@ const ContributionPopup = ({ isOpen, onClose }) => {
   useEffect(() => {
     const handleEscKey = (event) => {
       if (event.key === 'Escape' && !loading) {
-        handleSessionDismiss();
+        handleDismiss();
       }
     };
 
@@ -230,21 +231,11 @@ const ContributionPopup = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleSessionDismiss = () => {
-    // Log the close action
-    logActivity('closed');
+  const handleDismiss = () => {
+    // Log the dismiss action
+    logActivity('dismissed');
     // Dismiss for current session only
     sessionStorage.setItem('contribution_dismissed', 'true');
-    onClose();
-  };
-
-  const handleRemindNextWeek = () => {
-    // Log the remind later action
-    logActivity('remind_later');
-    // Set reminder for 7 days from now
-    const remindAt = Date.now() + (7 * 24 * 60 * 60 * 1000);
-    localStorage.setItem('contribution_remind_at', remindAt.toString());
-    localStorage.setItem('contribution_popup_last_shown', Date.now().toString());
     onClose();
   };
 
@@ -296,7 +287,7 @@ const ContributionPopup = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="contribution-popup-overlay" onClick={handleSessionDismiss}>
+    <div className="contribution-popup-overlay" onClick={handleDismiss}>
       <div className="contribution-popup" onClick={(e) => e.stopPropagation()}>
         <div className="contribution-popup-header">
           <h2>
@@ -305,7 +296,7 @@ const ContributionPopup = ({ isOpen, onClose }) => {
           </h2>
           <button 
             className="contribution-popup-close" 
-            onClick={handleSessionDismiss}
+            onClick={handleDismiss}
             disabled={loading}
           >
             ✕
@@ -337,7 +328,7 @@ const ContributionPopup = ({ isOpen, onClose }) => {
                   disabled={loading}
                 />
                 <span className="contribution-amount-label">${amount}</span>
-                {amount === 10 && <span className="popular-badge">Popular</span>}
+                {amount === 15 && <span className="popular-badge">Popular</span>}
               </label>
             ))}
             
@@ -450,10 +441,10 @@ const ContributionPopup = ({ isOpen, onClose }) => {
 
           <button 
             className="contribution-remind-btn"
-            onClick={handleRemindNextWeek}
+            onClick={onClose}
             disabled={loading}
           >
-            Remind me next week
+            Close
           </button>
         </div>
       </div>

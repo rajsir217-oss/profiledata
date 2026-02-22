@@ -364,12 +364,15 @@ async def get_contribution_status(
             "userDisabledByAdmin": user.get("contributionPopupDisabledByAdmin", False),
             "hasActiveRecurringContribution": contributions.get("hasActiveRecurring", False),
             "lastContributionDate": contributions.get("lastContributionDate"),
+            "lastRecurringPaymentDate": contributions.get("lastRecurringPaymentDate"),
             "totalContributed": contributions.get("totalContributed", 0),
             "popupConfig": {
-                "amounts": contribution_config.get("amounts", [5, 10, 15]),
+                "amounts": contribution_config.get("amounts", [10, 15, 25]),
                 "message": contribution_config.get("message", "Support the platform"),
                 "frequencyDays": contribution_config.get("frequencyDays", 14),
-                "minLogins": contribution_config.get("minLogins", 10)
+                "minLogins": contribution_config.get("minLogins", 10),
+                "loginDelaySeconds": contribution_config.get("loginDelaySeconds", 30),
+                "monthlySilenceDays": contribution_config.get("monthlySilenceDays", 35)
             }
         }
     except HTTPException:
@@ -395,10 +398,12 @@ async def get_contribution_settings(
         "success": True,
         "contributions": {
             "enabled": contribution_config.get("enabled", False),  # Default: disabled
-            "amounts": contribution_config.get("amounts", [5, 10, 15]),
+            "amounts": contribution_config.get("amounts", [10, 15, 25]),
             "message": contribution_config.get("message", "Support the platform"),
             "frequencyDays": contribution_config.get("frequencyDays", 14),
-            "minLogins": contribution_config.get("minLogins", 10)
+            "minLogins": contribution_config.get("minLogins", 10),
+            "loginDelaySeconds": contribution_config.get("loginDelaySeconds", 30),
+            "monthlySilenceDays": contribution_config.get("monthlySilenceDays", 35)
         }
     }
 

@@ -16,6 +16,7 @@ const useContributionPopup = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(true);
   const [contributionConfig, setContributionConfig] = useState(null);
+  const [loginTime] = useState(() => Date.now());
 
   const checkShouldShowPopup = useCallback(async () => {
     try {
@@ -23,6 +24,17 @@ const useContributionPopup = () => {
       if (!token) {
         console.log('🔔 Contribution popup: No token, skipping');
         setLoading(false);
+        return;
+      }
+
+      // Check if enough time has passed since login (30-second delay)
+      const loginDelayMs = 30000; // 30 seconds
+      const timeSinceLogin = Date.now() - loginTime;
+      
+      if (timeSinceLogin < loginDelayMs) {
+        const delay = loginDelayMs - timeSinceLogin;
+        console.log(`🔔 Contribution popup: Waiting ${delay/1000}s before showing popup`);
+        setTimeout(() => checkShouldShowPopup(), delay);
         return;
       }
 
@@ -82,7 +94,20 @@ const useContributionPopup = () => {
 
       // Check if user has active recurring contribution
       if (data.hasActiveRecurringContribution) {
-        console.log('🔔 Contribution popup: User has active recurring contribution');
+        // Check if within monthly silence period
+        const lastPayment = data.lastRecurringPaymentDate;
+        const silenceDays = data.popupConfig?.monthlySilenceDays || 35;
+        
+        if (lastPayment) {
+          const daysSincePayment = (Date.now() - new Date(lastPayment).getTime()) / (1000 * 60 * 60 * 24);
+          if (daysSincePayment < silenceDays) {
+            console.log(`🔔 Contribution popup: Monthly member in silence period (${daysSincePayment.toFixed(1)} days since payment)`);
+            setLoading(false);
+            return;
+          }
+        }
+        
+        console.log('🔔 Contribution popup: User has active recurring contribution but outside silence period');
         setLoading(false);
         return;
       }
@@ -150,10 +175,10 @@ const useContributionPopup = () => {
       const loginCount = parseInt(localStorage.getItem('login_count') || '0');
       localStorage.setItem('login_count', (loginCount + 1).toString());
 
-      // Check popup after a short delay to let dashboard load first
+      // Check popup after 30 seconds to give user time to engage
       setTimeout(() => {
         checkShouldShowPopup();
-      }, 3000);
+      }, 30000);
     };
 
     window.addEventListener('userLoggedIn', handleUserLoggedIn);
