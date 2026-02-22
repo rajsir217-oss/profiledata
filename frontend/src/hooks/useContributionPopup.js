@@ -1,40 +1,66 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getBackendUrl } from '../config/apiConfig';
+import { hasRecentPayment } from '../utils/dateUtils';
 
 /**
- * Hook to manage contribution popup display logic
+ * Simplified hook to manage contribution popup display logic
  * 
  * Shows popup when:
- * - Site-level contribution is enabled (default: disabled)
- * - User is not disabled by admin
- * - User doesn't have active recurring contribution
- * - User has logged in 3+ times (configurable)
- * - Cooldown period has passed (remind me next week)
- * - Not dismissed this session
+ * - User is logged in
+ * - Has NOT paid in the last 30 days
  */
 const useContributionPopup = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(true);
   const [contributionConfig, setContributionConfig] = useState(null);
-  const [loginTime] = useState(() => Date.now());
+  const popupTimeoutRef = useRef(null);
 
   const checkShouldShowPopup = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.log('🔔 Contribution popup: No token, skipping');
         setLoading(false);
         return;
       }
 
-      // Check if enough time has passed since login (30-second delay)
-      const loginDelayMs = 30000; // 30 seconds
-      const timeSinceLogin = Date.now() - loginTime;
+      // Fetch contribution status from backend
+      const response = await fetch(`${getBackendUrl()}/api/stripe/contribution-status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
       
-      if (timeSinceLogin < loginDelayMs) {
-        const delay = loginDelayMs - timeSinceLogin;
-        console.log(`🔔 Contribution popup: Waiting ${delay/1000}s before showing popup`);
-        setTimeout(() => checkShouldShowPopup(), delay);
+      if (!data.success) {
+        setLoading(false);
+        return;
+      }
+
+      // Store config for popup component
+      setContributionConfig(data.popupConfig);
+
+      // Check if site-level is enabled
+      if (!data.siteEnabled) {
+        setLoading(false);
+        return;
+      }
+
+      // Check if admin disabled for this user
+      if (data.userDisabledByAdmin) {
+        setLoading(false);
+        return;
+      }
+
+      // CORE LOGIC: Check if user paid in last 30 days
+      if (hasRecentPayment(data.lastContributionDate, data.lastRecurringPaymentDate, 30)) {
+        console.log('🔔 Contribution popup: User paid recently, skipping');
+        setLoading(false);
         return;
       }
 
@@ -45,110 +71,8 @@ const useContributionPopup = () => {
         return;
       }
 
-      // Check remind cooldown
-      const remindAt = localStorage.getItem('contribution_remind_at');
-      if (remindAt && Date.now() < parseInt(remindAt)) {
-        console.log('🔔 Contribution popup: In remind cooldown until', new Date(parseInt(remindAt)));
-        setLoading(false);
-        return;
-      }
-
-      // Fetch contribution status from backend
-      console.log('🔔 Contribution popup: Fetching status from backend...');
-      const response = await fetch(`${getBackendUrl()}/api/stripe/contribution-status`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        console.log('🔔 Contribution popup: Backend response not OK:', response.status);
-        setLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-      console.log('🔔 Contribution popup: Backend data:', data);
-
-      if (!data.success) {
-        console.log('🔔 Contribution popup: Backend returned success=false');
-        setLoading(false);
-        return;
-      }
-
-      setContributionConfig(data.popupConfig);
-
-      // Check site-level enabled (default: disabled)
-      if (!data.siteEnabled) {
-        console.log('🔔 Contribution popup: Site-level disabled');
-        setLoading(false);
-        return;
-      }
-
-      // Check if admin disabled for this user
-      if (data.userDisabledByAdmin) {
-        console.log('🔔 Contribution popup: Admin disabled for this user');
-        setLoading(false);
-        return;
-      }
-
-      // Check if user has active recurring contribution
-      if (data.hasActiveRecurringContribution) {
-        // Check if within monthly silence period
-        const lastPayment = data.lastRecurringPaymentDate;
-        const silenceDays = data.popupConfig?.monthlySilenceDays || 35;
-        
-        if (lastPayment) {
-          const daysSincePayment = (Date.now() - new Date(lastPayment).getTime()) / (1000 * 60 * 60 * 24);
-          if (daysSincePayment < silenceDays) {
-            console.log(`🔔 Contribution popup: Monthly member in silence period (${daysSincePayment.toFixed(1)} days since payment)`);
-            setLoading(false);
-            return;
-          }
-        }
-        
-        console.log('🔔 Contribution popup: User has active recurring contribution but outside silence period');
-        setLoading(false);
-        return;
-      }
-
-      // Check login count
-      const loginCount = parseInt(localStorage.getItem('login_count') || '0');
-      const minLogins = data.popupConfig?.minLogins || 10;
-      console.log('🔔 Contribution popup: Login count check:', loginCount, '>=', minLogins);
-      if (loginCount < minLogins) {
-        console.log('🔔 Contribution popup: Not enough logins');
-        setLoading(false);
-        return;
-      }
-
-      // Check frequency (for users who never contributed)
-      const lastPopupShown = localStorage.getItem('contribution_popup_last_shown');
-      const frequencyDays = data.popupConfig?.frequencyDays || 14;
-      
-      if (!data.lastContributionDate && lastPopupShown) {
-        const daysSincePopup = (Date.now() - parseInt(lastPopupShown)) / (1000 * 60 * 60 * 24);
-        console.log('🔔 Contribution popup: Days since last popup:', daysSincePopup, 'frequency:', frequencyDays);
-        if (daysSincePopup < frequencyDays) {
-          console.log('🔔 Contribution popup: Too soon since last popup');
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Check if one-time contributor (remind after 30 days)
-      if (data.lastContributionDate && !data.hasActiveRecurringContribution) {
-        const daysSinceContribution = (Date.now() - new Date(data.lastContributionDate).getTime()) / (1000 * 60 * 60 * 24);
-        console.log('🔔 Contribution popup: Days since contribution:', daysSinceContribution);
-        if (daysSinceContribution < 30) {
-          console.log('🔔 Contribution popup: Recent one-time contributor');
-          setLoading(false);
-          return;
-        }
-      }
-
       // All checks passed - show popup
-      console.log('🔔 Contribution popup: ✅ All checks passed, showing popup!');
+      console.log('🔔 Contribution popup: ✅ Showing popup!');
       setShowPopup(true);
       localStorage.setItem('contribution_popup_last_shown', Date.now().toString());
 
@@ -159,35 +83,47 @@ const useContributionPopup = () => {
     }
   }, []);
 
+  // Schedule popup check with race condition protection
+  const schedulePopupCheck = useCallback((delay) => {
+    // Cancel any pending check
+    if (popupTimeoutRef.current) {
+      clearTimeout(popupTimeoutRef.current);
+    }
+    
+    popupTimeoutRef.current = setTimeout(() => {
+      checkShouldShowPopup();
+      popupTimeoutRef.current = null;
+    }, delay);
+  }, [checkShouldShowPopup]);
+
   useEffect(() => {
-    // Check on mount if already logged in (e.g. page refresh while authenticated)
+    // Check on mount if already logged in
     const token = localStorage.getItem('token');
-    let timer;
     if (token) {
-      timer = setTimeout(() => {
-        checkShouldShowPopup();
-      }, 2000);
+      // Small delay to allow page to load
+      schedulePopupCheck(1000);
     }
 
-    // Listen for login event to re-trigger check (handles fresh login flow)
+    // Listen for login event
     const handleUserLoggedIn = () => {
-      // Increment login count only on actual login
+      // Increment login count
       const loginCount = parseInt(localStorage.getItem('login_count') || '0');
       localStorage.setItem('login_count', (loginCount + 1).toString());
 
-      // Check popup after 30 seconds to give user time to engage
-      setTimeout(() => {
-        checkShouldShowPopup();
-      }, 30000);
+      // Show popup immediately after login (no 30s delay needed)
+      schedulePopupCheck(500);
     };
 
     window.addEventListener('userLoggedIn', handleUserLoggedIn);
 
     return () => {
-      if (timer) clearTimeout(timer);
+      // Cleanup
+      if (popupTimeoutRef.current) {
+        clearTimeout(popupTimeoutRef.current);
+      }
       window.removeEventListener('userLoggedIn', handleUserLoggedIn);
     };
-  }, [checkShouldShowPopup]);
+  }, [schedulePopupCheck]);
 
   const closePopup = useCallback(() => {
     setShowPopup(false);

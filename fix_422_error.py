@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+"""
+Quick fix for the 422 error - clear instructions
+"""
+
+print("🔧 Fixing 422 Error for Job Update")
+print("=" * 50)
+print()
+print("❌ PROBLEM: Template not loaded in server")
+print("✅ SOLUTION: Restart FastAPI server")
+print()
+print("📋 STEPS:")
+print("1. Find the terminal running FastAPI server")
+print("2. Press Ctrl+C to stop it")
+print("3. Run these commands:")
+print("   cd fastapi_backend")
+print("   python3 main.py")
+print()
+print("🎯 WHY THIS WORKS:")
+print("- Templates are loaded when server starts")
+print("- The server calls initialize_templates() on startup")
+print("- This registers our contribution_popup_activity_cleanup template")
+print("- After that, job updates will work perfectly")
+print()
+print("⏱️  This only takes 10 seconds!")
+print()
+print("📝 After restarting:")
+print("- Go back to Dynamic Scheduler UI")
+print("- Try updating the job again")
+print("- It should work without 422 error")
