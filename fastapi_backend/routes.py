@@ -4474,62 +4474,49 @@ async def delete_user_profile(
 
 @router.get("/search/occupation-options")
 async def get_occupation_options(db = Depends(get_database)):
-    """Get unique occupation options from occupation field and workExperience.description"""
-    logger.info("🔍 Fetching unique occupation options")
+    """Get standardized work type options for occupation search"""
+    logger.info("🔍 Fetching standardized work type options")
     
     try:
-        occupations_set = set()
-        skip_values = {"", "N/A", "n/a", "None", "none", "null"}
+        # Return standardized workType categories
+        work_type_options = [
+            "Accountant", "Analyst", "Artist", "Attorney", "Consultant",
+            "Customer Service", "Dentist", "Designer", "Developer", "Doctor",
+            "Engineer", "Entrepreneur", "Finance", "Freelancer", "HR",
+            "Manager", "Marketing", "Nurse", "Operations", "Others",
+            "Pharma", "Physical Therapy", "Researcher", "Sales", "Scientist",
+            "Software", "Student", "Teacher", "Writer"
+        ]
         
-        # 1. Get from workExperience.position field
-        position_pipeline = [
+        # Also include any custom workTypes that exist in the database
+        custom_pipeline = [
             {"$match": {"workExperience": {"$exists": True, "$ne": []}}},
             {"$unwind": "$workExperience"},
-            {"$match": {"workExperience.position": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
-            {"$group": {"_id": "$workExperience.position"}},
-            {"$sort": {"_id": 1}},
-            {"$limit": 200}
-        ]
-        position_results = await db.users.aggregate(position_pipeline).to_list(length=200)
-        for result in position_results:
-            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
-            if val and val not in skip_values:
-                occupations_set.add(val)
-        
-        # 2. Get from workExperience.description field (where actual occupation info often lives)
-        description_pipeline = [
-            {"$match": {"workExperience": {"$exists": True, "$ne": []}}},
-            {"$unwind": "$workExperience"},
-            {"$match": {"workExperience.description": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
-            {"$group": {"_id": "$workExperience.description"}},
-            {"$sort": {"_id": 1}},
-            {"$limit": 200}
-        ]
-        description_results = await db.users.aggregate(description_pipeline).to_list(length=200)
-        for result in description_results:
-            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
-            if val and val not in skip_values:
-                occupations_set.add(val)
-        
-        # 3. Get from standalone occupation field
-        occupation_pipeline = [
-            {"$match": {"occupation": {"$exists": True, "$nin": ["", None, "N/A", "n/a", "None"]}}},
-            {"$group": {"_id": "$occupation"}},
+            {"$match": {"workExperience.workType": {"$exists": True, "$nin": ["", None]}}},
+            {"$group": {"_id": "$workExperience.workType"}},
             {"$sort": {"_id": 1}}
         ]
-        occupation_results = await db.users.aggregate(occupation_pipeline).to_list(length=None)
-        for result in occupation_results:
-            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
-            if val and val not in skip_values:
-                occupations_set.add(val)
         
-        occupations = sorted(occupations_set)
+        custom_results = await db.users.aggregate(custom_pipeline).to_list(length=None)
+        custom_types = set()
         
-        logger.info(f"✅ Found {len(occupations)} unique occupation options")
+        for result in custom_results:
+            work_type = result["_id"]
+            if work_type and work_type not in [opt.lower() for opt in work_type_options]:
+                # Convert to title case for display
+                display_type = work_type.title()
+                custom_types.add(display_type)
+        
+        # Combine standard and custom options
+        all_options = work_type_options + sorted(list(custom_types))
+        
+        logger.info(f"✅ Found {len(all_options)} work type options ({len(custom_types)} custom)")
         
         return {
-            "options": occupations,
-            "count": len(occupations)
+            "options": all_options,
+            "count": len(all_options),
+            "standard_count": len(work_type_options),
+            "custom_count": len(custom_types)
         }
         
     except Exception as e:
@@ -4853,24 +4840,20 @@ async def search_users(
         
         if occupation_list:
             logger.info(f"🔍 Processing occupation search for: {occupation_list}")
-            # Search in both occupation field and workExperience.description (case-insensitive)
-            # Note: workExperience.description with $regex already searches within array elements
-            # so $elemMatch is not needed for single-field conditions
+            # Search in workType field for standardized categories
+            # Also search in legacy occupation field for backward compatibility
             occupation_queries = []
             for occ in occupation_list:
                 if occ.strip():
-                    occ_text = occ.strip()
-                    # Escape regex special chars for safety, but preserve spaces for matching
-                    safe_text = re.escape(occ_text)
-                    # $regex does substring matching by default, no need for .* prefix
-                    occupation_queries.extend([
-                        {"occupation": {"$regex": safe_text, "$options": "i"}},
-                        {"workExperience.description": {"$regex": safe_text, "$options": "i"}}
-                    ])
+                    occ_text = occ.strip().lower()  # workType is stored in lowercase
+                    # Exact match on workType (case-insensitive)
+                    occupation_queries.append({"workExperience.workType": occ_text})
+                    # Keep backward compatibility with old occupation field
+                    occupation_queries.append({"occupation": {"$regex": occ_text, "$options": "i"}})
             
             if occupation_queries:
                 occupation_query = {"$or": occupation_queries}
-                logger.info(f"🔍 Occupation query: {occupation_query}")
+                logger.info(f"🔍 Occupation query (using workType): {occupation_query}")
                 and_conditions.append(occupation_query)
         if religion and religion.strip():
             query["religion"] = religion

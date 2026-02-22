@@ -311,8 +311,49 @@ const SearchPage2 = () => {
     }
   };
   
-  // Placeholder functions (will be enhanced with remaining hooks)
-  const handleSwipeAction = () => {};
+  // Handle swipe actions in swipe mode
+  const handleSwipeAction = async (direction, user) => {
+    if (!user) return;
+    
+    logger.info(`👆 Swipe action: ${direction} for user ${user.username}`);
+    
+    // Map swipe directions to profile actions
+    switch (direction) {
+      case 'left': // Pass
+        await handleProfileAction(null, user.username, 'exclude');
+        // Move to next card after action
+        if (swipeIndex < currentRecords.length - 1) {
+          handleNextSwipe();
+        }
+        break;
+        
+      case 'right': // Favorite
+        await handleProfileAction(null, user.username, 'favorite');
+        // Move to next card after action
+        if (swipeIndex < currentRecords.length - 1) {
+          handleNextSwipe();
+        }
+        break;
+        
+      case 'up': // Shortlist
+        await handleProfileAction(null, user.username, 'shortlist');
+        // Move to next card after action
+        if (swipeIndex < currentRecords.length - 1) {
+          handleNextSwipe();
+        }
+        break;
+        
+      case 'down': // Skip/Next
+        // Just move to next card without taking action
+        if (swipeIndex < currentRecords.length - 1) {
+          handleNextSwipe();
+        }
+        break;
+        
+      default:
+        logger.warn(`Unknown swipe direction: ${direction}`);
+    }
+  };
   
   // ===== COLUMN RESIZE FUNCTIONALITY =====
   const resizingColumnRef = useRef(null);
