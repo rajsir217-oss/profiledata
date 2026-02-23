@@ -127,7 +127,7 @@ const ActivityLogs = () => {
       
       console.log('🔍 Loading logs with params:', queryParams.toString());
       
-      const response = await fetch(getBackendApiUrl(`/api/activity-logs/?${queryParams}`), {
+      const response = await fetch(getBackendApiUrl(`/api/activity-logs?${queryParams}`), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       

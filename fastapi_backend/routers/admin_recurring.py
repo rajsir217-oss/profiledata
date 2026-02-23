@@ -38,7 +38,7 @@ def verify_admin(current_user: dict = Depends(get_current_user)):
     return current_user
 
 
-@router.get("")
+@router.get("/")
 async def get_all_recurring_contributions(
     status: Optional[str] = Query(None, description="Filter by status"),
     username: Optional[str] = Query(None, description="Filter by username"),
