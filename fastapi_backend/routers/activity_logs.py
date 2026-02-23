@@ -24,7 +24,7 @@ def check_admin(current_user: dict):
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
 
-@router.get("/", response_model=ActivityLogResponse)
+@router.get("", response_model=ActivityLogResponse)
 async def get_activity_logs(
     username: Optional[str] = Query(None),
     action_type: Optional[ActivityType] = Query(None),
