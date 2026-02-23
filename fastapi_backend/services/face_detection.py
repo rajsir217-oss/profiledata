@@ -38,16 +38,18 @@ def _get_face_detector():
         _mp_available = True
         logger.info(f"✅ Face detection initialized (confidence={min_confidence})")
         return _face_detection
-    except ImportError:
+    except ImportError as e:
         _mp_available = False
         logger.warning(
-            "⚠️ mediapipe not installed – face detection disabled. "
-            "Install with: pip install mediapipe"
+            f"⚠️ mediapipe not available – face detection disabled. "
+            f"Error: {e}. "
+            f"Install with: pip install mediapipe. "
+            f"Also ensure system libs are installed: apt-get install libgl1-mesa-glx libglib2.0-0"
         )
         return None
     except Exception as e:
         _mp_available = False
-        logger.error(f"❌ Failed to initialize face detection: {e}")
+        logger.error(f"❌ Failed to initialize face detection: {e}", exc_info=True)
         return None
 
 
