@@ -171,24 +171,60 @@ class PollReminderNotifierTemplate(JobTemplate):
             logger.info(f"   - Poll age cutoff: {poll_age_cutoff}")
             logger.info(f"   - Event date cutoff: {event_date_cutoff}")
             
-            # Build query for active polls
+            # Build query for ACTIVE, OPEN polls only
             poll_query = {
-                "status": "active",
+                "status": "active",  # Only active polls
                 "created_at": {"$lte": poll_age_cutoff}
             }
             
-            # If only event polls, require event_date
-            if include_event_polls_only:
-                poll_query["event_date"] = {
-                    "$exists": True,
-                    "$ne": None,
-                    "$lte": event_date_cutoff  # Compare datetime to datetime
+            # CRITICAL: Exclude polls that are effectively closed
+            # 1. Event date in past (event already happened)
+            # 2. Explicitly closed polls (status: "closed")
+            # 3. Polls with closing date in past
+            poll_query["$and"] = [
+                # Event date must be in future (or not exist for non-event polls)
+                {
+                    "$or": [
+                        {"event_date": {"$exists": False}},  # No event date
+                        {"event_date": None},  # Event date is null
+                        {"event_date": {"$gt": now}}  # Event date is in future
+                    ]
+                },
+                # No closed_at timestamp (poll hasn't been closed)
+                {
+                    "$or": [
+                        {"closed_at": {"$exists": False}},  # No closing date
+                        {"closed_at": None}  # Closing date is null
+                    ]
                 }
+            ]
+            
+            # If only event polls, require event_date and check it's within reminder window
+            if include_event_polls_only:
+                poll_query["$and"].append({
+                    "event_date": {
+                        "$exists": True,
+                        "$ne": None,
+                        "$lte": event_date_cutoff,  # Event is soon enough to remind
+                        "$gt": now  # But event hasn't happened yet
+                    }
+                })
             
             # Get active polls
             active_polls = await db.polls.find(poll_query).to_list(50)
             
             logger.info(f"🔔 Found {len(active_polls)} active polls to check")
+            
+            # DEBUG: Log why polls might be filtered
+            if len(active_polls) == 0:
+                all_polls = await db.polls.find({"status": "active"}).to_list(10)
+                logger.info(f"🔍 DEBUG: Found {len(all_polls)} polls with status='active' (before filtering)")
+                for poll in all_polls[:3]:  # Show first 3 as examples
+                    poll_title = poll.get("title", "Untitled")
+                    event_date = poll.get("event_date")
+                    closed_at = poll.get("closed_at")
+                    status = poll.get("status")
+                    logger.info(f"   - Poll '{poll_title}': status={status}, event_date={event_date}, closed_at={closed_at}")
             
             for poll in active_polls:
                 try:

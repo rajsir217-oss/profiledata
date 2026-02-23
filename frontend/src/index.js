@@ -6,6 +6,16 @@ import reportWebVitals from './reportWebVitals';
 // frontend/src/index.js
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+// Suppress cross-origin "Script error." from third-party SDKs (PayPal, etc.)
+// These are harmless errors masked by browser CORS policy
+window.addEventListener('error', (event) => {
+  if (event.message === 'Script error.' && !event.filename) {
+    event.stopImmediatePropagation();
+    event.preventDefault();
+    return true;
+  }
+});
+
 // CRITICAL: Check for token on protected routes BEFORE React mounts
 const publicPaths = ['/', '/login', '/register', '/register2', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help', '/logo-showcase', '/tooltip-demo'];
 const currentPath = window.location.pathname;

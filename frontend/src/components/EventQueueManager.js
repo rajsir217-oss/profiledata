@@ -44,6 +44,25 @@ const EventQueueManager = () => {
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  
+  // Queue management state
+  const [queueStatus, setQueueStatus] = useState({
+    status: 'normal',
+    paused_at: null,
+    resume_at: null,
+    reason: null
+  });
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [showCleanupModal, setShowCleanupModal] = useState(false);
+  const [pauseReason, setPauseReason] = useState('');
+  const [pauseDuration, setPauseDuration] = useState(60);
+  const [emergencyStop, setEmergencyStop] = useState(false);
+  const [cleanupConfig, setCleanupConfig] = useState({
+    age_days: 30,
+    failed_age_days: 7,
+    sent_age_days: 7,
+    dry_run: false
+  });
 
   // Admin-only protection
   useEffect(() => {
@@ -71,7 +90,12 @@ const EventQueueManager = () => {
     
     if (!response.ok) throw new Error('Failed to load queue');
     const data = await response.json();
-    setQueueItems(data);
+    // Normalize: ensure every item has _id (API may return "id" instead of "_id")
+    const normalized = (data || []).map(item => ({
+      ...item,
+      _id: item._id || item.id
+    }));
+    setQueueItems(normalized);
   };
 
   // eslint-disable-next-line no-unused-vars
@@ -113,8 +137,23 @@ const EventQueueManager = () => {
     }
   };
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadQueueStatus = async (token) => {
+    try {
+      const response = await fetch(getBackendApiUrl('/api/admin/queue/status'), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setQueueStatus(data.data.control_status || { status: 'normal' });
+      }
+    } catch (err) {
+      console.error('Error loading queue status:', err);
+    }
+  };
+
+  const loadData = useCallback(async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const token = localStorage.getItem('token');
       
@@ -128,19 +167,23 @@ const EventQueueManager = () => {
       await loadQueue(token);
       
       await loadStats(token);
+      await loadQueueStatus(token);
     } catch (err) {
-      console.error('Error loading data:', err);
-      const message = err.message || 'Failed to load data';
-      toast.error(message);
+      // Only show errors on foreground loads to avoid toast spam
+      if (!isBackground) {
+        console.error('Error loading data:', err);
+        const message = err.message || 'Failed to load data';
+        toast.error(message);
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 10000); // Refresh every 10 seconds
+    loadData(false); // Initial load shows spinner
+    const interval = setInterval(() => loadData(true), 300000); // Background refresh every 5 min, no spinner
     return () => clearInterval(interval);
   }, [loadData]);
 
@@ -258,6 +301,118 @@ const EventQueueManager = () => {
     } catch (err) {
       console.error('Error bulk deleting:', err);
       toast.error('Failed to delete items');
+    }
+  };
+
+  // Queue management functions
+  const handlePauseQueue = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(getBackendApiUrl('/api/admin/queue/pause'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          reason: pauseReason,
+          duration_minutes: pauseDuration,
+          emergency: emergencyStop
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to pause queue');
+      }
+
+      await response.json();
+      setShowPauseModal(false);
+      setPauseReason('');
+      setPauseDuration(60);
+      setEmergencyStop(false);
+      
+      toast.success(`Queue ${emergencyStop ? 'emergency stopped' : 'paused'}: ${pauseReason}`);
+      loadData(); // Reload status
+    } catch (err) {
+      console.error('Error pausing queue:', err);
+      toast.error(err.message || 'Failed to pause queue');
+    }
+  };
+
+  const handleResumeQueue = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(getBackendApiUrl('/api/admin/queue/resume?reason=Manual resume'), {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to resume queue');
+      }
+
+      toast.success('Queue resumed successfully');
+      loadData(); // Reload status
+    } catch (err) {
+      console.error('Error resuming queue:', err);
+      toast.error(err.message || 'Failed to resume queue');
+    }
+  };
+
+  const handleCleanupQueue = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(getBackendApiUrl('/api/admin/queue/cleanup'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cleanupConfig)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to cleanup queue');
+      }
+
+      const result = await response.json();
+      setShowCleanupModal(false);
+      
+      const stats = result.data;
+      const action = cleanupConfig.dry_run ? 'Dry run completed' : 'Cleanup completed';
+      toast.success(`${action}: ${stats.total_deleted} items processed`);
+      
+      // Show detailed results
+      console.log('Cleanup results:', stats);
+      loadData(); // Reload data
+    } catch (err) {
+      console.error('Error cleaning queue:', err);
+      toast.error(err.message || 'Failed to cleanup queue');
+    }
+  };
+
+  const handleResetStuck = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(getBackendApiUrl('/api/admin/queue/reset-stuck?timeout_minutes=10'), {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to reset stuck notifications');
+      }
+
+      const result = await response.json();
+      toast.success(`Reset ${result.data.reset_count} stuck notifications`);
+      loadData(); // Reload data
+    } catch (err) {
+      console.error('Error resetting stuck notifications:', err);
+      toast.error(err.message || 'Failed to reset stuck notifications');
     }
   };
 
@@ -381,6 +536,72 @@ const EventQueueManager = () => {
         <div className="header-left">
           <h1>📊 Event Queue Manager</h1>
           <p>Monitor notification events and delivery status</p>
+        </div>
+      </div>
+
+      {/* Queue Status Bar */}
+      <div className={`queue-status-bar ${queueStatus.status}`}>
+        <div className="status-indicator">
+          <span className="status-icon">
+            {queueStatus.status === 'normal' && '▶️'}
+            {queueStatus.status === 'paused' && '⏸️'}
+            {queueStatus.status === 'emergency_stop' && '🛑'}
+          </span>
+          <span className="status-text">
+            Queue is {queueStatus.status.replace('_', ' ').toUpperCase()}
+            {queueStatus.reason && `: ${queueStatus.reason}`}
+            {queueStatus.resume_at && ` (Auto-resume at ${new Date(queueStatus.resume_at).toLocaleTimeString()})`}
+          </span>
+        </div>
+        
+        <div className="queue-controls">
+          {queueStatus.status === 'normal' ? (
+            <>
+              <button 
+                className="btn btn-warning"
+                onClick={() => setShowPauseModal(true)}
+                title="Pause queue processing"
+              >
+                ⏸️ Pause Queue
+              </button>
+              <button 
+                className="btn btn-danger"
+                onClick={() => {
+                  setEmergencyStop(true);
+                  setShowPauseModal(true);
+                }}
+                title="Emergency stop - halt immediately"
+              >
+                🛑 Emergency Stop
+              </button>
+            </>
+          ) : (
+            <button 
+              className="btn btn-success"
+              onClick={handleResumeQueue}
+              title="Resume queue processing"
+            >
+              ▶️ Resume Queue
+            </button>
+          )}
+          
+          <button 
+            className="btn btn-info"
+            onClick={() => setShowCleanupModal(true)}
+            title="Clean up old notifications"
+          >
+            🧹 Cleanup Queue
+          </button>
+          
+          {stats.processing > 0 && (
+            <button 
+              className="btn btn-secondary"
+              onClick={handleResetStuck}
+              title="Reset stuck processing notifications"
+            >
+              🔄 Reset Stuck ({stats.processing})
+            </button>
+          )}
         </div>
       </div>
 
@@ -683,6 +904,154 @@ const EventQueueManager = () => {
                 onClick={confirmBulkDelete}
               >
                 ✓ Delete {selectedItems.size} Items
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pause Queue Modal */}
+      {showPauseModal && (
+        <div className="modal-overlay" onClick={() => setShowPauseModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{emergencyStop ? '🛑 Emergency Stop' : '⏸️ Pause Queue'}</h3>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Reason:</label>
+                <input
+                  type="text"
+                  value={pauseReason}
+                  onChange={(e) => setPauseReason(e.target.value)}
+                  placeholder="e.g., Maintenance window, High load, etc."
+                  className="form-control"
+                />
+              </div>
+              
+              {!emergencyStop && (
+                <div className="form-group">
+                  <label>Auto-resume after (minutes):</label>
+                  <input
+                    type="number"
+                    value={pauseDuration}
+                    onChange={(e) => setPauseDuration(parseInt(e.target.value) || 0)}
+                    min="1"
+                    max="1440"
+                    className="form-control"
+                  />
+                  <small>Leave empty for indefinite pause</small>
+                </div>
+              )}
+              
+              {emergencyStop && (
+                <div className="warning-text">
+                  ⚠️ Emergency stop will halt queue processing immediately. 
+                  All processing notifications will be reset to pending.
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowPauseModal(false);
+                  setPauseReason('');
+                  setPauseDuration(60);
+                  setEmergencyStop(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                className={`btn ${emergencyStop ? 'btn-danger' : 'btn-warning'}`}
+                onClick={handlePauseQueue}
+                disabled={!pauseReason.trim()}
+              >
+                {emergencyStop ? '🛑 Emergency Stop' : '⏸️ Pause Queue'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cleanup Queue Modal */}
+      {showCleanupModal && (
+        <div className="modal-overlay" onClick={() => setShowCleanupModal(false)}>
+          <div className="modal-content cleanup-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🧹 Queue Cleanup</h3>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Delete pending notifications older than (days):</label>
+                <input
+                  type="number"
+                  value={cleanupConfig.age_days}
+                  onChange={(e) => setCleanupConfig(prev => ({ ...prev, age_days: parseInt(e.target.value) || 0 }))}
+                  min="0"
+                  max="365"
+                  className="form-control"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Move failed notifications to dead letter after (days):</label>
+                <input
+                  type="number"
+                  value={cleanupConfig.failed_age_days}
+                  onChange={(e) => setCleanupConfig(prev => ({ ...prev, failed_age_days: parseInt(e.target.value) || 0 }))}
+                  min="1"
+                  max="90"
+                  className="form-control"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Delete sent notifications older than (days):</label>
+                <input
+                  type="number"
+                  value={cleanupConfig.sent_age_days}
+                  onChange={(e) => setCleanupConfig(prev => ({ ...prev, sent_age_days: parseInt(e.target.value) || 0 }))}
+                  min="0"
+                  max="90"
+                  className="form-control"
+                />
+              </div>
+              
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={cleanupConfig.dry_run}
+                    onChange={(e) => setCleanupConfig(prev => ({ ...prev, dry_run: e.target.checked }))}
+                  />
+                  Dry run mode (don't actually delete, just show what would be cleaned)
+                </label>
+              </div>
+              
+              <div className="cleanup-preview">
+                <h4>Preview:</h4>
+                <ul>
+                  <li>Pending notifications older than {cleanupConfig.age_days} days</li>
+                  <li>Failed notifications older than {cleanupConfig.failed_age_days} days → Dead Letter</li>
+                  <li>Sent notifications older than {cleanupConfig.sent_age_days} days</li>
+                  <li>Very old dead letter notifications (90+ days)</li>
+                </ul>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setShowCleanupModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className={`btn ${cleanupConfig.dry_run ? 'btn-info' : 'btn-warning'}`}
+                onClick={handleCleanupQueue}
+              >
+                {cleanupConfig.dry_run ? '🔍 Dry Run' : '🧹 Cleanup'}
               </button>
             </div>
           </div>

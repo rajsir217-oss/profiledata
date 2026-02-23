@@ -489,6 +489,17 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                         
                         stats['total_matches_found'] += len(new_matches)
                         
+                        # DUPLICATE PREVENTION: Check if we sent email to this user recently (within last 2 hours)
+                        recent_sent = await db.saved_search_notifications.find_one({
+                            'username': username,
+                            'search_id': search_id,
+                            'last_notification_sent': {'$gte': datetime.utcnow() - timedelta(hours=2)}
+                        })
+                        
+                        if recent_sent:
+                            logger.info(f"  ⏭️ Skipping '{search_name}' - email sent to {username} recently (within 2 hours)")
+                            continue
+                        
                         # Send email notification
                         logger.debug(f"📧 About to send email to {username} ({user_email}) with {len(new_matches)} matches")
                         email_sent = await send_matches_email(
@@ -505,10 +516,10 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                         if email_sent:
                             stats['emails_sent'] += 1
                             
-                            # Mark matches as notified
-                            await mark_matches_notified(db, username, search_id, new_matches)
+                            # ATOMIC UPDATE: Mark matches as notified AND update timestamp in ONE operation
+                            await mark_matches_notified_atomic(db, username, search_id, new_matches)
                             
-                            # Update last notification time (with matches count for history)
+                            # Update saved_searches document with notification history (separate, non-critical)
                             await update_last_notification_time(db, username, search_id, len(new_matches))
                             
                             logger.info(f"✅ Sent email to {username} with {len(new_matches)} new matches for '{search_name}'")
@@ -744,13 +755,42 @@ async def filter_new_matches(
     return new_matches
 
 
+async def mark_matches_notified_atomic(
+    db: AsyncIOMotorDatabase,
+    username: str,
+    search_id: str,
+    matches: List[Dict[str, Any]]
+):
+    """Mark matches as notified AND update timestamp ATOMICALLY to prevent race conditions"""
+    
+    match_usernames = [match['username'] for match in matches]
+    now = datetime.utcnow()
+    
+    await db.saved_search_notifications.update_one(
+        {
+            'username': username,
+            'search_id': search_id
+        },
+        {
+            '$addToSet': {
+                'notified_matches': {'$each': match_usernames}
+            },
+            '$set': {
+                'last_notification_sent': now,  # Use consistent field name!
+                'last_notification_at': now   # Keep both for backward compatibility
+            }
+        },
+        upsert=True
+    )
+
+
 async def mark_matches_notified(
     db: AsyncIOMotorDatabase,
     username: str,
     search_id: str,
     matches: List[Dict[str, Any]]
 ):
-    """Mark matches as notified to avoid duplicate emails"""
+    """Mark matches as notified to avoid duplicate emails (LEGACY - use mark_matches_notified_atomic)"""
     
     match_usernames = [match['username'] for match in matches]
     

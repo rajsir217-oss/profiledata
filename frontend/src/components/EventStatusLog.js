@@ -17,8 +17,8 @@ const EventStatusLog = () => {
   const [showTriggerDropdown, setShowTriggerDropdown] = useState(false);
   const [availableTriggers, setAvailableTriggers] = useState([]);
 
-  const loadLogs = useCallback(async () => {
-    setLoading(true);
+  const loadLogs = useCallback(async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const token = localStorage.getItem('token');
       
@@ -38,13 +38,13 @@ const EventStatusLog = () => {
     } catch (err) {
       console.error('Failed to load event logs:', err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadLogs();
-    const interval = setInterval(loadLogs, 15000); // Refresh every 15 seconds
+    loadLogs(false); // Initial load shows spinner
+    const interval = setInterval(() => loadLogs(true), 30000); // Background refresh every 30s, no spinner
     return () => clearInterval(interval);
   }, [loadLogs]);
 

@@ -157,29 +157,47 @@ class NotificationService:
         self,
         create_data: NotificationQueueCreate
     ) -> NotificationQueueItem:
-        """Add notification to queue"""
+        """Enqueue a notification for delivery with queue status and rate limiting checks"""
+        
+        # Check if queue is paused
+        from services.queue_manager import QueueManager
+        queue_manager = QueueManager(self.db)
+        queue_status = await queue_manager.get_queue_status()
+        
+        if queue_status.get("status") not in ["normal"]:
+            logger.warning(f"Queue is {queue_status.get('status')}: {queue_status.get('pause_reason', 'Unknown')}")
+            raise HTTPException(
+                status_code=503,
+                detail=f"Notification queue is {queue_status.get('status')}"
+            )
         
         # Get user preferences
         prefs = await self.get_preferences(create_data.username)
-        logger.debug(f"📧 enqueue_notification for {create_data.username}, trigger={create_data.trigger}, channels={create_data.channels}")
-        logger.debug(f"📧 User prefs channels: {prefs.channels}")
         
-        # Check if user wants this notification
-        should_send = await self._should_send(create_data.trigger, create_data.channels, prefs)
-        logger.debug(f"📧 _should_send returned: {should_send}")
-        if not should_send:
-            logger.warning(f"❌ User {create_data.username} has disabled {create_data.trigger} notifications")
+        # Check if user has enabled this trigger/channel combination
+        user_channels = prefs.channels.get(create_data.trigger.value, [])
+        if not any(channel in user_channels for channel in create_data.channels):
+            logger.debug(f"User {create_data.username} has disabled {create_data.trigger.value} notifications")
             raise HTTPException(
-                status_code=400,
-                detail=f"User has disabled {create_data.trigger} notifications"
+                status_code=403,
+                detail=f"User has disabled {create_data.trigger.value} notifications"
             )
         
-        # Check rate limits
-        if not await self._check_rate_limit(create_data.username, create_data.channels, prefs):
-            raise HTTPException(
-                status_code=429,
-                detail="Rate limit exceeded"
+        # Check rate limits using QueueManager
+        for channel in create_data.channels:
+            channel_str = channel.value if hasattr(channel, 'value') else channel
+            allowed, rate_info = await queue_manager.check_rate_limit(
+                username=create_data.username,
+                channel=channel_str,
+                window_minutes=60,
+                max_notifications=10
             )
+            if not allowed:
+                logger.warning(f"Rate limit exceeded for {create_data.username}/{channel_str}: {rate_info}")
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Rate limit exceeded: {rate_info['remaining']} remaining"
+                )
         
         # Apply quiet hours if needed
         scheduled_for = await self._apply_quiet_hours(

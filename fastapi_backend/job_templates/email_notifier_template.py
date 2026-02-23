@@ -116,6 +116,19 @@ class EmailNotifierTemplate(JobTemplate):
             service = NotificationService(context.db)
             params = context.parameters
             
+            # Check queue status before processing
+            from services.queue_manager import QueueManager
+            queue_manager = QueueManager(context.db)
+            queue_status = await queue_manager.get_queue_status()
+            
+            if queue_status.get("status") not in ["normal"]:
+                context.log("warning", f"🛑 Queue is {queue_status.get('status')}: {queue_status.get('pause_reason', 'Unknown')}")
+                return JobResult(
+                    status="skipped",
+                    message=f"Queue is {queue_status.get('status')}",
+                    duration_seconds=(datetime.utcnow() - start_time).total_seconds()
+                )
+            
             # Log email provider info
             provider_info = f"📧 Email Provider: {self.email_provider.upper()}"
             if self.email_provider == 'smtp':

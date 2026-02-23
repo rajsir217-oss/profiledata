@@ -64,6 +64,9 @@ import AnnouncementManagement from './components/AnnouncementManagement';
 import PollManagement from './components/PollManagement';
 import AdminReports from './components/AdminReports';
 import ContributionManagement from './components/ContributionManagement';
+import AdminRecurringContributions from './components/AdminRecurringContributions';
+import PayPalRecurringSetup from './components/PayPalRecurringSetup';
+import PayPalRecurringReturn from './components/PayPalRecurringReturn';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import TooltipDemo from './components/TooltipDemo';
@@ -419,6 +422,9 @@ function AppContent() {
               <Route path="/contribution/cancel" element={<ProtectedRoute><ContributionCancel /></ProtectedRoute>} />
               <Route path="/lead-generation" element={<ProtectedRoute><PromoCodeAccounting /></ProtectedRoute>} />
               <Route path="/contribution-management" element={<ProtectedRoute><ContributionManagement /></ProtectedRoute>} />
+              <Route path="/admin/recurring-contributions" element={<ProtectedRoute><AdminRecurringContributions /></ProtectedRoute>} />
+              <Route path="/paypal-recurring-setup" element={<ProtectedRoute><PayPalRecurringSetup /></ProtectedRoute>} />
+              <Route path="/paypal-recurring-return" element={<ProtectedRoute><PayPalRecurringReturn /></ProtectedRoute>} />
               <Route path="/poll-management" element={<ProtectedRoute><PollManagement /></ProtectedRoute>} />
               <Route path="/admin-reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
               {/* Legacy routes - redirect to unified page */}

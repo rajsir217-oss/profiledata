@@ -48,9 +48,12 @@ from routers.site_settings import router as site_settings_router
 from routers.notes import router as notes_router
 from routers.stripe_payments import router as stripe_payments_router
 from routers.braintree_payments import router as braintree_payments_router
+from routers.paypal_payments import router as paypal_payments_router
+from routers.recurring_contributions import router as recurring_contributions_router
+from routers.admin_recurring import router as admin_recurring_router
 from routers.admin_engagement import router as admin_engagement_router
 from routers.inactive_users_report import router as inactive_users_report_router
-from routers.paypal_payments import router as paypal_payments_router
+from routers.queue_management import router as queue_management_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -370,8 +373,11 @@ app.include_router(notes_router)  # Profile notes routes (already has /api/notes
 app.include_router(stripe_payments_router)  # Stripe payment routes
 app.include_router(braintree_payments_router)  # Braintree/PayPal payment routes
 app.include_router(paypal_payments_router)  # PayPal direct checkout routes
+app.include_router(recurring_contributions_router)  # Recurring contributions routes
+app.include_router(admin_recurring_router)  # Admin recurring contributions routes
 app.include_router(admin_engagement_router)  # Admin engagement routes (already has /api/admin/engagement prefix)
 app.include_router(inactive_users_report_router, prefix="/api/admin", tags=["admin-reports"])  # Inactive users report routes
+app.include_router(queue_management_router)  # Queue management routes (already has /api/admin/queue prefix)
 
 # Health check endpoint
 @app.get("/health")
