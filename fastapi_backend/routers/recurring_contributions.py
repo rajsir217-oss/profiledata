@@ -107,7 +107,7 @@ async def setup_recurring_contribution(
     return RecurringContributionResponse(**doc)
 
 
-@router.get("/", response_model=List[RecurringContributionResponse])
+@router.get("", response_model=List[RecurringContributionResponse])
 async def get_user_recurring_contributions(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)

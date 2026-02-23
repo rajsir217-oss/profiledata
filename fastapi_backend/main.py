@@ -212,7 +212,8 @@ app = FastAPI(
     title="Matrimonial Profile API",
     description="FastAPI backend for matrimonial profile management",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False
 )
 
 # Rate limiter setup - must be attached to app.state for slowapi to work
