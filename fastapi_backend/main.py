@@ -212,9 +212,13 @@ app = FastAPI(
     title="Matrimonial Profile API",
     description="FastAPI backend for matrimonial profile management",
     version="1.0.0",
-    lifespan=lifespan,
-    redirect_slashes=False
+    lifespan=lifespan
 )
+
+# Trust proxy headers (X-Forwarded-Proto, X-Forwarded-For) from Cloud Run's load balancer
+# This ensures trailing-slash redirects use https:// instead of http://
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 
 # Rate limiter setup - must be attached to app.state for slowapi to work
 app.state.limiter = limiter

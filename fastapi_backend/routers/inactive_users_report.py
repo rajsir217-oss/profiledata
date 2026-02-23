@@ -6,49 +6,56 @@ Provides comprehensive inactive user data with filtering and sorting capabilitie
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional, List
 from datetime import datetime, timedelta
-from motor.motor_asyncio import AsyncIOMotorClient
 import logging
 
 from auth.jwt_auth import get_current_user_dependency as get_current_user
-from config import Settings
+from database import get_database
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
+def _parse_updated_at(value) -> Optional[datetime]:
+    """Safely parse updatedAt which can be string or datetime."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace('Z', '+00:00').replace('+00:00', ''))
+        except (ValueError, TypeError):
+            return None
+    return None
+
+
 @router.get("/inactive-users/debug")
 async def debug_inactive_users(
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
 ):
     """Debug endpoint to test basic functionality"""
-    # Verify admin permissions
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
-    
-    # Get database connection
-    settings = Settings()
-    client = AsyncIOMotorClient(settings.mongodb_url)
-    db = client[settings.database_name]
-    
+
     try:
-        # Simple test query
         total_users = await db.users.count_documents({"accountStatus": "active"})
         users_with_updated = await db.users.count_documents({
-            "accountStatus": "active", 
+            "accountStatus": "active",
             "updatedAt": {"$exists": True}
         })
-        
+
         return {
             "debug": "success",
             "total_active_users": total_users,
             "users_with_updated": users_with_updated,
             "message": "Basic database connection working"
         }
-        
+
     except Exception as e:
         logger.error(f"Debug endpoint error: {e}")
         raise HTTPException(status_code=500, detail=f"Debug error: {str(e)}")
-    finally:
-        client.close()
+
 
 @router.get("/inactive-users")
 async def get_inactive_users(
@@ -62,208 +69,118 @@ async def get_inactive_users(
     sort_by: str = Query("daysElapsed", description="Sort field"),
     sort_order: str = Query("desc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number"),
-    limit: int = Query(50, ge=1, le=500, description="Results per page")
+    limit: int = Query(50, ge=1, le=500, description="Results per page"),
+    db=Depends(get_database)
 ):
     """
-    Get inactive users report with filtering and sorting
-    Admin-only endpoint for comprehensive inactive user analysis
+    Get inactive users report with filtering and sorting.
+    Uses simple find() + Python processing instead of heavy aggregation pipeline.
     """
-    
-    # Verify admin permissions
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
-    
-    # Get database connection
-    settings = Settings()
-    client = AsyncIOMotorClient(settings.mongodb_url)
-    db = client[settings.database_name]
-    
+
     try:
         today = datetime.utcnow()
-        
-        # Build query pipeline
-        pipeline = []
-        
-        # Stage 1: Initial match for active users with updatedAt data
-        fifteen_days_ago = today - timedelta(days=15)
-        fifteen_days_ago_str = fifteen_days_ago.strftime("%Y-%m-%d")
-        
-        match_stage = {
+
+        # Use min_days default of 15 if not specified
+        effective_min_days = min_days if min_days is not None else 15
+        cutoff_date = today - timedelta(days=effective_min_days)
+        cutoff_str = cutoff_date.strftime("%Y-%m-%d")
+
+        # Build MongoDB query - simple find, no aggregation
+        query = {
             "accountStatus": "active",
             "updatedAt": {"$exists": True, "$ne": None}
         }
-        
-        # Add date filter for string dates (more reliable)
-        match_stage["$or"] = [
-            {"updatedAt": {"$lt": fifteen_days_ago_str}},  # String dates
-            {"updatedAt": {"$lt": fifteen_days_ago}}       # DateTime objects
-        ]
-        
-        pipeline.append({"$match": match_stage})
-        
-        # Stage 2: Handle date conversion and calculate days elapsed
-        pipeline.append({
-            "$addFields": {
-                "lastLoginDate": {
-                    "$cond": {
-                        "if": {"$eq": [{"$type": "$updatedAt"}, "string"]},
-                        "then": {"$dateFromString": {"dateString": "$updatedAt"}},
-                        "else": "$updatedAt"
-                    }
-                },
-                "daysElapsed": {
-                    "$cond": {
-                        "if": {"$ne": ["$updatedAt", None]},
-                        "then": {
-                            "$divide": [
-                                {"$subtract": [
-                                    today, 
-                                    {"$cond": {
-                                        "if": {"$eq": [{"$type": "$updatedAt"}, "string"]},
-                                        "then": {"$dateFromString": {"dateString": "$updatedAt"}},
-                                        "else": "$updatedAt"
-                                    }}
-                                ]},
-                                1000 * 60 * 60 * 24  # Convert milliseconds to days
-                            ]
-                        },
-                        "else": 999  # Very high number for users with no login
-                    }
-                }
-            }
-        })
-        
-        # Stage 3: Apply filters
-        filter_stage = {}
-        
+
         if username:
-            filter_stage["username"] = {"$regex": username, "$options": "i"}
-        
+            query["username"] = {"$regex": username, "$options": "i"}
         if gender:
-            filter_stage["gender"] = gender
-            
-        # Note: Days filtering is handled in initial match for better performance
-        # We can still apply additional filtering if needed
-        if min_days is not None or max_days is not None:
-            # Add a second stage for additional days filtering if specified
-            days_filter = {}
-            if min_days is not None:
-                days_filter["$gte"] = min_days
-            if max_days is not None:
-                days_filter["$lte"] = max_days
-            if days_filter:
-                filter_stage["daysElapsed"] = days_filter
-                
-        if date_from:
-            try:
-                date_from_dt = datetime.strptime(date_from, "%Y-%m-%d")
-                filter_stage["lastLoginDate"] = {"$gte": date_from_dt}
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid date_from format. Use YYYY-MM-DD")
-                
-        if date_to:
-            try:
-                date_to_dt = datetime.strptime(date_to, "%Y-%m-%d")
-                if "lastLoginDate" in filter_stage:
-                    filter_stage["lastLoginDate"]["$lte"] = date_to_dt
-                else:
-                    filter_stage["lastLoginDate"] = {"$lte": date_to_dt}
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid date_to format. Use YYYY-MM-DD")
-        
-        # Only add match stage if we have filters
-        if filter_stage:
-            pipeline.append({"$match": filter_stage})
-        
-        # Stage 4: Project required fields
-        pipeline.append({
-            "$project": {
-                "username": 1,
-                "firstName": 1,
-                "gender": 1,
-                "lastLogin": "$lastLoginDate",
-                "daysElapsed": {"$floor": "$daysElapsed"},
-                "accountStatus": 1,
-                "loginCount": {"$ifNull": ["$loginCount", 0]}
-            }
-        })
-        
-        # Stage 5: Sort
-        sort_direction = 1 if sort_order == "asc" else -1
-        valid_sort_fields = {
-            "username": "username",
-            "gender": "gender", 
-            "lastLogin": "lastLogin",
-            "daysElapsed": "daysElapsed"
+            query["gender"] = gender
+
+        # Fetch with projection for only needed fields
+        projection = {
+            "username": 1,
+            "firstName": 1,
+            "gender": 1,
+            "updatedAt": 1,
+            "loginCount": 1,
+            "_id": 0
         }
-        
-        if sort_by not in valid_sort_fields:
-            sort_by = "daysElapsed"
-            
-        pipeline.append({"$sort": {valid_sort_fields[sort_by]: sort_direction}})
-        
-        # Stage 6: Get total count for pagination
-        count_pipeline = pipeline.copy()
-        count_pipeline.append({"$count": "total"})
-        
-        # Stage 7: Apply pagination to main pipeline
-        skip = (page - 1) * limit
-        pipeline.extend([
-            {"$skip": skip},
-            {"$limit": limit}
-        ])
-        
-        # Execute queries
-        users = await db.users.aggregate(pipeline).to_list(length=limit)
-        
-        # Get total count
-        count_result = await db.users.aggregate(count_pipeline).to_list(length=1)
-        total = count_result[0]["total"] if count_result else 0
-        
-        # Format response
-        formatted_users = []
-        for user in users:
-            # Format last login date
-            last_login = user.get("lastLogin")
-            if last_login:
-                if isinstance(last_login, datetime):
-                    formatted_last_login = last_login.isoformat()
-                else:
-                    formatted_last_login = str(last_login)
+
+        cursor = db.users.find(query, projection)
+        raw_users = await cursor.to_list(length=5000)
+
+        # Process in Python - much faster than $dateFromString aggregation
+        processed = []
+        for user in raw_users:
+            updated_at = _parse_updated_at(user.get("updatedAt"))
+            if updated_at is None:
+                days_elapsed = 999
+                last_login_dt = None
             else:
-                formatted_last_login = None
-            
-            # Mask sensitive info partially
-            email = user.get("email")
-            if email and "@" in email:
-                masked_email = email[:2] + "*" * (len(email.split("@")[0]) - 2) + "@" + email.split("@")[1]
-            else:
-                masked_email = email
-                
-            phone = user.get("phone")
-            if phone and len(phone) > 4:
-                masked_phone = phone[:2] + "*" * (len(phone) - 4) + phone[-2:]
-            else:
-                masked_phone = phone
-            
-            formatted_users.append({
+                # Make both naive for comparison
+                if updated_at.tzinfo is not None:
+                    updated_at = updated_at.replace(tzinfo=None)
+                delta = today - updated_at
+                days_elapsed = delta.days
+                last_login_dt = updated_at
+
+            # Apply days filter
+            if days_elapsed < effective_min_days:
+                continue
+            if max_days is not None and days_elapsed > max_days:
+                continue
+
+            # Apply date filters
+            if date_from and last_login_dt:
+                try:
+                    date_from_dt = datetime.strptime(date_from, "%Y-%m-%d")
+                    if last_login_dt < date_from_dt:
+                        continue
+                except ValueError:
+                    pass
+            if date_to and last_login_dt:
+                try:
+                    date_to_dt = datetime.strptime(date_to, "%Y-%m-%d")
+                    if last_login_dt > date_to_dt:
+                        continue
+                except ValueError:
+                    pass
+
+            processed.append({
                 "username": user.get("username"),
                 "firstName": user.get("firstName"),
                 "gender": user.get("gender"),
-                "lastLogin": formatted_last_login,
-                "daysElapsed": user.get("daysElapsed", 0),
-                "email": masked_email,
-                "phone": masked_phone,
-                "accountStatus": user.get("accountStatus"),
+                "lastLogin": last_login_dt.isoformat() if last_login_dt else None,
+                "daysElapsed": days_elapsed,
+                "accountStatus": "active",
                 "loginCount": user.get("loginCount", 0)
             })
-        
+
+        total = len(processed)
+
+        # Sort
+        valid_sort_fields = {"username", "gender", "lastLogin", "daysElapsed"}
+        if sort_by not in valid_sort_fields:
+            sort_by = "daysElapsed"
+
+        reverse = sort_order != "asc"
+        processed.sort(
+            key=lambda u: (u.get(sort_by) is None, u.get(sort_by, "")),
+            reverse=reverse
+        )
+
+        # Paginate
+        skip = (page - 1) * limit
+        paginated = processed[skip:skip + limit]
+
         return {
-            "users": formatted_users,
+            "users": paginated,
             "total": total,
             "page": page,
             "limit": limit,
-            "totalPages": (total + limit - 1) // limit,
+            "totalPages": (total + limit - 1) // limit if total > 0 else 0,
             "filters": {
                 "username": username,
                 "gender": gender,
@@ -277,190 +194,143 @@ async def get_inactive_users(
                 "sortOrder": sort_order
             }
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error fetching inactive users report: {e}")
-        import traceback
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        logger.error(f"Error fetching inactive users report: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-    finally:
-        client.close()
+
 
 @router.get("/inactive-users/summary")
 async def get_inactive_users_summary(
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
 ):
-    """
-    Get summary statistics for inactive users
-    """
-    
-    # Verify admin permissions
+    """Get summary statistics for inactive users"""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
-    
-    # Get database connection
-    settings = Settings()
-    client = AsyncIOMotorClient(settings.mongodb_url)
-    db = client[settings.database_name]
-    
+
     try:
         today = datetime.utcnow()
-        
-        # Build aggregation pipeline for summary stats
-        pipeline = [
-            {"$match": {"accountStatus": "active"}},
-            {
-                "$addFields": {
-                    "lastLoginDate": {
-                        "$cond": {
-                            "if": {"$eq": [{"$type": "$updatedAt"}, "string"]},
-                            "then": {"$dateFromString": {"dateString": "$updatedAt"}},
-                            "else": "$updatedAt"
-                        }
-                    },
-                    "daysElapsed": {
-                        "$cond": {
-                            "if": {"$ne": ["$updatedAt", None]},
-                            "then": {
-                                "$divide": [
-                                    {"$subtract": [today, "$lastLoginDate"]},
-                                    1000 * 60 * 60 * 24
-                                ]
-                            },
-                            "else": 999
-                        }
-                    }
-                }
-            },
-            {
-                "$group": {
-                    "_id": None,
-                    "totalActive": {"$sum": 1},
-                    "inactive15_30": {
-                        "$sum": {"$cond": [{"$and": [{"$gte": ["$daysElapsed", 15]}, {"$lt": ["$daysElapsed", 30]}]}, 1, 0]}
-                    },
-                    "inactive30_60": {
-                        "$sum": {"$cond": [{"$and": [{"$gte": ["$daysElapsed", 30]}, {"$lt": ["$daysElapsed", 60]}]}, 1, 0]}
-                    },
-                    "inactive60_plus": {
-                        "$sum": {"$cond": [{"$gte": ["$daysElapsed", 60]}, 1, 0]}
-                    },
-                    "neverLoggedIn": {
-                        "$sum": {"$cond": [{"$eq": ["$daysElapsed", 999]}, 1, 0]}
-                    },
-                    "avgDaysInactive": {"$avg": "$daysElapsed"},
-                    "maxDaysInactive": {"$max": "$daysElapsed"}
-                }
-            }
-        ]
-        
-        result = await db.users.aggregate(pipeline).to_list(length=1)
-        summary = result[0] if result else {}
-        
-        # Gender breakdown
-        gender_pipeline = [
-            {"$match": {"accountStatus": "active"}},
-            {
-                "$addFields": {
-                    "daysElapsed": {
-                        "$cond": {
-                            "if": {"$ne": ["$updatedAt", None]},
-                            "then": {
-                                "$divide": [
-                                    {"$subtract": [today, {"$dateFromString": {"dateString": "$updatedAt"}}]},
-                                    1000 * 60 * 60 * 24
-                                ]
-                            },
-                            "else": 999
-                        }
-                    }
-                }
-            },
-            {"$match": {"daysElapsed": {"$gte": 15}}},
-            {
-                "$group": {
-                    "_id": "$gender",
-                    "count": {"$sum": 1}
-                }
-            }
-        ]
-        
-        gender_result = await db.users.aggregate(gender_pipeline).to_list(length=10)
-        gender_breakdown = {item["_id"] or "Unknown": item["count"] for item in gender_result}
-        
+
+        # Fetch active users with updatedAt
+        projection = {"updatedAt": 1, "gender": 1, "_id": 0}
+        cursor = db.users.find(
+            {"accountStatus": "active", "updatedAt": {"$exists": True, "$ne": None}},
+            projection
+        )
+        raw_users = await cursor.to_list(length=10000)
+
+        # Process in Python
+        total_active = len(raw_users)
+        inactive_15_30 = 0
+        inactive_30_60 = 0
+        inactive_60_plus = 0
+        never_logged_in = 0
+        total_days = 0
+        max_days = 0
+        gender_counts = {}
+
+        for user in raw_users:
+            updated_at = _parse_updated_at(user.get("updatedAt"))
+            if updated_at is None:
+                days = 999
+                never_logged_in += 1
+            else:
+                if updated_at.tzinfo is not None:
+                    updated_at = updated_at.replace(tzinfo=None)
+                days = (today - updated_at).days
+
+            total_days += days
+            if days > max_days:
+                max_days = days
+
+            if 15 <= days < 30:
+                inactive_15_30 += 1
+            elif 30 <= days < 60:
+                inactive_30_60 += 1
+            elif days >= 60:
+                inactive_60_plus += 1
+
+            # Gender breakdown for inactive users (15+ days)
+            if days >= 15:
+                g = user.get("gender") or "Unknown"
+                gender_counts[g] = gender_counts.get(g, 0) + 1
+
+        avg_days = total_days / total_active if total_active > 0 else 0
+
         return {
-            "summary": summary,
-            "genderBreakdown": gender_breakdown,
+            "summary": {
+                "totalActive": total_active,
+                "inactive15_30": inactive_15_30,
+                "inactive30_60": inactive_30_60,
+                "inactive60_plus": inactive_60_plus,
+                "neverLoggedIn": never_logged_in,
+                "avgDaysInactive": round(avg_days, 1),
+                "maxDaysInactive": max_days
+            },
+            "genderBreakdown": gender_counts,
             "lastUpdated": datetime.utcnow().isoformat()
         }
-        
+
     except Exception as e:
-        logger.error(f"Error fetching inactive users summary: {e}")
+        logger.error(f"Error fetching inactive users summary: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-    finally:
-        client.close()
+
 
 @router.post("/inactive-users/{username}/send-reminder")
 async def send_test_reminder(
     username: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
 ):
-    """
-    Send a test login reminder to a specific inactive user
-    """
-    
-    # Verify admin permissions
+    """Send a test login reminder to a specific inactive user"""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
-    
-    # Get database connection
-    settings = Settings()
-    client = AsyncIOMotorClient(settings.mongodb_url)
-    db = client[settings.database_name]
-    
+
     try:
-        # Check if user exists and is inactive
         user = await db.users.find_one({"username": username, "accountStatus": "active"})
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Calculate days inactive
         today = datetime.utcnow()
-        updated_at = user.get("updatedAt")
-        if not updated_at:
+        updated_at = _parse_updated_at(user.get("updatedAt"))
+        if updated_at is None:
             days_inactive = 999
         else:
-            if isinstance(updated_at, str):
-                updated_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+            if updated_at.tzinfo is not None:
+                updated_at = updated_at.replace(tzinfo=None)
             days_inactive = (today - updated_at).days
-        
+
         if days_inactive < 15:
             raise HTTPException(status_code=400, detail="User is not inactive enough (< 15 days)")
-        
+
         # Queue test reminder
         from services.notification_service import NotificationService
         notification_service = NotificationService(db)
-        
+
         template_data = {
             "firstName": user.get("firstName", username),
             "daysInactive": days_inactive,
             "lastLoginDate": updated_at.strftime("%Y-%m-%d") if updated_at else "Never",
-            "newMatchesCount": 0,  # Would be calculated in real scenario
+            "newMatchesCount": 0,
             "unreadMessagesCount": 0,
             "profileViewsCount": 0,
             "escalationLevel": "warning"
         }
-        
+
         await notification_service.queue_notification(
             username=username,
             trigger="admin_login_reminder",
-            channels=["email"],  # Test with email only
+            channels=["email"],
             template_data=template_data,
             priority="medium"
         )
-        
+
         logger.info(f"Test reminder sent to {username} by admin {current_user.get('username')}")
-        
+
         return {
             "success": True,
             "message": f"Test reminder sent to {username}",
@@ -468,11 +338,9 @@ async def send_test_reminder(
             "daysInactive": days_inactive,
             "sentAt": datetime.utcnow().isoformat()
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error sending test reminder to {username}: {e}")
+        logger.error(f"Error sending test reminder to {username}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-    finally:
-        client.close()
