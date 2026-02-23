@@ -278,6 +278,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/contribution-management')
       });
       
+      items.push({
+        icon: '♻️',
+        label: 'Recurring Contributions',
+        subLabel: 'Manage recurring payments',
+        action: () => navigate('/admin/recurring-contributions')
+      });
+      
       // === ANALYTICS & REPORTS ===
       items.push({ isHeader: true, label: 'ANALYTICS & REPORTS' });
       

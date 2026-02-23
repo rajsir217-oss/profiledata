@@ -68,6 +68,146 @@ class PayPalService:
             logger.error(f"Error getting PayPal access token: {e}")
             return None
     
+    async def create_setup_token(self, description: str) -> Dict[str, Any]:
+        """
+        Create a PayPal setup token for storing payment methods.
+        
+        Args:
+            description: Description of the setup token
+            
+        Returns:
+            Dict with setup token details
+        """
+        if not self.is_configured():
+            return {"success": False, "error": "PayPal not configured"}
+        
+        access_token = await self._get_access_token()
+        if not access_token:
+            return {"success": False, "error": "Failed to authenticate with PayPal"}
+        
+        try:
+            setup_data = {
+                "payment_source": {
+                    "paypal": {
+                        "experience_context": {
+                            "brand_name": "L3V3L MATCHES",
+                            "locale": "en-US",
+                            "shipping_preference": "NO_SHIPPING",
+                            "user_action": "CONTINUE",
+                            "return_url": f"{settings.frontend_url}/paypal-recurring-return",
+                            "cancel_url": f"{settings.frontend_url}/contribution/cancel"
+                        }
+                    }
+                }
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.api_url}/v1/vault/setup-tokens",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Content-Type": "application/json",
+                        "Accept-Language": "en_US"
+                    },
+                    json=setup_data
+                )
+                
+                if response.status_code in [200, 201]:
+                    try:
+                        data = response.json()
+                        setup_token_id = data.get("id")
+                        
+                        logger.info(f"PayPal setup token created: {setup_token_id}")
+                        return {
+                            "success": True,
+                            "setup_token_id": setup_token_id,
+                            "status": "CREATED",
+                            "raw_response": data
+                        }
+                    except Exception as json_error:
+                        logger.error(f"Failed to parse PayPal response: {response.text}")
+                        return {"success": False, "error": "Invalid response from PayPal"}
+                else:
+                    try:
+                        error_data = response.json()
+                        error_msg = error_data.get("message", response.text)
+                        
+                        # Check for specific error details
+                        details = error_data.get("details", [])
+                        if details:
+                            error_msg = details[0].get("description", error_msg)
+                    except:
+                        error_msg = response.text
+                    
+                    logger.error(f"Failed to create PayPal setup token: {error_msg}")
+                    return {"success": False, "error": error_msg}
+                    
+        except Exception as e:
+            logger.error(f"Error creating PayPal setup token: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def create_payment_token(self, setup_token_id: str) -> Dict[str, Any]:
+        """
+        Create a PayPal payment token from a setup token.
+        
+        Args:
+            setup_token_id: The setup token ID from PayPal approval
+            
+        Returns:
+            Dict with payment token details
+        """
+        if not self.is_configured():
+            return {"success": False, "error": "PayPal not configured"}
+        
+        access_token = await self._get_access_token()
+        if not access_token:
+            return {"success": False, "error": "Failed to authenticate with PayPal"}
+        
+        try:
+            payment_data = {
+                "setup_token": setup_token_id
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.api_url}/v1/vault/payment-tokens",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Content-Type": "application/json",
+                        "Accept-Language": "en_US"
+                    },
+                    json=payment_data
+                )
+                
+                if response.status_code in [200, 201]:
+                    data = response.json()
+                    payment_token_id = data.get("id")
+                    payment_source = data.get("payment_source")
+                    
+                    logger.info(f"PayPal payment token created: {payment_token_id}")
+                    return {
+                        "success": True,
+                        "payment_token_id": payment_token_id,
+                        "payment_source": payment_source,
+                        "status": "CREATED",
+                        "raw_response": data
+                    }
+                else:
+                    error_data = response.json()
+                    error_msg = error_data.get("message", response.text)
+                    
+                    # Check for specific error details
+                    details = error_data.get("details", [])
+                    if details:
+                        error_msg = details[0].get("description", error_msg)
+                    
+                    logger.error(f"Failed to create PayPal payment token: {error_msg}")
+                    return {"success": False, "error": error_msg}
+                    
+        except Exception as e:
+            logger.error(f"Error creating PayPal payment token: {e}")
+            return {"success": False, "error": str(e)}
+
     async def create_order(
         self,
         amount: str,

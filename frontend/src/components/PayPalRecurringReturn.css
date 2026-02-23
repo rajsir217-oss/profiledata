@@ -1,0 +1,122 @@
+.paypal-return-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  padding: 20px;
+}
+
+.paypal-return-card {
+  background: var(--card-background);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 100%;
+  overflow: hidden;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.paypal-return-loading,
+.paypal-return-error,
+.paypal-return-success {
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border-color);
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 2rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.paypal-return-loading h2,
+.paypal-return-error h2,
+.paypal-return-success h2 {
+  margin: 0 0 1rem 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.paypal-return-loading p,
+.paypal-return-error p,
+.paypal-return-success p {
+  margin: 0 0 1rem 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.error-icon,
+.success-icon {
+  font-size: 48px;
+  margin-bottom: 1rem;
+}
+
+.retry-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.paypal-return-card.error {
+  border-top: 4px solid #ef4444;
+}
+
+.paypal-return-card.success {
+  border-top: 4px solid #10b981;
+}
+
+.paypal-return-success p:last-child {
+  font-style: italic;
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .paypal-return-container {
+    padding: 10px;
+  }
+  
+  .paypal-return-card {
+    margin: 0;
+    border-radius: 12px;
+  }
+  
+  .paypal-return-loading,
+  .paypal-return-error,
+  .paypal-return-success {
+    padding: 2rem 1.5rem;
+  }
+}

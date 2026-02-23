@@ -216,21 +216,21 @@ async def cancel_notification(
     service: NotificationService = Depends(get_notification_service)
 ):
     """Cancel or permanently delete a notification"""
+    from bson import ObjectId
+    
+    # Convert string ID to ObjectId
     try:
-        from bson import ObjectId
-        
-        # Convert string ID to ObjectId
-        try:
-            obj_id = ObjectId(notification_id)
-        except:
-            raise HTTPException(status_code=400, detail="Invalid notification ID")
-        
-        # Build query - admin can delete any notification, users can only delete their own
-        is_admin = current_user.get("username") == "admin"
-        base_query = {"_id": obj_id}
-        if not is_admin:
-            base_query["username"] = current_user["username"]
-        
+        obj_id = ObjectId(notification_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid notification ID format")
+    
+    # Build query - admin can delete any notification, users can only delete their own
+    is_admin = current_user.get("username") == "admin" or current_user.get("role") == "admin"
+    base_query = {"_id": obj_id}
+    if not is_admin:
+        base_query["username"] = current_user["username"]
+    
+    try:
         if hard_delete:
             # Hard delete: Remove from database entirely
             result = await service.queue_collection.delete_one(base_query)
@@ -257,12 +257,11 @@ async def cancel_notification(
                 success=True,
                 message="Notification cancelled successfully"
             )
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except Exception as e:
-        return NotificationResponse(
-            success=False,
-            message="Failed to cancel notification",
-            error=str(e)
-        )
+        logger.error(f"❌ Failed to delete notification {notification_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete notification: {str(e)}")
 
 
 # ============================================

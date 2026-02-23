@@ -168,6 +168,7 @@ def initialize_templates():
     from .daily_digest_template import DailyDigestTemplate
     from .poll_auto_close_template import PollAutoCloseTemplate
     from .enhanced_login_reminder import EnhancedLoginReminderJob
+    from .queue_cleanup_template import QueueCleanupTemplate
     
     registry = get_template_registry()
     
@@ -228,6 +229,13 @@ def initialize_templates():
     # Register activity cleanup template
     from .contribution_popup_activity_cleanup_job import ContributionPopupActivityCleanupJob
     registry.register(ContributionPopupActivityCleanupJob())
+    
+    # Register recurring contributions processing template
+    from .process_recurring_contributions import get_job_template
+    registry.register(get_job_template())
+    
+    # Register queue cleanup template
+    registry.register(QueueCleanupTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry

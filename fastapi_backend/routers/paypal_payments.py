@@ -40,6 +40,16 @@ class RefundRequest(BaseModel):
     note: Optional[str] = None
 
 
+class CreateSetupTokenRequest(BaseModel):
+    """Request model for creating a PayPal setup token."""
+    description: Optional[str] = None
+
+
+class CreatePaymentTokenRequest(BaseModel):
+    """Request model for creating a PayPal payment token from setup token."""
+    setup_token_id: str
+
+
 @router.get("/client-id")
 async def get_paypal_client_id():
     """
@@ -53,6 +63,23 @@ async def get_paypal_client_id():
     return {
         "client_id": client_id,
         "mode": settings.paypal_mode or "sandbox"
+    }
+
+
+@router.get("/test-config")
+async def test_paypal_config():
+    """
+    Test PayPal configuration and return status.
+    """
+    is_configured = paypal_service.is_configured()
+    mode = getattr(paypal_service, 'mode', 'unknown')
+    client_id = getattr(paypal_service, 'client_id', None)
+    
+    return {
+        "configured": is_configured,
+        "mode": mode,
+        "has_client_id": bool(client_id),
+        "client_id_prefix": client_id[:10] + "..." if client_id else None
     }
 
 
@@ -73,6 +100,76 @@ async def get_paypal_config():
         "configured": True,
         "client_id": paypal_service.get_client_id(),
         "mode": settings.paypal_mode or "sandbox"
+    }
+
+
+@router.post("/create-setup-token")
+async def create_paypal_setup_token(
+    request: CreateSetupTokenRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Create a PayPal setup token for recurring payments.
+    
+    This creates a setup token that can be used to store a payment method
+    for future recurring charges.
+    """
+    try:
+        if not paypal_service.is_configured():
+            raise HTTPException(status_code=503, detail="PayPal is not configured")
+        
+        username = current_user.get("username")
+        
+        # Create description
+        description = request.description or f"Setup for recurring contributions - {username}"
+        
+        logger.info(f"Creating PayPal setup token for user: {username}")
+        result = await paypal_service.create_setup_token(description)
+        
+        if not result.get("success"):
+            logger.error(f"PayPal setup token creation failed for {username}: {result.get('error')}")
+            raise HTTPException(status_code=400, detail=result.get("error", "Failed to create PayPal setup token"))
+        
+        logger.info(f"PayPal setup token created for {username}: {result.get('setup_token_id')}")
+        
+        return {
+            "setup_token_id": result.get("setup_token_id"),
+            "status": result.get("status")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in create_setup_token: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/create-payment-token")
+async def create_paypal_payment_token(
+    request: CreatePaymentTokenRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Create a PayPal payment token from a setup token.
+    
+    This creates a payment token that can be stored for recurring charges.
+    """
+    if not paypal_service.is_configured():
+        raise HTTPException(status_code=503, detail="PayPal is not configured")
+    
+    username = current_user.get("username")
+    
+    result = await paypal_service.create_payment_token(request.setup_token_id)
+    
+    if not result.get("success"):
+        logger.error(f"PayPal payment token creation failed for {username}: {result.get('error')}")
+        raise HTTPException(status_code=400, detail=result.get("error", "Failed to create PayPal payment token"))
+    
+    logger.info(f"PayPal payment token created for {username}: {result.get('payment_token_id')}")
+    
+    return {
+        "payment_token_id": result.get("payment_token_id"),
+        "payment_source": result.get("payment_source"),
+        "status": result.get("status")
     }
 
 
