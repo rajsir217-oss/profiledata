@@ -690,8 +690,8 @@
 .status-modal {
   background: var(--card-bg);
   border-radius: 16px;
-  max-width: 450px;
-  width: 90%;
+  max-width: 650px;
+  width: 92%;
   max-height: 90vh;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
@@ -857,22 +857,23 @@
 }
 
 .status-radio-option {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 4px 10px;
+  padding: 14px 12px;
   border: 2px solid var(--border-color);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   background: var(--input-bg);
-  /* background: var(--primary-color); */
 }
 
 .status-radio-option:hover {
   border-color: var(--primary-color);
   background: var(--hover-background);
-  transform: translateX(4px);
+  transform: translateY(-2px);
 }
 
 .status-radio-option.selected {
@@ -882,21 +883,25 @@
 }
 
 .status-radio-option input[type="radio"] {
-  width: 20px;
-  height: 20px;
-  margin: 0;
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: 18px;
+  height: 18px;
+  margin: 4px 0 0 0;
   cursor: pointer;
   accent-color: var(--primary-color);
 }
 
 .status-radio-option .status-icon {
-  font-size: 24px;
-  min-width: 28px;
+  grid-row: 1;
+  grid-column: 1;
+  font-size: 22px;
   text-align: center;
 }
 
 .status-radio-option .status-info {
-  flex: 1;
+  grid-row: 1;
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1211,7 +1216,14 @@
     padding: 12px 16px;
   }
 
-  /* Switch status radio group to single column on mobile */
+  /* Switch status radio group to 2 columns on tablet */
+  .status-radio-group {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Single column on small phones */
   .status-radio-group {
     grid-template-columns: 1fr;
   }
