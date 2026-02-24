@@ -462,7 +462,8 @@ async def get_all_contributions(
     page: int = 1,
     limit: int = 50,
     payment_type: Optional[str] = None,
-    username: Optional[str] = None
+    username: Optional[str] = None,
+    search: Optional[str] = None
 ):
     """Get all contributions (admin only)"""
     if current_user.get("role") != "admin":
@@ -488,12 +489,40 @@ async def get_all_contributions(
         skip = (page - 1) * limit
         contributions = await db.payments.find(query).sort("createdAt", -1).skip(skip).limit(limit).to_list(length=limit)
         
+        # Get unique usernames from contributions to fetch user details
+        usernames = list(set(c.get("username") for c in contributions if c.get("username")))
+        user_details = {}
+        
+        if usernames:
+            # Fetch user details in batch
+            users_cursor = db.users.find(
+                {"username": {"$in": usernames}},
+                {"username": 1, "firstName": 1, "lastName": 1, "_id": 0}
+            )
+            users = await users_cursor.to_list(length=len(usernames))
+            user_details = {u["username"]: u for u in users}
+        
         # Format for frontend
         formatted_contributions = []
         for c in contributions:
+            username = c.get("username")
+            user = user_details.get(username, {})
+            
+            # Apply combined search filter if provided
+            if search and search.strip():
+                search_lower = search.strip().lower()
+                username_match = search_lower in username.lower()
+                first_name_match = search_lower in user.get("firstName", "").lower()
+                last_name_match = search_lower in user.get("lastName", "").lower()
+                
+                if not (username_match or first_name_match or last_name_match):
+                    continue
+            
             formatted_contributions.append({
                 "id": str(c.get("_id")),
-                "username": c.get("username"),
+                "username": username,
+                "firstName": user.get("firstName"),
+                "lastName": user.get("lastName"),
                 "amount": c.get("amount"),
                 "paymentType": "recurring" if c.get("paymentType") == "contribution_recurring" else "one_time",
                 "status": c.get("status", "completed"),
@@ -582,7 +611,8 @@ async def get_contribution_activity(
     page: int = 1,
     limit: int = 50,
     action_filter: Optional[str] = None,
-    username: Optional[str] = None
+    username: Optional[str] = None,
+    search: Optional[str] = None
 ):
     """Get contribution popup activity log (admin only)"""
     if current_user.get("role") != "admin":
@@ -605,12 +635,40 @@ async def get_contribution_activity(
         skip = (page - 1) * limit
         activities = await db.contribution_activity.find(query).sort("timestamp", -1).skip(skip).limit(limit).to_list(length=limit)
         
+        # Get unique usernames from activities to fetch user details
+        usernames = list(set(a.get("username") for a in activities if a.get("username")))
+        user_details = {}
+        
+        if usernames:
+            # Fetch user details in batch
+            users_cursor = db.users.find(
+                {"username": {"$in": usernames}},
+                {"username": 1, "firstName": 1, "lastName": 1, "_id": 0}
+            )
+            users = await users_cursor.to_list(length=len(usernames))
+            user_details = {u["username"]: u for u in users}
+        
         # Format for frontend
         formatted_activities = []
         for a in activities:
+            username = a.get("username")
+            user = user_details.get(username, {})
+            
+            # Apply combined search filter if provided
+            if search and search.strip():
+                search_lower = search.strip().lower()
+                username_match = search_lower in username.lower()
+                first_name_match = search_lower in user.get("firstName", "").lower()
+                last_name_match = search_lower in user.get("lastName", "").lower()
+                
+                if not (username_match or first_name_match or last_name_match):
+                    continue
+            
             formatted_activities.append({
                 "id": str(a.get("_id")),
-                "username": a.get("username"),
+                "username": username,
+                "firstName": user.get("firstName"),
+                "lastName": user.get("lastName"),
                 "action": a.get("action"),
                 "amount": a.get("amount"),
                 "paymentType": a.get("paymentType"),

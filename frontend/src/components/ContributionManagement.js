@@ -36,8 +36,8 @@ const ContributionManagement = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [filter, setFilter] = useState('all'); // all, one_time, recurring
   const [activityFilter, setActivityFilter] = useState('all'); // all, popup_shown, closed, remind_later, proceed_to_payment
-  const [userFilter, setUserFilter] = useState(''); // username filter
-  const [activityUserFilter, setActivityUserFilter] = useState(''); // username filter for activity
+  const [searchFilter, setSearchFilter] = useState(''); // combined search for username, first name, last name
+  const [activitySearchFilter, setActivitySearchFilter] = useState(''); // combined search for activity log
 
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
@@ -52,7 +52,7 @@ const ContributionManagement = () => {
       loadActivities();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, filter, activeTab, activityFilter, userFilter, activityUserFilter]);
+  }, [navigate, filter, activeTab, activityFilter, searchFilter, activitySearchFilter]);
 
   const loadContributions = async (page = 1, append = false) => {
     try {
@@ -67,8 +67,8 @@ const ContributionManagement = () => {
       if (filter !== 'all') {
         url += `&payment_type=${filter}`;
       }
-      if (userFilter && userFilter.trim()) {
-        url += `&username=${encodeURIComponent(userFilter.trim())}`;
+      if (searchFilter && searchFilter.trim()) {
+        url += `&search=${encodeURIComponent(searchFilter.trim())}`;
       }
       
       const response = await axios.get(url, {
@@ -111,8 +111,8 @@ const ContributionManagement = () => {
       if (activityFilter !== 'all') {
         url += `&action_filter=${activityFilter}`;
       }
-      if (activityUserFilter && activityUserFilter.trim()) {
-        url += `&username=${encodeURIComponent(activityUserFilter.trim())}`;
+      if (activitySearchFilter && activitySearchFilter.trim()) {
+        url += `&search=${encodeURIComponent(activitySearchFilter.trim())}`;
       }
       
       const response = await axios.get(url, {
@@ -250,20 +250,20 @@ const ContributionManagement = () => {
       {activeTab === 'contributions' && (
         <div className="user-filter-container">
           <div className="filter-row">
-            <label htmlFor="user-filter" className="filter-label">Filter by User:</label>
+            <label htmlFor="search-filter" className="filter-label">Search:</label>
             <input
-              id="user-filter"
+              id="search-filter"
               type="text"
               className="user-filter-input"
-              placeholder="Enter username..."
-              value={userFilter}
-              onChange={(e) => setUserFilter(e.target.value)}
+              placeholder="Search by username, first name, or last name..."
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
             />
-            {userFilter && (
+            {searchFilter && (
               <button 
                 className="clear-filter-btn"
-                onClick={() => setUserFilter('')}
-                title="Clear user filter"
+                onClick={() => setSearchFilter('')}
+                title="Clear search filter"
               >
                 ×
               </button>
@@ -300,20 +300,20 @@ const ContributionManagement = () => {
       {activeTab === 'activity' && (
         <div className="user-filter-container">
           <div className="filter-row">
-            <label htmlFor="activity-user-filter" className="filter-label">Filter by User:</label>
+            <label htmlFor="activity-search-filter" className="filter-label">Search:</label>
             <input
-              id="activity-user-filter"
+              id="activity-search-filter"
               type="text"
               className="user-filter-input"
-              placeholder="Enter username..."
-              value={activityUserFilter}
-              onChange={(e) => setActivityUserFilter(e.target.value)}
+              placeholder="Search by username, first name, or last name..."
+              value={activitySearchFilter}
+              onChange={(e) => setActivitySearchFilter(e.target.value)}
             />
-            {activityUserFilter && (
+            {activitySearchFilter && (
               <button 
                 className="clear-filter-btn"
-                onClick={() => setActivityUserFilter('')}
-                title="Clear user filter"
+                onClick={() => setActivitySearchFilter('')}
+                title="Clear search filter"
               >
                 ×
               </button>
@@ -378,6 +378,7 @@ const ContributionManagement = () => {
                 <thead>
                   <tr>
                     <th>User</th>
+                    <th>Name</th>
                     <th>Amount</th>
                     <th>Type</th>
                     <th>Status</th>
@@ -397,6 +398,12 @@ const ContributionManagement = () => {
                         >
                           {contribution.username}
                         </a>
+                      </td>
+                      <td className="name-cell">
+                        {contribution.firstName || contribution.lastName ? 
+                          `${contribution.firstName || ''} ${contribution.lastName || ''}`.trim() : 
+                          '-'
+                        }
                       </td>
                       <td className="amount-cell">
                         <span className="amount">{formatAmount(contribution.amount)}</span>
@@ -483,6 +490,7 @@ const ContributionManagement = () => {
                 <thead>
                   <tr>
                     <th>User</th>
+                    <th>Name</th>
                     <th>Action</th>
                     <th>Amount</th>
                     <th>Type</th>
@@ -501,6 +509,12 @@ const ContributionManagement = () => {
                         >
                           {activity.username}
                         </a>
+                      </td>
+                      <td className="name-cell">
+                        {activity.firstName || activity.lastName ? 
+                          `${activity.firstName || ''} ${activity.lastName || ''}`.trim() : 
+                          '-'
+                        }
                       </td>
                       <td>
                         <span className={`action-badge ${getActionClass(activity.action)}`}>

@@ -375,7 +375,7 @@ const AdminPage = () => {
           <input
             type="text"
             className="form-control admin-filter-input"
-            placeholder="🔍 Username or name..."
+            placeholder="🔍 Username, first name, or last name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}

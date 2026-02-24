@@ -348,6 +348,11 @@
   opacity: 0.8;
 }
 
+.name-cell {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
 /* Action Badges for Activity Log */
 .action-badge {
   display: inline-flex;
