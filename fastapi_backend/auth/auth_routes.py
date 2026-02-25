@@ -438,8 +438,8 @@ async def login(
         
         # Check password expiry
         password_expires_at = security.get("password_expires_at")
-        password_expired = PasswordManager.is_password_expired(password_expires_at)
-        days_until_expiry = PasswordManager.get_days_until_expiry(password_expires_at)
+        password_expired = PasswordManager.is_password_expired(password_expires_at) if password_expires_at else False
+        days_until_expiry = PasswordManager.get_days_until_expiry(password_expires_at) if password_expires_at else None
         
         # Create tokens
         tokens = create_token_pair(user, login_request.remember_me)

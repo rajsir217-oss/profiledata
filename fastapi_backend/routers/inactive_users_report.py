@@ -102,6 +102,7 @@ async def get_inactive_users(
         projection = {
             "username": 1,
             "firstName": 1,
+            "lastName": 1,
             "gender": 1,
             "updatedAt": 1,
             "loginCount": 1,
@@ -116,7 +117,7 @@ async def get_inactive_users(
         for user in raw_users:
             updated_at = _parse_updated_at(user.get("updatedAt"))
             if updated_at is None:
-                days_elapsed = 999
+                days_elapsed = None  # Never logged in
                 last_login_dt = None
             else:
                 # Make both naive for comparison
@@ -126,10 +127,10 @@ async def get_inactive_users(
                 days_elapsed = delta.days
                 last_login_dt = updated_at
 
-            # Apply days filter
-            if days_elapsed < effective_min_days:
+            # Apply days filter — treat never-logged-in as qualifying (no upper bound)
+            if days_elapsed is not None and days_elapsed < effective_min_days:
                 continue
-            if max_days is not None and days_elapsed > max_days:
+            if max_days is not None and days_elapsed is not None and days_elapsed > max_days:
                 continue
 
             # Apply date filters
@@ -148,12 +149,18 @@ async def get_inactive_users(
                 except ValueError:
                     pass
 
+            first = user.get("firstName") or ""
+            last = user.get("lastName") or ""
+            full_name = f"{first} {last}".strip() or None
+
             processed.append({
                 "username": user.get("username"),
-                "firstName": user.get("firstName"),
+                "firstName": first,
+                "lastName": last,
+                "fullName": full_name,
                 "gender": user.get("gender"),
                 "lastLogin": last_login_dt.isoformat() if last_login_dt else None,
-                "daysElapsed": days_elapsed,
+                "daysElapsed": days_elapsed,  # None means never logged in
                 "accountStatus": "active",
                 "loginCount": user.get("loginCount", 0)
             })
@@ -166,8 +173,10 @@ async def get_inactive_users(
             sort_by = "daysElapsed"
 
         reverse = sort_order != "asc"
+        # None (never logged in) sorts as highest days (infinity) when descending
         processed.sort(
-            key=lambda u: (u.get(sort_by) is None, u.get(sort_by, "")),
+            key=lambda u: (u.get(sort_by) is not None, u.get(sort_by) or 0) if sort_by == "daysElapsed"
+            else (u.get(sort_by) is None, u.get(sort_by) or ""),
             reverse=reverse
         )
 

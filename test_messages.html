@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Messages System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .login-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .login-form input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .login-form button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .login-form button:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .messages-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .message-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 10px;
+        }
+        .message-item:last-child {
+            border-bottom: none;
+        }
+        .urgency-critical {
+            border-left: 4px solid #dc2626;
+            background: #fef2f2;
+        }
+        .urgency-high {
+            border-left: 3px solid #f59e0b;
+            background: #fffbeb;
+        }
+        .urgency-medium {
+            border-left: 2px solid #fbbf24;
+            background: #fefce8;
+        }
+        .urgency-pending {
+            border-left: 2px solid #6b7280;
+            background: #f9fafb;
+        }
+        .urgency-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .urgency-badge.critical {
+            background: #dc2626;
+            color: white;
+        }
+        .urgency-badge.high {
+            background: #f59e0b;
+            color: white;
+        }
+        .urgency-badge.medium {
+            background: #fbbf24;
+            color: #1f2937;
+        }
+        .urgency-badge.pending {
+            background: #6b7280;
+            color: white;
+        }
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .test-buttons button {
+            padding: 10px 16px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-buttons button:hover {
+            background: #218838;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Messages System</h1>
+    
+    <div class="container">
+        <h2>Login</h2>
+        <div class="login-form">
+            <input type="text" id="username" placeholder="Username" value="testuser123">
+            <input type="password" id="password" placeholder="Password" value="test123">
+            <button onclick="login()">Login</button>
+        </div>
+        <div id="login-status" class="status hidden"></div>
+    </div>
+
+    <div class="container hidden" id="test-section">
+        <h2>Test Critical Messages System</h2>
+        
+        <div class="test-buttons">
+            <button onclick="testUnattendedMessages()">Test Unattended Messages</button>
+            <button onclick="testConversations()">Test Conversations</button>
+            <button onclick="testSendMessage()">Test Send Message</button>
+        </div>
+        
+        <div id="test-status" class="status hidden"></div>
+        
+        <h3>Results:</h3>
+        <div id="results" class="messages-list"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let authToken = null;
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+            element.classList.remove('hidden');
+        }
+
+        function hideStatus(elementId) {
+            const element = document.getElementById(elementId);
+            element.classList.add('hidden');
+        }
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.access_token;
+                    showStatus('login-status', `✅ Logged in as ${username}`, 'success');
+                    document.getElementById('test-section').classList.remove('hidden');
+                } else {
+                    showStatus('login-status', `❌ Login failed: ${data.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus('login-status', `❌ Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUnattendedMessages() {
+            if (!authToken) {
+                showStatus('test-status', '❌ Please login first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/messages/unattended`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus('test-status', `✅ Found ${data.unattendedCount} unattended messages`, 'success');
+                    displayUnattendedResults(data);
+                } else {
+                    showStatus('test-status', `❌ Error: ${data.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus('test-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testConversations() {
+            if (!authToken) {
+                showStatus('test-status', '❌ Please login first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/messages/conversations`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus('test-status', `✅ Found ${data.conversations.length} conversations`, 'success');
+                    displayConversationResults(data.conversations);
+                } else {
+                    showStatus('test-status', `❌ Error: ${data.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus('test-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSendMessage() {
+            if (!authToken) {
+                showStatus('test-status', '❌ Please login first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/messages/send?username=testuser123`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        toUsername: 'testuser123',
+                        content: 'Test message from API test'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus('test-status', '✅ Message sent successfully', 'success');
+                } else {
+                    showStatus('test-status', `❌ Error: ${data.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus('test-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function displayUnattendedResults(data) {
+            const results = document.getElementById('results');
+            results.innerHTML = `
+                <h4>Unattended Messages Summary</h4>
+                <p><strong>Total:</strong> ${data.unattendedCount}</p>
+                <p><strong>Critical:</strong> ${data.criticalCount}</p>
+                <p><strong>High:</strong> ${data.highCount}</p>
+                <p><strong>Medium:</strong> ${data.mediumCount}</p>
+                <h4>Individual Conversations:</h4>
+            `;
+
+            data.conversations.forEach(conv => {
+                const urgency = conv.urgency || 'unknown';
+                const waitingDays = conv.lastMessage?.waitingDays || 0;
+                const sender = conv.sender || {};
+                
+                results.innerHTML += `
+                    <div class="message-item urgency-${urgency}">
+                        <span class="urgency-badge ${urgency}">${urgency.toUpperCase()}</span>
+                        <strong>${sender.username || 'Unknown'}</strong> - ${waitingDays} days waiting
+                        <br><small>${conv.lastMessage?.message || 'No message'}</small>
+                    </div>
+                `;
+            });
+        }
+
+        function displayConversationResults(conversations) {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h4>Conversations:</h4>';
+
+            conversations.forEach(conv => {
+                results.innerHTML += `
+                    <div class="message-item">
+                        <strong>${conv.username || 'Unknown'}</strong>
+                        <br><small>${conv.lastMessage || 'No message'}</small>
+                        <br><small>Unread: ${conv.unreadCount || 0}</small>
+                    </div>
+                `;
+            });
+        }
+
+        // Auto-login on page load
+        window.onload = function() {
+            console.log('🧪 Test Messages System Loaded');
+            console.log('📝 Use username: testuser123, password: test123');
+        };
+    </script>
+</body>
+</html>

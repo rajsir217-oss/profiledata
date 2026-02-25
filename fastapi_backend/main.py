@@ -215,6 +215,15 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Add CORS middleware for testing
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for testing
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+)
+
 # Trust proxy headers (X-Forwarded-Proto, X-Forwarded-For) from Cloud Run's load balancer
 # This ensures trailing-slash redirects use https:// instead of http://
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware

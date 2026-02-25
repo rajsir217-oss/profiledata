@@ -491,7 +491,7 @@ class StripeService:
                 {"username": username},
                 {
                     "$set": update_data,
-                    "$inc": {"contributions.totalContributed": amount}
+            "$inc": {"contributions.totalContributed": amount}
                 }
             )
             

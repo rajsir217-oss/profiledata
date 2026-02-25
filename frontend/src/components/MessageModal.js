@@ -8,16 +8,18 @@ import { getAuthenticatedImageUrl } from '../utils/imageUtils';
 import { getProfilePicUrl } from '../utils/urlHelper';
 import './MessageModal.css';
 
-const MessageModal = ({ isOpen, profile, onClose }) => {
+const MessageModal = ({ isOpen, profile, onClose, onMessageDeleted }) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
+  const [unattendedData, setUnattendedData] = useState(null);
   const currentUsername = localStorage.getItem('username');
 
   useEffect(() => {
     if (isOpen && profile) {
       loadConversation();
       checkOnlineStatus();
+      loadUnattendedData();
       
       // Listen for real-time messages via WebSocket
       const handleNewMessage = (data) => {
@@ -139,6 +141,55 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
     }
   };
 
+  const loadUnattendedData = async () => {
+    try {
+      const response = await api.get('/messages/unattended');
+      setUnattendedData(response.data);
+    } catch (error) {
+      console.error('Error loading unattended data:', error);
+    }
+  };
+
+  const getUrgencyInfo = () => {
+    if (!unattendedData?.conversations || !profile?.username) return null;
+    const unattended = unattendedData.conversations.find(c => c.sender.username === profile.username);
+    if (!unattended) return null;
+    return {
+      urgency: unattended.urgency,
+      waitingDays: unattended.lastMessage?.waitingDays || 0
+    };
+  };
+
+  const getUrgencyBadge = (urgency) => {
+    const badges = {
+      'critical': { emoji: '🔴', text: 'CRITICAL', class: 'critical' },
+      'high': { emoji: '🟠', text: 'HIGH', class: 'high' },
+      'medium': { emoji: '🟡', text: 'MEDIUM', class: 'medium' },
+      'pending': { emoji: '🔵', text: 'PENDING', class: 'pending' }
+    };
+    return badges[urgency] || null;
+  };
+
+  const handleQuickResponse = async (responseType) => {
+    let message = '';
+    
+    switch (responseType) {
+      case 'interested':
+        message = "Hi! We're interested in learning more about you. Would you like to connect further?";
+        break;
+      case 'not_interested':
+        message = "Thank you for reaching out, but we don't think we're a match. We wish you the best in your search!";
+        break;
+      case 'need_time':
+        message = "Thanks for your message! We need some time to review your profile. We'll get back to you soon.";
+        break;
+    }
+    
+    if (message) {
+      await handleSendMessage(message);
+    }
+  };
+
   const handleSendMessage = async (content) => {
     if (!content.trim() || !profile?.username) return;
 
@@ -155,15 +206,44 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
       const newMsg = response.data.data;
       setMessages(prev => [...prev, newMsg]);
       
-      // Also send via WebSocket for real-time delivery
-      if (socketService.isConnected()) {
-        socketService.sendMessage(profile.username, content.trim());
-        console.log('✅ Message sent via WebSocket for real-time delivery');
-      } else {
-        console.warn('⚠️ WebSocket not connected, message saved to DB only');
+      // Also send via WebSocket for real-time delivery (only if connected)
+      try {
+        if (socketService.isConnected()) {
+          socketService.sendMessage(profile.username, content.trim());
+          console.log('✅ Message sent via WebSocket for real-time delivery');
+        } else {
+          console.log('📡 WebSocket not connected, message saved to DB only');
+        }
+      } catch (wsError) {
+        console.warn('⚠️ WebSocket send failed, but message saved to DB:', wsError.message);
+      }
+
+      // Refresh critical messages count since we just responded to a conversation
+      // This will immediately update the red pulsing icon if this was a critical message
+      try {
+        if (profile.onCriticalCountUpdate) {
+          await profile.onCriticalCountUpdate();
+          console.log('🔄 Critical messages count updated immediately after sending message');
+        } else {
+          // Fallback: just log that we couldn't update immediately
+          console.log('📡 No critical count update callback available');
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not update critical messages count:', error);
       }
     } catch (err) {
       console.error('Error sending message:', err);
+    }
+  };
+
+  const handleMessageDeleted = (messageId) => {
+    console.log('🗑️ MessageModal: Message deleted, refreshing local state');
+    // Remove message from local state immediately
+    setMessages(prev => prev.filter(msg => (msg._id || msg.id) !== messageId));
+    
+    // Call parent callback if provided
+    if (onMessageDeleted) {
+      onMessageDeleted(messageId);
     }
   };
 
@@ -193,7 +273,21 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
                    title={isOnline ? 'Online' : 'Offline'} />
             </div>
             <div>
-              <h3>{profile?.firstName || profile?.username}</h3>
+              <div className="modal-user-header">
+                <h3>
+                  {profile?.firstName || profile?.username}
+                  {/* Urgency Badge - INSIDE the h3 element */}
+                  {(() => {
+                    const urgencyInfo = getUrgencyInfo();
+                    const badge = urgencyInfo ? getUrgencyBadge(urgencyInfo.urgency) : null;
+                    return badge ? (
+                      <span className={`urgency-badge ${badge.class}`}>
+                        {badge.emoji} {badge.text}
+                      </span>
+                    ) : null;
+                  })()}
+                </h3>
+              </div>
               <p>
                 {profile?.location || 'Location not specified'}
                 {(() => {
@@ -211,6 +305,38 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
                 })()}
                 {profile?.eatingPreference && profile.eatingPreference !== 'None' ? ` · ${profile.eatingPreference}` : ''}
               </p>
+              {/* Quick Actions for urgent conversations */}
+              {(() => {
+                const urgencyInfo = getUrgencyInfo();
+                if (urgencyInfo && (urgencyInfo.urgency === 'critical' || urgencyInfo.urgency === 'high')) {
+                  return (
+                    <div className="modal-quick-actions">
+                      <button 
+                        className="quick-action-btn interested"
+                        onClick={() => handleQuickResponse('interested')}
+                        title="Send positive response"
+                      >
+                        💝
+                      </button>
+                      <button 
+                        className="quick-action-btn not-interested"
+                        onClick={() => handleQuickResponse('not_interested')}
+                        title="Politely decline"
+                      >
+                        🙏
+                      </button>
+                      <button 
+                        className="quick-action-btn need-time"
+                        onClick={() => handleQuickResponse('need_time')}
+                        title="Request more time"
+                      >
+                        ⏰
+                      </button>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
           </div>
           <button className="modal-close-btn" onClick={onClose}>
@@ -230,6 +356,7 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
               currentUsername={currentUsername}
               otherUser={profile}
               onSendMessage={handleSendMessage}
+              onMessageDeleted={handleMessageDeleted}
             />
           )}
         </div>

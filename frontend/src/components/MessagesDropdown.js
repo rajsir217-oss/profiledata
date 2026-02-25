@@ -11,11 +11,12 @@ import './MessagesDropdown.css';
  * MessagesDropdown Component
  * Shows recent conversations with unread counts and online status
  */
-const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
+const MessagesDropdown = ({ isOpen, onClose, onOpenMessage, onMessageDeleted }) => {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [onlineStatuses, setOnlineStatuses] = useState({});
+  const [unattendedData, setUnattendedData] = useState(null);
   const currentUsername = localStorage.getItem('username');
   
   // Get initials from first and last name
@@ -39,8 +40,19 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
 
     setLoading(true);
     try {
-      const response = await api.get(`/messages/recent/${currentUsername}?limit=10`);
-      setConversations(response.data.conversations || []);
+      // Load both conversations and unattended data for urgency sorting
+      const [conversationsResponse, unattendedResponse] = await Promise.all([
+        api.get(`/messages/recent/${currentUsername}?limit=10`),
+        api.get('/messages/unattended')
+      ]);
+      
+      const unattended = unattendedResponse.data;
+      setUnattendedData(unattended);
+      
+      let convos = conversationsResponse.data.conversations || [];
+      // Sort by urgency first
+      convos = sortConversationsByUrgency(convos, unattended);
+      setConversations(convos);
     } catch (error) {
       console.error('Error loading conversations:', error);
     } finally {
@@ -117,12 +129,69 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
       : message;
   };
 
+  const sortConversationsByUrgency = (conversations, unattended) => {
+    if (!unattended?.conversations) return conversations;
+    
+    // Get urgency info for each conversation
+    const conversationsWithUrgency = conversations.map(conv => {
+      const unattendedConv = unattended.conversations.find(c => c.sender.username === conv.username);
+      return {
+        ...conv,
+        urgency: unattendedConv?.urgency || 'normal',
+        waitingDays: unattendedConv?.lastMessage?.waitingDays || 0
+      };
+    });
+    
+    // Sort by urgency priority
+    const urgencyPriority = {
+      'critical': 0,
+      'high': 1,
+      'medium': 2,
+      'pending': 3,
+      'normal': 4
+    };
+    
+    return conversationsWithUrgency.sort((a, b) => {
+      // First sort by urgency
+      const urgencyDiff = urgencyPriority[a.urgency] - urgencyPriority[b.urgency];
+      if (urgencyDiff !== 0) return urgencyDiff;
+      
+      // Then by waiting days (longer wait first)
+      const daysDiff = b.waitingDays - a.waitingDays;
+      if (daysDiff !== 0) return daysDiff;
+      
+      // Finally by last message time (most recent first)
+      return new Date(b.timestamp) - new Date(a.timestamp);
+    });
+  };
+
+  const getUrgencyInfo = (username) => {
+    if (!unattendedData?.conversations) return null;
+    const unattended = unattendedData.conversations.find(c => c.sender.username === username);
+    if (!unattended) return null;
+    return {
+      urgency: unattended.urgency,
+      waitingDays: unattended.lastMessage?.waitingDays || 0
+    };
+  };
+
+  const getUrgencyBadge = (urgency) => {
+    const badges = {
+      'critical': { emoji: '🔴', text: 'CRITICAL', class: 'critical' },
+      'high': { emoji: '🟠', text: 'HIGH', class: 'high' },
+      'medium': { emoji: '🟡', text: 'MEDIUM', class: 'medium' },
+      'pending': { emoji: '🔵', text: 'PENDING', class: 'pending' }
+    };
+    return badges[urgency] || null;
+  };
+
   const handleConversationClick = (conversation) => {
     onOpenMessage({
       username: conversation.username,
       firstName: conversation.firstName,
       lastName: conversation.lastName,
-      images: conversation.avatar ? [conversation.avatar] : []
+      images: conversation.avatar ? [conversation.avatar] : [],
+      onMessageDeleted
     });
     onClose();
   };
@@ -146,6 +215,19 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
           <h3>Recent Messages</h3>
           <button className="close-dropdown-btn" onClick={onClose}>✕</button>
         </div>
+
+        {/* Critical Banner */}
+        {unattendedData && unattendedData.criticalCount > 0 && (
+          <div className="critical-banner">
+            <div className="critical-banner-content">
+              <span className="critical-icon">🚨</span>
+              <div className="critical-text">
+                <strong>You have {unattendedData.criticalCount} critical message{unattendedData.criticalCount > 1 ? 's' : ''}</strong>
+                <span className="critical-subtext">Requires immediate response</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="messages-dropdown-body">
           {loading ? (
@@ -183,12 +265,31 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
 
                   <div className="conversation-details">
                     <div className="conversation-header">
-                      <span className={`conversation-name ${isUserOnline(conv.username) ? 'online' : 'offline'}`}>
-                        {getDisplayName(conv)}
-                      </span>
-                      <span className="conversation-time">
-                        {formatTimestamp(conv.timestamp)}
-                      </span>
+                      <div className="conversation-name-section">
+                        {/* Name + Badge on same line */}
+                        <span className={`conversation-name ${isUserOnline(conv.username) ? 'online' : 'offline'}`}>
+                          {getDisplayName(conv)}
+                          {(() => {
+                            const urgencyInfo = getUrgencyInfo(conv.username);
+                            const badge = urgencyInfo ? getUrgencyBadge(urgencyInfo.urgency) : null;
+                            return badge ? (
+                              <span className={`urgency-badge ${badge.class}`}>
+                                {badge.emoji} {badge.text}
+                              </span>
+                            ) : null;
+                          })()}
+                        </span>
+                        {/* Time on new line below */}
+                        <span className="conversation-time">
+                          {formatTimestamp(conv.timestamp)}
+                        </span>
+                      </div>
+                      <div className="conversation-meta">
+                        {/* Unread Count */}
+                        {conv.unreadCount > 0 && (
+                          <span className="unread-count">{conv.unreadCount}</span>
+                        )}
+                      </div>
                     </div>
                     <p className="conversation-message">
                       {truncateMessage(conv.lastMessage)}
