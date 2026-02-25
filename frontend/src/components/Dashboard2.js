@@ -1780,15 +1780,7 @@ const Dashboard2 = () => {
         </div>
       )}
 
-      {/* Last Login Info */}
-      {lastLoginAt && (
-        <div className="last-login-info">
-          <span className="last-login-icon">🕐</span>
-          <span className="last-login-text">
-            Last login: <strong>{formatRelativeTime(lastLoginAt)}</strong>
-          </span>
-        </div>
-      )}
+
 
       {/* Pause Status Banner */}
       {pauseStatus?.isPaused && (
