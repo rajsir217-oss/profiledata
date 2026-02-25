@@ -201,7 +201,7 @@ const Profile = ({
       try {
         // Check if current user is admin
         const userRole = localStorage.getItem('userRole');
-        const adminStatus = currentUsername === 'admin' || userRole === 'admin';
+        const adminStatus = userRole === 'admin';
         setIsAdmin(adminStatus);
         
         // Pass requester to properly handle PII masking, and include context to avoid waterfall

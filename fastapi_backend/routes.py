@@ -1824,7 +1824,7 @@ async def get_user_activity_summary(
 
     user = await db.users.find_one(
         {"username": username},
-        {"status": 1, "createdAt": 1, "lastLogin": 1, "accountStatus": 1, "profileCompletionPercentage": 1}
+        {"status": 1, "createdAt": 1, "lastLogin": 1, "security.last_login_at": 1, "accountStatus": 1, "profileCompletionPercentage": 1}
     )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -1833,10 +1833,37 @@ async def get_user_activity_summary(
 
     # --- 1. Authentication ---
     last_seen = user.get("status", {}).get("last_seen")
+
+    # Best last login: security.last_login_at > lastLogin field > activity_logs
+    security_last_login = user.get("security", {}).get("last_login_at")
+    top_level_last_login = user.get("lastLogin")
     last_login_log = await db.activity_logs.find_one(
         {"username": username, "action_type": "user_login"},
         sort=[("timestamp", -1)]
     )
+    log_last_login = last_login_log.get("timestamp") if last_login_log else None
+
+    # Pick the most recent non-null value
+    from datetime import timezone
+    def _to_naive(val):
+        if val is None:
+            return None
+        if isinstance(val, datetime):
+            return val.replace(tzinfo=None) if val.tzinfo else val
+        if isinstance(val, str):
+            try:
+                dt = datetime.fromisoformat(val.replace('Z', '+00:00').replace('+00:00', ''))
+                return dt.replace(tzinfo=None) if dt.tzinfo else dt
+            except Exception:
+                return None
+        return None
+
+    candidates = [c for c in [
+        _to_naive(security_last_login),
+        _to_naive(top_level_last_login),
+        _to_naive(log_last_login)
+    ] if c is not None]
+    best_last_login = max(candidates) if candidates else None
 
     # --- 2. PII Requests ---
     pii_sent_count = await db.pii_requests.count_documents({"requesterUsername": username})
@@ -1935,7 +1962,7 @@ async def get_user_activity_summary(
         "profileCompletion": user.get("profileCompletionPercentage"),
         "authentication": {
             "lastSeen": ts(last_seen),
-            "lastLogin": ts(last_login_log.get("timestamp")) if last_login_log else None,
+            "lastLogin": ts(best_last_login),
         },
         "piiRequests": {
             "sentCount": pii_sent_count,
