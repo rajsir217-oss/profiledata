@@ -9,101 +9,38 @@
   background: var(--background-color);
 }
 
-/* Messages Guide Section */
-.messages-guide-section {
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.messages-guide-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-color);
-  margin: 0 0 16px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.messages-guide-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.guide-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  background: var(--background-color);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  transition: all 0.2s ease;
-}
-
-.guide-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-color);
-}
-
-.guide-icon {
-  font-size: 24px;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--hover-background);
-  border-radius: 8px;
-}
-
-.guide-text strong {
-  display: block;
-  font-size: 14px;
-  color: var(--text-color);
-  margin-bottom: 4px;
-}
-
-.guide-text p {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.4;
-}
-
-.messages-guide-tips {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: linear-gradient(135deg, var(--info-light, #e3f2fd) 0%, var(--info-color, #2196f3) 100%);
-  border-radius: 8px;
-  color: white;
-  font-size: 13px;
-}
-
-.tip-badge {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 12px;
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .messages-page {
+    height: calc(100vh - 180px);
+    padding: 8px 12px;
+  }
+  
+  .unattended-banner {
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+  }
+  
+  .unattended-icon {
+    font-size: 24px;
+  }
+  
+  .unattended-text strong {
+    font-size: 14px;
+  }
+  
+  .unattended-explanation {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  
+  .exclusion-tip {
+    font-size: 11px;
+  }
 }
 
 /* Mobile Responsive */
-@media (max-width: 768px) {
-  .messages-guide-section {
-    display: none; /* Hide entire guide section on mobile */
-  }
-}
 
 /* Pending Messages Warning Banner (1-2 days) - Gradient style like MFA banner */
 .pending-warning-banner {
@@ -181,25 +118,67 @@
   background: rgba(0, 0, 0, 0.5);
 }
 
-/* Unattended Chats Warning Banner - Theme-aware using primary colors */
+/* Enhanced Critical Chats Banner with animations */
 .unattended-banner {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: linear-gradient(135deg, var(--danger-color) 0%, #ff6b7a 100%);
   color: white;
-  padding: 12px 20px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  border-left: 40px solid var(--warning-color);
+  padding: 16px 24px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(255, 71, 87, 0.3);
+  border-left: 6px solid var(--warning-color);
+  position: relative;
+  overflow: hidden;
+  animation: criticalPulse 3s ease-in-out infinite;
+}
+
+/* Add pulsing animation */
+@keyframes criticalPulse {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(255, 71, 87, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 6px 30px rgba(255, 71, 87, 0.5);
+    transform: scale(1.01);
+  }
+}
+
+/* Add gradient overlay effect */
+.unattended-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }
 
 .unattended-banner-content {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .unattended-icon {
-  font-size: 24px;
+  font-size: 32px;
+  animation: iconPulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 .unattended-text {

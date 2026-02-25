@@ -91,14 +91,16 @@ const Messages = () => {
     const urlParams = new URLSearchParams(location.search);
     const toUsername = urlParams.get('to');
 
-    loadConversations().then((convos) => {
-      if (toUsername) {
-        handleSelectUser(toUsername);
-      } else if (convos.length > 0 && !selectedUser) {
-        handleSelectUser(convos[0].username);
-      }
+    // Load unattended first so sort order is correct when conversations arrive
+    loadUnattendedChats().then((unattended) => {
+      loadConversations(unattended).then((convos) => {
+        if (toUsername) {
+          handleSelectUser(toUsername);
+        } else if (convos.length > 0 && !selectedUser) {
+          handleSelectUser(convos[0].username);
+        }
+      });
     });
-    loadUnattendedChats();
 
     // Listen for real-time messages (uses ref to avoid re-registering on every selection change)
     const handleNewMessage = (data) => {
@@ -146,15 +148,19 @@ const Messages = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, currentUsername]);
 
-  const loadConversations = async () => {
+  const loadConversations = async (unattendedOverride) => {
     console.log('📥 Messages.js: Loading conversations for:', currentUsername);
     try {
-      const url = `/messages/conversations?username=${currentUsername}`;
+      const url = `/messages/conversations`;
       console.log('📡 Messages.js: Making request to:', url);
       const response = await api.get(url);
       console.log('✅ Messages.js: Response received:', response.data);
       console.log('📊 Messages.js: Conversations count:', response.data.conversations?.length || 0);
-      const convos = response.data.conversations || [];
+      let convos = response.data.conversations || [];
+      
+      // Sort conversations by urgency level (use fresh unattended data if provided)
+      convos = sortConversationsByUrgency(convos, unattendedOverride);
+      
       setConversations(convos);
       setLoading(false);
       
@@ -170,13 +176,52 @@ const Messages = () => {
     }
   };
 
+  const sortConversationsByUrgency = (conversations, unattendedOverride) => {
+    const data = unattendedOverride || unattendedData;
+    if (!data?.conversations) return conversations;
+    
+    // Get urgency info for each conversation
+    const conversationsWithUrgency = conversations.map(conv => {
+      const unattended = data.conversations.find(c => c.sender.username === conv.username);
+      return {
+        ...conv,
+        urgency: unattended?.urgency || 'normal',
+        waitingDays: unattended?.lastMessage?.waitingDays || 0
+      };
+    });
+    
+    // Sort by urgency priority
+    const urgencyPriority = {
+      'critical': 0,
+      'high': 1,
+      'medium': 2,
+      'pending': 3,
+      'normal': 4
+    };
+    
+    return conversationsWithUrgency.sort((a, b) => {
+      // First sort by urgency
+      const urgencyDiff = urgencyPriority[a.urgency] - urgencyPriority[b.urgency];
+      if (urgencyDiff !== 0) return urgencyDiff;
+      
+      // Then by waiting days (longer wait first)
+      const daysDiff = b.waitingDays - a.waitingDays;
+      if (daysDiff !== 0) return daysDiff;
+      
+      // Finally by last message time (most recent first)
+      return new Date(b.lastMessageTime) - new Date(a.lastMessageTime);
+    });
+  };
+
   const loadUnattendedChats = async () => {
     try {
       const response = await api.get('/messages/unattended');
       setUnattendedData(response.data);
       console.log('📬 Unattended chats:', response.data);
+      return response.data;
     } catch (err) {
       console.error('Error loading unattended chats:', err);
+      return null;
     }
   };
 
@@ -221,28 +266,6 @@ const Messages = () => {
       await loadConversationStatus(username);
     } catch (err) {
       console.error('Error loading conversation:', err);
-      setError('Failed to load conversation');
-    }
-  };
-
-  const handleSendMessage = async (content) => {
-    if (!content.trim() || !selectedUser) return;
-
-    try {
-      const response = await api.post(`/messages/send?username=${currentUsername}`, {
-        toUsername: selectedUser,
-        content: content.trim()
-      });
-
-      // Add message to local state
-      const newMsg = response.data.data;
-      setMessages(prev => [...prev, newMsg]);
-
-      // Send real-time notification via WebSocket
-      console.log('📤 Sending real-time message via WebSocket');
-      socketService.sendMessage(selectedUser, content.trim());
-
-      // Update conversation list
       await loadConversations();
       
       // Remove this conversation from unattended list locally (no API call)
@@ -260,15 +283,6 @@ const Messages = () => {
             mediumCount: removedConvo?.urgency === 'medium' ? Math.max(0, (prev.mediumCount || 0) - 1) : prev.mediumCount
           }));
         }
-      }
-    } catch (err) {
-      console.error('Error sending message:', err);
-      const errorMessage = err.response?.data?.detail || 'Failed to send message';
-      setError(errorMessage);
-      
-      // If it's a profanity violation (400 or 403 status), trigger violation reload
-      if (err.response?.status === 400 || err.response?.status === 403) {
-        window.dispatchEvent(new Event('violationUpdate'));
       }
     }
   };
@@ -296,54 +310,86 @@ const Messages = () => {
     setMessages([]);
   };
 
+  const handleSendMessage = async (content) => {
+    try {
+      const response = await api.post(`/messages/send?username=${currentUsername}`, {
+        toUsername: selectedUser,
+        content: content.trim()
+      });
+      setMessages(prev => [...prev, response.data.data]);
+      
+      // Also send via WebSocket for real-time delivery (only if connected)
+      try {
+        if (socketService.isConnected()) {
+          socketService.sendMessage(selectedUser, content.trim());
+          console.log('✅ Message sent via WebSocket for real-time delivery');
+        } else {
+          console.log('📡 WebSocket not connected, message saved to DB only');
+        }
+      } catch (wsError) {
+        console.warn('⚠️ WebSocket send failed, but message saved to DB:', wsError.message);
+      }
+      
+      // Refresh unattended data first, then reload conversations with fresh urgency data
+      const freshUnattended = await loadUnattendedChats();
+      await loadConversations(freshUnattended);
+      
+      // Show success toast
+      const toastService = (await import('../services/toastService')).default;
+      toastService.success('Message sent successfully!');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const toastService = (await import('../services/toastService')).default;
+      toastService.error('Failed to send message');
+    }
+  };
+
+  const handleQuickResponse = async (username, responseType) => {
+    // Select the conversation first
+    handleSelectUser(username);
+    
+    // Wait a moment for the conversation to load
+    setTimeout(async () => {
+      let message = '';
+      
+      switch (responseType) {
+        case 'interested':
+          message = "Hi! We're interested in learning more about you. Would you like to connect further?";
+          break;
+        case 'not_interested':
+          message = "Thank you for your interest, but we don't feel this is the right match for us. Best wishes!";
+          break;
+        case 'need_time':
+          message = "Hi! We're interested but need a bit more time to review. We'll get back to you soon.";
+          break;
+        default:
+          return;
+      }
+      
+      // Send the message
+      await handleSendMessage(message);
+      
+      // If not interested, also close conversation and add to exclusions
+      if (responseType === 'not_interested') {
+        setTimeout(async () => {
+          try {
+            await handleCloseConversation(username);
+            const formData = new FormData();
+            formData.append('reason', 'Not interested - declined via quick response');
+            await api.post(`/exclusions/${username}`, formData);
+            
+            const toastService = (await import('../services/toastService')).default;
+            toastService.success('Conversation closed and user added to exclusions');
+          } catch (error) {
+            console.error('Error handling not interested:', error);
+          }
+        }, 1000);
+      }
+    }, 500);
+  };
+
   return (
     <div className="messages-page">
-      {/* Messages Guide Section */}
-      <div className="messages-guide-section">
-        <div className="messages-guide-content">
-          <h3 className="messages-guide-title">
-            💬 Managing Your Messages
-          </h3>
-          <div className="messages-guide-grid">
-            <div className="guide-item">
-              <div className="guide-icon">📋</div>
-              <div className="guide-text">
-                <strong>High Volume?</strong>
-                <p>Use Quick Messages to respond efficiently or decline politely</p>
-              </div>
-            </div>
-            <div className="guide-item">
-              <div className="guide-icon">⚡</div>
-              <div className="guide-text">
-                <strong>Quick Actions</strong>
-                <p>Accept, decline, or ask questions with one-click responses</p>
-              </div>
-            </div>
-            <div className="guide-item">
-              <div className="guide-icon">🚫</div>
-              <div className="guide-text">
-                <strong>Not Interested?</strong>
-                <p>Add to exclusions to prevent future messages</p>
-              </div>
-            </div>
-            <div className="guide-item">
-              <div className="guide-icon">⏰</div>
-              <div className="guide-text">
-                <strong>Response Time</strong>
-                <p>Try to respond within 3 days for best engagement</p>
-              </div>
-            </div>
-          </div>
-          <div className="messages-guide-tips">
-            <span className="tip-badge">💡 Pro Tip:</span>
-            <span>Use the sidebar to prioritize messages by urgency (🔴 Critical, 🟠 High, 🟡 Medium)</span>
-          </div>
-          <div className="messages-guide-tips" style={{ marginTop: '12px', background: 'linear-gradient(135deg, var(--warning-light, #fff3cd) 0%, var(--warning-color, #ffc107) 100%)' }}>
-            <span className="tip-badge">⏰ Time Saver:</span>
-            <span>If you need to review the profile before responding, use a placeholder like "We will get back to you" to clear the urgency. You can always edit the message later!</span>
-          </div>
-        </div>
-      </div>
 
       {/* Warning Banner for High/Medium/Pending messages (dismissible, non-blocking) */}
       {unattendedData && unattendedData.warningCount > 0 && unattendedData.criticalCount === 0 && !pendingDismissed && (
@@ -413,6 +459,7 @@ const Messages = () => {
           onSelectUser={handleSelectUser}
           currentUsername={currentUsername}
           unattendedData={unattendedData}
+          onQuickResponse={handleQuickResponse}
         />
         <div 
           className="messages-resizer"

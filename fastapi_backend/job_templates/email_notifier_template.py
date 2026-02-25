@@ -172,7 +172,7 @@ class EmailNotifierTemplate(JobTemplate):
                             raise Exception(f"User '{notification.username}' not found in database")
                         
                         # Check both 'email' and 'contactEmail' fields
-                        email_field = user.get("email")
+                        email_field = user.get("email") or user.get("contactEmail")
                         contactEmail_field = user.get("contactEmail")
                         context.log("info", f"DB Fields - email: {email_field or 'NOT SET'}, contactEmail: {contactEmail_field or 'NOT SET'}")
                         
@@ -204,7 +204,7 @@ class EmailNotifierTemplate(JobTemplate):
                     await service.mark_as_sent(
                         notification.id,  # Use .id field directly, not dict()
                         NotificationChannel.EMAIL,
-                        status="success"
+                        success=True  # ✅ FIXED: Use boolean instead of string
                     )
                     
                     # Log notification with lineage tracking
@@ -225,7 +225,7 @@ class EmailNotifierTemplate(JobTemplate):
                     await service.mark_as_sent(
                         notification.id,  # Use .id field directly
                         NotificationChannel.EMAIL,
-                        status="failed",
+                        success=False,  # ✅ FIXED: Use boolean instead of string
                         error=str(e)
                     )
                     failed_count += 1

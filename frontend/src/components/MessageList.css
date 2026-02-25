@@ -8,19 +8,6 @@
   overflow: hidden;
 }
 
-.message-list-header {
-  padding: 20px;
-  border-bottom: 2px solid var(--border-color, #f0f0f0);
-  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
-}
-
-.message-list-header h3 {
-  margin: 0;
-  color: white;
-  font-size: 18px;
-  font-weight: 600;
-}
-
 /* Conversations Container */
 .conversations-container {
   flex: 1;
@@ -103,6 +90,50 @@
 .conversation-item.active .conversation-preview,
 .conversation-item.active .conversation-time {
   color: white;
+}
+
+/* Enhanced Critical Conversation Items */
+.conversation-item.critical {
+  border-left: 4px solid var(--danger-color, #dc2626);
+  background: linear-gradient(90deg, rgba(220, 38, 38, 0.05) 0%, transparent 100%);
+  animation: criticalConversationPulse 3s ease-in-out infinite;
+}
+
+.conversation-item.critical:hover:not(.active) {
+  background: linear-gradient(90deg, rgba(220, 38, 38, 0.1) 0%, transparent 100%);
+  transform: translateX(6px);
+  border-color: var(--danger-color, #dc2626);
+}
+
+@keyframes criticalConversationPulse {
+  0%, 100% {
+    border-left-color: var(--danger-color, #dc2626);
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.05) 0%, transparent 100%);
+  }
+  50% {
+    border-left-color: #ff6b7a;
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.08) 0%, transparent 100%);
+  }
+}
+
+.conversation-item.high {
+  border-left: 3px solid var(--warning-color, #f59e0b);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.03) 0%, transparent 100%);
+}
+
+.conversation-item.high:hover:not(.active) {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.06) 0%, transparent 100%);
+  border-color: var(--warning-color, #f59e0b);
+}
+
+.conversation-item.medium {
+  border-left: 2px solid #fbbf24;
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.02) 0%, transparent 100%);
+}
+
+.conversation-item.medium:hover:not(.active) {
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.04) 0%, transparent 100%);
+  border-color: #fbbf24;
 }
 
 /* Avatar */
@@ -230,32 +261,62 @@
   color: var(--text-muted, #999);
 }
 
-/* Urgency Badges */
+/* Enhanced Urgency Badges */
 .urgency-badge {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px 8px;
+  gap: 4px;
+  padding: 4px 8px;
   border-radius: 12px;
   font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-  text-transform: uppercase;
+  font-weight: 600;
   letter-spacing: 0.3px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .urgency-badge.urgency-critical {
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   color: white;
-  animation: pulse-urgent 1s ease-in-out infinite;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: criticalPulse 1.5s ease-in-out infinite;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Add shimmer effect for critical badges */
+.urgency-badge.urgency-critical::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes criticalPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.6);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.8);
+  }
 }
 
 .urgency-badge.urgency-high {
   background: linear-gradient(135deg, var(--warning-color, #f59e0b) 0%, #d97706 100%);
   color: white;
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.5);
+  animation: highPulse 3s ease-in-out infinite;
+}
+
+@keyframes highPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
 }
 
 .urgency-badge.urgency-medium {
@@ -264,15 +325,10 @@
   box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4);
 }
 
-@keyframes pulse-urgent {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.5);
-  }
-  50% {
-    transform: scale(1.08);
-    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.7);
-  }
+.urgency-badge.urgency-pending {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(148, 163, 184, 0.3);
 }
 
 p.conversation-preview {
@@ -309,12 +365,42 @@ p.conversation-preview.unread {
 
 /* Responsive - Scoped to .message-list to avoid conflicts */
 @media (max-width: 768px) {
-  .message-list .message-list-header {
-    padding: 12px 14px;
+  
+  .urgency-badge {
+    padding: 2px 6px;
+    font-size: 9px;
+    border-radius: 8px;
   }
   
-  .message-list .message-list-header h3 {
-    font-size: 15px;
+  .conversation-item.critical {
+    border-left-width: 3px;
+  }
+  
+  .conversation-item.high {
+    border-left-width: 2px;
+  }
+  
+  .conversation-item.medium {
+    border-left-width: 2px;
+  }
+  
+  /* Enhanced mobile critical banner */
+  .unattended-banner {
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+  }
+  
+  .unattended-icon {
+    font-size: 24px;
+  }
+  
+  .unattended-text strong {
+    font-size: 14px;
+  }
+  
+  .unattended-explanation {
+    font-size: 12px;
   }
   
   /* Force horizontal row layout on mobile */

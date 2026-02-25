@@ -33,7 +33,30 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [showAdminActions, setShowAdminActions] = useState(false); // Admin Action Center dropdown
   const adminActionsRef = useRef(null); // Ref for click-outside detection
   const [unreadResponseCount, setUnreadResponseCount] = useState(0); // User unread admin responses
+  const [criticalMessagesCount, setCriticalMessagesCount] = useState(0); // Critical messages count
   const navigate = useNavigate();
+
+  // Handle message deleted callback
+  const handleMessageDeleted = (messageId) => {
+    console.log('🗑️ Message deleted:', messageId);
+    // Refresh the messages dropdown by closing and reopening it
+    if (showMessagesDropdown) {
+      // Temporarily close and reopen to refresh the data
+      setShowMessagesDropdown(false);
+      setTimeout(() => setShowMessagesDropdown(true), 100);
+    }
+  };
+
+  // Handle critical messages count update
+  const handleCriticalCountUpdate = async () => {
+    try {
+      const response = await api.get('/messages/unattended');
+      setCriticalMessagesCount(response.data.criticalCount || 0);
+      console.log('🔄 Critical messages count updated:', response.data.criticalCount || 0);
+    } catch (error) {
+      console.error('Error updating critical messages count:', error);
+    }
+  };
 
   // Get page title based on current route
   const getPageTitle = () => {
@@ -354,6 +377,31 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     return () => clearInterval(interval);
   }, [currentUser]);
 
+  // Poll for critical messages count
+  useEffect(() => {
+    if (!currentUser) {
+      setCriticalMessagesCount(0);
+      return;
+    }
+
+    const fetchCriticalMessagesCount = async () => {
+      try {
+        const response = await api.get('/messages/unattended');
+        setCriticalMessagesCount(response.data.criticalCount || 0);
+      } catch (error) {
+        logger.error('Error fetching critical messages count:', error);
+      }
+    };
+
+    // Fetch immediately
+    fetchCriticalMessagesCount();
+
+    // Poll every 30 seconds for critical messages (more frequent since it's urgent)
+    const interval = setInterval(fetchCriticalMessagesCount, 30000);
+
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
   if (!isLoggedIn) {
     return (
       <div className={`top-bar ${isOpen ? 'sidebar-open' : ''}`}>
@@ -508,9 +556,9 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           {/* Messages Icon with Dropdown */}
           <div className="messages-icon-container">
             <button 
-              className="btn-messages" 
+              className={`btn-messages ${criticalMessagesCount > 0 ? 'critical' : ''}`}
               onClick={() => setShowMessagesDropdown(!showMessagesDropdown)}
-              title="Messages"
+              title={`Messages${criticalMessagesCount > 0 ? ` - ${criticalMessagesCount} critical message${criticalMessagesCount > 1 ? 's' : ''}!` : ''}`}
             >
               💬
               {unreadCount > 0 && (
@@ -521,9 +569,16 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
               isOpen={showMessagesDropdown}
               onClose={() => setShowMessagesDropdown(false)}
               onOpenMessage={(profile) => {
-                setSelectedProfile(profile);
+                // Merge profile with callbacks
+                const profileWithCallback = {
+                  ...profile,
+                  onMessageDeleted: handleMessageDeleted,
+                  onCriticalCountUpdate: handleCriticalCountUpdate
+                };
+                setSelectedProfile(profileWithCallback);
                 setShowMessageModal(true);
               }}
+              onMessageDeleted={handleMessageDeleted}
             />
           </div>
           
@@ -550,6 +605,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
               setShowMessageModal(false);
               setSelectedProfile(null);
             }}
+            onMessageDeleted={handleMessageDeleted}
           />
         )}
       </div>

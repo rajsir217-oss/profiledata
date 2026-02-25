@@ -126,12 +126,13 @@ const InactiveUsersReport = () => {
   }, []);
 
   const exportToCSV = () => {
-    const headers = ['Username', 'Gender', 'Last Login', 'Days Elapsed'];
+    const headers = ['Username', 'Name', 'Gender', 'Last Login', 'Days Elapsed'];
     const csvData = users.map(user => [
       user.username,
+      user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'N/A',
       user.gender || 'Unknown',
       user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never',
-      user.daysElapsed
+      user.daysElapsed != null ? user.daysElapsed : 'Never logged in'
     ]);
     
     const csv = [headers, ...csvData].map(row => row.join(',')).join('\n');
@@ -155,6 +156,7 @@ const InactiveUsersReport = () => {
   };
 
   const getDaysElapsedColor = (days) => {
+    if (days == null) return '#6c757d'; // Gray - Never logged in
     if (days >= 60) return '#dc3545'; // Red - Critical
     if (days >= 30) return '#fd7e14'; // Orange - Warning
     if (days >= 15) return '#ffc107'; // Yellow - Caution
@@ -327,6 +329,9 @@ const InactiveUsersReport = () => {
                   <th onClick={() => handleSort('username')}>
                     Username {getSortIcon('username')}
                   </th>
+                  <th onClick={() => handleSort('firstName')}>
+                    Name {getSortIcon('firstName')}
+                  </th>
                   <th onClick={() => handleSort('gender')}>
                     Gender {getSortIcon('gender')}
                   </th>
@@ -345,7 +350,7 @@ const InactiveUsersReport = () => {
                     <td className="username-cell">
                       <strong 
                         style={{ 
-                          color: '#007bff', 
+                          color: 'var(--primary-color)', 
                           cursor: 'pointer',
                           textDecoration: 'underline'
                         }}
@@ -354,6 +359,9 @@ const InactiveUsersReport = () => {
                       >
                         {user.username}
                       </strong>
+                    </td>
+                    <td className="name-cell">
+                      {user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || <span style={{ color: 'var(--text-muted)' }}>—</span>}
                     </td>
                     <td className="gender-cell">
                       <span className={`gender-badge gender-${user.gender?.toLowerCase()}`}>
@@ -371,7 +379,7 @@ const InactiveUsersReport = () => {
                           color: 'white'
                         }}
                       >
-                        {user.daysElapsed} days
+                        {user.daysElapsed != null ? `${user.daysElapsed} days` : 'Never'}
                       </span>
                     </td>
                     <td className="actions-cell">

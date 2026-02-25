@@ -182,7 +182,7 @@ class SMSNotifierTemplate(JobTemplate):
                             raise Exception(f"User '{notification.username}' not found in database")
                         
                         # Check both 'phone' and 'contactNumber' fields
-                        phone_field = user.get("phone")
+                        phone_field = user.get("phone") or user.get("contactNumber")
                         contactNumber_field = user.get("contactNumber")
                         context.log("info", f"DB Fields - phone: {phone_field or 'NOT SET'}, contactNumber: {contactNumber_field or 'NOT SET'}")
                         
