@@ -306,18 +306,21 @@ class SMSNotifierTemplate(JobTemplate):
             "active": True
         })
         
-        # Extract requester name from template data with fallbacks
+        # Extract requester name and username from template data with fallbacks
         template_data = notification.templateData or {}
         requester_name = "Someone"
+        sender_username = ""
         if isinstance(template_data, dict):
             match_data = template_data.get("match", {})
             if isinstance(match_data, dict):
                 first = match_data.get("firstName", "")
-                username = match_data.get("username", "")
+                uname = match_data.get("username", "")
                 if first:
                     requester_name = first
-                elif username:
-                    requester_name = username
+                elif uname:
+                    requester_name = uname
+                if uname:
+                    sender_username = uname
             # Also check flat format
             if requester_name == "Someone":
                 flat_first = template_data.get("match_firstName", "")
@@ -326,22 +329,28 @@ class SMSNotifierTemplate(JobTemplate):
                     requester_name = flat_first
                 elif flat_username:
                     requester_name = flat_username
-        
+                if not sender_username and flat_username:
+                    sender_username = flat_username
+
+        # Build sender tag for message notifications: [L3V3LMATCHES][username]
+        SENDER_TAG = f"[L3V3LMATCHES][{sender_username}] " if sender_username else PREFIX
+        REQUESTER_TAG = f"[L3V3LMATCHES][{sender_username}] " if sender_username else f"{PREFIX}{requester_name} "
+
         if not template:
             # User-friendly fallback messages for each trigger type
             # Messages now include personalized greeting with recipient's name
             trigger_messages = {
                 # Contact Info Requests
-                "pending_pii_request": f"{GREETING}{requester_name} requested your contact info! Login to respond.",
-                "pii_request": f"{GREETING}{requester_name} requested your contact info! Login to respond.",
-                "pii_granted": f"{GREETING}Your contact info request was approved! Login to view.",
-                "pii_denied": f"{GREETING}Your contact info request was declined. Login for details.",
+                "pending_pii_request": f"{PREFIX}{requester_name} requested your contact info! Login to respond.",
+                "pii_request": f"{PREFIX}{requester_name} requested your contact info! Login to respond.",
+                "pii_granted": f"{PREFIX}Your contact info request was approved! Login to view.",
+                "pii_denied": f"{PREFIX}Your contact info request was declined. Login for details.",
                 
                 # Messaging
-                "new_message": f"{GREETING}You have a new message! Login to read it.",
-                "unread_messages": f"{GREETING}You have unread messages waiting! Login to catch up.",
-                "conversation_cold": f"{GREETING}Your conversation is getting cold! Send a message to rekindle.",
-                "message_reminder": f"{GREETING}You have an unread message! Login to respond.",
+                "new_message": f"{SENDER_TAG}You have a new message! Login to read it.",
+                "unread_messages": f"{SENDER_TAG}You have unread messages waiting! Login to catch up.",
+                "conversation_cold": f"{SENDER_TAG}Your conversation is getting cold! Send a message to rekindle.",
+                "message_reminder": f"{SENDER_TAG}You have an unread message! Login to respond.",
                 
                 # Profile Interactions
                 "profile_view": f"{GREETING}Someone viewed your profile! Login to see who.",
