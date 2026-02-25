@@ -15,18 +15,48 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _parse_updated_at(value) -> Optional[datetime]:
-    """Safely parse updatedAt which can be string or datetime."""
+def _parse_datetime(value) -> Optional[datetime]:
+    """Safely parse a datetime value which can be a string or datetime object."""
     if value is None:
         return None
     if isinstance(value, datetime):
-        return value
+        # Strip timezone info for naive comparison
+        return value.replace(tzinfo=None) if value.tzinfo else value
     if isinstance(value, str):
         try:
-            return datetime.fromisoformat(value.replace('Z', '+00:00').replace('+00:00', ''))
+            dt = datetime.fromisoformat(value.replace('Z', '+00:00').replace('+00:00', ''))
+            return dt.replace(tzinfo=None) if dt.tzinfo else dt
         except (ValueError, TypeError):
             return None
     return None
+
+
+def _get_last_login(user: dict) -> Optional[datetime]:
+    """
+    Determine the true last login time for a user.
+    Priority: security.last_login_at > lastLogin (top-level) > None
+    Does NOT use updatedAt as that changes on every profile edit.
+    """
+    candidates = []
+
+    # 1. security.last_login_at — set on every successful login
+    security = user.get("security") or {}
+    dt = _parse_datetime(security.get("last_login_at"))
+    if dt:
+        candidates.append(dt)
+
+    # 2. Top-level lastLogin field (used by login reminder jobs)
+    dt = _parse_datetime(user.get("lastLogin"))
+    if dt:
+        candidates.append(dt)
+
+    # 3. status.last_seen — updated on login
+    status = user.get("status") or {}
+    dt = _parse_datetime(status.get("last_seen"))
+    if dt:
+        candidates.append(dt)
+
+    return max(candidates) if candidates else None
 
 
 @router.get("/inactive-users/debug")
@@ -40,16 +70,46 @@ async def debug_inactive_users(
 
     try:
         total_users = await db.users.count_documents({"accountStatus": "active"})
-        users_with_updated = await db.users.count_documents({
+        users_with_security_login = await db.users.count_documents({
             "accountStatus": "active",
-            "updatedAt": {"$exists": True}
+            "security.last_login_at": {"$exists": True, "$ne": None}
         })
+        users_with_last_login = await db.users.count_documents({
+            "accountStatus": "active",
+            "lastLogin": {"$exists": True, "$ne": None}
+        })
+        users_with_last_seen = await db.users.count_documents({
+            "accountStatus": "active",
+            "status.last_seen": {"$exists": True, "$ne": None}
+        })
+
+        # Sample 3 users to inspect fields
+        sample_users = await db.users.find(
+            {"accountStatus": "active"},
+            {"username": 1, "security.last_login_at": 1, "lastLogin": 1, "status.last_seen": 1, "_id": 0}
+        ).limit(3).to_list(length=3)
+
+        sample_info = []
+        today = datetime.utcnow()
+        for u in sample_users:
+            last_login = _get_last_login(u)
+            sample_info.append({
+                "username": u.get("username"),
+                "security_last_login_at": str(u.get("security", {}).get("last_login_at")),
+                "lastLogin": str(u.get("lastLogin")),
+                "status_last_seen": str(u.get("status", {}).get("last_seen")),
+                "resolved_last_login": str(last_login),
+                "days_elapsed": (today - last_login).days if last_login else None
+            })
 
         return {
             "debug": "success",
             "total_active_users": total_users,
-            "users_with_updated": users_with_updated,
-            "message": "Basic database connection working"
+            "users_with_security_last_login_at": users_with_security_login,
+            "users_with_lastLogin": users_with_last_login,
+            "users_with_status_last_seen": users_with_last_seen,
+            "sample_users": sample_info,
+            "message": "Login field diagnosis"
         }
 
     except Exception as e:
@@ -87,10 +147,9 @@ async def get_inactive_users(
         cutoff_date = today - timedelta(days=effective_min_days)
         cutoff_str = cutoff_date.strftime("%Y-%m-%d")
 
-        # Build MongoDB query - simple find, no aggregation
+        # Build MongoDB query - fetch all active users regardless of updatedAt
         query = {
-            "accountStatus": "active",
-            "updatedAt": {"$exists": True, "$ne": None}
+            "accountStatus": "active"
         }
 
         if username:
@@ -104,7 +163,9 @@ async def get_inactive_users(
             "firstName": 1,
             "lastName": 1,
             "gender": 1,
-            "updatedAt": 1,
+            "security.last_login_at": 1,
+            "lastLogin": 1,
+            "status.last_seen": 1,
             "loginCount": 1,
             "_id": 0
         }
@@ -112,20 +173,15 @@ async def get_inactive_users(
         cursor = db.users.find(query, projection)
         raw_users = await cursor.to_list(length=5000)
 
-        # Process in Python - much faster than $dateFromString aggregation
+        # Process in Python
         processed = []
         for user in raw_users:
-            updated_at = _parse_updated_at(user.get("updatedAt"))
-            if updated_at is None:
+            last_login_dt = _get_last_login(user)
+            if last_login_dt is None:
                 days_elapsed = None  # Never logged in
-                last_login_dt = None
             else:
-                # Make both naive for comparison
-                if updated_at.tzinfo is not None:
-                    updated_at = updated_at.replace(tzinfo=None)
-                delta = today - updated_at
+                delta = today - last_login_dt
                 days_elapsed = delta.days
-                last_login_dt = updated_at
 
             # Apply days filter — treat never-logged-in as qualifying (no upper bound)
             if days_elapsed is not None and days_elapsed < effective_min_days:
