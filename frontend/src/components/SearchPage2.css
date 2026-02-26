@@ -2149,7 +2149,7 @@
   line-height: 1.4;
   color: var(--text-secondary);
   font-style: italic;
-  white-space: nowrap;
+  white-space: wrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
