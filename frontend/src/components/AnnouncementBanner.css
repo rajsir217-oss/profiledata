@@ -190,17 +190,13 @@
 
 @media (max-width: 480px) {
   .announcement-banner {
-    top: 100px;
-    left: 12px;
-    right: 12px;
-    border-radius: 10px;
+    display: none !important;
   }
+}
 
-  .banner-icon {
-    font-size: 1.2rem;
-  }
-
-  .banner-message {
-    font-size: 12px;
+/* Mobile: Hide announcement banner completely to save screen space */
+@media (max-width: 768px) {
+  .announcement-banner {
+    display: none !important;
   }
 }
