@@ -61,6 +61,28 @@ const UnifiedPreferences = () => {
   const [contributionMonthlySilenceDays, setContributionMonthlySilenceDays] = useState(35);
   const [savingContributionSettings, setSavingContributionSettings] = useState(false);
   const [showContributionTooltip, setShowContributionTooltip] = useState(false);
+  
+  // User Contribution Management State
+  const [contributionHistory, setContributionHistory] = useState([]);
+  const [loadingContributionHistory, setLoadingContributionHistory] = useState(false);
+  const [contributionStats, setContributionStats] = useState({
+    totalContributed: 0,
+    contributionCount: 0,
+    averageAmount: 0,
+    lastContribution: null,
+    monthlyContributions: 0,
+    isRecurringContributor: false
+  });
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState([]);
+  const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
+  
+  // Contribution Popup State
+  const [selectedAmount, setSelectedAmount] = useState(25);
+  const [customAmount, setCustomAmount] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('paypal');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -455,11 +477,109 @@ const UnifiedPreferences = () => {
     }
   };
 
+  // Load user contribution history
+  const loadContributionHistory = async () => {
+    try {
+      setLoadingContributionHistory(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${getBackendUrl()}/api/stripe/contribution-history`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        setContributionHistory(response.data.contributions || []);
+        setContributionStats(response.data.stats || {
+          totalContributed: 0,
+          contributionCount: 0,
+          averageAmount: 0,
+          lastContribution: null,
+          monthlyContributions: 0,
+          isRecurringContributor: false
+        });
+      }
+    } catch (error) {
+      console.error('Error loading contribution history:', error);
+      // Don't show error toast for this - it's not critical
+    } finally {
+      setLoadingContributionHistory(false);
+    }
+  };
+
+  // Load saved payment methods
+  const loadPaymentMethods = async () => {
+    try {
+      setLoadingPaymentMethods(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${getBackendUrl()}/api/stripe/payment-methods`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        setSavedPaymentMethods(response.data.paymentMethods || []);
+      }
+    } catch (error) {
+      console.error('Error loading payment methods:', error);
+    } finally {
+      setLoadingPaymentMethods(false);
+    }
+  };
+
+  // Contribution popup functions
+  const getAmount = () => {
+    if (customAmount && parseFloat(customAmount) > 0) {
+      return parseFloat(customAmount).toFixed(2);
+    }
+    return selectedAmount || 0;
+  };
+
+  const handleContribute = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const amount = getAmount();
+      if (!amount || amount <= 0) {
+        setError('Please enter a valid amount');
+        return;
+      }
+      
+      const token = localStorage.getItem('token');
+      const paymentType = isRecurring ? 'monthly' : 'one-time';
+      
+      // Create contribution session
+      const response = await axios.post(
+        `${getBackendUrl()}/api/stripe/create-contribution-session`,
+        {
+          amount: parseFloat(amount),
+          paymentType: paymentType
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      if (response.data.success) {
+        // Redirect to Stripe Checkout
+        window.location.href = response.data.checkoutUrl;
+      } else {
+        setError(response.data.error || 'Failed to create contribution session');
+      }
+    } catch (error) {
+      console.error('Error creating contribution:', error);
+      setError(error.response?.data?.detail || 'Failed to process contribution');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isAdmin) {
       loadAdminSettings();
       loadContributionSettings();
     }
+    // Load user contribution data for all users
+    loadContributionHistory();
+    loadPaymentMethods();
   }, [isAdmin]);
 
   const showToast = (message, type = 'success') => {
@@ -1527,6 +1647,388 @@ const UnifiedPreferences = () => {
             )}
           </section>
         </div>
+            )
+          },
+          {
+            id: 'contributions',
+            icon: '💝',
+            label: 'Contributions',
+            content: (
+              <div className="contributions-settings">
+                {/* Contribution Overview */}
+                <section className="settings-section">
+                  <h2>💝 Your Contribution Impact</h2>
+                  <p className="section-description">Manage your contributions and see how you're supporting the platform</p>
+                  
+                  <div className="contribution-stats-grid">
+                    <div className="stat-card">
+                      <div className="stat-icon">💰</div>
+                      <div className="stat-content">
+                        <h3>${contributionStats.totalContributed.toFixed(2)}</h3>
+                        <p>Total Contributed</p>
+                      </div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-icon">📊</div>
+                      <div className="stat-content">
+                        <h3>{contributionStats.contributionCount}</h3>
+                        <p>Contributions</p>
+                      </div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-icon">📈</div>
+                      <div className="stat-content">
+                        <h3>${contributionStats.averageAmount.toFixed(2)}</h3>
+                        <p>Average Amount</p>
+                      </div>
+                    </div>
+                    {contributionStats.isRecurringContributor && (
+                      <div className="stat-card recurring">
+                        <div className="stat-icon">🔄</div>
+                        <div className="stat-content">
+                          <h3>Monthly</h3>
+                          <p>Recurring Supporter</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {contributionStats.lastContribution && (
+                    <div className="last-contribution">
+                      <p>📅 Last contribution: {new Date(contributionStats.lastContribution).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                </section>
+
+                {/* Contribution History */}
+                <section className="settings-section">
+                  <h2>📜 Contribution History</h2>
+                  <p className="section-description">View your past contributions and download receipts</p>
+                  
+                  {loadingContributionHistory ? (
+                    <div className="loading-spinner">Loading contribution history...</div>
+                  ) : contributionHistory.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No contributions yet. Your support helps keep the platform running!</p>
+                      <button className="btn-primary" onClick={() => window.location.href='/search'}>
+                        🎯 Make Your First Contribution
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="contribution-history-list">
+                      {contributionHistory.slice(0, 5).map((contribution) => (
+                        <div key={contribution.id} className="contribution-item">
+                          <div className="contribution-details">
+                            <div className="contribution-amount">
+                              <strong>${contribution.amount.toFixed(2)}</strong>
+                              {contribution.type === 'recurring' && (
+                                <span className="recurring-badge">🔄 Monthly</span>
+                              )}
+                            </div>
+                            <div className="contribution-date">
+                              {new Date(contribution.date).toLocaleDateString()}
+                            </div>
+                            <div className="contribution-method">
+                              {contribution.paymentMethod}
+                            </div>
+                          </div>
+                          <button className="btn-secondary btn-sm">
+                            📧 Receipt
+                          </button>
+                        </div>
+                      ))}
+                      {contributionHistory.length > 5 && (
+                        <button className="btn-secondary view-all-btn">
+                          View All {contributionHistory.length} Contributions
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </section>
+
+                {/* Quick Contribution */}
+                <section className="settings-section">
+                  <h2>💝 Make a Contribution</h2>
+                  <p className="section-description">Support the platform with a quick contribution</p>
+                  
+                  <div className="contribution-popup-container">
+                    <div className="contribution-amounts">
+                      <div className="amount-grid">
+                        {[10, 15, 25, 50, 100].map((amount) => (
+                          <button
+                            key={amount}
+                            className={`amount-btn ${selectedAmount === amount ? 'selected' : ''}`}
+                            onClick={() => setSelectedAmount(amount)}
+                          >
+                            ${amount}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      <div className="custom-amount">
+                        <label>Custom amount:</label>
+                        <div className="custom-amount-input">
+                          <span>$</span>
+                          <input
+                            type="number"
+                            min="1"
+                            step="0.01"
+                            placeholder="Enter amount"
+                            value={customAmount}
+                            onChange={(e) => {
+                              setCustomAmount(e.target.value);
+                              setSelectedAmount(null);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="contribution-type">
+                      <label className="radio-label">
+                        <input
+                          type="radio"
+                          name="contributionType"
+                          value="one-time"
+                          checked={!isRecurring}
+                          onChange={() => setIsRecurring(false)}
+                        />
+                        <span className="radio-custom"></span>
+                        <span className="radio-text">One-time contribution</span>
+                      </label>
+                      
+                      <label className="radio-label">
+                        <input
+                          type="radio"
+                          name="contributionType"
+                          value="monthly"
+                          checked={isRecurring}
+                          onChange={() => setIsRecurring(true)}
+                        />
+                        <span className="radio-custom"></span>
+                        <span className="radio-text">Monthly recurring</span>
+                        <span className="recurring-badge">🔄 Best value</span>
+                      </label>
+                    </div>
+                    
+                    <div className="contribution-summary">
+                      <div className="summary-line">
+                        <span>Contribution amount:</span>
+                        <span className="amount">${getAmount()}</span>
+                      </div>
+                      {isRecurring && (
+                        <div className="summary-line">
+                          <span>Billed monthly:</span>
+                          <span className="amount">${getAmount()}/month</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="payment-methods">
+                      <h4>Choose payment method:</h4>
+                      <div className="payment-options">
+                        <button
+                          className={`payment-option ${paymentMethod === 'paypal' ? 'selected' : ''}`}
+                          onClick={() => setPaymentMethod('paypal')}
+                        >
+                          <div className="payment-icon">💳</div>
+                          <div className="payment-info">
+                            <div className="payment-name">PayPal</div>
+                            <div className="payment-desc">Pay with card or PayPal account</div>
+                          </div>
+                        </button>
+                        
+                        <button
+                          className={`payment-option ${paymentMethod === 'stripe' ? 'selected' : ''}`}
+                          onClick={() => setPaymentMethod('stripe')}
+                        >
+                          <div className="payment-icon">🔒</div>
+                          <div className="payment-info">
+                            <div className="payment-name">Stripe</div>
+                            <div className="payment-desc">Secure card payment</div>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <button
+                      className="btn-primary contribute-btn"
+                      onClick={handleContribute}
+                      disabled={!getAmount() || loading}
+                    >
+                      {loading ? 'Processing...' : `Contribute $${getAmount()}${isRecurring ? '/month' : ''}`}
+                    </button>
+                    
+                    {error && (
+                      <div className="error-message">
+                        {error}
+                      </div>
+                    )}
+                    
+                    <div className="contribution-impact">
+                      <h4>🌟 Your contribution helps:</h4>
+                      <ul>
+                        <li>Keep the platform running smoothly</li>
+                        <li>Improve user experience with new features</li>
+                        <li>Provide better support to all users</li>
+                        <li>Maintain secure and reliable service</li>
+                      </ul>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Payment Methods */}
+                <section className="settings-section">
+                  <h2>💳 Payment Methods</h2>
+                  <p className="section-description">Manage your saved payment methods for faster contributions</p>
+                  
+                  {loadingPaymentMethods ? (
+                    <div className="loading-spinner">Loading payment methods...</div>
+                  ) : savedPaymentMethods.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No saved payment methods. Save one for faster contributions!</p>
+                    </div>
+                  ) : (
+                    <div className="payment-methods-list">
+                      {savedPaymentMethods.map((method) => (
+                        <div key={method.id} className="payment-method-item">
+                          <div className="payment-method-info">
+                            <div className="payment-method-type">
+                              {method.type === 'card' ? '💳' : '🏦'} {method.brand || method.type}
+                            </div>
+                            <div className="payment-method-details">
+                              {method.type === 'card' ? `**** **** **** ${method.last4}` : method.email}
+                            </div>
+                            {method.isDefault && (
+                              <span className="default-badge">Default</span>
+                            )}
+                          </div>
+                          <div className="payment-method-actions">
+                            <button className="btn-secondary btn-sm">Edit</button>
+                            <button className="btn-danger btn-sm">Remove</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <button className="btn-primary add-payment-method-btn">
+                    ➕ Add Payment Method
+                  </button>
+                </section>
+
+                {/* Admin-only Contribution Settings */}
+                {isAdmin && (
+                  <section className="settings-section admin-section">
+                    <h2>⚙️ Contribution Settings (Admin)</h2>
+                    <p className="section-description">Configure platform-wide contribution settings</p>
+                    
+                    <div className="contribution-settings-form">
+                      <div className="form-row">
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                            Enable Contribution Popup
+                          </label>
+                          <label className="toggle-switch">
+                            <input
+                              type="checkbox"
+                              checked={contributionEnabled}
+                              onChange={(e) => setContributionEnabled(e.target.checked)}
+                              disabled={savingContributionSettings}
+                            />
+                            <span className="toggle-slider"></span>
+                          </label>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                            Minimum Logins Before Popup
+                          </label>
+                          <select
+                            value={contributionMinLogins}
+                            onChange={(e) => setContributionMinLogins(Number(e.target.value))}
+                            disabled={savingContributionSettings}
+                            className="form-control"
+                            style={{ width: '100%' }}
+                          >
+                            <option value={5}>5 logins</option>
+                            <option value={10}>10 logins</option>
+                            <option value={15}>15 logins</option>
+                            <option value={20}>20 logins</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="form-row">
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                            Popup Frequency (days)
+                          </label>
+                          <select
+                            value={contributionFrequencyDays}
+                            onChange={(e) => setContributionFrequencyDays(Number(e.target.value))}
+                            disabled={savingContributionSettings}
+                            className="form-control"
+                            style={{ width: '100%' }}
+                          >
+                            <option value={7}>7 days</option>
+                            <option value={14}>14 days</option>
+                            <option value={30}>30 days</option>
+                            <option value={60}>60 days</option>
+                            <option value={90}>90 days</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                            Login Delay Before Showing Popup
+                          </label>
+                          <select
+                            value={contributionLoginDelaySeconds}
+                            onChange={(e) => setContributionLoginDelaySeconds(Number(e.target.value))}
+                            disabled={savingContributionSettings}
+                            className="form-control"
+                            style={{ width: '100%' }}
+                          >
+                            <option value={0}>Immediately</option>
+                            <option value={15}>15 seconds</option>
+                            <option value={30}>30 seconds</option>
+                            <option value={60}>1 minute</option>
+                            <option value={120}>2 minutes</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                          Monthly Member Silence Period
+                        </label>
+                        <select
+                          value={contributionMonthlySilenceDays}
+                          onChange={(e) => setContributionMonthlySilenceDays(Number(e.target.value))}
+                          disabled={savingContributionSettings}
+                          className="form-control"
+                          style={{ width: '100%' }}
+                        >
+                          <option value={30}>30 days</option>
+                          <option value={35}>35 days</option>
+                          <option value={45}>45 days</option>
+                          <option value={60}>60 days</option>
+                        </select>
+                      </div>
+
+                      <button
+                        onClick={handleSaveContributionSettings}
+                        disabled={savingContributionSettings}
+                        className="btn-primary"
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        {savingContributionSettings ? '💾 Saving...' : '💾 Save Contribution Settings'}
+                      </button>
+                    </div>
+                  </section>
+                )}
+              </div>
             )
           },
           {
