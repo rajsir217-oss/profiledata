@@ -15,6 +15,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const paypalScriptLoaded = useRef(false);
   const amountRef = useRef(15);
   const paypalInitialized = useRef(false);
+  const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'paypal', 'venmo-qr', 'paypal-qr'
 
   // Use amounts from config or fallback to default
   const amounts = contributionConfig?.amounts || [10, 15, 25];
@@ -327,48 +328,145 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             </label>
           </div>
 
-          {/* PayPal Buttons */}
-          <div className="contribution-paypal-section">
-            {loading && (
-              <div className="paypal-processing">
-                <span className="spinner"></span>
-                Processing payment...
-              </div>
-            )}
-            
-            {!paypalReady && !paypalFailed && (
-              <div className="paypal-loading">
-                <span className="spinner"></span>
-                Loading PayPal...
-              </div>
-            )}
-
-            {/* Key forces clean React unmount/remount when amount changes */}
-            <div 
-              key={paypalKey}
-              ref={paypalContainerRef} 
-              id="contribution-paypal-buttons"
-              style={{ display: paypalFailed ? 'none' : 'block' }}
-            />
-
-            {paypalFailed && (
-              <div className="paypal-fallback">
-                <p>PayPal is currently unavailable.</p>
-                <button 
-                  className="contribution-proceed-btn"
-                  onClick={() => {
-                    setPaypalFailed(false);
-                    setError('');
-                    loadPayPalScript().then((loaded) => {
-                      if (loaded) renderPayPalButtons();
-                    });
-                  }}
-                >
-                  Retry PayPal
-                </button>
-              </div>
-            )}
+          {/* Payment Method Selection */}
+          <div className="payment-method-section">
+            <div className="payment-method-label">Choose Payment Method:</div>
+            <div className="payment-method-toggle">
+              <button
+                className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('paypal')}
+                disabled={loading}
+              >
+                <span className="paypal-p">P</span>
+                PayPal
+              </button>
+              <button
+                className={`payment-method-btn ${paymentMethod === 'venmo-qr' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('venmo-qr')}
+                disabled={loading}
+              >
+                <span className="venmo-v">V</span>
+                Venmo QR
+              </button>
+              <button
+                className={`payment-method-btn ${paymentMethod === 'paypal-qr' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('paypal-qr')}
+                disabled={loading}
+              >
+                <span className="paypal-p">P</span>
+                PayPal QR
+              </button>
+            </div>
           </div>
+
+          {/* PayPal Buttons */}
+          {paymentMethod === 'paypal' && (
+            <div className="contribution-paypal-section">
+              {loading && (
+                <div className="paypal-processing">
+                  <span className="spinner"></span>
+                  Processing payment...
+                </div>
+              )}
+              
+              {!paypalReady && !paypalFailed && (
+                <div className="paypal-loading">
+                  <span className="spinner"></span>
+                  Loading PayPal...
+                </div>
+              )}
+
+              {/* Key forces clean React unmount/remount when amount changes */}
+              <div 
+                key={paypalKey}
+                ref={paypalContainerRef} 
+                id="contribution-paypal-buttons"
+                style={{ display: paypalFailed ? 'none' : 'block' }}
+              />
+
+              {paypalFailed && (
+                <div className="paypal-fallback">
+                  <p>PayPal is currently unavailable.</p>
+                  <button 
+                    className="contribution-proceed-btn"
+                    onClick={() => {
+                      setPaypalFailed(false);
+                      setError('');
+                      loadPayPalScript().then((loaded) => {
+                        if (loaded) renderPayPalButtons();
+                      });
+                    }}
+                  >
+                    Retry PayPal
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Venmo QR Code */}
+          {paymentMethod === 'venmo-qr' && (
+            <div className="qr-code-section">
+              <div className="qr-code-container">
+                <div className="qr-code-header">
+                  <span className="venmo-v">V</span>
+                  <h3>Scan with Venmo</h3>
+                </div>
+                <div className="qr-code-image">
+                  <img 
+                    src="/images/VenmoQR.png" 
+                    alt="Venmo QR Code"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextElementSibling.style.display = 'block';
+                    }}
+                  />
+                  <div className="qr-code-fallback" style={{ display: 'none' }}>
+                    <p>📱 Venmo QR Code</p>
+                    <p className="qr-username">@username</p>
+                    <p className="qr-amount">${getAmount().toFixed(2)}</p>
+                  </div>
+                </div>
+                <div className="qr-code-instructions">
+                  <p>1. Open Venmo app</p>
+                  <p>2. Scan this QR code</p>
+                  <p>3. Send ${getAmount().toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PayPal QR Code */}
+          {paymentMethod === 'paypal-qr' && (
+            <div className="qr-code-section">
+              <div className="qr-code-container">
+                <div className="qr-code-header">
+                  <span className="paypal-p">P</span>
+                  <h3>Scan with PayPal</h3>
+                </div>
+                <div className="qr-code-image">
+                  <img 
+                    src="/images/PaypalQR.png" 
+                    alt="PayPal QR Code"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextElementSibling.style.display = 'block';
+                    }}
+                  />
+                  <div className="qr-code-fallback" style={{ display: 'none' }}>
+                    <p>💳 PayPal QR Code</p>
+                    <p className="qr-username">@username</p>
+                    <p className="qr-amount">${getAmount().toFixed(2)}</p>
+                  </div>
+                </div>
+                <div className="qr-code-instructions">
+                  <p>1. Open PayPal app</p>
+                  <p>2. Scan this QR code</p>
+                  <p>3. Send ${getAmount().toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <button 
             className="contribution-remind-btn"

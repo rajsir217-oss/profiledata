@@ -301,14 +301,51 @@ class EnhancedLoginReminderJob(JobTemplate):
             "channels": channels
         }
     
-    async def _find_inactive_users(self, db, days: int, min_login_count: int, 
+    def _parse_dt(self, value) -> "Optional[datetime]":
+        """Safely parse datetime from string or datetime object, returns naive UTC datetime."""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value.replace(tzinfo=None) if value.tzinfo else value
+        if isinstance(value, str):
+            try:
+                # Normalize: strip timezone suffix variants before parsing
+                s = value.strip()
+                # Replace trailing Z or +00:00 to get a clean ISO string
+                if s.endswith('Z'):
+                    s = s[:-1]
+                elif '+' in s[10:]:
+                    s = s[:s.rindex('+')]
+                dt = datetime.fromisoformat(s)
+                return dt.replace(tzinfo=None) if dt.tzinfo else dt
+            except Exception:
+                return None
+        return None
+
+    def _get_last_login(self, user: dict) -> "Optional[datetime]":
+        """Determine true last login: security.last_login_at > lastLogin > status.last_seen."""
+        candidates = []
+        security = user.get("security") or {}
+        dt = self._parse_dt(security.get("last_login_at"))
+        if dt:
+            candidates.append(dt)
+        dt = self._parse_dt(user.get("lastLogin"))
+        if dt:
+            candidates.append(dt)
+        status = user.get("status") or {}
+        dt = self._parse_dt(status.get("last_seen"))
+        if dt:
+            candidates.append(dt)
+        return max(candidates) if candidates else None
+
+    async def _find_inactive_users(self, db, days: int, min_login_count: int,
                                  exclude_recent: bool, rate_limit_days: int) -> List[Dict]:
         """Find users who haven't logged in for specified days"""
-        
+
         today = datetime.utcnow()
         cutoff_date = today - timedelta(days=days)
         inactive_users = []
-        
+
         # Get recent reminder recipients to exclude
         excluded_users = set()
         if exclude_recent:
@@ -317,80 +354,62 @@ class EnhancedLoginReminderJob(JobTemplate):
                 "escalationDays": days,
                 "sentAt": {"$gte": recent_cutoff}
             }).to_list(length=1000)
-            
             for reminder in recent_reminders:
                 excluded_users.add(reminder["username"])
-        
-        # Find users whose last login was before cutoff
-        # Use updatedAt as fallback since last_seen is not populated
-        # Handle both string and datetime updatedAt fields properly
-        pipeline = [
-            {
-                "$match": {
-                    "accountStatus": "active",
-                    "username": {"$nin": list(excluded_users)}
-                }
-            },
-            {
-                "$addFields": {
-                    "lastLoginDate": {
-                        "$cond": {
-                            "if": {"$eq": [{"$type": "$updatedAt"}, "string"]},
-                            "then": {"$dateFromString": {"dateString": "$updatedAt"}},
-                            "else": "$updatedAt"
-                        }
-                    }
-                }
-            },
-            {
-                "$match": {
-                    "lastLoginDate": {"$lt": cutoff_date}
-                }
-            },
-            {
-                "$project": {
-                    "username": 1,
-                    "firstName": 1,
-                    "lastLogin": "$lastLoginDate",
-                    "loginCount": {"$ifNull": ["$loginCount", 0]},
-                    "email": 1,
-                    "phone": 1,
-                    "contactEmail": 1,
-                    "contactNumber": 1
-                }
-            },
-            {
-                "$match": {
-                    "loginCount": {"$gte": min_login_count}
-                }
-            }
-        ]
-        
-        users = await db.users.aggregate(pipeline).to_list(length=500)
-        
-        for user in users:
-            # Check for engagement metrics
+
+        # Fetch active users with all login-related fields — Python-side filtering
+        # avoids $dateFromString crashing on malformed string dates in MongoDB
+        projection = {
+            "username": 1,
+            "firstName": 1,
+            "loginCount": 1,
+            "security.last_login_at": 1,
+            "lastLogin": 1,
+            "status.last_seen": 1,
+            "email": 1,
+            "phone": 1,
+            "contactEmail": 1,
+            "contactNumber": 1,
+            "_id": 0
+        }
+        query = {
+            "accountStatus": "active",
+            "username": {"$nin": list(excluded_users)}
+        }
+        raw_users = await db.users.find(query, projection).to_list(length=5000)
+
+        for user in raw_users:
+            login_count = user.get("loginCount", 0) or 0
+            if login_count < min_login_count:
+                continue
+
+            last_login_dt = self._get_last_login(user)
+
+            # Users with no login record are always inactive
+            if last_login_dt is not None and last_login_dt >= cutoff_date:
+                continue
+
+            # Engagement metrics
             new_matches_count = await self._get_new_matches_count(db, user["username"])
             unread_messages_count = await self._get_unread_messages_count(db, user["username"])
             profile_views_count = await self._get_profile_views_count(db, user["username"])
-            
-            # Get contact info
+
             email = user.get("email") or user.get("contactEmail")
             phone = user.get("phone") or user.get("contactNumber")
-            
+
             inactive_users.append({
                 "username": user["username"],
                 "firstName": user.get("firstName", user["username"]),
                 "days_inactive": days,
-                "last_login_date": user["lastLogin"].strftime("%Y-%m-%d"),
-                "login_count": user["loginCount"],
+                "last_login_date": last_login_dt.strftime("%Y-%m-%d") if last_login_dt else "Never",
+                "login_count": login_count,
                 "new_matches_count": new_matches_count,
                 "unread_messages_count": unread_messages_count,
                 "profile_views_count": profile_views_count,
                 "email": email,
                 "phone": phone
             })
-        
+
         return inactive_users
     
     async def _send_reminder(self, notification_service: NotificationService, 
@@ -459,26 +478,19 @@ class EnhancedLoginReminderJob(JobTemplate):
     async def _get_new_matches_count(self, db, username: str) -> int:
         """Get count of new matches since last login"""
         try:
-            user = await db.users.find_one({"username": username})
+            user = await db.users.find_one(
+                {"username": username},
+                {"security.last_login_at": 1, "lastLogin": 1, "status.last_seen": 1, "_id": 0}
+            )
             if not user:
                 return 0
-            
-            # Use updatedAt since lastLogin is not populated
-            last_activity = user.get("lastLogin") or user.get("updatedAt")
+            last_activity = self._get_last_login(user)
             if not last_activity:
                 return 0
-            
-            # Handle string dates
-            if isinstance(last_activity, str):
-                from datetime import datetime
-                last_activity = datetime.fromisoformat(last_activity.replace('Z', '+00:00'))
-            
-            # Count matches created since last activity
             count = await db.matches.count_documents({
                 "participants": username,
                 "createdAt": {"$gte": last_activity}
             })
-            
             return count
         except Exception:
             return 0
@@ -498,27 +510,20 @@ class EnhancedLoginReminderJob(JobTemplate):
     async def _get_profile_views_count(self, db, username: str) -> int:
         """Get count of profile views since last login"""
         try:
-            user = await db.users.find_one({"username": username})
+            user = await db.users.find_one(
+                {"username": username},
+                {"security.last_login_at": 1, "lastLogin": 1, "status.last_seen": 1, "_id": 0}
+            )
             if not user:
                 return 0
-            
-            # Use updatedAt since lastLogin is not populated
-            last_activity = user.get("lastLogin") or user.get("updatedAt")
+            last_activity = self._get_last_login(user)
             if not last_activity:
                 return 0
-            
-            # Handle string dates
-            if isinstance(last_activity, str):
-                from datetime import datetime
-                last_activity = datetime.fromisoformat(last_activity.replace('Z', '+00:00'))
-            
-            # Count profile views since last activity
             count = await db.activity_logs.count_documents({
                 "action": "profile_view",
                 "targetUsername": username,
                 "timestamp": {"$gte": last_activity}
             })
-            
             return count
         except Exception:
             return 0

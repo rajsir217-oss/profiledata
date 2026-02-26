@@ -182,38 +182,10 @@
   }
 }
 
-/* Small Mobile */
-@media (max-width: 480px) {
+/* Mobile: Hide banner completely to save screen space */
+@media (max-width: 768px) {
   .brand-banner {
-    padding: 0 12px;
-    justify-content: center;
-  }
-  
-  .brand-text {
-    gap: 4px; /* Tight gap - same size text */
-  }
-
-  .brand-logo {
-    height: 22px;
-  }
-  
-  .brand-logo-text {
-    font-size: 22px;
-  }
-
-  .brand-app-name {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-  }
-  
-  /* Show tagline on small mobile - same size as app name */
-  .brand-tagline {
-    font-size: 10px;
-    font-weight: 400;
-    padding-left: 0;
-    border-left: none;
-    letter-spacing: 0.2px;
+    display: none !important;
   }
 }
 

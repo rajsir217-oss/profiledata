@@ -37,6 +37,8 @@ const UserManagement = () => {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 }); // Track dropdown position
   const dropdownRefs = useRef({}); // Refs for dropdown buttons
   const [contributionToggleOverrides, setContributionToggleOverrides] = useState({}); // Track local overrides for contribution toggle
+  const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false); // Bulk confirmation modal
+  const [bulkConfirmAction, setBulkConfirmAction] = useState(null); // Store bulk action details
   const navigate = useNavigate();
 
   const currentUser = localStorage.getItem('username');
@@ -231,7 +233,7 @@ const UserManagement = () => {
     };
   }, [openDropdown]);
 
-  // ESC key handler for cleanup modal and dropdown
+  // ESC key handler for modals and dropdown
   useEffect(() => {
     const handleEscKey = (event) => {
       if (event.key === 'Escape') {
@@ -239,15 +241,18 @@ const UserManagement = () => {
           setOpenDropdown(null);
         } else if (showCleanupModal) {
           setShowCleanupModal(false);
+        } else if (showBulkConfirmModal) {
+          setShowBulkConfirmModal(false);
+          setBulkConfirmAction(null);
         }
       }
     };
 
-    if (showCleanupModal || openDropdown) {
+    if (showCleanupModal || showBulkConfirmModal || openDropdown) {
       document.addEventListener('keydown', handleEscKey);
       return () => document.removeEventListener('keydown', handleEscKey);
     }
-  }, [showCleanupModal, openDropdown]);
+  }, [showCleanupModal, showBulkConfirmModal, openDropdown]);
 
   const handleValidateImages = async (username) => {
     try {
@@ -534,6 +539,100 @@ const UserManagement = () => {
     }
   };
 
+  const handleBulkContributionToggle = async (disable) => {
+    if (selectedUsers.length === 0) {
+      setError('Please select users first');
+      return;
+    }
+
+    // Filter out admin user from bulk operations
+    const usersToUpdate = selectedUsers.filter(username => username !== 'admin');
+    const skippedAdmin = selectedUsers.length !== usersToUpdate.length;
+
+    if (usersToUpdate.length === 0) {
+      setError('Cannot modify admin user contribution settings. Please select other users.');
+      return;
+    }
+
+    // Show confirmation modal instead of browser confirm
+    const action = disable ? 'disable' : 'enable';
+    setBulkConfirmAction({
+      action: action,
+      disable: disable,
+      usersToUpdate: usersToUpdate,
+      skippedAdmin: skippedAdmin,
+      userCount: usersToUpdate.length
+    });
+    setShowBulkConfirmModal(true);
+  };
+
+  const executeBulkContributionToggle = async () => {
+    if (!bulkConfirmAction) return;
+
+    const { disable, usersToUpdate, skippedAdmin } = bulkConfirmAction;
+    const action = disable ? 'disable' : 'enable';
+    
+    try {
+      let successCount = 0;
+      let failCount = 0;
+      const actionText = disable ? 'disabled' : 'enabled';
+
+      // Update local overrides immediately for instant UI feedback
+      const newOverrides = { ...contributionToggleOverrides };
+      usersToUpdate.forEach(username => {
+        newOverrides[username] = disable;
+      });
+      setContributionToggleOverrides(newOverrides);
+
+      // Perform bulk API calls
+      for (const username of usersToUpdate) {
+        try {
+          await adminApi.put(`/api/stripe/admin/user/${username}/contribution-popup`, {
+            disabled: disable
+          });
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to ${action} contribution popup for ${username}:`, error);
+          failCount++;
+          // Revert override on error
+          delete newOverrides[username];
+        }
+      }
+      
+      // Update overrides state with final results
+      setContributionToggleOverrides(newOverrides);
+      setSelectedUsers([]);
+      loadUsers(1, false);
+      setShowBulkConfirmModal(false);
+      setBulkConfirmAction(null);
+
+      // Show success message
+      let message = '';
+      if (skippedAdmin && failCount === 0) {
+        message = `✅ Successfully ${actionText} contribution popup for ${successCount} user(s). Admin user skipped.`;
+      } else if (failCount === 0) {
+        message = `✅ Successfully ${actionText} contribution popup for ${successCount} user(s)`;
+      } else if (skippedAdmin) {
+        message = `⚠️ Bulk contribution popup ${action}: ${successCount} success, ${failCount} failed. Admin user skipped.`;
+      } else {
+        message = `⚠️ Bulk contribution popup ${action}: ${successCount} success, ${failCount} failed`;
+      }
+      
+      setSuccessMessage(message);
+      setError('');
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Bulk contribution toggle error:', error);
+      setError('Bulk contribution toggle failed. Please try again.');
+      // Revert all overrides on major error
+      setContributionToggleOverrides({});
+      setShowBulkConfirmModal(false);
+      setBulkConfirmAction(null);
+    }
+  };
+
   const handleBulkRoleAssign = async (role, reason) => {
     if (selectedUsers.length === 0) {
       setError('Please select users first');
@@ -699,6 +798,16 @@ const UserManagement = () => {
             <button onClick={() => handleBulkAction('ban')} className="bulk-btn bulk-ban">
               🚫 Ban
             </button>
+            
+            <div className="bulk-divider"></div>
+            
+            <button onClick={() => handleBulkContributionToggle(false)} className="bulk-btn bulk-enable">
+              💰 Enable Contribution Popup
+            </button>
+            <button onClick={() => handleBulkContributionToggle(true)} className="bulk-btn bulk-disable">
+              💵 Disable Contribution Popup
+            </button>
+            
             <button onClick={() => setSelectedUsers([])} className="bulk-btn bulk-clear">
               ✕ Clear Selection
             </button>
@@ -1124,6 +1233,79 @@ const UserManagement = () => {
                   🗑️ Save Cleanup Settings
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Confirmation Modal */}
+      {showBulkConfirmModal && bulkConfirmAction && (
+        <div className="bulk-confirm-modal-overlay" onClick={() => {
+          setShowBulkConfirmModal(false);
+          setBulkConfirmAction(null);
+        }}>
+          <div className="bulk-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Purple Gradient Header */}
+            <div className="bulk-confirm-modal-header">
+              <div className="bulk-confirm-header-content">
+                <span className="bulk-confirm-icon">
+                  {bulkConfirmAction.disable ? '💵' : '💰'}
+                </span>
+                <h2>
+                  {bulkConfirmAction.disable ? 'Disable' : 'Enable'} Contribution Popup
+                </h2>
+              </div>
+              <button 
+                className="bulk-confirm-close-btn" 
+                onClick={() => {
+                  setShowBulkConfirmModal(false);
+                  setBulkConfirmAction(null);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* White Body Content */}
+            <div className="bulk-confirm-modal-body">
+              <div className="bulk-confirm-message">
+                <p>
+                  Are you sure you want to <strong>{bulkConfirmAction.action}</strong> the contribution popup for{' '}
+                  <strong>{bulkConfirmAction.userCount}</strong> user(s)?
+                </p>
+                {bulkConfirmAction.skippedAdmin && (
+                  <p className="bulk-confirm-note">
+                    <strong>Note:</strong> Admin user will be skipped and cannot be modified.
+                  </p>
+                )}
+              </div>
+
+              <div className="bulk-confirm-warning">
+                <span className="bulk-confirm-warning-icon">⚠️</span>
+                <span>
+                  This action will {bulkConfirmAction.action} the contribution popup for all selected users.
+                  Users {bulkConfirmAction.disable ? 'will not' : 'will'} see the contribution popup when they log in.
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bulk-confirm-modal-footer">
+              <button 
+                onClick={() => {
+                  setShowBulkConfirmModal(false);
+                  setBulkConfirmAction(null);
+                }} 
+                className="bulk-confirm-btn-cancel"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeBulkContributionToggle}
+                className={`bulk-confirm-btn-confirm ${bulkConfirmAction.disable ? 'bulk-confirm-btn-disable' : 'bulk-confirm-btn-enable'}`}
+              >
+                {bulkConfirmAction.disable ? '💵 Disable' : '💰 Enable'} Contribution Popup
+              </button>
             </div>
           </div>
         </div>
