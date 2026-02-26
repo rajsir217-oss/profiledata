@@ -604,6 +604,102 @@ async def log_contribution_activity(
         return {"success": True, "message": "Activity logging skipped"}
 
 
+@router.get("/contribution-history")
+async def get_contribution_history(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Get contribution history for the current user"""
+    try:
+        username = current_user["username"]
+        
+        # Get user's contribution payments
+        contributions = await db.payments.find({
+            "username": username,
+            "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}
+        }).sort("createdAt", -1).to_list(length=None)
+        
+        # Format contributions for frontend
+        formatted_contributions = []
+        for c in contributions:
+            formatted_contributions.append({
+                "id": str(c.get("_id")),
+                "amount": c.get("amount", 0),
+                "type": "recurring" if c.get("paymentType") == "contribution_recurring" else "one-time",
+                "date": c.get("createdAt").isoformat() if c.get("createdAt") else None,
+                "paymentMethod": c.get("paymentMethod", "Stripe"),
+                "status": c.get("status", "completed"),
+                "description": c.get("description", "Platform Contribution")
+            })
+        
+        # Calculate stats
+        total_contributed = sum(c["amount"] for c in formatted_contributions)
+        contribution_count = len(formatted_contributions)
+        average_amount = total_contributed / contribution_count if contribution_count > 0 else 0
+        
+        # Check if user has recurring contributions
+        recurring_contributions = [c for c in formatted_contributions if c["type"] == "recurring"]
+        last_contribution = formatted_contributions[0]["date"] if formatted_contributions else None
+        
+        stats = {
+            "totalContributed": total_contributed,
+            "contributionCount": contribution_count,
+            "averageAmount": average_amount,
+            "lastContribution": last_contribution,
+            "monthlyContributions": len(recurring_contributions),
+            "isRecurringContributor": len(recurring_contributions) > 0
+        }
+        
+        return {
+            "success": True,
+            "contributions": formatted_contributions,
+            "stats": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting contribution history: {e}")
+        # Return empty data instead of error to avoid breaking UI
+        return {
+            "success": True,
+            "contributions": [],
+            "stats": {
+                "totalContributed": 0,
+                "contributionCount": 0,
+                "averageAmount": 0,
+                "lastContribution": None,
+                "monthlyContributions": 0,
+                "isRecurringContributor": False
+            }
+        }
+
+
+@router.get("/payment-methods")
+async def get_payment_methods(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Get saved payment methods for the current user"""
+    try:
+        username = current_user["username"]
+        
+        # For now, return empty list since we don't have saved payment methods implementation
+        # This can be extended later when we implement payment method storage
+        payment_methods = []
+        
+        return {
+            "success": True,
+            "paymentMethods": payment_methods
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting payment methods: {e}")
+        # Return empty data instead of error to avoid breaking UI
+        return {
+            "success": True,
+            "paymentMethods": []
+        }
+
+
 @router.get("/admin/contribution-activity")
 async def get_contribution_activity(
     current_user: dict = Depends(get_current_user),
