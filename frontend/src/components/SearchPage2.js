@@ -1854,13 +1854,13 @@ const SearchPage2 = () => {
       {/* Active Criteria Summary Bar - Header at top */}
       <div className="active-criteria-bar" onClick={() => setIsSearchModalOpen(true)}>
         <div className="criteria-info">
-          <span className="criteria-label">ACTIVE FILTERS:</span>
+          <span className="criteria-label">FILTERS:</span>
           <span className="criteria-value">{getActiveCriteriaSummary()}</span>
         </div>
         <div className="criteria-actions">
           <span className="results-count">
             <span className="results-count-number">{totalResults}</span>
-            <span className="results-count-text"> profiles found</span>
+            <span className="results-count-text"> - found</span>
           </span>
           <button className="btn-modify-search">
             <span className="modify-text">Modify Search </span><span className="modify-icon">⚙️</span>
@@ -1934,7 +1934,7 @@ const SearchPage2 = () => {
               ) : (
                 <>
                   <h5>No profiles found</h5>
-                  <p>Try adjusting your search criteria or use broader filters.</p>
+                  <p>Try adjusting your search criteria or use broader filters or reload the page.</p>
                 </>
               )}
             </div>
