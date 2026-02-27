@@ -1713,46 +1713,6 @@ const UnifiedPreferences = () => {
                   </div>
                 </section>
 
-                {/* Payment Methods */}
-                <section className="settings-section">
-                  <h2>💳 Payment Methods</h2>
-                  <p className="section-description">Manage your saved payment methods for faster contributions</p>
-                  
-                  {loadingPaymentMethods ? (
-                    <div className="loading-spinner">Loading payment methods...</div>
-                  ) : savedPaymentMethods.length === 0 ? (
-                    <div className="empty-state">
-                      <p>No saved payment methods. Save one for faster contributions!</p>
-                    </div>
-                  ) : (
-                    <div className="payment-methods-list">
-                      {savedPaymentMethods.map((method) => (
-                        <div key={method.id} className="payment-method-item">
-                          <div className="payment-method-info">
-                            <div className="payment-method-type">
-                              {method.type === 'card' ? '💳' : '🏦'} {method.brand || method.type}
-                            </div>
-                            <div className="payment-method-details">
-                              {method.type === 'card' ? `**** **** **** ${method.last4}` : method.email}
-                            </div>
-                            {method.isDefault && (
-                              <span className="default-badge">Default</span>
-                            )}
-                          </div>
-                          <div className="payment-method-actions">
-                            <button className="btn-secondary btn-sm">Edit</button>
-                            <button className="btn-danger btn-sm">Remove</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <button className="btn-primary add-payment-method-btn">
-                    ➕ Add Payment Method
-                  </button>
-                </section>
-
                 {/* Admin-only Contribution Settings */}
                 {isAdmin && (
                   <section className="settings-section admin-section">
