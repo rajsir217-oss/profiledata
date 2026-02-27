@@ -205,14 +205,20 @@ class EnhancedLoginReminderJob(JobTemplate):
             total_notifications_failed = 0
             escalation_stats = {}
             
-            # Process each escalation tier
-            for days in escalation_days:
+            # Process tiers in DESCENDING order (highest first) so each user
+            # only gets ONE notification at their highest matching tier
+            already_notified = set()
+            for days in sorted(escalation_days, reverse=True):
                 logger.info(f"📊 Processing {days}-day inactivity tier")
                 
                 channels = communication_channels.get(str(days), ["email"])
                 tier_stats = await self._process_escalation_tier(
-                    db, notification_service, days, channels, params, job_id
+                    db, notification_service, days, channels, params, job_id,
+                    exclude_usernames=already_notified
                 )
+                
+                # Track users notified in this tier so lower tiers skip them
+                already_notified.update(tier_stats.get("usernames_notified", []))
                 
                 escalation_stats[str(days)] = tier_stats
                 total_users_processed += tier_stats["users_found"]
@@ -247,7 +253,8 @@ class EnhancedLoginReminderJob(JobTemplate):
             )
     
     async def _process_escalation_tier(self, db, notification_service: NotificationService, 
-                                     days: int, channels: List[str], params: Dict, job_id: str) -> Dict:
+                                     days: int, channels: List[str], params: Dict, job_id: str,
+                                     exclude_usernames: set = None) -> Dict:
         """Process users inactive for specific days with configured channels"""
         
         batch_size = params.get("batch_size", 100)
@@ -261,18 +268,24 @@ class EnhancedLoginReminderJob(JobTemplate):
             db, days, min_login_count, exclude_recent, rate_limit_days
         )
         
+        # Filter out users already notified in a higher tier
+        if exclude_usernames:
+            inactive_users = [u for u in inactive_users if u["username"] not in exclude_usernames]
+        
         users_found = len(inactive_users)
         notifications_sent = 0
         notifications_failed = 0
+        usernames_notified = []
         
-        logger.info(f"📊 Found {users_found} users inactive for {days} days")
+        logger.info(f"📊 Found {users_found} users inactive for {days} days (after dedup)")
         
         if users_found == 0:
             return {
                 "users_found": 0,
                 "notifications_sent": 0,
                 "notifications_failed": 0,
-                "channels": channels
+                "channels": channels,
+                "usernames_notified": []
             }
         
         # Process in batches
@@ -293,6 +306,7 @@ class EnhancedLoginReminderJob(JobTemplate):
                         else:
                             logger.info(f"   📝 Dry run: Would send {channel} reminder to {user_data['username']} ({days} days)")
                             notifications_sent += 1
+                    usernames_notified.append(user_data["username"])
                             
                 except Exception as e:
                     logger.error(f"❌ Failed to send reminder to {user_data.get('username')}: {e}")
@@ -306,7 +320,8 @@ class EnhancedLoginReminderJob(JobTemplate):
             "users_found": users_found,
             "notifications_sent": notifications_sent,
             "notifications_failed": notifications_failed,
-            "channels": channels
+            "channels": channels,
+            "usernames_notified": usernames_notified
         }
     
     def _parse_dt(self, value) -> "Optional[datetime]":
