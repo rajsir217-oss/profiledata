@@ -120,6 +120,61 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* L3V3L Philosophy Section */}
+      <section className="philosophy-section">
+        <div className="philosophy-header">
+          <span className="philosophy-title-badge">🦋 L3V3L: A Fresh Dating Philosophy</span>
+          <p className="philosophy-subtitle">A fresh, dating-inspired meaning—something modern, playful, and emotionally resonant.</p>
+        </div>
+        
+        <div className="philosophy-intro">
+          <h3>🦋 L3V3L: Love, Loyalty, Laughter, Vulnerability, Elevation, Loyalty (again)</h3>
+          <p className="philosophy-description">
+            <strong>L3V3L</strong> is a relationship philosophy that defines the emotional depth and compatibility between two people. Each letter represents a key pillar of a meaningful connection:
+          </p>
+        </div>
+        
+        <div className="pillars-container">
+          <div className="pillar-card">
+            <div className="pillar-badge">L</div>
+            <h3>Love</h3>
+            <p className="pillar-description">The spark, the chemistry, the butterflies. Where it all begins.</p>
+          </div>
+          
+          <div className="pillar-card">
+            <div className="pillar-badge">3</div>
+            <h3>Loyalty, Laughter, and Vulnerability</h3>
+            <p className="pillar-description">
+              The trio that makes love sustainable. <strong>Loyalty</strong> builds trust, <strong>laughter</strong> keeps it light, and <strong>vulnerability</strong> deepens intimacy.
+            </p>
+          </div>
+          
+          <div className="pillar-card">
+            <div className="pillar-badge">V</div>
+            <h3>Vulnerability</h3>
+            <p className="pillar-description">
+              A double emphasis—because opening up is hard, but essential. True connection requires authenticity.
+            </p>
+          </div>
+          
+          <div className="pillar-card">
+            <div className="pillar-badge">3</div>
+            <h3>Elevation, Empathy, and Effort</h3>
+            <p className="pillar-description">
+              Relationships thrive when both partners lift each other up, understand each other, and show up consistently.
+            </p>
+          </div>
+          
+          <div className="pillar-card">
+            <div className="pillar-badge">L</div>
+            <h3>Loyalty (again)</h3>
+            <p className="pillar-description">
+              Because loyalty isn't a one-time thing—it's a daily choice. Consistency matters.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* L3V3L Difference Section */}
       <section className="stats-section">
         <div className="stats-container">
