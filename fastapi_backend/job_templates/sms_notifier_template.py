@@ -334,7 +334,7 @@ class SMSNotifierTemplate(JobTemplate):
 
         # Build sender tag for message notifications: [L3V3LMATCHES][username]
         SENDER_TAG = f"[L3V3LMATCHES][{sender_username}] " if sender_username else PREFIX
-        REQUESTER_TAG = f"[L3V3LMATCHES][{sender_username}] " if sender_username else f"{PREFIX}{requester_name} "
+        REQUESTER_TAG = f"[{sender_username}] " if sender_username else f"{requester_name} "
 
         if not template:
             # User-friendly fallback messages for each trigger type
@@ -401,9 +401,9 @@ class SMSNotifierTemplate(JobTemplate):
             
             message = trigger_messages.get(
                 notification.trigger,
-                f"{GREETING}You have a new notification! Login to view"
+                f"{PREFIX}{GREETING}You have a new notification! Login to view"
             )
-            message = f"{PREFIX}{message}"
+            # Don't add PREFIX again - trigger_messages already include it
         else:
             # Enrich template data with extracted requester_name for substitution
             enriched_data = dict(template_data)

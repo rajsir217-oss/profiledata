@@ -891,7 +891,11 @@
     animation: scroll-ticker 30s linear infinite !important;
   }
   
-  /* Force ticker to be visible even if TopBar has constraints */
+  /* Control visual order of TopBar children on mobile */
+  .top-bar-content {
+    order: 1 !important; /* TopBar navigation first */
+  }
+  
   .top-bar > .info-ticker {
     position: relative !important;
     display: flex !important;
@@ -902,7 +906,11 @@
     max-height: 28px !important;
     overflow: hidden !important;
     z-index: 1001 !important;
-    order: 2 !important;
+    order: 2 !important; /* InfoTicker second */
+  }
+  
+  .page-title-section {
+    order: 3 !important; /* Page header third */
   }
   
   /* Mobile: Compact 44px square with vertical stack */

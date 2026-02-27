@@ -2278,7 +2278,7 @@ const SearchPage2 = () => {
             <span className="results-count-text"> profiles found</span>
           </span>
           <button className="btn-modify-search">
-            <span className="modify-text">Modify </span><span className="modify-icon">⚙️</span>
+            <span className="modify-text">Modify Search </span><span className="modify-icon">⚙️</span>
           </button>
         </div>
       </div>

@@ -364,6 +364,114 @@
   line-height: 1.6;
 }
 
+/* L3V3L Philosophy Section */
+.philosophy-section {
+  padding: 80px 24px;
+  background: linear-gradient(135deg, #f8f9fb 0%, #ffffff 100%);
+  text-align: center;
+}
+
+.philosophy-header {
+  margin-bottom: 40px;
+}
+
+.philosophy-title-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #ec4899 0%, #a78bfa 50%, #6366f1 100%);
+  color: white;
+  padding: 16px 48px;
+  border-radius: 50px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.35);
+}
+
+.philosophy-subtitle {
+  font-size: 18px;
+  color: #666;
+  font-style: italic;
+  margin-top: 12px;
+}
+
+.philosophy-intro {
+  max-width: 900px;
+  margin: 0 auto 60px auto;
+  text-align: center;
+}
+
+.philosophy-intro h3 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.philosophy-description {
+  font-size: 16px;
+  color: #666;
+  line-height: 1.8;
+}
+
+.pillars-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 32px;
+}
+
+.pillar-card {
+  background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+  border-radius: 16px;
+  padding: 32px 24px;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.12);
+  transition: all 0.3s ease;
+  border: 2px solid rgba(236, 72, 153, 0.1);
+}
+
+.pillar-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(236, 72, 153, 0.25);
+  border-color: rgba(236, 72, 153, 0.3);
+  background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+}
+
+.pillar-badge {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ec4899 0%, #a78bfa 100%);
+  color: white;
+  font-size: 28px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px auto;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.pillar-card h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #831843;
+  margin-bottom: 12px;
+}
+
+.pillar-description {
+  font-size: 15px;
+  color: #4a5568;
+  line-height: 1.6;
+}
+
+.pillar-description strong {
+  color: #ec4899;
+  font-weight: 600;
+}
+
 /* Stats Section */
 .stats-section {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
