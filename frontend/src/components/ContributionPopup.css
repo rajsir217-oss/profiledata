@@ -174,7 +174,7 @@
 .contribution-amounts {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
+  gap: 6px;
   margin: 10px 0;
 }
 
@@ -194,7 +194,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1px 1px;
+  padding: 2px 1px;
   transition: all 0.2s ease;
   aspect-ratio: 1;
 }
@@ -203,7 +203,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 6px;
+  border-radius: 1px;
   padding: 2px;
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);

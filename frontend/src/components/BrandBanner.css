@@ -182,10 +182,34 @@
   }
 }
 
-/* Mobile: Hide banner completely to save screen space */
+/* Mobile: Show compact banner */
 @media (max-width: 768px) {
   .brand-banner {
-    display: none !important;
+    display: flex !important;
+    height: 36px !important;
+    padding: 0 12px;
+  }
+  
+  .brand-banner-content {
+    gap: 8px;
+  }
+  
+  .brand-logo-text {
+    font-size: 16px !important;
+  }
+  
+  .brand-logo {
+    height: 20px !important;
+    width: 20px !important;
+  }
+  
+  .brand-app-name {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+  }
+  
+  .brand-tagline {
+    display: none !important; /* Hide tagline on mobile */
   }
 }
 

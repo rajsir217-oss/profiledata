@@ -820,7 +820,7 @@
 @media (max-width: 768px) {
   /* Mobile/Tablet - TopBar full width when sidebar is hidden */
   .top-bar {
-    top: 40px; /* Position below BrandBanner (40px on mobile) */
+    top: 36px; /* Position below BrandBanner (36px on mobile) */
     left: 0;
     width: 100%;
     height: 56px; /* Slightly smaller on mobile */
@@ -865,6 +865,44 @@
     max-width: 44px;
     width: 44px;
     flex-shrink: 0;
+  }
+  
+  /* Ensure InfoTicker is visible on mobile */
+  .info-ticker {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    overflow: hidden !important;
+    position: relative !important;
+    z-index: 1000 !important;
+  }
+  
+  .ticker-content {
+    display: block !important;
+    flex: 1 !important;
+    overflow: hidden !important;
+  }
+  
+  .ticker-scroll {
+    display: inline-flex !important;
+    white-space: nowrap !important;
+    animation: scroll-ticker 30s linear infinite !important;
+  }
+  
+  /* Force ticker to be visible even if TopBar has constraints */
+  .top-bar > .info-ticker {
+    position: relative !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    overflow: hidden !important;
+    z-index: 1001 !important;
+    order: 2 !important;
   }
   
   /* Mobile: Compact 44px square with vertical stack */

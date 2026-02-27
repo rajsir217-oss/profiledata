@@ -361,13 +361,13 @@ async def send_test_reminder(
 
         # Calculate days inactive
         today = datetime.utcnow()
-        updated_at = _parse_updated_at(user.get("updatedAt"))
-        if updated_at is None:
+        last_login = _get_last_login(user)
+        if last_login is None:
             days_inactive = 999
         else:
-            if updated_at.tzinfo is not None:
-                updated_at = updated_at.replace(tzinfo=None)
-            days_inactive = (today - updated_at).days
+            if last_login.tzinfo is not None:
+                last_login = last_login.replace(tzinfo=None)
+            days_inactive = (today - last_login).days
 
         if days_inactive < 15:
             raise HTTPException(status_code=400, detail="User is not inactive enough (< 15 days)")
@@ -379,7 +379,7 @@ async def send_test_reminder(
         template_data = {
             "firstName": user.get("firstName", username),
             "daysInactive": days_inactive,
-            "lastLoginDate": updated_at.strftime("%Y-%m-%d") if updated_at else "Never",
+            "lastLoginDate": last_login.strftime("%Y-%m-%d") if last_login else "Never",
             "newMatchesCount": 0,
             "unreadMessagesCount": 0,
             "profileViewsCount": 0,

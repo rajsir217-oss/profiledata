@@ -96,11 +96,33 @@ const InfoTicker = () => {
   };
 
   if (loading) {
-    return null;
+    return (
+      <div className="info-ticker">
+        <div className="ticker-icon">📢</div>
+        <div className="ticker-content">
+          <div className="ticker-scroll">
+            <span className="ticker-item ticker-announcement">
+              <span className="item-text">Loading updates...</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    );
   }
   
   if (items.length === 0) {
-    return null;
+    return (
+      <div className="info-ticker">
+        <div className="ticker-icon">📢</div>
+        <div className="ticker-content">
+          <div className="ticker-scroll">
+            <span className="ticker-item ticker-tip">
+              <span className="item-text">Welcome to USVedika! Stay tuned for updates.</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Duplicate items for seamless infinite scroll
