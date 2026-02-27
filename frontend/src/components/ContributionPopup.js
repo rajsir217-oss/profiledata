@@ -4,7 +4,7 @@ import toastService from '../services/toastService';
 import './ContributionPopup.css';
 
 const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
-  const [selectedAmount, setSelectedAmount] = useState(15); // Default to $15
+  const [selectedAmount, setSelectedAmount] = useState(25); // Default to $25
   const [customAmount, setCustomAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -13,7 +13,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [paypalKey, setPaypalKey] = useState(0);
   const paypalContainerRef = useRef(null);
   const paypalScriptLoaded = useRef(false);
-  const amountRef = useRef(15);
+  const amountRef = useRef(25);
   const paypalInitialized = useRef(false);
   const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'paypal', 'venmo-qr', 'paypal-qr'
 
@@ -294,7 +294,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                   disabled={loading}
                 />
                 <span className="contribution-amount-label">${amt}</span>
-                {amt === 15 && <span className="popular-badge">Popular</span>}
+                {amt === 25 && <span className="popular-badge">Popular</span>}
               </label>
             ))}
             
