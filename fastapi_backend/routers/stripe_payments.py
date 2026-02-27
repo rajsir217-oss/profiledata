@@ -9,15 +9,160 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
 from typing import Optional
 import logging
+from datetime import datetime
 
 from database import get_database
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from services.stripe_service import StripeService, construct_webhook_event
+from services.email_sender import send_email
 from config import settings
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/stripe", tags=["Stripe Payments"])
+
+
+async def send_contribution_thank_you_email(
+    db: AsyncIOMotorDatabase,
+    username: str,
+    amount: float,
+    payment_type: str,
+    payment_method: str = "Stripe"
+):
+    """Send thank you email after successful contribution"""
+    try:
+        # Get user details
+        user = await db.users.find_one({"username": username})
+        if not user or not user.get("email"):
+            logger.warning(f"Cannot send thank you email - user {username} not found or no email")
+            return
+        
+        user_email = user["email"]
+        first_name = user.get("firstName", "Supporter")
+        
+        # Create email content
+        subject = f"Thank You for Your ${amount:.2f} Contribution! 💝"
+        
+        # HTML email template
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Thank You for Your Contribution</title>
+            <style>
+                body {{ font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 20px; background-color: #f8fafc; }}
+                .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .header {{ background: linear-gradient(135deg, #6366f1, #a78bfa); color: white; padding: 40px 30px; text-align: center; }}
+                .header h1 {{ margin: 0; font-size: 28px; font-weight: 700; }}
+                .header p {{ margin: 10px 0 0 0; font-size: 16px; opacity: 0.9; }}
+                .content {{ padding: 40px 30px; }}
+                .thank-you {{ text-align: center; margin-bottom: 30px; }}
+                .thank-you h2 {{ color: #1f2937; font-size: 24px; margin-bottom: 10px; }}
+                .amount {{ font-size: 36px; font-weight: 700; color: #6366f1; margin: 20px 0; }}
+                .details {{ background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+                .details p {{ margin: 8px 0; color: #6b7280; }}
+                .impact {{ margin: 30px 0; }}
+                .impact h3 {{ color: #1f2937; margin-bottom: 15px; }}
+                .impact ul {{ color: #6b7280; line-height: 1.6; }}
+                .footer {{ text-align: center; padding: 30px; background: #f8fafc; color: #6b7280; font-size: 14px; }}
+                .heart {{ color: #ef4444; font-size: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Thank You! 💝</h1>
+                    <p>Your generosity makes a difference</p>
+                </div>
+                
+                <div class="content">
+                    <div class="thank-you">
+                        <h2>Dear {first_name},</h2>
+                        <p>We're incredibly grateful for your support! Your contribution helps us continue providing valuable services to our community.</p>
+                        
+                        <div class="amount">
+                            ${amount:.2f}
+                        </div>
+                        
+                        <p><strong>{payment_type.title()} Contribution</strong> via {payment_method}</p>
+                    </div>
+                    
+                    <div class="details">
+                        <p><strong>Contribution Details:</strong></p>
+                        <p>Amount: ${amount:.2f}</p>
+                        <p>Type: {payment_type.title()}</p>
+                        <p>Date: {datetime.utcnow().strftime('%B %d, %Y')}</p>
+                        <p>Transaction ID: Will be available in your contribution history</p>
+                    </div>
+                    
+                    <div class="impact">
+                        <h3>Your Impact 🌟</h3>
+                        <ul>
+                            <li>Helps keep our platform running smoothly</li>
+                            <li>Enables us to add new features and improvements</li>
+                            <li>Provides better support to all users</li>
+                            <li>Ensures secure and reliable service</li>
+                        </ul>
+                    </div>
+                    
+                    <p style="text-align: center; margin-top: 30px;">
+                        <strong>With heartfelt thanks,</strong><br>
+                        The Team <span class="heart">❤️</span>
+                    </p>
+                </div>
+                
+                <div class="footer">
+                    <p>This is an automated receipt for your contribution. Please keep it for your records.</p>
+                    <p>If you have any questions, please don't hesitate to contact our support team.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Plain text version
+        text_content = f"""
+Thank You for Your Contribution! 💝
+
+Dear {first_name},
+
+We're incredibly grateful for your support! Your contribution helps us continue providing valuable services to our community.
+
+Contribution Details:
+- Amount: ${amount:.2f}
+- Type: {payment_type.title()}
+- Payment Method: {payment_method}
+- Date: {datetime.utcnow().strftime('%B %d, %Y')}
+
+Your Impact:
+- Helps keep our platform running smoothly
+- Enables us to add new features and improvements
+- Provides better support to all users
+- Ensures secure and reliable service
+
+With heartfelt thanks,
+The Team ❤️
+
+This is an automated receipt for your contribution. Please keep it for your records.
+"""
+        
+        # Send the email
+        result = await send_email(
+            to_email=user_email,
+            subject=subject,
+            html_content=html_content,
+            text_content=text_content
+        )
+        
+        if result.get("success"):
+            logger.info(f"✅ Thank you email sent to {user_email} for ${amount:.2f} contribution")
+        else:
+            logger.warning(f"Failed to send thank you email to {user_email}: {result}")
+            
+    except Exception as e:
+        logger.error(f"Error sending contribution thank you email: {e}")
 
 
 class CreateCheckoutRequest(BaseModel):
@@ -254,11 +399,36 @@ async def stripe_webhook(
         
         # Handle different event types
         if event_type == "checkout.session.completed":
-            result = await service.handle_checkout_completed(event_data)
-            if result.get("success"):
-                logger.info(f"✅ Checkout completed for {result.get('username')}")
+            # Check if this is a contribution
+            metadata = event_data.get("metadata", {})
+            if metadata.get("contribution_type"):
+                # Handle contribution webhook
+                result = await service.handle_contribution_webhook(event_data)
+                if result.get("success"):
+                    username = event_data.get("client_reference_id") or metadata.get("username")
+                    amount = float(metadata.get("amount", 0))
+                    contribution_type = metadata.get("contribution_type", "one_time")
+                    payment_type = "monthly" if contribution_type == "recurring" else "one-time"
+                    
+                    # Send thank you email
+                    await send_contribution_thank_you_email(
+                        db=db,
+                        username=username,
+                        amount=amount,
+                        payment_type=payment_type,
+                        payment_method="Stripe"
+                    )
+                    
+                    logger.info(f"✅ Contribution completed for {username}: ${amount} ({payment_type})")
+                else:
+                    logger.error(f"❌ Failed to process contribution: {result.get('error')}")
             else:
-                logger.error(f"❌ Failed to process checkout: {result.get('error')}")
+                # Handle regular membership checkout
+                result = await service.handle_checkout_completed(event_data)
+                if result.get("success"):
+                    logger.info(f"✅ Checkout completed for {result.get('username')}")
+                else:
+                    logger.error(f"❌ Failed to process checkout: {result.get('error')}")
                 
         elif event_type == "customer.subscription.updated":
             result = await service.handle_subscription_updated(event_data)

@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import SystemStatus from './SystemStatus';
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
+import { useNavigate, useLocation } from 'react-router-dom';
 import UniversalTabContainer from './UniversalTabContainer';
+import ContributionPopup from './ContributionPopup';
+import SystemStatus from './SystemStatus';
 import PauseSettings from './PauseSettings';
+import { getBackendUrl } from '../config/apiConfig';
 import './UnifiedPreferences.css';
 import { 
   getUserPreferences, 
@@ -13,8 +16,6 @@ import {
   exportAccountData
 } from '../api';
 import api from '../api';
-import axios from 'axios';
-import { getBackendUrl } from '../config/apiConfig';
 import { 
   requestNotificationPermission, 
   getNotificationPermission,
@@ -77,12 +78,7 @@ const UnifiedPreferences = () => {
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
   
   // Contribution Popup State
-  const [selectedAmount, setSelectedAmount] = useState(25);
-  const [customAmount, setCustomAmount] = useState('');
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('paypal');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [showContributionPopup, setShowContributionPopup] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -524,53 +520,6 @@ const UnifiedPreferences = () => {
     }
   };
 
-  // Contribution popup functions
-  const getAmount = () => {
-    if (customAmount && parseFloat(customAmount) > 0) {
-      return parseFloat(customAmount).toFixed(2);
-    }
-    return selectedAmount || 0;
-  };
-
-  const handleContribute = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const amount = getAmount();
-      if (!amount || amount <= 0) {
-        setError('Please enter a valid amount');
-        return;
-      }
-      
-      const token = localStorage.getItem('token');
-      const paymentType = isRecurring ? 'monthly' : 'one-time';
-      
-      // Create contribution session
-      const response = await axios.post(
-        `${getBackendUrl()}/api/stripe/create-contribution-session`,
-        {
-          amount: parseFloat(amount),
-          paymentType: paymentType
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-      
-      if (response.data.success) {
-        // Redirect to Stripe Checkout
-        window.location.href = response.data.checkoutUrl;
-      } else {
-        setError(response.data.error || 'Failed to create contribution session');
-      }
-    } catch (error) {
-      console.error('Error creating contribution:', error);
-      setError(error.response?.data?.detail || 'Failed to process contribution');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (isAdmin) {
@@ -1751,129 +1700,16 @@ const UnifiedPreferences = () => {
                   <h2>💝 Make a Contribution</h2>
                   <p className="section-description">Support the platform with a quick contribution</p>
                   
-                  <div className="contribution-popup-container">
-                    <div className="contribution-amounts">
-                      <div className="amount-grid">
-                        {[10, 15, 25, 50, 100].map((amount) => (
-                          <button
-                            key={amount}
-                            className={`amount-btn ${selectedAmount === amount ? 'selected' : ''}`}
-                            onClick={() => setSelectedAmount(amount)}
-                          >
-                            ${amount}
-                          </button>
-                        ))}
-                      </div>
-                      
-                      <div className="custom-amount">
-                        <label>Custom amount:</label>
-                        <div className="custom-amount-input">
-                          <span>$</span>
-                          <input
-                            type="number"
-                            min="1"
-                            step="0.01"
-                            placeholder="Enter amount"
-                            value={customAmount}
-                            onChange={(e) => {
-                              setCustomAmount(e.target.value);
-                              setSelectedAmount(null);
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="contribution-type">
-                      <label className="radio-label">
-                        <input
-                          type="radio"
-                          name="contributionType"
-                          value="one-time"
-                          checked={!isRecurring}
-                          onChange={() => setIsRecurring(false)}
-                        />
-                        <span className="radio-custom"></span>
-                        <span className="radio-text">One-time contribution</span>
-                      </label>
-                      
-                      <label className="radio-label">
-                        <input
-                          type="radio"
-                          name="contributionType"
-                          value="monthly"
-                          checked={isRecurring}
-                          onChange={() => setIsRecurring(true)}
-                        />
-                        <span className="radio-custom"></span>
-                        <span className="radio-text">Monthly recurring</span>
-                        <span className="recurring-badge">🔄 Best value</span>
-                      </label>
-                    </div>
-                    
-                    <div className="contribution-summary">
-                      <div className="summary-line">
-                        <span>Contribution amount:</span>
-                        <span className="amount">${getAmount()}</span>
-                      </div>
-                      {isRecurring && (
-                        <div className="summary-line">
-                          <span>Billed monthly:</span>
-                          <span className="amount">${getAmount()}/month</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="payment-methods">
-                      <h4>Choose payment method:</h4>
-                      <div className="payment-options">
-                        <button
-                          className={`payment-option ${paymentMethod === 'paypal' ? 'selected' : ''}`}
-                          onClick={() => setPaymentMethod('paypal')}
-                        >
-                          <div className="payment-icon">💳</div>
-                          <div className="payment-info">
-                            <div className="payment-name">PayPal</div>
-                            <div className="payment-desc">Pay with card or PayPal account</div>
-                          </div>
-                        </button>
-                        
-                        <button
-                          className={`payment-option ${paymentMethod === 'stripe' ? 'selected' : ''}`}
-                          onClick={() => setPaymentMethod('stripe')}
-                        >
-                          <div className="payment-icon">🔒</div>
-                          <div className="payment-info">
-                            <div className="payment-name">Stripe</div>
-                            <div className="payment-desc">Secure card payment</div>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <button
-                      className="btn-primary contribute-btn"
-                      onClick={handleContribute}
-                      disabled={!getAmount() || loading}
+                  <div className="contribution-trigger">
+                    <button 
+                      className="btn-primary contribution-btn"
+                      onClick={() => setShowContributionPopup(true)}
                     >
-                      {loading ? 'Processing...' : `Contribute $${getAmount()}${isRecurring ? '/month' : ''}`}
+                      💝 Make a Contribution
                     </button>
-                    
-                    {error && (
-                      <div className="error-message">
-                        {error}
-                      </div>
-                    )}
-                    
-                    <div className="contribution-impact">
-                      <h4>🌟 Your contribution helps:</h4>
-                      <ul>
-                        <li>Keep the platform running smoothly</li>
-                        <li>Improve user experience with new features</li>
-                        <li>Provide better support to all users</li>
-                        <li>Maintain secure and reliable service</li>
-                      </ul>
-                    </div>
+                    <p className="contribution-description">
+                      Support the platform and help us continue providing great service
+                    </p>
                   </div>
                 </section>
 
@@ -3157,6 +2993,16 @@ const UnifiedPreferences = () => {
           </div>
         </div>
       )}
+      
+      {/* Contribution Popup */}
+      <ContributionPopup 
+        isOpen={showContributionPopup}
+        onClose={() => setShowContributionPopup(false)}
+        contributionConfig={{
+          amounts: [10, 15, 25, 50, 100],
+          message: "Support the platform and help us continue providing great service"
+        }}
+      />
     </div>
   );
 };
