@@ -331,14 +331,18 @@ class EnhancedLoginReminderJob(JobTemplate):
         return None
 
     def _get_last_login(self, user: dict) -> "Optional[datetime]":
-        """Determine true last login: security.last_login_at > lastLogin.
-        NOTE: Excludes status.last_seen - it's updated by WebSocket heartbeats, not actual logins."""
+        """Determine true last login: security.last_login_at > lastLogin > status.last_seen.
+        NOTE: status.last_seen is currently the ONLY login tracking field in production."""
         candidates = []
         security = user.get("security") or {}
         dt = self._parse_dt(security.get("last_login_at"))
         if dt:
             candidates.append(dt)
         dt = self._parse_dt(user.get("lastLogin"))
+        if dt:
+            candidates.append(dt)
+        status = user.get("status") or {}
+        dt = self._parse_dt(status.get("last_seen"))
         if dt:
             candidates.append(dt)
         return max(candidates) if candidates else None

@@ -1712,6 +1712,17 @@ async def login_user(login_data: LoginRequest, request: Request, db = Depends(ge
         )
         user["noPhotoLoginCount"] = 0
     
+    # Update login timestamps
+    await db.users.update_one(
+        get_username_query(login_data.username),
+        {"$set": {
+            "security.last_login_at": datetime.utcnow(),
+            "security.last_login_ip": request.client.host if request.client else "unknown",
+            "status.is_online": True,
+            "status.last_seen": datetime.utcnow()
+        }}
+    )
+
     logger.info(f"✅ Login successful for user '{login_data.username}'")
     response = {
         "message": "Login successful",
