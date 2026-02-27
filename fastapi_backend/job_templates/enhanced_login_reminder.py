@@ -35,7 +35,15 @@ class EnhancedLoginReminderJob(JobTemplate):
     def validate_params(self, params: Dict[str, Any]) -> tuple[bool, str]:
         """Validate job parameters"""
         escalation_days = params.get("escalation_days", [15, 30, 60])
-        if not isinstance(escalation_days, list) or not all(isinstance(d, int) and 7 <= d <= 365 for d in escalation_days):
+        if not isinstance(escalation_days, list):
+            return False, "escalation_days must be a list of integers between 7 and 365"
+        # Coerce string values to int (frontend forms send strings)
+        try:
+            escalation_days = [int(d) for d in escalation_days]
+            params["escalation_days"] = escalation_days
+        except (ValueError, TypeError):
+            return False, "escalation_days must be a list of integers between 7 and 365"
+        if not all(7 <= d <= 365 for d in escalation_days):
             return False, "escalation_days must be a list of integers between 7 and 365"
         
         # Validate unique and sorted
@@ -169,14 +177,14 @@ class EnhancedLoginReminderJob(JobTemplate):
         
         batch_size = params.get("batch_size", 100)
         dry_run = params.get("dry_run", False)
-        escalation_days = params.get("escalation_days", [15, 30, 50, 60])
+        escalation_days = [int(d) for d in params.get("escalation_days", [15, 30, 50, 60])]
         communication_channels = params.get("communication_channels", {
             "15": ["email", "push"],
             "30": ["email", "sms"],
             "50": ["email", "sms", "push"],
             "60": ["email", "sms", "push"]
         })
-        min_login_count = params.get("min_login_count", 0)
+        min_login_count = int(params.get("min_login_count", 0))
         exclude_recent = params.get("exclude_recent", True)
         rate_limit_days = params.get("rate_limit_days", 7)
         
@@ -323,17 +331,14 @@ class EnhancedLoginReminderJob(JobTemplate):
         return None
 
     def _get_last_login(self, user: dict) -> "Optional[datetime]":
-        """Determine true last login: security.last_login_at > lastLogin > status.last_seen."""
+        """Determine true last login: security.last_login_at > lastLogin.
+        NOTE: Excludes status.last_seen - it's updated by WebSocket heartbeats, not actual logins."""
         candidates = []
         security = user.get("security") or {}
         dt = self._parse_dt(security.get("last_login_at"))
         if dt:
             candidates.append(dt)
         dt = self._parse_dt(user.get("lastLogin"))
-        if dt:
-            candidates.append(dt)
-        status = user.get("status") or {}
-        dt = self._parse_dt(status.get("last_seen"))
         if dt:
             candidates.append(dt)
         return max(candidates) if candidates else None
