@@ -426,13 +426,14 @@ class EnhancedLoginReminderJob(JobTemplate):
             "escalationLevel": self._get_escalation_level(days_inactive)
         }
         
-        # Queue notification
+        # Queue notification (force_send bypasses user preference checks for admin triggers)
         await notification_service.queue_notification(
             username=user_data["username"],
             trigger="admin_login_reminder",
             channels=[channel],
             template_data=template_data,
-            priority="medium"
+            priority="medium",
+            force_send=True
         )
         
         # Track in analytics collection

@@ -386,19 +386,23 @@ async def send_test_reminder(
             "escalationLevel": "warning"
         }
 
-        await notification_service.queue_notification(
+        result = await notification_service.queue_notification(
             username=username,
             trigger="admin_login_reminder",
             channels=["email"],
             template_data=template_data,
-            priority="medium"
+            priority="medium",
+            force_send=True  # Admin-triggered: bypass user preferences and rate limits
         )
 
-        logger.info(f"Test reminder sent to {username} by admin {current_user.get('username')}")
+        if not result:
+            raise HTTPException(status_code=500, detail="Failed to queue notification")
+
+        logger.info(f"Test reminder queued for {username} by admin {current_user.get('username')}")
 
         return {
             "success": True,
-            "message": f"Test reminder sent to {username}",
+            "message": f"Test reminder queued for {username}",
             "username": username,
             "daysInactive": days_inactive,
             "sentAt": datetime.utcnow().isoformat()

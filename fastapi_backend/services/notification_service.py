@@ -155,49 +155,54 @@ class NotificationService:
     
     async def enqueue_notification(
         self,
-        create_data: NotificationQueueCreate
+        create_data: NotificationQueueCreate,
+        force_send: bool = False
     ) -> NotificationQueueItem:
-        """Enqueue a notification for delivery with queue status and rate limiting checks"""
+        """Enqueue a notification for delivery with queue status and rate limiting checks.
+        Set force_send=True to bypass user preference and rate limit checks (for admin-triggered notifications).
+        """
         
-        # Check if queue is paused
+        # Check if queue is paused (skip for force_send)
         from services.queue_manager import QueueManager
         queue_manager = QueueManager(self.db)
-        queue_status = await queue_manager.get_queue_status()
+        if not force_send:
+            queue_status = await queue_manager.get_queue_status()
+            
+            if queue_status.get("status") not in ["normal"]:
+                logger.warning(f"Queue is {queue_status.get('status')}: {queue_status.get('pause_reason', 'Unknown')}")
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Notification queue is {queue_status.get('status')}"
+                )
         
-        if queue_status.get("status") not in ["normal"]:
-            logger.warning(f"Queue is {queue_status.get('status')}: {queue_status.get('pause_reason', 'Unknown')}")
-            raise HTTPException(
-                status_code=503,
-                detail=f"Notification queue is {queue_status.get('status')}"
-            )
-        
-        # Get user preferences
+        # Get user preferences (skip preference check for force_send)
         prefs = await self.get_preferences(create_data.username)
         
-        # Check if user has enabled this trigger/channel combination
-        user_channels = prefs.channels.get(create_data.trigger.value, [])
-        if not any(channel in user_channels for channel in create_data.channels):
-            logger.debug(f"User {create_data.username} has disabled {create_data.trigger.value} notifications")
-            raise HTTPException(
-                status_code=403,
-                detail=f"User has disabled {create_data.trigger.value} notifications"
-            )
-        
-        # Check rate limits using QueueManager
-        for channel in create_data.channels:
-            channel_str = channel.value if hasattr(channel, 'value') else channel
-            allowed, rate_info = await queue_manager.check_rate_limit(
-                username=create_data.username,
-                channel=channel_str,
-                window_minutes=60,
-                max_notifications=10
-            )
-            if not allowed:
-                logger.warning(f"Rate limit exceeded for {create_data.username}/{channel_str}: {rate_info}")
+        if not force_send:
+            # Check if user has enabled this trigger/channel combination
+            user_channels = prefs.channels.get(create_data.trigger.value, [])
+            if not any(channel in user_channels for channel in create_data.channels):
+                logger.debug(f"User {create_data.username} has disabled {create_data.trigger.value} notifications")
                 raise HTTPException(
-                    status_code=429,
-                    detail=f"Rate limit exceeded: {rate_info['remaining']} remaining"
+                    status_code=403,
+                    detail=f"User has disabled {create_data.trigger.value} notifications"
                 )
+        
+            # Check rate limits using QueueManager (skip for force_send)
+            for channel in create_data.channels:
+                channel_str = channel.value if hasattr(channel, 'value') else channel
+                allowed, rate_info = await queue_manager.check_rate_limit(
+                    username=create_data.username,
+                    channel=channel_str,
+                    window_minutes=60,
+                    max_notifications=10
+                )
+                if not allowed:
+                    logger.warning(f"Rate limit exceeded for {create_data.username}/{channel_str}: {rate_info}")
+                    raise HTTPException(
+                        status_code=429,
+                        detail=f"Rate limit exceeded: {rate_info['remaining']} remaining"
+                    )
         
         # Apply quiet hours if needed
         scheduled_for = await self._apply_quiet_hours(
@@ -850,7 +855,8 @@ class NotificationService:
         channels: List[str],
         template_data: Optional[Dict[str, Any]] = None,
         priority: str = "medium",  # Changed from "normal" to valid enum value
-        lineage_token: Optional[str] = None  # Track workflow end-to-end
+        lineage_token: Optional[str] = None,  # Track workflow end-to-end
+        force_send: bool = False  # Bypass user preference/rate limit checks (admin use)
     ) -> Optional[NotificationQueueItem]:
         """
         Simple helper to queue a notification.
@@ -887,7 +893,7 @@ class NotificationService:
                     )
                     
                     # Enqueue
-                    last_result = await self.enqueue_notification(queue_data)
+                    last_result = await self.enqueue_notification(queue_data, force_send=force_send)
                 except Exception as channel_error:
                     import logging
                     logger = logging.getLogger(__name__)
