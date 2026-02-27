@@ -50,11 +50,7 @@ def _get_last_login(user: dict) -> Optional[datetime]:
     if dt:
         candidates.append(dt)
 
-    # 3. status.last_seen — updated on login
-    status = user.get("status") or {}
-    dt = _parse_datetime(status.get("last_seen"))
-    if dt:
-        candidates.append(dt)
+    # NOTE: Excludes status.last_seen - it's updated by WebSocket heartbeats, not actual logins
 
     return max(candidates) if candidates else None
 
