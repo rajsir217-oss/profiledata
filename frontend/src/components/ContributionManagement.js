@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
+import AddManualPayment from './AddManualPayment';
 import './ContributionManagement.css';
 import './ContributionThankYou.css';
 import './LoadMore.css';
@@ -42,6 +43,7 @@ const ContributionManagement = () => {
   const [thankYouSending, setThankYouSending] = useState({});
   const [thankYouSent, setThankYouSent] = useState({});
   const [toast, setToast] = useState(null);
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
 
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
@@ -225,6 +227,15 @@ const ContributionManagement = () => {
     return 'ready';
   };
 
+  const handleManualPaymentSuccess = (data) => {
+    setShowAddPaymentModal(false);
+    const message = data.thankYouSent 
+      ? `Payment recorded and thank you email sent!` 
+      : `Payment recorded successfully!`;
+    showToast(message, 'success');
+    loadContributions();
+  };
+
   return (
     <div className="contribution-management">
       {toast && (
@@ -243,6 +254,9 @@ const ContributionManagement = () => {
           <h1>💝 Contribution Management</h1>
           <p>View and manage all contributions</p>
         </div>
+        <button className="add-payment-btn" onClick={() => setShowAddPaymentModal(true)}>
+          + Add Payment
+        </button>
       </div>
 
       {error && (
@@ -659,6 +673,13 @@ const ContributionManagement = () => {
             </div>
           )}
         </>
+      )}
+
+      {showAddPaymentModal && (
+        <AddManualPayment 
+          onClose={() => setShowAddPaymentModal(false)}
+          onSuccess={handleManualPaymentSuccess}
+        />
       )}
     </div>
   );

@@ -17,8 +17,9 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const paypalInitialized = useRef(false);
   const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'paypal', 'venmo-qr', 'paypal-qr'
 
-  // Use amounts from config or fallback to default
-  const amounts = contributionConfig?.amounts || [10, 15, 25];
+  // Use amounts from config and always ensure $50 is included
+  const baseAmounts = contributionConfig?.amounts || [10, 15, 25];
+  const amounts = [...new Set([...baseAmounts, 50])].sort((a, b) => a - b);
 
   // Log activity to backend (fire and forget)
   const logActivity = useCallback(async (action, amount = null, pType = null) => {
@@ -407,7 +408,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           {/* Venmo QR Code */}
           {paymentMethod === 'venmo-qr' && (
             <div className="qr-code-section">
-              <div className="qr-code-container">
+              <div >
                 <div className="qr-code-header">
                   <span className="venmo-v">V</span>
                   <h3>Scan with Venmo</h3>
@@ -439,7 +440,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           {/* PayPal QR Code */}
           {paymentMethod === 'paypal-qr' && (
             <div className="qr-code-section">
-              <div className="qr-code-container">
+              <div >
                 <div className="qr-code-header">
                   <span className="paypal-p">P</span>
                   <h3>Scan with PayPal</h3>

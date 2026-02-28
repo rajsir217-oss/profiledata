@@ -173,7 +173,7 @@
 /* Amount Options - Column Layout */
 .contribution-amounts {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
   gap: 6px;
   margin: 10px 0;
 }
@@ -183,20 +183,26 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
+  
+  .contribution-amount-option {
+    padding: 10px 8px;
+    min-height: 44px;
+  }
 }
 
 .contribution-amount-option {
   position: relative;
   background: linear-gradient(135deg, var(--surface-color) 0%, var(--input-bg) 100%);
   border: 2px solid var(--border-color);
-  border-radius: 1px;
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 1px;
+  padding: 8px 12px;
   transition: all 0.2s ease;
-  aspect-ratio: 1;
+  min-height: 40px;
+  width: 100%;
 }
 
 .contribution-amount-option::before {
@@ -279,6 +285,9 @@
   width: 60px;
   text-align: center;
   transition: all 0.2s ease;
+  z-index: 1;
+  pointer-events: auto;
+  position: relative;
 }
 
 .custom-amount-input:focus {
@@ -522,17 +531,12 @@
 }
 
 .qr-code-container {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 2px solid #e2e8f0;
+  background: linear-gradient(135deg, var(--surface-color) 0%, var(--input-bg) 100%);
+  border: 2px solid var(--border-color);
   border-radius: 16px;
   padding: 20px;
   text-align: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.theme-dark .qr-code-container {
-  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
-  border-color: #4b5563;
 }
 
 .qr-code-header {
@@ -555,8 +559,8 @@
 }
 
 .qr-code-image {
-  background: white;
-  border: 3px solid #e2e8f0;
+  background: linear-gradient(135deg, var(--surface-color) 0%, var(--input-bg) 100%);
+  border: 3px solid var(--border-color);
   border-radius: 12px;
   padding: 16px;
   margin: 0 auto 16px;
@@ -566,11 +570,6 @@
   align-items: center;
   justify-content: center;
   position: relative;
-}
-
-.theme-dark .qr-code-image {
-  background: #1f2937;
-  border-color: #4b5563;
 }
 
 .qr-code-image img {
