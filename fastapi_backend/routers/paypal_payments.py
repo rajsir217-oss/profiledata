@@ -272,7 +272,13 @@ async def capture_paypal_order(
         # Send thank you email (lazy import to avoid circular)
         try:
             from routers.contribution_routes import send_contribution_thank_you_email
-            await send_contribution_thank_you_email(db=db, username=username, amount=amount, payment_type="one-time", payment_method="PayPal")
+            email_sent = await send_contribution_thank_you_email(db=db, username=username, amount=amount, payment_type="one-time", payment_method="PayPal")
+            if email_sent:
+                await db.payments.update_one(
+                    {"_id": payment_record["_id"]},
+                    {"$set": {"thankYouEmailSentAt": datetime.utcnow()}}
+                )
+                logger.info(f"✅ Thank you email sent and marked for {username}")
         except Exception as email_err:
             logger.error(f"Error sending thank you email: {email_err}")
     except Exception as e:

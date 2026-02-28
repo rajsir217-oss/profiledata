@@ -169,11 +169,14 @@ This is an automated receipt for your contribution. Please keep it for your reco
         
         if result.get("success"):
             logger.info(f"✅ Thank you email sent to {user_email} for ${amount:.2f} contribution")
+            return True
         else:
             logger.warning(f"Failed to send thank you email to {user_email}: {result}")
+            return False
             
     except Exception as e:
         logger.error(f"Error sending contribution thank you email: {e}")
+        return False
 
 
 @router.get("/contribution-status")
@@ -566,15 +569,16 @@ async def add_manual_contribution(
     if request.sendThankYou:
         try:
             ptype = "monthly" if request.paymentType == "recurring" else "one-time"
-            await send_contribution_thank_you_email(
+            email_sent = await send_contribution_thank_you_email(
                 db=db, username=request.username, amount=request.amount,
                 payment_type=ptype, payment_method=request.paymentMethod.title()
             )
-            thank_you_sent = datetime.utcnow()
-            await db.payments.update_one(
-                {"_id": result.inserted_id},
-                {"$set": {"thankYouEmailSentAt": thank_you_sent}}
-            )
+            if email_sent:
+                thank_you_sent = datetime.utcnow()
+                await db.payments.update_one(
+                    {"_id": result.inserted_id},
+                    {"$set": {"thankYouEmailSentAt": thank_you_sent}}
+                )
         except Exception as e:
             logger.error(f"Failed to send thank you email for manual contribution: {e}")
 
