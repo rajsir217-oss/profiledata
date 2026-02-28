@@ -32,11 +32,23 @@ async def send_contribution_thank_you_email(
     try:
         # Get user details
         user = await db.users.find_one({"username": username})
-        if not user or not user.get("email"):
-            logger.warning(f"Cannot send thank you email - user {username} not found or no email")
+        if not user:
+            logger.warning(f"Cannot send thank you email - user {username} not found")
             return
         
-        user_email = user["email"]
+        user_email = user.get("email") or user.get("contactEmail")
+        if not user_email:
+            logger.warning(f"Cannot send thank you email - user {username} has no email")
+            return
+        
+        # Decrypt if encrypted (production PII encryption)
+        if user_email.startswith("gAAAAA"):
+            from crypto_utils import get_encryptor
+            try:
+                user_email = get_encryptor().decrypt(user_email)
+            except Exception as e:
+                logger.error(f"Failed to decrypt email for {username}: {e}")
+                return
         first_name = user.get("firstName", "Supporter")
         
         # Create email content
