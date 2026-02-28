@@ -32,6 +32,35 @@ class StorageService:
             from google.cloud import storage
             self.gcs_client = storage.Client()
             self.gcs_bucket = self.gcs_client.bucket(self.bucket_name)
+            
+            # Store signing credentials for signed URL generation on Cloud Run
+            # Cloud Run default credentials don't have a private key,
+            # so we use IAM signBlob API via google.auth.iam
+            self._signing_credentials = None
+            try:
+                import google.auth
+                from google.auth import compute_engine
+                credentials, project = google.auth.default()
+                if isinstance(credentials, compute_engine.Credentials):
+                    from google.auth.transport import requests as auth_requests
+                    from google.auth import iam
+                    signing_credentials = compute_engine.IDTokenCredentials(
+                        auth_requests.Request(),
+                        target_audience="",
+                        use_metadata_identity_endpoint=True
+                    )
+                    # Use the service account email for IAM signing
+                    signer = iam.Signer(
+                        request=auth_requests.Request(),
+                        credentials=credentials,
+                        service_account_email=credentials.service_account_email
+                    )
+                    self._signing_credentials = credentials
+                    self._signer_email = credentials.service_account_email
+                    logger.info(f"✅ IAM signing configured for: {self._signer_email}")
+            except Exception as sign_err:
+                logger.warning(f"⚠️ Could not configure IAM signing: {sign_err}")
+            
             logger.info(f"✅ Google Cloud Storage initialized: bucket={self.bucket_name}")
         except Exception as e:
             logger.error(f"❌ Failed to initialize GCS: {e}")
@@ -83,6 +112,9 @@ class StorageService:
         """
         Generate a signed URL for direct GCS access.
         This saves CPU/Network costs by offloading file serving to GCS directly.
+        
+        On Cloud Run (Compute Engine credentials), uses IAM signBlob API.
+        With service account key file, uses local signing.
         """
         if not self.use_gcs:
             return None
@@ -92,12 +124,31 @@ class StorageService:
             blob_path = f"{folder}/{filename}"
             blob = self.gcs_bucket.blob(blob_path)
             
-            url = blob.generate_signed_url(
-                version="v4",
-                expiration=timedelta(minutes=expiration_minutes),
-                method="GET",
-            )
-            return url
+            # Try standard signing first (works with service account key files)
+            try:
+                url = blob.generate_signed_url(
+                    version="v4",
+                    expiration=timedelta(minutes=expiration_minutes),
+                    method="GET",
+                )
+                return url
+            except Exception as sign_err:
+                # If standard signing fails (no private key), use IAM signBlob API
+                if self._signing_credentials and self._signer_email:
+                    logger.debug(f"Using IAM signBlob for {filename}")
+                    # Refresh credentials to ensure token is valid
+                    from google.auth.transport import requests as auth_requests
+                    self._signing_credentials.refresh(auth_requests.Request())
+                    url = blob.generate_signed_url(
+                        version="v4",
+                        expiration=timedelta(minutes=expiration_minutes),
+                        method="GET",
+                        service_account_email=self._signer_email,
+                        access_token=self._signing_credentials.token,
+                    )
+                    return url
+                else:
+                    raise sign_err
         except Exception as e:
             logger.error(f"❌ Failed to generate signed URL for {filename}: {e}")
             return None
