@@ -14,11 +14,10 @@ const PricingPage = () => {
   const [applyingPromo, setApplyingPromo] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
-  const [stripeConfigured, setStripeConfigured] = useState(false);
   const [braintreeConfigured, setBraintreeConfigured] = useState(false);
   const [paypalConfigured, setPaypalConfigured] = useState(false);
   const [paypalClientId, setPaypalClientId] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('stripe'); // 'stripe', 'braintree', or 'paypal'
+  const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'braintree' or 'paypal'
   const [braintreeReady, setBraintreeReady] = useState(false);
   const [braintreeInstance, setBraintreeInstance] = useState(null);
   const [paypalReady, setPaypalReady] = useState(false);
@@ -33,17 +32,6 @@ const PricingPage = () => {
 
   const checkPaymentConfigs = async () => {
     const token = localStorage.getItem('token');
-    
-    // Check Stripe
-    try {
-      const stripeResponse = await fetch(`${getBackendUrl()}/api/stripe/config`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const stripeData = await stripeResponse.json();
-      setStripeConfigured(stripeData.isConfigured);
-    } catch (error) {
-      console.error('Error checking Stripe config:', error);
-    }
     
     // Check Braintree
     try {
@@ -274,13 +262,16 @@ const PricingPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`${getBackendUrl()}/api/stripe/plans`, {
+      const response = await fetch(`${getBackendUrl()}/api/site-settings/membership`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      if (data.success) {
-        setPlans(data.plans || []);
-        const popularPlan = data.plans?.find(p => p.isPopular);
+      if (data.success && data.membership) {
+        const allPlans = data.membership.plans || [];
+        const activePlans = allPlans.filter(p => p.isActive !== false).sort((a, b) => a.price - b.price);
+        setPlans(activePlans);
+        const defaultPlanId = data.membership.defaultPlanId;
+        const popularPlan = activePlans.find(p => p.id === defaultPlanId) || activePlans[0];
         if (popularPlan) {
           setSelectedPlan(popularPlan.id);
         }
@@ -296,12 +287,19 @@ const PricingPage = () => {
   const loadSubscriptionStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${getBackendUrl()}/api/stripe/subscription-status`, {
+      const response = await fetch(`${getBackendUrl()}/api/users/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      if (data.success) {
-        setSubscriptionStatus(data);
+      if (data) {
+        setSubscriptionStatus({
+          isPremium: data.isPremium || false,
+          premiumStatus: data.premiumStatus || 'free',
+          planId: data.membershipPlanId,
+          activatedAt: data.premiumActivatedAt,
+          expiresAt: data.premiumExpiresAt,
+          isLifetime: data.membershipPlanId === 'lifetime'
+        });
       }
     } catch (error) {
       console.error('Error loading subscription status:', error);
@@ -317,7 +315,7 @@ const PricingPage = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${getBackendUrl()}/api/stripe/apply-promo?plan_id=${selectedPlan}&promo_code=${encodeURIComponent(promoCode)}`,
+        `${getBackendUrl()}/api/contributions/apply-promo?plan_id=${selectedPlan}&promo_code=${encodeURIComponent(promoCode)}`,
         { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } }
       );
       const data = await response.json();
@@ -342,38 +340,10 @@ const PricingPage = () => {
       return;
     }
     
-    if (paymentMethod === 'stripe') {
-      await handleStripeCheckout();
-    } else if (paymentMethod === 'braintree') {
+    if (paymentMethod === 'braintree') {
       await handleBraintreeCheckout();
     }
     // PayPal checkout is handled by the PayPal buttons directly
-  };
-
-  const handleStripeCheckout = async () => {
-    if (!stripeConfigured) {
-      toastService.error('Stripe payment is not configured. Please try PayPal.');
-      return;
-    }
-    setCheckingOut(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${getBackendUrl()}/api/stripe/create-checkout-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ planId: selectedPlan, promoCode: promoApplied ? promoCode : null })
-      });
-      const data = await response.json();
-      if (data.success && data.url) {
-        window.location.href = data.url;
-      } else {
-        toastService.error(data.detail || 'Failed to start checkout');
-      }
-    } catch (error) {
-      toastService.error('Failed to start checkout. Please try again.');
-    } finally {
-      setCheckingOut(false);
-    }
   };
 
   const handleBraintreeCheckout = async () => {
@@ -474,7 +444,7 @@ const PricingPage = () => {
     <div className="pricing-page">
       <div className="pricing-container">
         <div className="pricing-header"><h1>Choose Your Membership</h1><p>Unlock premium features and find your perfect match</p></div>
-        {!stripeConfigured && !braintreeConfigured && !paypalConfigured && <div className="stripe-warning">Payment system is being configured. Please check back soon.</div>}
+        {!braintreeConfigured && !paypalConfigured && <div className="payment-warning">Payment system is being configured. Please check back soon.</div>}
         <div className="plans-grid">
           {plans.map(plan => (
             <div key={plan.id} className={`plan-card ${selectedPlan === plan.id ? 'selected' : ''} ${plan.isPopular ? 'popular' : ''}`} onClick={() => { setSelectedPlan(plan.id); setPromoApplied(null); }}>
@@ -488,25 +458,10 @@ const PricingPage = () => {
         </div>
         <div className="checkout-section">
           {/* Payment Method Selector */}
-          {(stripeConfigured || braintreeConfigured || paypalConfigured) && (
+          {(braintreeConfigured || paypalConfigured) && (
             <div className="payment-method-section">
               <label>Choose Payment Method</label>
               <div className="payment-methods">
-                {stripeConfigured && (
-                  <div 
-                    className={`payment-method-option ${paymentMethod === 'stripe' ? 'selected' : ''}`}
-                    onClick={() => setPaymentMethod('stripe')}
-                  >
-                    <div className="payment-method-icon">💳</div>
-                    <div className="payment-method-info">
-                      <span className="payment-method-name">Credit/Debit Card</span>
-                      <span className="payment-method-desc">Visa, Mastercard, Amex</span>
-                    </div>
-                    <div className={`radio-button ${paymentMethod === 'stripe' ? 'checked' : ''}`}>
-                      {paymentMethod === 'stripe' && <div className="radio-inner"></div>}
-                    </div>
-                  </div>
-                )}
                 {paypalConfigured && (
                   <div 
                     className={`payment-method-option ${paymentMethod === 'paypal' ? 'selected' : ''}`}
@@ -593,7 +548,6 @@ const PricingPage = () => {
               disabled={
                 !selectedPlan || 
                 checkingOut || 
-                (paymentMethod === 'stripe' && !stripeConfigured) ||
                 (paymentMethod === 'braintree' && (!braintreeConfigured || !braintreeReady))
               }
             >
@@ -601,7 +555,6 @@ const PricingPage = () => {
             </button>
           )}
           <p className="secure-notice">
-            {paymentMethod === 'stripe' && '🔒 Secure payment powered by Stripe'}
             {paymentMethod === 'paypal' && '🔒 Secure payment powered by PayPal'}
             {paymentMethod === 'braintree' && '🔒 Secure payment powered by Braintree'}
           </p>

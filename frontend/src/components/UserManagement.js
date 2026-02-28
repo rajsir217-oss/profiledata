@@ -294,7 +294,7 @@ const UserManagement = () => {
         [user.username]: newDisabledState
       }));
       
-      await adminApi.put(`/api/stripe/admin/user/${user.username}/contribution-popup`, {
+      await adminApi.put(`/api/contributions/admin/user/${user.username}/contribution-popup`, {
         disabled: newDisabledState
       });
       
@@ -587,7 +587,7 @@ const UserManagement = () => {
       // Perform bulk API calls
       for (const username of usersToUpdate) {
         try {
-          await adminApi.put(`/api/stripe/admin/user/${username}/contribution-popup`, {
+          await adminApi.put(`/api/contributions/admin/user/${username}/contribution-popup`, {
             disabled: disable
           });
           successCount++;
@@ -1050,7 +1050,7 @@ const UserManagement = () => {
                             
                             // Then make API call
                             try {
-                              await adminApi.put(`/api/stripe/admin/user/${freshUser.username}/contribution-popup`, {
+                              await adminApi.put(`/api/contributions/admin/user/${freshUser.username}/contribution-popup`, {
                                 disabled: !currentState
                               });
                               const statusText = !currentState ? 'disabled' : 'enabled';

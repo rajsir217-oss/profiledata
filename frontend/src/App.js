@@ -49,7 +49,6 @@ import MembershipPlans from './components/MembershipPlans';
 import PricingPage from './components/PricingPage';
 import PaymentSuccess from './components/PaymentSuccess';
 import PaymentCancel from './components/PaymentCancel';
-import ContributionSuccess from './components/ContributionSuccess';
 import ContributionCancel from './components/ContributionCancel';
 import ContributionPopupWrapper from './components/ContributionPopupWrapper';
 import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
@@ -418,7 +417,6 @@ function AppContent() {
               <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
               <Route path="/payment/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
               <Route path="/payment-cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
-              <Route path="/contribution/success" element={<ProtectedRoute><ContributionSuccess /></ProtectedRoute>} />
               <Route path="/contribution/cancel" element={<ProtectedRoute><ContributionCancel /></ProtectedRoute>} />
               <Route path="/lead-generation" element={<ProtectedRoute><PromoCodeAccounting /></ProtectedRoute>} />
               <Route path="/contribution-management" element={<ProtectedRoute><ContributionManagement /></ProtectedRoute>} />

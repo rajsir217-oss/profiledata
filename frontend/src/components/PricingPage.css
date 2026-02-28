@@ -54,8 +54,8 @@
   to { transform: rotate(360deg); }
 }
 
-/* Stripe Warning */
-.stripe-warning {
+/* Payment Warning */
+.payment-warning {
   background: var(--warning-light);
   color: var(--warning-dark);
   padding: 1rem 1.5rem;

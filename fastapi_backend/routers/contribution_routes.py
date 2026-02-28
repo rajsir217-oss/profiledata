@@ -4,7 +4,7 @@ Purpose: API endpoints for contribution management, activity logging, and admin 
 Migrated from stripe_payments.py after removing Stripe integration.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -467,6 +467,115 @@ async def send_thank_you_email(
         "sentTo": user_email,
         "sentAt": now.isoformat(),
         "alreadySentBefore": already_sent.isoformat() if already_sent else None
+    }
+
+
+class ManualContributionRequest(BaseModel):
+    """Request model for manually adding a contribution (admin)"""
+    username: str = Field(..., description="Username of the contributor")
+    amount: float = Field(..., gt=0, description="Contribution amount in USD")
+    paymentMethod: str = Field(..., description="venmo, paypal, zelle, cash, other")
+    paymentType: str = Field("one_time", description="one_time or recurring")
+    notes: Optional[str] = Field(None, description="Admin notes")
+    paymentDate: Optional[str] = Field(None, description="Custom date ISO format")
+    sendThankYou: bool = Field(True, description="Send thank you email")
+
+
+@router.get("/admin/search-users")
+async def search_users_for_contribution(
+    q: str = Query(..., min_length=1),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Search users by username or name for manual contribution entry (admin only)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    regex = {"$regex": q, "$options": "i"}
+    query = {"$or": [{"username": regex}, {"firstName": regex}, {"lastName": regex}]}
+    users = await db.users.find(
+        query, {"username": 1, "firstName": 1, "lastName": 1, "_id": 0}
+    ).limit(10).to_list(length=10)
+    return {"success": True, "users": users}
+
+
+@router.post("/admin/add-manual")
+async def add_manual_contribution(
+    request: ManualContributionRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Manually record a contribution made outside the app (admin only)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    user = await db.users.find_one({"username": request.username})
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User '{request.username}' not found")
+
+    # Determine payment date (allow backdating)
+    if request.paymentDate:
+        try:
+            payment_date = datetime.fromisoformat(request.paymentDate.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format")
+    else:
+        payment_date = datetime.utcnow()
+
+    pt = "contribution_recurring" if request.paymentType == "recurring" else "contribution_one_time"
+
+    payment_doc = {
+        "username": request.username,
+        "amount": request.amount,
+        "paymentType": pt,
+        "paymentProvider": "manual",
+        "paymentMethod": request.paymentMethod,
+        "status": "completed",
+        "description": f"Manual entry - {request.paymentMethod.title()} ${request.amount:.2f}",
+        "notes": request.notes,
+        "createdAt": payment_date,
+        "updatedAt": datetime.utcnow(),
+        "addedBy": current_user["username"],
+        "manualEntry": True
+    }
+
+    result = await db.payments.insert_one(payment_doc)
+
+    # Update user contribution stats
+    await db.users.update_one(
+        {"username": request.username},
+        {
+            "$inc": {"contributions.totalContributed": request.amount},
+            "$set": {"contributions.lastContributionDate": payment_date}
+        }
+    )
+
+    # Optionally send thank you email
+    thank_you_sent = None
+    if request.sendThankYou:
+        try:
+            ptype = "monthly" if request.paymentType == "recurring" else "one-time"
+            await send_contribution_thank_you_email(
+                db=db, username=request.username, amount=request.amount,
+                payment_type=ptype, payment_method=request.paymentMethod.title()
+            )
+            thank_you_sent = datetime.utcnow()
+            await db.payments.update_one(
+                {"_id": result.inserted_id},
+                {"$set": {"thankYouEmailSentAt": thank_you_sent}}
+            )
+        except Exception as e:
+            logger.error(f"Failed to send thank you email for manual contribution: {e}")
+
+    logger.info(
+        f"Manual contribution recorded: {request.username} "
+        f"${request.amount:.2f} via {request.paymentMethod} by {current_user['username']}"
+    )
+
+    return {
+        "success": True,
+        "message": f"Contribution of ${request.amount:.2f} recorded for {request.username}",
+        "contributionId": str(result.inserted_id),
+        "thankYouSent": thank_you_sent is not None
     }
 
 

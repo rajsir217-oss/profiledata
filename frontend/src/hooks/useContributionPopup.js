@@ -24,7 +24,7 @@ const useContributionPopup = () => {
       }
 
       // Fetch contribution status from backend
-      const response = await fetch(`${getBackendUrl()}/api/stripe/contribution-status`, {
+      const response = await fetch(`${getBackendUrl()}/api/contributions/contribution-status`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

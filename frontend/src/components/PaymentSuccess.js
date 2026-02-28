@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getBackendUrl } from '../config/apiConfig';
 import './PaymentResult.css';
 
 const PaymentSuccess = () => {
@@ -11,7 +10,6 @@ const PaymentSuccess = () => {
   const [paymentDetails, setPaymentDetails] = useState(null);
 
   useEffect(() => {
-    const sessionId = searchParams.get('session_id');
     const provider = searchParams.get('provider');
     const transactionId = searchParams.get('transaction_id');
     
@@ -22,37 +20,12 @@ const PaymentSuccess = () => {
         provider: 'braintree',
         transactionId: transactionId 
       });
-      setVerifying(false);
-    } else if (sessionId) {
-      // Stripe payment - verify session
-      verifyPayment(sessionId);
     } else {
-      setVerifying(false);
+      // Generic success (PayPal or other)
+      setVerified(true);
     }
+    setVerifying(false);
   }, [searchParams]);
-
-  const verifyPayment = async (sessionId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${getBackendUrl()}/api/stripe/verify-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ sessionId })
-      });
-      const data = await response.json();
-      if (data.success && data.status === 'paid') {
-        setVerified(true);
-        setPaymentDetails(data);
-      }
-    } catch (error) {
-      console.error('Error verifying payment:', error);
-    } finally {
-      setVerifying(false);
-    }
-  };
 
   if (verifying) {
     return (
