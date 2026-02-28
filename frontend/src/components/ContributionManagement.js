@@ -38,6 +38,9 @@ const ContributionManagement = () => {
   const [activityFilter, setActivityFilter] = useState('all'); // all, popup_shown, closed, remind_later, proceed_to_payment
   const [searchFilter, setSearchFilter] = useState(''); // combined search for username, first name, last name
   const [activitySearchFilter, setActivitySearchFilter] = useState(''); // combined search for activity log
+  const [thankYouSending, setThankYouSending] = useState({});
+  const [thankYouSent, setThankYouSent] = useState({});
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
