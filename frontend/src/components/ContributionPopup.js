@@ -24,7 +24,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const logActivity = useCallback(async (action, amount = null, pType = null) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${getBackendUrl()}/api/stripe/log-contribution-activity`, {
+      await fetch(`${getBackendUrl()}/api/contributions/log-contribution-activity`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

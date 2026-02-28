@@ -67,7 +67,7 @@ const ContributionManagement = () => {
       }
       const token = localStorage.getItem('token');
       
-      let url = `${getBackendUrl()}/api/stripe/admin/contributions?page=${page}&limit=20`;
+      let url = `${getBackendUrl()}/api/contributions/admin/contributions?page=${page}&limit=20`;
       if (filter !== 'all') {
         url += `&payment_type=${filter}`;
       }
@@ -111,7 +111,7 @@ const ContributionManagement = () => {
       }
       const token = localStorage.getItem('token');
       
-      let url = `${getBackendUrl()}/api/stripe/admin/contribution-activity?page=${page}&limit=20`;
+      let url = `${getBackendUrl()}/api/contributions/admin/contribution-activity?page=${page}&limit=20`;
       if (activityFilter !== 'all') {
         url += `&action_filter=${activityFilter}`;
       }
@@ -197,7 +197,7 @@ const ContributionManagement = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `${getBackendUrl()}/api/stripe/admin/contributions/${id}/thank-you`,
+        `${getBackendUrl()}/api/contributions/admin/contributions/${id}/thank-you`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -437,7 +437,7 @@ const ContributionManagement = () => {
                     <th>Type</th>
                     <th>Status</th>
                     <th>Date</th>
-                    <th>Stripe ID</th>
+                    <th>Session ID</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -476,9 +476,9 @@ const ContributionManagement = () => {
                       <td className="date-cell">
                         {formatDate(contribution.createdAt)}
                       </td>
-                      <td className="stripe-id-cell">
-                        <span className="stripe-id" title={contribution.stripeSessionId}>
-                          {contribution.stripeSessionId ? contribution.stripeSessionId.slice(0, 20) + '...' : '-'}
+                      <td className="session-id-cell">
+                        <span className="session-id" title={contribution.sessionId}>
+                          {contribution.sessionId ? contribution.sessionId.slice(0, 20) + '...' : '-'}
                         </span>
                       </td>
                       <td className="actions-cell">

@@ -41,9 +41,6 @@ firebase-admin==6.5.0
 # Twilio (for SMS/OTP)
 twilio==8.10.0
 
-# Stripe (for payment processing)
-stripe==7.0.0
-
 # Braintree (for PayPal payment processing)
 braintree>=4.25.0
 

@@ -1,7 +1,7 @@
 """
 Braintree Payment Service
 
-Handles PayPal/Braintree payment processing alongside Stripe.
+Handles PayPal/Braintree payment processing.
 Supports sandbox testing and production payments.
 """
 

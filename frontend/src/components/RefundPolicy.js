@@ -55,7 +55,7 @@ const RefundPolicy = () => {
             <ul>
               <li><strong>Online:</strong> Go to Settings → Subscription → Cancel Subscription</li>
               <li><strong>Email:</strong> Send a cancellation request to support@l3v3lmatches.com</li>
-              <li><strong>Stripe Portal:</strong> Manage your subscription through the Stripe customer portal</li>
+              <li><strong>Payment Portal:</strong> Manage your subscription through your payment provider's portal</li>
             </ul>
             <h3>3.2 Effect of Cancellation</h3>
             <ul>

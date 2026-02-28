@@ -435,7 +435,7 @@ const UnifiedPreferences = () => {
   const loadContributionSettings = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${getBackendUrl()}/api/stripe/admin/contribution-settings`, {
+      const response = await axios.get(`${getBackendUrl()}/api/contributions/admin/contribution-settings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
@@ -455,7 +455,7 @@ const UnifiedPreferences = () => {
     try {
       setSavingContributionSettings(true);
       const token = localStorage.getItem('token');
-      await axios.put(`${getBackendUrl()}/api/stripe/admin/contribution-settings`, {
+      await axios.put(`${getBackendUrl()}/api/contributions/admin/contribution-settings`, {
         enabled: contributionEnabled,
         minLogins: contributionMinLogins,
         frequencyDays: contributionFrequencyDays,
@@ -478,7 +478,7 @@ const UnifiedPreferences = () => {
     try {
       setLoadingContributionHistory(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${getBackendUrl()}/api/stripe/contribution-history`, {
+      const response = await axios.get(`${getBackendUrl()}/api/contributions/contribution-history`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -506,7 +506,7 @@ const UnifiedPreferences = () => {
     try {
       setLoadingPaymentMethods(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${getBackendUrl()}/api/stripe/payment-methods`, {
+      const response = await axios.get(`${getBackendUrl()}/api/contributions/payment-methods`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
