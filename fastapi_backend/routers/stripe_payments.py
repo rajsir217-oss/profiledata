@@ -699,7 +699,8 @@ async def get_all_contributions(
                 "stripeSessionId": c.get("stripeSessionId"),
                 "stripeSubscriptionId": c.get("stripeSubscriptionId"),
                 "createdAt": c.get("createdAt").isoformat() if c.get("createdAt") else None,
-                "description": c.get("description")
+                "description": c.get("description"),
+                "thankYouEmailSentAt": c.get("thankYouEmailSentAt").isoformat() if c.get("thankYouEmailSentAt") else None
             })
         
         # Get summary stats
@@ -735,6 +736,80 @@ async def get_all_contributions(
     except Exception as e:
         logger.error(f"Error getting contributions: {e}")
         raise HTTPException(status_code=500, detail="Failed to get contributions")
+
+
+@router.post("/admin/contributions/{contribution_id}/thank-you")
+async def send_thank_you_email(
+    contribution_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Send a thank-you email to a contributor (admin only)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    from bson import ObjectId
+    try:
+        obj_id = ObjectId(contribution_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid contribution ID")
+
+    contribution = await db.payments.find_one({"_id": obj_id})
+    if not contribution:
+        raise HTTPException(status_code=404, detail="Contribution not found")
+
+    username = contribution.get("username")
+    if not username:
+        raise HTTPException(status_code=400, detail="Contribution has no associated user")
+
+    user = await db.users.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User '{username}' not found")
+
+    # Get email — decrypt if encrypted (production PII encryption)
+    user_email = user.get("email") or user.get("contactEmail")
+    if not user_email:
+        raise HTTPException(status_code=400, detail=f"No email on file for {username}")
+
+    if user_email.startswith("gAAAAA"):
+        from crypto_utils import get_encryptor
+        try:
+            user_email = get_encryptor().decrypt(user_email)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to decrypt email: {str(e)}")
+
+    if not user_email or not user_email.strip():
+        raise HTTPException(status_code=400, detail=f"No valid email for {username}")
+
+    amount = contribution.get("amount", 0)
+    payment_type = "monthly" if contribution.get("paymentType") == "contribution_recurring" else "one-time"
+    already_sent = contribution.get("thankYouEmailSentAt")
+
+    # Send the thank you email (reuse existing function)
+    await send_contribution_thank_you_email(
+        db=db,
+        username=username,
+        amount=amount,
+        payment_type=payment_type,
+        payment_method="Stripe"
+    )
+
+    # Mark contribution as thanked
+    now = datetime.utcnow()
+    await db.payments.update_one(
+        {"_id": obj_id},
+        {"$set": {"thankYouEmailSentAt": now, "thankYouSentBy": current_user.get("username")}}
+    )
+
+    logger.info(f"🙏 Thank you email sent to {username} ({user_email}) for ${amount:.2f} by admin {current_user.get('username')}")
+
+    return {
+        "success": True,
+        "message": f"Thank you email sent to {username}",
+        "sentTo": user_email,
+        "sentAt": now.isoformat(),
+        "alreadySentBefore": already_sent.isoformat() if already_sent else None
+    }
 
 
 class ContributionActivityRequest(BaseModel):
