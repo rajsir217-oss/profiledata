@@ -185,8 +185,58 @@ const ContributionManagement = () => {
     }).format(amount || 0);
   };
 
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const sendThankYou = async (contribution) => {
+    const id = contribution.id;
+    setThankYouSending(prev => ({ ...prev, [id]: true }));
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${getBackendUrl()}/api/stripe/admin/contributions/${id}/thank-you`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        setThankYouSent(prev => ({ ...prev, [id]: response.data.sentAt }));
+        const name = contribution.firstName || contribution.username;
+        if (response.data.alreadySentBefore) {
+          showToast(`Thank you email re-sent to ${name}!`, 'success');
+        } else {
+          showToast(`Thank you email sent to ${name}!`, 'success');
+        }
+      }
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to send thank you email';
+      showToast(detail, 'error');
+    } finally {
+      setThankYouSending(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const getThankYouState = (contribution) => {
+    const id = contribution.id;
+    if (thankYouSending[id]) return 'sending';
+    if (thankYouSent[id] || contribution.thankYouEmailSentAt) return 'sent';
+    return 'ready';
+  };
+
   return (
     <div className="contribution-management">
+      {toast && (
+        <div className={`cm-toast cm-toast-${toast.type}`}>
+          <span className="cm-toast-icon">
+            {toast.type === 'success' && '✓'}
+            {toast.type === 'error' && '✕'}
+          </span>
+          <span className="cm-toast-message">{toast.message}</span>
+          <button className="cm-toast-close" onClick={() => setToast(null)}>×</button>
+        </div>
+      )}
+
       <div className="page-header">
         <div className="header-content">
           <h1>💝 Contribution Management</h1>
@@ -387,6 +437,7 @@ const ContributionManagement = () => {
                     <th>Status</th>
                     <th>Date</th>
                     <th>Stripe ID</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -428,6 +479,37 @@ const ContributionManagement = () => {
                         <span className="stripe-id" title={contribution.stripeSessionId}>
                           {contribution.stripeSessionId ? contribution.stripeSessionId.slice(0, 20) + '...' : '-'}
                         </span>
+                      </td>
+                      <td className="actions-cell">
+                        {(() => {
+                          const state = getThankYouState(contribution);
+                          if (state === 'sending') {
+                            return (
+                              <button className="thank-you-btn sending" disabled>
+                                <span className="btn-spinner"></span> Sending...
+                              </button>
+                            );
+                          }
+                          if (state === 'sent') {
+                            return (
+                              <button
+                                className="thank-you-btn sent"
+                                onClick={() => sendThankYou(contribution)}
+                                title={`Thanked${contribution.thankYouEmailSentAt ? ' on ' + formatDate(contribution.thankYouEmailSentAt) : ''} — click to re-send`}
+                              >
+                                ✓ Thanked
+                              </button>
+                            );
+                          }
+                          return (
+                            <button
+                              className="thank-you-btn ready"
+                              onClick={() => sendThankYou(contribution)}
+                            >
+                              🙏 Thank You!
+                            </button>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}
