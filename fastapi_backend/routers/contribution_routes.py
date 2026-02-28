@@ -154,7 +154,7 @@ Your Impact:
 - Ensures secure and reliable service
 
 With heartfelt thanks,
-L3V3L Team ❤️
+The L3V3L Team ❤️
 
 This is an automated receipt for your contribution. Please keep it for your records.
 """
