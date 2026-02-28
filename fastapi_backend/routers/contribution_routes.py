@@ -120,7 +120,7 @@ async def send_contribution_thank_you_email(
                     
                     <p style="text-align: center; margin-top: 30px;">
                         <strong>With heartfelt thanks,</strong><br>
-                        The Team <span class="heart">❤️</span>
+                        L3V3L Team <span class="heart">❤️</span>
                     </p>
                 </div>
                 
@@ -154,7 +154,7 @@ Your Impact:
 - Ensures secure and reliable service
 
 With heartfelt thanks,
-The Team ❤️
+L3V3L Team ❤️
 
 This is an automated receipt for your contribution. Please keep it for your records.
 """
