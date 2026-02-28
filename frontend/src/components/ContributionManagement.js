@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
 import './ContributionManagement.css';
+import './ContributionThankYou.css';
 import './LoadMore.css';
 
 const ContributionManagement = () => {
