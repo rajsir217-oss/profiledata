@@ -101,6 +101,8 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     if (path === '/membership-plans') return { icon: '💳', title: 'Membership Plans', subtitle: 'Configure pricing and plans' };
     if (path === '/lead-generation') return { icon: '📈', title: 'Lead Generation', subtitle: 'Track members & revenue' };
     if (path === '/admin-reports') return { icon: '📊', title: 'Admin Reports', subtitle: 'View system reports and analytics' };
+    if (path === '/contribution-management') return { icon: '💝', title: 'Contribution Management', subtitle: 'Track and manage user contributions' };
+    if (path === '/admin/recurring-contributions') return { icon: '🔄', title: 'Recurring Contributions', subtitle: 'Manage recurring payment subscriptions' };
     return null;
   };
 
