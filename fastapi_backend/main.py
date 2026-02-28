@@ -46,7 +46,7 @@ from routers.promo_codes import router as promo_codes_router
 from routers.payments import router as payments_router
 from routers.site_settings import router as site_settings_router
 from routers.notes import router as notes_router
-from routers.stripe_payments import router as stripe_payments_router
+from routers.contribution_routes import router as contribution_routes_router
 from routers.braintree_payments import router as braintree_payments_router
 from routers.paypal_payments import router as paypal_payments_router
 from routers.recurring_contributions import router as recurring_contributions_router
@@ -384,7 +384,7 @@ app.include_router(promo_codes_router)  # Promo codes routes (already has /api/p
 app.include_router(payments_router)  # Payment history routes (already has /api/payments prefix)
 app.include_router(site_settings_router)  # Site settings routes (already has /api/site-settings prefix)
 app.include_router(notes_router)  # Profile notes routes (already has /api/notes prefix)
-app.include_router(stripe_payments_router)  # Stripe payment routes
+app.include_router(contribution_routes_router)  # Contribution management routes
 app.include_router(braintree_payments_router)  # Braintree/PayPal payment routes
 app.include_router(paypal_payments_router)  # PayPal direct checkout routes
 app.include_router(recurring_contributions_router)  # Recurring contributions routes

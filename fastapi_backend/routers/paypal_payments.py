@@ -268,6 +268,13 @@ async def capture_paypal_order(
                 "$set": {"contributions.lastContributionDate": datetime.utcnow()}
             }
         )
+
+        # Send thank you email (lazy import to avoid circular)
+        try:
+            from routers.contribution_routes import send_contribution_thank_you_email
+            await send_contribution_thank_you_email(db=db, username=username, amount=amount, payment_type="one-time", payment_method="PayPal")
+        except Exception as email_err:
+            logger.error(f"Error sending thank you email: {email_err}")
     except Exception as e:
         logger.error(f"Error logging PayPal payment: {e}")
         # Don't fail the request if logging fails
