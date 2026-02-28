@@ -138,11 +138,6 @@ class Settings(BaseSettings):
     groq_api_key: Optional[str] = None
     ai_provider: Optional[str] = "groq"  # "gemini" or "groq"
     
-    # Stripe Payment Configuration
-    stripe_secret_key: Optional[str] = None
-    stripe_publishable_key: Optional[str] = None
-    stripe_webhook_secret: Optional[str] = None
-    
     # Braintree Payment Configuration (PayPal via Braintree)
     braintree_environment: Optional[str] = "sandbox"  # "sandbox" or "production"
     braintree_merchant_id: Optional[str] = None
