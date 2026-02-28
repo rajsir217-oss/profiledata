@@ -4,22 +4,17 @@ API endpoints for managing and previewing email templates
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from typing import List, Dict, Any
-from config import Settings
+from database import get_database
 
 router = APIRouter()
-settings = Settings()
-
-# MongoDB connection
-client = AsyncIOMotorClient(settings.mongodb_url)
-db = client[settings.database_name]
 
 
 @router.get("/templates/categories")
 async def get_template_categories(
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
 ):
     """
     Get list of unique template categories
@@ -51,7 +46,8 @@ async def get_template_categories(
 @router.get("/templates")
 async def get_all_templates(
     current_user: dict = Depends(get_current_user),
-    category: str = None
+    category: str = None,
+    db = Depends(get_database)
 ):
     """
     Get all email templates
@@ -83,7 +79,8 @@ async def get_all_templates(
 @router.get("/templates/{trigger}")
 async def get_template_by_trigger(
     trigger: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
 ):
     """
     Get a specific template by trigger name
