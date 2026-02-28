@@ -484,7 +484,7 @@ const ContributionManagement = () => {
                       </td>
                       <td>
                         <span className={`status-badge ${contribution.status}`}>
-                          {contribution.status}
+                         ...
                         </span>
                       </td>
                       <td className="date-cell">
