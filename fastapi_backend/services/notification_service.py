@@ -73,6 +73,7 @@ class NotificationService:
                 NotificationTrigger.NEW_MESSAGE: [NotificationChannel.EMAIL],
                 NotificationTrigger.MESSAGE_READ: [NotificationChannel.EMAIL],
                 NotificationTrigger.UNREAD_MESSAGES: [NotificationChannel.EMAIL],
+                NotificationTrigger.CONVERSATION_COLD: [NotificationChannel.EMAIL],
                 
                 # Profile Activity - EMAIL only by default
                 NotificationTrigger.PROFILE_VIEW: [NotificationChannel.EMAIL],

@@ -8518,11 +8518,11 @@ async def close_conversation(
             from services.notification_service import NotificationService
             notification_service = NotificationService(db)
             
-            # Queue notification
-            await notification_service.enqueue_notification(
+            # Queue notification via queue_notification (handles preference filtering)
+            await notification_service.queue_notification(
                 username=other_username,
-                trigger="conversation_closed",
-                channel="push",
+                trigger="conversation_cold",
+                channels=["email", "push"],
                 template_data={
                     "closedBy": username,
                     "message": "This member has indicated they're not the right match. Don't worry - there are many great matches waiting for you!"
