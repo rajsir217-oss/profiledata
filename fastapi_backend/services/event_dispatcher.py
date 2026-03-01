@@ -919,7 +919,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger=trigger,
-                channels=["email", "push", "sms"],  # Add SMS for important account status
+                channels=["email"],  # Email only for admin status changes
                 template_data={
                     "username": target,
                     "profileId": metadata.get("profileId", ""),
@@ -953,7 +953,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger=trigger,
-                channels=["email", "push", "sms"],  # Add SMS for important account status
+                channels=["email"],  # Email only for admin status changes
                 template_data={
                     "username": target,
                     "profileId": metadata.get("profileId", ""),
@@ -1154,7 +1154,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger=trigger,
-                channels=["email", "push", "sms"],  # Add SMS for important account status
+                channels=["email"],  # Email only for admin status changes
                 template_data={
                     "username": target,
                     "profileId": metadata.get("profileId", ""),
@@ -1188,7 +1188,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger=trigger,
-                channels=["email", "push", "sms"],  # Add SMS for important account status
+                channels=["email"],  # Email only for admin status changes
                 template_data={
                     "username": target,
                     "profileId": metadata.get("profileId", ""),
