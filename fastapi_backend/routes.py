@@ -1363,27 +1363,8 @@ async def register_user(
             logger.error(f"❌ Error sending verification email: {e}", exc_info=True)
             # Don't fail registration if email fails
     
-    # Send welcome push notification
-    try:
-        from services.notification_service import NotificationService
-        from models.notification_models import NotificationQueueCreate, NotificationTrigger, NotificationChannel
-        
-        notification_service = NotificationService(db)
-        await notification_service.enqueue_notification(
-            NotificationQueueCreate(
-                username=username,
-                trigger=NotificationTrigger.NEW_PROFILE_CREATED,
-                channels=[NotificationChannel.PUSH],
-                templateData={
-                    "firstName": firstName or username,
-                    "username": username
-                }
-            )
-        )
-        logger.info(f"🔔 Welcome push notification queued for {username}")
-    except Exception as e:
-        logger.error(f"❌ Failed to queue welcome notification: {e}")
-        # Don't fail registration if notification fails
+    # Welcome email is handled by email_verification_service.send_welcome_email()
+    # Push notification not queued here — user must opt-in via notification settings
     
     # Remove password from response
     created_user.pop("password", None)
@@ -6272,31 +6253,8 @@ async def add_to_shortlist(
         except Exception as event_err:
             logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
         
-        # Send push notification to target user
-        try:
-            from services.notification_service import NotificationService
-            from models.notification_models import NotificationQueueCreate, NotificationTrigger, NotificationChannel
-            
-            notification_service = NotificationService(db)
-            # Get shortlister's name
-            shortlister = await db.users.find_one({"username": username})
-            shortlister_name = shortlister.get("firstName", username) if shortlister else username
-            
-            await notification_service.enqueue_notification(
-                NotificationQueueCreate(
-                    username=target_username,  # Person being shortlisted
-                    trigger=NotificationTrigger.SHORTLIST_ADDED,
-                    channels=[NotificationChannel.PUSH],
-                    templateData={
-                        "shortlister": username,
-                        "shortlisterName": shortlister_name
-                    }
-                )
-            )
-            logger.info(f"🔔 Shortlist push notification queued for {target_username}")
-        except Exception as e:
-            logger.error(f"❌ Failed to queue shortlist notification: {e}")
-            # Don't fail the shortlist operation if notification fails
+        # Shortlist notification is handled by event dispatcher via _handle_shortlist_added
+        # No duplicate enqueue needed here
         
         return {"message": "Added to shortlist successfully"}
     except Exception as e:
@@ -7697,35 +7655,8 @@ async def send_message(
         except Exception as dispatch_err:
             logger.warning(f"⚠️ Failed to dispatch message event: {dispatch_err}")
         
-        # Send push notification to recipient
-        try:
-            from services.notification_service import NotificationService
-            from models.notification_models import NotificationQueueCreate, NotificationTrigger, NotificationChannel
-            
-            notification_service = NotificationService(db)
-            # Get sender's name
-            sender = await db.users.find_one({"username": from_username})
-            sender_name = sender.get("firstName", from_username) if sender else from_username
-            
-            # Truncate message preview (first 100 chars)
-            message_preview = content.strip()[:100] + ("..." if len(content.strip()) > 100 else "")
-            
-            await notification_service.enqueue_notification(
-                NotificationQueueCreate(
-                    username=to_username,  # Recipient
-                    trigger=NotificationTrigger.NEW_MESSAGE,
-                    channels=[NotificationChannel.PUSH],
-                    templateData={
-                        "sender": from_username,
-                        "senderName": sender_name,
-                        "messagePreview": message_preview
-                    }
-                )
-            )
-            logger.info(f"🔔 New message push notification queued for {to_username}")
-        except Exception as e:
-            logger.error(f"❌ Failed to queue message notification: {e}")
-            # Don't fail the message send if notification fails
+        # Push notification is handled by the event dispatcher above via _handle_message_sent
+        # No duplicate enqueue needed here
         
         return {"message": "Message sent successfully", "id": message_id}
     except Exception as e:
