@@ -657,18 +657,36 @@ class EventDispatcher:
             actor = event_data.get("actor")
             metadata = event_data.get("metadata", {})
             
-            # Fetch sender's profile
+            # Fetch sender's and recipient's profiles
             sender = await self.db.users.find_one({"username": actor})
+            recipient = await self.db.users.find_one({"username": target})
+            
+            # Calculate sender age
+            sender_age = ""
+            if sender:
+                sender_age = str(calculate_age(sender.get("birthMonth"), sender.get("birthYear")))
+                if sender_age == "0" or sender_age == "None":
+                    sender_age = ""
+            
+            recipient_firstName = recipient.get("firstName", target) if recipient else target
             
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="new_message",
                 channels=["email", "sms", "push"],  # All channels; pre-filter removes those user hasn't opted into
                 template_data={
+                    "recipient": {
+                        "firstName": recipient_firstName,
+                        "username": target
+                    },
                     "match": {
                         "firstName": sender.get("firstName", actor) if sender else actor,
                         "username": actor,
-                        "profileId": sender.get("profileId", "") if sender else ""
+                        "profileId": sender.get("profileId", "") if sender else "",
+                        "age": sender_age
+                    },
+                    "message": {
+                        "preview": metadata.get("preview", "")
                     },
                     "message_preview": metadata.get("preview", "")
                 },

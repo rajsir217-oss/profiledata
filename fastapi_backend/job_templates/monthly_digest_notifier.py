@@ -568,6 +568,10 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
             </table>
             '''
         
+        # Generate contribution footer
+        from utils.email_contribution_footer import get_contribution_footer_html
+        contribution_footer = get_contribution_footer_html()
+        
         # Build complete email
         email_html = f'''<!DOCTYPE html>
 <html>
@@ -615,6 +619,9 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
                 <strong>💡 Pro Tip:</strong> Profiles with 3+ photos and a complete bio get 5x more views!
             </p>
         </div>
+        
+        <!-- Contribution Section -->
+        {contribution_footer}
         
         <!-- Footer -->
         <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #e2e8f0;">

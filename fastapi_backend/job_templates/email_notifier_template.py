@@ -367,7 +367,14 @@ class EmailNotifierTemplate(JobTemplate):
             "dashboardUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={dashboard_url_encoded}&link_type=dashboard",
             "contactUrl": f"{frontend_url}/contact",
             "searchUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={search_url_encoded}&link_type=search",
-            "securityUrl": f"{frontend_url}/preferences"
+            "securityUrl": f"{frontend_url}/preferences",
+            # Short aliases for DB templates using {app.chatUrl}, {app.unsubscribeUrl}, etc.
+            "chatUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/messages', safe='')}&link_type=chat",
+            "unsubscribeUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={unsubscribe_url_encoded}&link_type=unsubscribe",
+            "preferencesUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={preferences_url_encoded}&link_type=preferences",
+            "profileUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={encoded_profile_url}&link_type=profile",
+            "approveUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/pii-management?tab=incoming', safe='')}&link_type=approve",
+            "denyUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/pii-management?tab=incoming', safe='')}&link_type=deny",
         }
         
         # Also add flattened URL variables for templates using {dashboard_url} format
