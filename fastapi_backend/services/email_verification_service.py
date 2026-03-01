@@ -220,7 +220,7 @@ class EmailVerificationService:
                         
                         <p>If you have any questions, feel free to contact our support team.</p>
                         
-                        <p>Best regards,<br>The Team</p>
+                        <p>Best regards,<br>The L3V3L Team</p>
                     </div>
                     <div class="footer">
                         <p>This is an automated email. Please do not reply directly to this message.</p>
@@ -251,7 +251,7 @@ class EmailVerificationService:
             If you didn't register for an account, please ignore this email.
             
             Best regards,
-            The Team
+            The L3V3L Team
             """
             
             # Send email
@@ -505,6 +505,10 @@ class EmailVerificationService:
             l3v3l_url = f"{settings.frontend_url}/l3v3l-matches"
             profile_url = f"{settings.frontend_url}/profile/{username}"
             
+            # Generate contribution footer
+            from utils.email_contribution_footer import get_contribution_footer_html
+            contribution_footer = get_contribution_footer_html(settings.frontend_url)
+            
             # HTML email template
             html_content = f"""
             <!DOCTYPE html>
@@ -655,13 +659,15 @@ class EmailVerificationService:
                         
                         <p style="margin-top: 20px;">
                             <strong>Best regards,</strong><br>
-                            The Team
+                            The L3V3L Team
                         </p>
                     </div>
                     
+                    {contribution_footer}
+                    
                     <div class="footer">
                         <p>This is an automated message. Please do not reply to this email.</p>
-                        <p>© 2025 Matrimonial Platform. All rights reserved.</p>
+                        <p>© 2025 L3V3L MATCHES. All rights reserved.</p>
                     </div>
                 </div>
             </body>

@@ -829,8 +829,16 @@ class EmailNotifierTemplate(JobTemplate):
         )
         
         if has_full_html:
-            # Template already has full HTML - append no-reply notice at the end
-            no_reply_notice = f"""
+            # Template already has full HTML - append contribution footer + no-reply notice
+            extra_html = ""
+            
+            # Add contribution footer for eligible triggers
+            from utils.email_contribution_footer import should_include_contribution_footer, get_contribution_footer_html
+            trigger = getattr(notification, 'trigger', '') if notification else ''
+            if should_include_contribution_footer(trigger):
+                extra_html += get_contribution_footer_html(frontend_url)
+            
+            extra_html += f"""
             <div style="max-width: 600px; margin: 20px auto; padding: 0 15px;">
                 <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 14px 18px; margin-top: 20px;">
                     <p style="margin: 0; font-size: 13px; color: #856404; line-height: 1.5;">
@@ -846,11 +854,11 @@ class EmailNotifierTemplate(JobTemplate):
             """
             # Insert before </body> tag if exists, otherwise append at end
             if '</body>' in body.lower():
-                body = body.replace('</body>', f'{no_reply_notice}</body>')
-                body = body.replace('</BODY>', f'{no_reply_notice}</BODY>')
+                body = body.replace('</body>', f'{extra_html}</body>')
+                body = body.replace('</BODY>', f'{extra_html}</BODY>')
             else:
                 # Just append at the end
-                body = body + no_reply_notice
+                body = body + extra_html
             return body
         
         # Use inline styles for maximum email client compatibility
@@ -933,12 +941,22 @@ class EmailNotifierTemplate(JobTemplate):
                     </tr>
                     
                 </table>
+                
+                {{contribution_footer_placeholder}}
+                
             </td>
         </tr>
     </table>
 </body>
 </html>
 """
+        # Inject contribution footer for eligible triggers
+        from utils.email_contribution_footer import should_include_contribution_footer, get_contribution_footer_html
+        trigger = getattr(notification, 'trigger', '') if notification else ''
+        if should_include_contribution_footer(trigger):
+            html = html.replace('{{contribution_footer_placeholder}}', get_contribution_footer_html(frontend_url))
+        else:
+            html = html.replace('{{contribution_footer_placeholder}}', '')
         return html
     
     def _build_daily_digest_subject(self, template_data: dict) -> str:
