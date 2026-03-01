@@ -103,21 +103,24 @@ class PushNotifierTemplate(JobTemplate):
             from services.push_service import PushNotificationService
             push_service = PushNotificationService()
             
-            # Build query for pending push notifications
-            query = {
-                "status": "pending",
-                "channels": {"$in": ["push"]}
-            }
+            # Use NotificationService for consistent query logic and atomic claiming
+            from services.notification_service import NotificationService
+            from models.notification_models import NotificationChannel
+            service = NotificationService(db)
             
-            # Add retry logic if enabled
-            if retry_failed:
-                query["$or"] = [
-                    {"attempts": {"$exists": False}},
-                    {"attempts": {"$lt": max_attempts}}
-                ]
+            # Reset any stuck processing notifications first
+            stuck_count = await service.reset_stuck_processing(timeout_minutes=10)
+            if stuck_count > 0:
+                logger.warning(f"🔄 Reset {stuck_count} stuck push notifications from previous failed runs")
             
-            # Get pending notifications
-            notifications = await db.notification_queue.find(query).limit(batch_size).to_list(batch_size)
+            # Get pending push notifications (atomically claimed)
+            claimed_notifications = await service.get_pending_notifications(
+                channel=NotificationChannel.PUSH,
+                limit=batch_size
+            )
+            
+            # Convert to dicts for processing
+            notifications = [n.dict() for n in claimed_notifications]
             
             logger.info(f"📬 Processing {len(notifications)} push notifications")
             
