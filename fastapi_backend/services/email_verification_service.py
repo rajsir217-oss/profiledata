@@ -705,7 +705,7 @@ class EmailVerificationService:
             We're excited to have you join our community!
             
             Best regards,
-            The Team
+            The L3V3L Team
             
             ---
             This is an automated message. Please do not reply to this email.
