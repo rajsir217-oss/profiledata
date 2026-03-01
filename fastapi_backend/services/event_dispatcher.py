@@ -636,7 +636,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="profile_view",
-                channels=["push"],  # Low priority - push only (no SMS for profile views)
+                channels=["email", "push"],  # Pre-filter removes channels user hasn't opted into
                 template_data={
                     "match": {
                         "firstName": viewer.get("firstName", actor) if viewer else actor,
@@ -663,7 +663,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="new_message",
-                channels=["sms", "push"],  # Real-time channels
+                channels=["email", "sms", "push"],  # All channels; pre-filter removes those user hasn't opted into
                 template_data={
                     "match": {
                         "firstName": sender.get("firstName", actor) if sender else actor,
@@ -697,7 +697,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,  # Notify the original sender
                 trigger="message_read",
-                channels=["push"],  # Low priority - push only (no SMS for read receipts)
+                channels=["email", "push"],  # Pre-filter removes channels user hasn't opted into
                 template_data={
                     "match": {
                         "firstName": reader_name,

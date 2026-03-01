@@ -63,27 +63,30 @@ class NotificationService:
         default_prefs = NotificationPreferences(
             username=username,
             channels={
-                # Matches - batched to daily digest by default
-                NotificationTrigger.NEW_MATCH: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
-                NotificationTrigger.MUTUAL_FAVORITE: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
-                NotificationTrigger.FAVORITED: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
+                # Matches - EMAIL only by default; users opt-in to push/sms via settings
+                NotificationTrigger.NEW_MATCH: [NotificationChannel.EMAIL],
+                NotificationTrigger.MUTUAL_FAVORITE: [NotificationChannel.EMAIL],
+                NotificationTrigger.FAVORITED: [NotificationChannel.EMAIL],
                 NotificationTrigger.SHORTLIST_ADDED: [NotificationChannel.EMAIL],
                 
-                # Messages - batched to daily digest by default
-                NotificationTrigger.NEW_MESSAGE: [NotificationChannel.PUSH],
-                NotificationTrigger.UNREAD_MESSAGES: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
+                # Messages - EMAIL only by default
+                NotificationTrigger.NEW_MESSAGE: [NotificationChannel.EMAIL],
+                NotificationTrigger.MESSAGE_READ: [NotificationChannel.EMAIL],
+                NotificationTrigger.UNREAD_MESSAGES: [NotificationChannel.EMAIL],
                 
-                # Profile Activity - batched to daily digest by default
-                NotificationTrigger.PROFILE_VIEW: [NotificationChannel.PUSH],
+                # Profile Activity - EMAIL only by default
+                NotificationTrigger.PROFILE_VIEW: [NotificationChannel.EMAIL],
                 
-                # PII/Privacy - batched to daily digest by default
-                NotificationTrigger.PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
-                NotificationTrigger.PENDING_PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
-                NotificationTrigger.PII_GRANTED: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
-                NotificationTrigger.SUSPICIOUS_LOGIN: [NotificationChannel.EMAIL, NotificationChannel.SMS],
+                # PII/Privacy - EMAIL only by default
+                NotificationTrigger.PII_REQUEST: [NotificationChannel.EMAIL],
+                NotificationTrigger.PENDING_PII_REQUEST: [NotificationChannel.EMAIL],
+                NotificationTrigger.PII_GRANTED: [NotificationChannel.EMAIL],
+                NotificationTrigger.PII_DENIED: [NotificationChannel.EMAIL],
+                NotificationTrigger.PII_REVOKED: [NotificationChannel.EMAIL],
+                NotificationTrigger.SUSPICIOUS_LOGIN: [NotificationChannel.EMAIL],
                 
                 # Polls
-                NotificationTrigger.POLL_REMINDER: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
+                NotificationTrigger.POLL_REMINDER: [NotificationChannel.EMAIL],
             },
             frequency={
                 "instant": [NotificationTrigger.SUSPICIOUS_LOGIN],  # Only security alerts are instant
@@ -256,10 +259,15 @@ class NotificationService:
         }
         
         if channel:
-            # Check if channel exists in the channels array
-            # Use .value to get the string value from the enum
+            # Support both old schema (channel: singular string) and new schema (channels: list)
+            # Old schema: {"channel": "push"}, New schema: {"channels": ["push"]}
             channel_value = channel.value if hasattr(channel, 'value') else channel
-            query["channels"] = {"$in": [channel_value]}
+            query["$and"].append({
+                "$or": [
+                    {"channels": {"$in": [channel_value]}},  # New schema
+                    {"channel": channel_value}                # Old schema
+                ]
+            })
         
         notifications = []
         
@@ -283,7 +291,38 @@ class NotificationService:
             # Convert ObjectId to string for JSON serialization
             if "_id" in doc:
                 doc["_id"] = str(doc["_id"])
-            notifications.append(NotificationQueueItem(**doc))
+            
+            # Transform old-schema documents to match new Pydantic model
+            # Old schema: recipientUsername, channel (singular), type, message
+            # New schema: username, channels (list), trigger, templateData
+            if "recipientUsername" in doc or ("channel" in doc and "channels" not in doc):
+                doc = {
+                    "_id": doc.get("_id"),
+                    "username": doc.get("recipientUsername", doc.get("username", "unknown")),
+                    "trigger": doc.get("trigger", doc.get("type", "new_message")),
+                    "priority": doc.get("priority", "medium"),
+                    "channels": [doc.get("channel")] if "channel" in doc else doc.get("channels", ["email"]),
+                    "templateData": doc.get("templateData", doc.get("metadata", {
+                        "title": doc.get("title", ""),
+                        "message": doc.get("message", ""),
+                        "senderUsername": doc.get("senderUsername", ""),
+                        "senderName": doc.get("senderName", ""),
+                        "match": {"firstName": doc.get("senderName", ""), "username": doc.get("senderUsername", "")}
+                    })),
+                    "status": doc.get("status", "pending"),
+                    "scheduledFor": doc.get("scheduledFor"),
+                    "attempts": doc.get("attempts", 0),
+                    "lastAttempt": doc.get("lastAttempt"),
+                    "error": doc.get("error"),
+                    "createdAt": doc.get("createdAt"),
+                    "updatedAt": doc.get("updatedAt")
+                }
+            
+            try:
+                notifications.append(NotificationQueueItem(**doc))
+            except Exception as parse_err:
+                logger.warning(f"⚠️ Skipping unparseable notification {doc.get('_id')}: {parse_err}")
+                continue
         
         return notifications
     
@@ -861,6 +900,7 @@ class NotificationService:
         """
         Simple helper to queue a notification.
         Creates SEPARATE queue entries per channel to allow independent processing.
+        Pre-filters channels against user preferences so unwanted channels never enter the queue.
         """
         try:
             # Convert string trigger to enum
@@ -874,11 +914,29 @@ class NotificationService:
             if lineage_token:
                 enriched_template_data["lineage_token"] = lineage_token
             
+            # Pre-filter channels against user preferences BEFORE creating queue records
+            # This prevents unwanted channels from ever entering the queue
+            allowed_channels = channels
+            if not force_send:
+                prefs = await self.get_preferences(username)
+                user_channels = prefs.channels.get(trigger_enum.value if hasattr(trigger_enum, 'value') else trigger, [])
+                # Convert user preference channels to strings for comparison
+                user_channel_strs = [ch.value if hasattr(ch, 'value') else str(ch) for ch in user_channels]
+                allowed_channels = [ch for ch in channels if ch in user_channel_strs]
+                
+                if not allowed_channels:
+                    logger.debug(f"User {username} has no enabled channels for {trigger} (requested: {channels}, allowed: {user_channel_strs})")
+                    return None
+                
+                if len(allowed_channels) < len(channels):
+                    skipped = [ch for ch in channels if ch not in user_channel_strs]
+                    logger.debug(f"Filtered out channels {skipped} for {username}/{trigger} (user prefs: {user_channel_strs})")
+            
             # Create SEPARATE queue entries per channel to allow independent processing
             # This prevents the race condition where one job claims the notification
             # and blocks other channels from processing it
             last_result = None
-            for channel in channels:
+            for channel in allowed_channels:
                 try:
                     channel_enum = NotificationChannel(channel)
                     
@@ -892,11 +950,9 @@ class NotificationService:
                         scheduledFor=None
                     )
                     
-                    # Enqueue
+                    # Enqueue (force_send since we already checked preferences above)
                     last_result = await self.enqueue_notification(queue_data, force_send=force_send)
                 except Exception as channel_error:
-                    import logging
-                    logger = logging.getLogger(__name__)
                     logger.warning(f"⚠️ Failed to queue {channel} notification for {username}/{trigger}: {channel_error}")
                     # Continue with other channels
             
@@ -904,14 +960,10 @@ class NotificationService:
             
         except ValueError as e:
             # Invalid enum value
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"❌ Invalid notification parameter for {username}/{trigger}: {e}")
             return None
         except Exception as e:
-            import logging
             import traceback
-            logger = logging.getLogger(__name__)
             logger.error(f"❌ Error queuing notification for {username}/{trigger}: {e}")
             logger.error(traceback.format_exc())
             return None
