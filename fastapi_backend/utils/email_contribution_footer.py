@@ -18,13 +18,18 @@ from config import settings
 CONTRIBUTION_FOOTER_TRIGGERS = {
     "status_approved",
     "status_reactivated",
+    "account_unpaused",
     "favorited",
     "shortlist_added",
     "mutual_favorite",
     "pii_granted",
     "saved_search_matches",
     "new_match",
+    "new_users_matching",
+    "match_milestone",
     "profile_view",
+    "profile_visibility_spike",
+    "search_appearance",
 }
 
 # Triggers that should NOT include the contribution footer
@@ -33,17 +38,30 @@ CONTRIBUTION_FOOTER_EXCLUDED = {
     "status_suspended",
     "status_banned",
     "status_paused",
+    "account_paused",
     "suspicious_login",
     "pii_request",
     "pii_denied",
+    "pii_revoked",
+    "pii_expiring",
     "pending_pii_request",
     "new_message",
+    "message_read",
     "unread_messages",
     "daily_digest",
+    "weekly_digest",
     "monthly_digest",
+    "pause_weekly_summary",
     "poll_reminder",
     "contribution_thank_you",
     "conversation_cold",
+    "profile_incomplete",
+    "upload_photos",
+    "profile_unavailable",
+    "admin_login_reminder",
+    "new_profile_created",
+    "invitation_sent",
+    "auto_unpause_reminder",
 }
 
 
@@ -73,9 +91,11 @@ def get_contribution_footer_html(app_url: str = None) -> str:
     if not app_url:
         app_url = settings.frontend_url or "https://l3v3lmatches.com"
     
-    # QR code image URLs (hosted on the frontend public folder)
-    venmo_qr_url = f"{app_url}/images/VenmoQR.png"
-    paypal_qr_url = f"{app_url}/images/PaypalQR.png"
+    # QR code image URLs - always use production domain since email clients
+    # cannot access localhost images
+    image_base_url = "https://l3v3lmatches.com"
+    venmo_qr_url = f"{image_base_url}/images/VenmoQR.png"
+    paypal_qr_url = f"{image_base_url}/images/PaypalQR.png"
     
     footer_html = f"""
     <!-- Contribution Support Section -->
@@ -83,7 +103,7 @@ def get_contribution_footer_html(app_url: str = None) -> str:
         
         <!-- Header -->
         <div style="margin-bottom: 16px;">
-            <span style="font-size: 28px;">💛</span>
+            <span style="font-size: 36px;">🦋</span>
             <h3 style="margin: 8px 0 4px 0; font-size: 18px; font-weight: 700; color: #92400e;">
                 Support L3V3L Matches
             </h3>

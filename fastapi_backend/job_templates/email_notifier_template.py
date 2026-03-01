@@ -908,6 +908,8 @@ class EmailNotifierTemplate(JobTemplate):
                                 </tr>
                             </table>
                             
+                            {{contribution_footer_placeholder}}
+                            
                             <!-- No-Reply Warning Box -->
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 15px 0 0 0;">
                                 <tr>
@@ -941,9 +943,6 @@ class EmailNotifierTemplate(JobTemplate):
                     </tr>
                     
                 </table>
-                
-                {{contribution_footer_placeholder}}
-                
             </td>
         </tr>
     </table>
@@ -954,9 +953,9 @@ class EmailNotifierTemplate(JobTemplate):
         from utils.email_contribution_footer import should_include_contribution_footer, get_contribution_footer_html
         trigger = getattr(notification, 'trigger', '') if notification else ''
         if should_include_contribution_footer(trigger):
-            html = html.replace('{{contribution_footer_placeholder}}', get_contribution_footer_html(frontend_url))
+            html = html.replace('{contribution_footer_placeholder}', get_contribution_footer_html(frontend_url))
         else:
-            html = html.replace('{{contribution_footer_placeholder}}', '')
+            html = html.replace('{contribution_footer_placeholder}', '')
         return html
     
     def _build_daily_digest_subject(self, template_data: dict) -> str:
