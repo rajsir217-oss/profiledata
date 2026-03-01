@@ -51,10 +51,10 @@ gcloud run deploy $SERVICE_NAME \
   --memory 1Gi \
   --cpu 1 \
   --timeout 300 \
-  --min-instances 0 \
+  --min-instances 1 \
   --max-instances 3 \
   --concurrency 80 \
-  --cpu-throttling \
+  --no-cpu-throttling \
   --set-env-vars "\
 ENV=production,\
 DATABASE_NAME=matrimonialDB,\

@@ -197,12 +197,12 @@ gcloud run deploy "$SERVICE_NAME" \
   --allow-unauthenticated \
   --port 8080 \
   --cpu 1 \
-  --memory 256Mi \
+  --memory 1Gi \
   --timeout 300 \
   --max-instances 2 \
-  --min-instances 0 \
+  --min-instances 1 \
   --concurrency 100 \
-  --cpu-throttling >/dev/null
+  --no-cpu-throttling >/dev/null
 
 echo "🔄 Restoring local configuration files"
 restore_configs
