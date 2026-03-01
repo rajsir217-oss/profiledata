@@ -931,7 +931,8 @@ class EventDispatcher:
                     "message": message
                 },
                 priority="high",
-                lineage_token=lineage_token
+                lineage_token=lineage_token,
+                force_send=True  # Admin status notifications bypass user preference checks
             )
             logger.info(f"✅ Queued '{trigger}' notification for {target} (lineage: {lineage_token})")
             
@@ -964,7 +965,8 @@ class EventDispatcher:
                     "message": "Your account has been temporarily suspended. Please contact support for more information."
                 },
                 priority="high",
-                lineage_token=lineage_token
+                lineage_token=lineage_token,
+                force_send=True  # Admin status notifications bypass user preference checks
             )
             logger.info(f"📧 Queued '{trigger}' notification for {target} (lineage: {lineage_token})")
             
@@ -997,7 +999,8 @@ class EventDispatcher:
                     "message": "Your account has been permanently banned and you can no longer access USVedika."
                 },
                 priority="high",
-                lineage_token=lineage_token
+                lineage_token=lineage_token,
+                force_send=True  # Admin status notifications bypass user preference checks
             )
             logger.info(f"📧 Queued '{trigger}' notification for {target} (lineage: {lineage_token})")
             
@@ -1030,7 +1033,8 @@ class EventDispatcher:
                     "message": "Your account has been paused by an administrator. Your profile is temporarily hidden and you cannot access certain features."
                 },
                 priority="high",
-                lineage_token=lineage_token
+                lineage_token=lineage_token,
+                force_send=True  # Admin status notifications bypass user preference checks
             )
             logger.info(f"📧 Queued '{trigger}' notification for {target} (lineage: {lineage_token})")
             
@@ -1162,7 +1166,8 @@ class EventDispatcher:
                     "message": "Your account has been reactivated! You now have full access to all features again."
                 },
                 priority="high",
-                lineage_token=lineage_token
+                lineage_token=lineage_token,
+                force_send=True  # Admin status notifications bypass user preference checks
             )
             logger.info(f"📧 Queued '{trigger}' notification for {target} (lineage: {lineage_token})")
             
@@ -1195,7 +1200,8 @@ class EventDispatcher:
                     "message": "Your account has been unbanned and you can now access all features."
                 },
                 priority="high",
-                lineage_token=lineage_token
+                lineage_token=lineage_token,
+                force_send=True  # Admin status notifications bypass user preference checks
             )
             logger.info(f"📧 Queued '{trigger}' notification for {target} (lineage: {lineage_token})")
             
