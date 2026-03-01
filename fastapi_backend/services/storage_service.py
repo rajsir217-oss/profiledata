@@ -35,29 +35,36 @@ class StorageService:
             
             # Store signing credentials for signed URL generation on Cloud Run
             # Cloud Run default credentials don't have a private key,
-            # so we use IAM signBlob API via google.auth.iam
+            # so we use IAM signBlob API via the access token approach
             self._signing_credentials = None
+            self._signer_email = None
             try:
                 import google.auth
                 from google.auth import compute_engine
+                from google.auth.transport import requests as auth_requests
+                
                 credentials, project = google.auth.default()
                 if isinstance(credentials, compute_engine.Credentials):
-                    from google.auth.transport import requests as auth_requests
-                    from google.auth import iam
-                    signing_credentials = compute_engine.IDTokenCredentials(
-                        auth_requests.Request(),
-                        target_audience="",
-                        use_metadata_identity_endpoint=True
-                    )
-                    # Use the service account email for IAM signing
-                    signer = iam.Signer(
-                        request=auth_requests.Request(),
-                        credentials=credentials,
-                        service_account_email=credentials.service_account_email
-                    )
-                    self._signing_credentials = credentials
-                    self._signer_email = credentials.service_account_email
-                    logger.info(f"✅ IAM signing configured for: {self._signer_email}")
+                    # On Cloud Run, credentials.service_account_email returns "default"
+                    # We must explicitly fetch the real email from the metadata server
+                    auth_request = auth_requests.Request()
+                    credentials.refresh(auth_request)
+                    
+                    sa_email = credentials.service_account_email
+                    if not sa_email or sa_email == "default":
+                        # Fetch from metadata server directly (use urllib - always available)
+                        import urllib.request
+                        metadata_url = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email"
+                        req = urllib.request.Request(metadata_url, headers={"Metadata-Flavor": "Google"})
+                        with urllib.request.urlopen(req, timeout=5) as resp:
+                            sa_email = resp.read().decode("utf-8").strip()
+                    
+                    if sa_email and sa_email != "default":
+                        self._signing_credentials = credentials
+                        self._signer_email = sa_email
+                        logger.info(f"✅ IAM signing configured for: {self._signer_email}")
+                    else:
+                        logger.warning("⚠️ Could not resolve service account email for IAM signing")
             except Exception as sign_err:
                 logger.warning(f"⚠️ Could not configure IAM signing: {sign_err}")
             
