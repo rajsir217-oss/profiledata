@@ -241,7 +241,7 @@ class NotificationService:
         multiple job instances run simultaneously.
         """
         query = {
-            "status": {"$in": [NotificationStatus.PENDING, NotificationStatus.SCHEDULED]},
+            "status": {"$in": [NotificationStatus.PENDING, NotificationStatus.SCHEDULED, "queued"]},
             "$and": [
                 {
                     "$or": [
