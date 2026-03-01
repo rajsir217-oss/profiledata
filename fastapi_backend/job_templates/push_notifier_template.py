@@ -113,6 +113,31 @@ class PushNotifierTemplate(JobTemplate):
             if stuck_count > 0:
                 logger.warning(f"🔄 Reset {stuck_count} stuck push notifications from previous failed runs")
             
+            # DEBUG: Dump raw DB documents to understand schema mismatch
+            debug_sample = await db.notification_queue.find_one({"status": "pending"})
+            if debug_sample:
+                sample_keys = list(debug_sample.keys())
+                sample_channels = debug_sample.get("channels")
+                sample_channel = debug_sample.get("channel")
+                sample_status = debug_sample.get("status")
+                logger.warning(
+                    f"🔍 DEBUG sample pending doc: keys={sample_keys}, "
+                    f"channels={sample_channels} (type={type(sample_channels).__name__}), "
+                    f"channel={sample_channel} (type={type(sample_channel).__name__ if sample_channel else 'None'}), "
+                    f"status={sample_status} (type={type(sample_status).__name__})"
+                )
+            else:
+                logger.warning("🔍 DEBUG: No pending documents found in notification_queue at all!")
+            
+            # Also check specifically for push
+            push_query_1 = await db.notification_queue.count_documents({"status": "pending", "channels": {"$in": ["push"]}})
+            push_query_2 = await db.notification_queue.count_documents({"status": "pending", "channel": "push"})
+            push_query_3 = await db.notification_queue.count_documents({"status": "pending", "channels": "push"})
+            logger.warning(
+                f"🔍 DEBUG push counts: channels.$in=['push']={push_query_1}, "
+                f"channel='push'={push_query_2}, channels='push'={push_query_3}"
+            )
+            
             # Get pending push notifications (atomically claimed)
             claimed_notifications = await service.get_pending_notifications(
                 channel=NotificationChannel.PUSH,
