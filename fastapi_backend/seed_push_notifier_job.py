@@ -11,10 +11,10 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(os.getenv("ENV_FILE", ".env"))
 
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-DB_NAME = os.getenv("DB_NAME", "matrimonialDB")
+DB_NAME = os.getenv("DATABASE_NAME", os.getenv("DB_NAME", "matrimonialDB"))
 
 
 async def seed_push_notifier_job():
@@ -28,8 +28,8 @@ async def seed_push_notifier_job():
     
     if existing:
         print(f"✅ Push notifier job already exists (ID: {existing['_id']})")
-        print(f"   Status: {'enabled' if existing.get('isEnabled') else 'disabled'}")
-        print(f"   Schedule: {existing.get('schedule_type')} - {existing.get('interval', existing.get('cron_expression', 'N/A'))}")
+        print(f"   Status: {'enabled' if existing.get('enabled', existing.get('isEnabled')) else 'disabled'}")
+        print(f"   Schedule: {existing.get('schedule', existing.get('schedule_type', 'N/A'))}")
         return
     
     # Create push notifier job
@@ -38,15 +38,16 @@ async def seed_push_notifier_job():
         "displayName": "Push Notifier",
         "description": "Process push notification queue and send via Firebase Cloud Messaging (FCM)",
         "template_type": "push_notifier",
-        "schedule_type": "interval",
-        "interval": 60,  # Run every 60 seconds
-        "cron_expression": None,
+        "schedule": {
+            "type": "interval",
+            "interval_seconds": 60
+        },
         "parameters": {
             "batch_size": 50,
             "retry_failed": True,
             "max_attempts": 3
         },
-        "isEnabled": True,
+        "enabled": True,
         "createdAt": datetime.utcnow(),
         "updatedAt": datetime.utcnow(),
         "lastRunAt": None,
@@ -70,7 +71,7 @@ async def seed_push_notifier_job():
     print(f"\n📋 Job details:")
     print(f"   Name: {created['name']}")
     print(f"   Template: {created['template_type']}")
-    print(f"   Interval: {created['interval']}s")
+    print(f"   Schedule: {created['schedule']}")
     
     client.close()
 

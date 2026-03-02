@@ -119,16 +119,20 @@ class PushNotifierTemplate(JobTemplate):
                 limit=batch_size
             )
             
-            # Convert to dicts for processing
-            notifications = [n.dict() for n in claimed_notifications]
+            logger.info(f"📬 Processing {len(claimed_notifications)} push notifications")
             
-            logger.info(f"📬 Processing {len(notifications)} push notifications")
-            
-            for notification in notifications:
+            for notification in claimed_notifications:
+                # Get notification ID and convert to ObjectId for MongoDB queries
+                notification_id = notification.id
+                try:
+                    notification_oid = ObjectId(notification_id)
+                except Exception:
+                    notification_oid = notification_id
+                
                 try:
                     stats["processed"] += 1
                     
-                    username = notification.get("username")
+                    username = notification.username
                     if not username:
                         stats["skipped"] += 1
                         continue
@@ -145,7 +149,7 @@ class PushNotifierTemplate(JobTemplate):
                         
                         # Mark as skipped
                         await db.notification_queue.update_one(
-                            {"_id": notification["_id"]},
+                            {"_id": notification_oid},
                             {
                                 "$set": {
                                     "status": "skipped",
@@ -160,7 +164,7 @@ class PushNotifierTemplate(JobTemplate):
                     
                     # Prepare notification content with brand prefix
                     PREFIX = "[L3V3LMATCHES] "
-                    trigger = notification.get("trigger", "")
+                    trigger = notification.trigger or ""
                     
                     # User-friendly fallback messages for each trigger type
                     trigger_messages = {
@@ -337,11 +341,13 @@ class PushNotifierTemplate(JobTemplate):
                         "body": "Login to L3V3LMATCHES.com"
                     })
                     
-                    title = notification.get("title") or fallback["title"]
-                    body = notification.get("message") or fallback["body"]
+                    # notification model has no title/message fields; use templateData
+                    template_data_raw = notification.templateData or {}
+                    title = template_data_raw.get("title") or fallback["title"]
+                    body = template_data_raw.get("message") or fallback["body"]
                     
                     # Render template variables in title and body
-                    template_data = notification.get("templateData", {})
+                    template_data = template_data_raw
                     if template_data:
                         for key, value in template_data.items():
                             if isinstance(value, dict):
@@ -356,12 +362,10 @@ class PushNotifierTemplate(JobTemplate):
                     if not title.startswith("[L3V3LMATCHES]"):
                         title = f"{PREFIX}{title}"
                     
-                    data = notification.get("templateData", {})
-                    
                     # Convert all data values to strings (FCM requirement)
-                    data_str = {k: str(v) for k, v in data.items()}
-                    data_str["notificationId"] = str(notification["_id"])
-                    data_str["trigger"] = notification.get("trigger", "unknown")
+                    data_str = {k: str(v) for k, v in template_data.items()}
+                    data_str["notificationId"] = str(notification_id)
+                    data_str["trigger"] = trigger or "unknown"
                     
                     # Send push notification
                     if len(tokens) == 1:
@@ -429,15 +433,15 @@ class PushNotifierTemplate(JobTemplate):
                         update_doc["$set"]["statusReason"] = status_reason
                     
                     await db.notification_queue.update_one(
-                        {"_id": notification["_id"]},
+                        {"_id": notification_oid},
                         update_doc
                     )
                     
                     # Log to notification_log
                     log_entry = {
-                        "notificationId": str(notification["_id"]),
+                        "notificationId": str(notification_id),
                         "username": username,
-                        "trigger": notification.get("trigger"),
+                        "trigger": trigger,
                         "channel": "push",
                         "status": status,
                         "statusReason": status_reason,
@@ -454,12 +458,12 @@ class PushNotifierTemplate(JobTemplate):
                     await db.notification_log.insert_one(log_entry)
                     
                 except Exception as e:
-                    logger.error(f"Failed to process notification {notification.get('_id')}: {e}")
+                    logger.error(f"Failed to process notification {notification_id}: {e}")
                     stats["failed"] += 1
                     
                     # Update as failed
                     await db.notification_queue.update_one(
-                        {"_id": notification["_id"]},
+                        {"_id": notification_oid},
                         {
                             "$set": {
                                 "status": "failed",
