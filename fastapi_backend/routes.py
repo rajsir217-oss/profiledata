@@ -8911,16 +8911,16 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
     logger.info(f"💖 Getting users who favorited {username}")
     
     try:
-        # Get system settings for view history retention (applies to favorites too)
+        # Get system settings
         system_settings = await db.system_settings.find_one({}) or {}
-        view_history_days = system_settings.get("profile_view_history_days", 7)  # Default 7 days
+        favorite_history_days = system_settings.get("favorite_history_days", 45)  # Default 45 days
         profile_pic_always_visible = system_settings.get("profile_picture_always_visible", True)
         
         # Calculate cutoff date
         from datetime import timedelta
-        cutoff_date = datetime.utcnow() - timedelta(days=view_history_days)
+        cutoff_date = datetime.utcnow() - timedelta(days=favorite_history_days)
         
-        logger.info(f"📅 Filtering favorites from last {view_history_days} days (since {cutoff_date.isoformat()})")
+        logger.info(f"📅 Filtering favorites from last {favorite_history_days} days (since {cutoff_date.isoformat()})")
         
         # Find all favorites where current user is the target, within time window
         favorites = await db.favorites.find({
