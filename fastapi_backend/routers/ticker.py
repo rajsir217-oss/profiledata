@@ -13,9 +13,37 @@ import logging
 
 from database import get_database
 from auth.jwt_auth import get_current_user_dependency as get_current_user
+import re
 
 router = APIRouter(tags=["ticker"])
 logger = logging.getLogger(__name__)
+
+
+def _strip_html(html_str: str) -> str:
+    """Strip HTML tags from a string for plain-text ticker display"""
+    if not html_str:
+        return ""
+    return re.sub(r'<[^>]+>', '', html_str).strip()
+
+
+def _get_display_name(user: dict, fallback: str = "") -> str:
+    """Get decrypted display name from user doc, falling back to username"""
+    try:
+        from crypto_utils import get_encryptor
+        encryptor = get_encryptor()
+        decrypted = encryptor.decrypt_user_pii(user)
+        first = decrypted.get('firstName', '')
+        last = decrypted.get('lastName', '')
+        name = f"{first} {last}".strip()
+        return name if name else fallback
+    except Exception:
+        first = user.get('firstName', '')
+        last = user.get('lastName', '')
+        # If it looks encrypted (starts with gAAAAA), use fallback
+        if first and first.startswith('gAAAAA'):
+            return fallback
+        name = f"{first} {last}".strip()
+        return name if name else fallback
 
 # Ticker Settings Model
 class TickerSettings(BaseModel):
@@ -125,7 +153,7 @@ async def get_ticker_items(
             "type": "announcement",
             "subtype": announcement.get("type", "info"),
             "icon": announcement.get("icon") or get_announcement_icon(announcement),
-            "text": announcement["message"],
+            "text": _strip_html(announcement["message"]),
             "link": announcement.get("link"),
             "linkText": announcement.get("linkText"),
             "priority": priority_map.get(announcement.get("priority", "medium"), 5),
@@ -149,7 +177,7 @@ async def get_ticker_items(
         # Only show requests from active users
         requester = await db.users.find_one({"username": req["requesterUsername"], "accountStatus": "active"})
         if requester:
-            requester_name = f"{requester.get('firstName', '')} {requester.get('lastName', '')}".strip() or req["requesterUsername"]
+            requester_name = _get_display_name(requester, req["requesterUsername"])
             request_type_label = {
                 "contact_email": "email",
                 "contact_number": "phone",
@@ -186,7 +214,7 @@ async def get_ticker_items(
         # Only show access to active users
         granter = await db.users.find_one({"username": grant["granterUsername"], "accountStatus": "active"})
         if granter:
-            granter_name = f"{granter.get('firstName', '')} {granter.get('lastName', '')}".strip() or grant["granterUsername"]
+            granter_name = _get_display_name(granter, grant["granterUsername"])
             days_left = (grant["expiresAt"] - now).days
             
             items.append({
@@ -216,7 +244,7 @@ async def get_ticker_items(
         # Only show messages from active users
         sender = await db.users.find_one({"username": msg["senderUsername"], "accountStatus": "active"})
         if sender:
-            sender_name = f"{sender.get('firstName', '')} {sender.get('lastName', '')}".strip() or msg["senderUsername"]
+            sender_name = _get_display_name(sender, msg["senderUsername"])
             # Truncate message preview to 40 chars
             preview = msg.get("content", "")[:40]
             if len(msg.get("content", "")) > 40:
@@ -251,7 +279,7 @@ async def get_ticker_items(
         # Only show views from active users
         viewer = await db.users.find_one({"username": view["viewedByUsername"], "accountStatus": "active"})
         if viewer:
-            viewer_name = f"{viewer.get('firstName', '')} {viewer.get('lastName', '')}".strip() or view["viewedByUsername"]
+            viewer_name = _get_display_name(viewer, view["viewedByUsername"])
             
             # Calculate time ago
             time_diff = now - view["lastViewedAt"]
@@ -291,7 +319,7 @@ async def get_ticker_items(
         # Only show favorites from active users
         favoriter = await db.users.find_one({"username": fav["userUsername"], "accountStatus": "active"})
         if favoriter:
-            favoriter_name = f"{favoriter.get('firstName', '')} {favoriter.get('lastName', '')}".strip() or fav["userUsername"]
+            favoriter_name = _get_display_name(favoriter, fav["userUsername"])
             
             items.append({
                 "type": "stat",
@@ -320,7 +348,7 @@ async def get_ticker_items(
         # Only show shortlists from active users
         shortlister = await db.users.find_one({"username": shortlist["userUsername"], "accountStatus": "active"})
         if shortlister:
-            shortlister_name = f"{shortlister.get('firstName', '')} {shortlister.get('lastName', '')}".strip() or shortlist["userUsername"]
+            shortlister_name = _get_display_name(shortlister, shortlist["userUsername"])
             
             items.append({
                 "type": "stat",
