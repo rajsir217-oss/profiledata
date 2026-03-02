@@ -423,6 +423,75 @@
   min-height: 80px;
 }
 
+/* Rich Text Editor (ReactQuill) */
+.poll-richtext-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.poll-richtext-wrapper .ql-toolbar {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px 8px 0 0;
+}
+
+.poll-richtext-wrapper .ql-toolbar .ql-stroke {
+  stroke: var(--text-secondary);
+}
+
+.poll-richtext-wrapper .ql-toolbar .ql-fill {
+  fill: var(--text-secondary);
+}
+
+.poll-richtext-wrapper .ql-toolbar .ql-picker-label {
+  color: var(--text-secondary);
+}
+
+.poll-richtext-wrapper .ql-toolbar button:hover .ql-stroke,
+.poll-richtext-wrapper .ql-toolbar button.ql-active .ql-stroke {
+  stroke: var(--primary-color);
+}
+
+.poll-richtext-wrapper .ql-toolbar button:hover .ql-fill,
+.poll-richtext-wrapper .ql-toolbar button.ql-active .ql-fill {
+  fill: var(--primary-color);
+}
+
+.poll-richtext-wrapper .ql-container {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  min-height: 120px;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  color: var(--text-color);
+}
+
+.poll-richtext-wrapper .ql-editor {
+  min-height: 120px;
+  color: var(--text-color);
+}
+
+.poll-richtext-wrapper .ql-editor.ql-blank::before {
+  color: var(--text-secondary);
+  font-style: normal;
+}
+
+.poll-richtext-wrapper .ql-container:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.poll-richtext-wrapper .ql-picker-options {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+.poll-richtext-wrapper .ql-picker-item {
+  color: var(--text-color);
+}
+
 .poll-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

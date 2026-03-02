@@ -5,7 +5,7 @@ API endpoints for managing announcement banners
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from motor.motor_asyncio import AsyncIOMotorClient
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from bson import ObjectId
 import logging
@@ -77,14 +77,34 @@ async def get_active_announcements(
             
             query["targetAudience"] = {"$in": audience_groups}
             
-            # Get dismissed announcement IDs for this user
-            dismissed_ids = await db.announcement_dismissals.find(
+            # Get user's dismissals
+            user_dismissals = await db.announcement_dismissals.find(
                 {"username": username}
-            ).distinct("announcementId")
+            ).to_list(length=1000)
             
-            # Exclude dismissed announcements
-            if dismissed_ids:
-                query["_id"] = {"$nin": [ObjectId(aid) for aid in dismissed_ids if ObjectId.is_valid(aid)]}
+            # Build exclusion list with recurring awareness
+            exclude_ids = []
+            for d in user_dismissals:
+                aid = d.get("announcementId")
+                if not aid or not ObjectId.is_valid(aid):
+                    continue
+                # Look up the announcement to check if it's recurring
+                ann = await db.announcements.find_one({"_id": ObjectId(aid)})
+                if not ann:
+                    continue
+                freq = ann.get("recurringFrequencyDays")
+                if freq and freq > 0:
+                    # Recurring: only exclude if dismissed within the last N days
+                    dismissed_at = d.get("dismissedAt", datetime.min)
+                    if (now - dismissed_at) < timedelta(days=freq):
+                        exclude_ids.append(ObjectId(aid))
+                    # else: dismissal expired, show again
+                else:
+                    # One-time: permanently excluded
+                    exclude_ids.append(ObjectId(aid))
+            
+            if exclude_ids:
+                query["_id"] = {"$nin": exclude_ids}
         else:
             # Anonymous users only see "all" audience
             query["targetAudience"] = AnnouncementTargetAudience.ALL
@@ -132,22 +152,13 @@ async def dismiss_announcement(
         if not announcement.get("dismissible", True):
             raise HTTPException(status_code=400, detail="This announcement cannot be dismissed")
         
-        # Check if already dismissed
-        existing = await db.announcement_dismissals.find_one({
-            "announcementId": announcement_id,
-            "username": username
-        })
-        
-        if existing:
-            return {"message": "Already dismissed"}
-        
-        # Record dismissal
-        dismissal = {
-            "announcementId": announcement_id,
-            "username": username,
-            "dismissedAt": datetime.utcnow()
-        }
-        await db.announcement_dismissals.insert_one(dismissal)
+        # Upsert dismissal — for recurring announcements, update the timestamp
+        # so the dismissal window resets from now
+        await db.announcement_dismissals.update_one(
+            {"announcementId": announcement_id, "username": username},
+            {"$set": {"dismissedAt": datetime.utcnow()}},
+            upsert=True
+        )
         
         # Increment dismiss count
         await db.announcements.update_one(

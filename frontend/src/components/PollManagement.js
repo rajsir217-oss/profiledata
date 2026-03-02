@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createApiInstance } from '../api';
+import RichTextEditor from './shared/RichTextEditor';
 import './PollManagement.css';
 
 // Use global API factory for session handling
@@ -487,7 +488,7 @@ const PollManagement = () => {
               </div>
               
               {poll.description && (
-                <p className="poll-card-description">{poll.description}</p>
+                <div className="poll-card-description" dangerouslySetInnerHTML={{ __html: poll.description }} />
               )}
               
               <div className="poll-card-actions">
@@ -585,11 +586,11 @@ const PollManagement = () => {
               
               <div className="poll-form-group">
                 <label>Description</label>
-                <textarea
+                <RichTextEditor
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
                   placeholder="Describe what this poll is about..."
-                  rows={3}
+                  minHeight="120px"
                 />
               </div>
               
@@ -732,7 +733,12 @@ const PollManagement = () => {
               </div>
               <div className="poll-form-group">
                 <label>Description</label>
-                <textarea value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} rows={3} />
+                <RichTextEditor
+                  value={formData.description}
+                  onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
+                  placeholder="Describe what this poll is about..."
+                  minHeight="120px"
+                />
               </div>
               <div className="poll-form-section">
                 <h4>Event Details</h4>

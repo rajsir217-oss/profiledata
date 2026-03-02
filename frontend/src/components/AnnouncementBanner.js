@@ -109,7 +109,7 @@ const AnnouncementBanner = () => {
 
         {/* Message */}
         <div className="banner-message">
-          <span>{announcement.message}</span>
+          <span dangerouslySetInnerHTML={{ __html: announcement.message }} />
           
           {/* Link Button */}
           {announcement.link && announcement.linkText && (

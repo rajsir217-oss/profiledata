@@ -219,7 +219,7 @@ const EventCountdown = () => {
           </div>
           <div className="poll-modal-body">
             {currentEvent.description && (
-              <p className="poll-description">{currentEvent.description}</p>
+              <div className="poll-description" dangerouslySetInnerHTML={{ __html: currentEvent.description }} />
             )}
             
             {/* Event Details */}
