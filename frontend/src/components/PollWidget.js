@@ -249,7 +249,7 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
     return (
       <>
         {poll.description && (
-          <p className="poll-description">{poll.description}</p>
+          <div className="poll-description" dangerouslySetInnerHTML={{ __html: poll.description }} />
         )}
         
         {/* Event Details for RSVP polls */}

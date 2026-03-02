@@ -38,7 +38,7 @@ class AnnouncementTargetAudience(str, Enum):
 
 class AnnouncementBase(BaseModel):
     """Base announcement fields"""
-    message: str = Field(..., min_length=1, max_length=500, description="Announcement message")
+    message: str = Field(..., min_length=1, max_length=5000, description="Announcement message (supports HTML)")
     type: AnnouncementType = Field(default=AnnouncementType.INFO, description="Announcement type")
     priority: AnnouncementPriority = Field(default=AnnouncementPriority.MEDIUM, description="Priority level")
     targetAudience: AnnouncementTargetAudience = Field(default=AnnouncementTargetAudience.ALL, description="Target audience")
@@ -46,6 +46,7 @@ class AnnouncementBase(BaseModel):
     linkText: Optional[str] = Field(None, description="Link button text")
     dismissible: bool = Field(default=True, description="Can users dismiss this announcement")
     icon: Optional[str] = Field(None, description="Optional emoji icon")
+    recurringFrequencyDays: Optional[int] = Field(None, ge=1, le=30, description="Show every N days (null = one-time)")
 
 
 class AnnouncementCreate(AnnouncementBase):
@@ -56,7 +57,7 @@ class AnnouncementCreate(AnnouncementBase):
 
 class AnnouncementUpdate(BaseModel):
     """Update announcement request (all fields optional)"""
-    message: Optional[str] = Field(None, min_length=1, max_length=500)
+    message: Optional[str] = Field(None, min_length=1, max_length=5000)
     type: Optional[AnnouncementType] = None
     priority: Optional[AnnouncementPriority] = None
     targetAudience: Optional[AnnouncementTargetAudience] = None
@@ -67,6 +68,7 @@ class AnnouncementUpdate(BaseModel):
     active: Optional[bool] = None
     startDate: Optional[datetime] = None
     endDate: Optional[datetime] = None
+    recurringFrequencyDays: Optional[int] = Field(None, ge=1, le=30)
 
 
 class AnnouncementResponse(AnnouncementBase):
@@ -80,6 +82,7 @@ class AnnouncementResponse(AnnouncementBase):
     updatedAt: datetime = Field(..., description="Last update timestamp")
     viewCount: int = Field(default=0, description="Number of views")
     dismissCount: int = Field(default=0, description="Number of dismissals")
+    recurringFrequencyDays: Optional[int] = Field(None, description="Show every N days (null = one-time)")
 
     class Config:
         json_schema_extra = {

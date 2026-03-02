@@ -4,6 +4,7 @@ import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
+import RichTextEditor from './shared/RichTextEditor';
 import logger from '../utils/logger';
 import './AnnouncementManagement.css';
 import './TickerSettings.css';
@@ -58,7 +59,8 @@ const AnnouncementManagement = () => {
     dismissible: true,
     icon: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    recurringFrequencyDays: ''
   });
 
   useEffect(() => {
@@ -153,7 +155,8 @@ const AnnouncementManagement = () => {
       dismissible: true,
       icon: '',
       startDate: '',
-      endDate: ''
+      endDate: '',
+      recurringFrequencyDays: ''
     });
     setShowForm(true);
   };
@@ -170,7 +173,8 @@ const AnnouncementManagement = () => {
       dismissible: announcement.dismissible,
       icon: announcement.icon || '',
       startDate: announcement.startDate ? announcement.startDate.split('T')[0] : '',
-      endDate: announcement.endDate ? announcement.endDate.split('T')[0] : ''
+      endDate: announcement.endDate ? announcement.endDate.split('T')[0] : '',
+      recurringFrequencyDays: announcement.recurringFrequencyDays || ''
     });
     setShowForm(true);
   };
@@ -200,7 +204,8 @@ const AnnouncementManagement = () => {
         targetAudience: formData.targetAudience,
         dismissible: formData.dismissible,
         startDate: convertToISO(formData.startDate),
-        endDate: convertToISO(formData.endDate)
+        endDate: convertToISO(formData.endDate),
+        recurringFrequencyDays: formData.recurringFrequencyDays ? parseInt(formData.recurringFrequencyDays) : null
       };
 
       // Only include optional fields if they have values
@@ -224,7 +229,10 @@ const AnnouncementManagement = () => {
       toast.success(editingId ? 'Announcement updated successfully' : 'Announcement created successfully');
     } catch (error) {
       logger.error('Error saving announcement:', error);
-      const errorMessage = error.response?.data?.detail || 'Failed to save announcement';
+      const detail = error.response?.data?.detail;
+      const errorMessage = Array.isArray(detail)
+        ? detail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ')
+        : (typeof detail === 'string' ? detail : 'Failed to save announcement');
       toast.error(errorMessage);
     }
   };
@@ -344,15 +352,12 @@ const AnnouncementManagement = () => {
               {/* Message */}
               <div className="form-group">
                 <label>Message *</label>
-                <textarea
+                <RichTextEditor
                   value={formData.message}
-                  onChange={(e) => setFormData({...formData, message: e.target.value})}
+                  onChange={(value) => setFormData({...formData, message: value})}
                   placeholder="Enter announcement message..."
-                  required
-                  maxLength="500"
-                  rows="3"
+                  minHeight="100px"
                 />
-                <small>{formData.message.length}/500 characters</small>
               </div>
 
               {/* Type & Priority */}
@@ -459,6 +464,26 @@ const AnnouncementManagement = () => {
                 </div>
               </div>
 
+              {/* Recurring Frequency */}
+              <div className="form-group">
+                <label>Recurring Frequency</label>
+                <select
+                  value={formData.recurringFrequencyDays}
+                  onChange={(e) => setFormData({...formData, recurringFrequencyDays: e.target.value})}
+                >
+                  <option value="">One-time (no repeat)</option>
+                  <option value="1">Every 1 day</option>
+                  <option value="2">Every 2 days</option>
+                  <option value="3">Every 3 days</option>
+                  <option value="4">Every 4 days</option>
+                  <option value="5">Every 5 days</option>
+                  <option value="7">Every 7 days (weekly)</option>
+                  <option value="14">Every 14 days (bi-weekly)</option>
+                  <option value="30">Every 30 days (monthly)</option>
+                </select>
+                <small>Recurring announcements re-appear after user dismisses them</small>
+              </div>
+
               {/* Dismissible */}
               <div className="form-group checkbox-group">
                 <label>
@@ -516,7 +541,7 @@ const AnnouncementManagement = () => {
                 </div>
               </div>
 
-              <div className="item-message">{announcement.message}</div>
+              <div className="item-message" dangerouslySetInnerHTML={{ __html: announcement.message }} />
 
               {(announcement.link || announcement.startDate || announcement.endDate) && (
                 <div className="item-details">
