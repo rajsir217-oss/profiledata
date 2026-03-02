@@ -3,6 +3,7 @@ Push Notifier Job Template
 Processes push notification queue and sends via Firebase Cloud Messaging
 """
 
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Tuple, Optional
@@ -147,17 +148,8 @@ class PushNotifierTemplate(JobTemplate):
                         logger.debug(f"No active subscriptions for {username}")
                         stats["skipped"] += 1
                         
-                        # Mark as skipped
-                        await db.notification_queue.update_one(
-                            {"_id": notification_oid},
-                            {
-                                "$set": {
-                                    "status": "skipped",
-                                    "statusReason": "no_active_subscriptions",
-                                    "updatedAt": datetime.utcnow()
-                                }
-                            }
-                        )
+                        # Delete skipped items — no point keeping them in the queue
+                        await db.notification_queue.delete_one({"_id": notification_oid})
                         continue
                     
                     tokens = [sub["token"] for sub in subscriptions]
@@ -343,8 +335,11 @@ class PushNotifierTemplate(JobTemplate):
                     
                     # notification model has no title/message fields; use templateData
                     template_data_raw = notification.templateData or {}
-                    title = template_data_raw.get("title") or fallback["title"]
-                    body = template_data_raw.get("message") or fallback["body"]
+                    raw_title = template_data_raw.get("title")
+                    raw_body = template_data_raw.get("message")
+                    # Guard: templateData.message can be a dict (e.g. {"preview": ""}), not a string
+                    title = raw_title if isinstance(raw_title, str) and raw_title else fallback["title"]
+                    body = raw_body if isinstance(raw_body, str) and raw_body else fallback["body"]
                     
                     # Render template variables in title and body
                     template_data = template_data_raw
@@ -352,8 +347,9 @@ class PushNotifierTemplate(JobTemplate):
                         for key, value in template_data.items():
                             if isinstance(value, dict):
                                 for nested_key, nested_value in value.items():
-                                    title = title.replace(f"{{{key}_{nested_key}}}", str(nested_value or ""))
-                                    body = body.replace(f"{{{key}_{nested_key}}}", str(nested_value or ""))
+                                    safe_val = str(nested_value) if not isinstance(nested_value, dict) else ""
+                                    title = title.replace(f"{{{key}_{nested_key}}}", safe_val or "")
+                                    body = body.replace(f"{{{key}_{nested_key}}}", safe_val or "")
                             else:
                                 title = title.replace(f"{{{key}}}", str(value or ""))
                                 body = body.replace(f"{{{key}}}", str(value or ""))
@@ -363,7 +359,7 @@ class PushNotifierTemplate(JobTemplate):
                         title = f"{PREFIX}{title}"
                     
                     # Convert all data values to strings (FCM requirement)
-                    data_str = {k: str(v) for k, v in template_data.items()}
+                    data_str = {k: (json.dumps(v) if isinstance(v, dict) else str(v)) for k, v in template_data.items()}
                     data_str["notificationId"] = str(notification_id)
                     data_str["trigger"] = trigger or "unknown"
                     
@@ -420,22 +416,15 @@ class PushNotifierTemplate(JobTemplate):
                                     stats["invalid_tokens_removed"] += 1
                     
                     # Update notification status
-                    update_doc = {
-                        "$set": {
-                            "status": status,
-                            "sentAt": datetime.utcnow() if status == "sent" else None,
-                            "updatedAt": datetime.utcnow()
-                        },
-                        "$inc": {"attempts": 1}
-                    }
-                    
-                    if status_reason:
-                        update_doc["$set"]["statusReason"] = status_reason
-                    
-                    await db.notification_queue.update_one(
-                        {"_id": notification_oid},
-                        update_doc
-                    )
+                    if status == "sent":
+                        # Sent items logged to notification_log — remove from queue
+                        await db.notification_queue.delete_one({"_id": notification_oid})
+                    else:
+                        # Failed items stay for retry
+                        update_doc = {"$set": {"status": status, "updatedAt": datetime.utcnow()}, "$inc": {"attempts": 1}}
+                        if status_reason:
+                            update_doc["$set"]["statusReason"] = status_reason
+                        await db.notification_queue.update_one({"_id": notification_oid}, update_doc)
                     
                     # Log to notification_log
                     log_entry = {

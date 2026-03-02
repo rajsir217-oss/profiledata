@@ -199,10 +199,8 @@ case $choice in
         # cd "$PROJECT_ROOT/fastapi_backend"
         # python3 migrations/run_migrations.py || echo "⚠️  Migration warnings (non-fatal)"
         
-        echo ""
-        echo "📧 Updating Notification Templates..."
-        cd "$PROJECT_ROOT/fastapi_backend"
-        python3 update_pii_granted_template.py || echo "⚠️  Template update warnings (non-fatal)"
+        # Notification template updates (archived - no longer needed)
+        # python3 update_pii_granted_template.py
         ;;
     2)
         echo ""
@@ -227,10 +225,8 @@ case $choice in
         # cd "$PROJECT_ROOT/fastapi_backend"
         # python3 migrations/run_migrations.py || echo "⚠️  Migration warnings (non-fatal)"
         
-        echo ""
-        echo "📧 Updating Notification Templates..."
-        cd "$PROJECT_ROOT/fastapi_backend"
-        python3 update_pii_granted_template.py || echo "⚠️  Template update warnings (non-fatal)"
+        # Notification template updates (archived - no longer needed)
+        # python3 update_pii_granted_template.py
         
         echo ""
         echo "📦 Deploying Frontend..."
