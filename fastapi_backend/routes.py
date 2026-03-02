@@ -8518,12 +8518,25 @@ async def close_conversation(
             from services.notification_service import NotificationService
             notification_service = NotificationService(db)
             
+            # Fetch profiles for template data
+            closer_profile = await db.users.find_one({"username": username})
+            recipient_profile = await db.users.find_one({"username": other_username})
+            
             # Queue notification via queue_notification (handles preference filtering)
             await notification_service.queue_notification(
                 username=other_username,
                 trigger="conversation_cold",
                 channels=["email", "push"],
                 template_data={
+                    "recipient": {
+                        "firstName": recipient_profile.get("firstName", other_username) if recipient_profile else other_username,
+                        "username": other_username
+                    },
+                    "match": {
+                        "firstName": closer_profile.get("firstName", username) if closer_profile else username,
+                        "username": username,
+                        "profileId": closer_profile.get("profileId", "") if closer_profile else ""
+                    },
                     "closedBy": username,
                     "message": "This member has indicated they're not the right match. Don't worry - there are many great matches waiting for you!"
                 }

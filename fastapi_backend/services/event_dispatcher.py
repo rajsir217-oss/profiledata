@@ -497,12 +497,19 @@ class EventDispatcher:
                 logger.warning(f"Failed to decrypt PII: {e}")
             
             # Send notification to BOTH users
-            for user_username, other_user_data in [(actor_username, target), (target_username, actor)]:
+            for user_username, user_data, other_user_data in [
+                (actor_username, actor, target),
+                (target_username, target, actor)
+            ]:
                 await self.notification_service.queue_notification(
                     username=user_username,
                     trigger="mutual_favorite",
                     channels=["email", "sms", "push"],
                     template_data={
+                        "recipient": {
+                            "firstName": user_data.get("firstName", user_username),
+                            "username": user_username
+                        },
                         "match": {
                             "firstName": other_user_data.get("firstName", other_user_data.get("username")),
                             "lastName": other_user_data.get("lastName", ""),
@@ -629,8 +636,9 @@ class EventDispatcher:
                 logger.info(f"📬 Skipping immediate 'profile_view' notification for {target} - will be included in daily digest")
                 return
             
-            # Fetch viewer's profile
+            # Fetch viewer's and recipient's profiles
             viewer = await self.db.users.find_one({"username": actor})
+            recipient = await self.db.users.find_one({"username": target})
             
             # Only notify if user has profile view notifications enabled
             await self.notification_service.queue_notification(
@@ -638,6 +646,10 @@ class EventDispatcher:
                 trigger="profile_view",
                 channels=["email", "push"],  # Pre-filter removes channels user hasn't opted into
                 template_data={
+                    "recipient": {
+                        "firstName": recipient.get("firstName", target) if recipient else target,
+                        "username": target
+                    },
                     "match": {
                         "firstName": viewer.get("firstName", actor) if viewer else actor,
                         "username": actor,
@@ -708,15 +720,20 @@ class EventDispatcher:
                 logger.warning("No target (sender) specified for message_read event")
                 return
             
-            # Get reader's info
+            # Get reader's and recipient's info
             reader = await self.db.users.find_one({"username": actor})
             reader_name = reader.get("firstName", actor) if reader else actor
+            recipient_user = await self.db.users.find_one({"username": target})
             
             await self.notification_service.queue_notification(
                 username=target,  # Notify the original sender
                 trigger="message_read",
                 channels=["email", "push"],  # Pre-filter removes channels user hasn't opted into
                 template_data={
+                    "recipient": {
+                        "firstName": recipient_user.get("firstName", target) if recipient_user else target,
+                        "username": target
+                    },
                     "match": {
                         "firstName": reader_name,
                         "profileId": reader.get("profileId", "") if reader else ""
@@ -735,13 +752,23 @@ class EventDispatcher:
             target = event_data.get("target")
             metadata = event_data.get("metadata", {})
             
+            # Fetch recipient profile for template
+            recipient_user = await self.db.users.find_one({"username": target})
+            
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="unread_messages",
                 channels=["email"],
                 template_data={
+                    "recipient": {
+                        "firstName": recipient_user.get("firstName", target) if recipient_user else target,
+                        "username": target
+                    },
                     "unread_count": metadata.get("count", 0),
-                    "senders": metadata.get("senders", [])
+                    "senders": metadata.get("senders", []),
+                    "stats": {
+                        "unreadMessages": metadata.get("count", 0)
+                    }
                 }
             )
             logger.info(f"📧 Queued 'unread_messages' notification for {target}")
