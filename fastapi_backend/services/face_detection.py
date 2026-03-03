@@ -1,8 +1,9 @@
 """
 Face Detection Service
 Validates that uploaded images contain a human face using OpenCV (headless).
-Uses Haar cascade classifier - works in headless server environments (Cloud Run, etc.)
-without requiring OpenGL or a display context.
+Uses multi-cascade strategy (frontal + profile) with strict minNeighbors to
+avoid false positives on clothing/texture patterns.
+Works in headless server environments (Cloud Run) without OpenGL.
 """
 
 import io
@@ -13,32 +14,38 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 # Lazy-load OpenCV to avoid import errors if not installed
-_face_cascade = None
+_detectors = None       # dict: {'frontal': cascade, 'profile': cascade}
 _cv2_available = None
 
 
-def _get_face_detector():
-    """Lazy-initialize OpenCV Haar cascade face detector (singleton)."""
-    global _face_cascade, _cv2_available
+def _get_detectors():
+    """Lazy-initialize all cascade detectors (singleton dict)."""
+    global _detectors, _cv2_available
 
     if _cv2_available is False:
         return None
 
-    if _face_cascade is not None:
-        return _face_cascade
+    if _detectors is not None:
+        return _detectors
 
     try:
         import cv2
 
-        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        _face_cascade = cv2.CascadeClassifier(cascade_path)
+        haarcascades = cv2.data.haarcascades
 
-        if _face_cascade.empty():
-            raise RuntimeError(f"Failed to load cascade classifier from: {cascade_path}")
+        frontal = cv2.CascadeClassifier(haarcascades + "haarcascade_frontalface_default.xml")
+        profile = cv2.CascadeClassifier(haarcascades + "haarcascade_profileface.xml")
 
+        if frontal.empty():
+            raise RuntimeError("Failed to load frontalface cascade")
+
+        _detectors = {
+            "frontal": frontal,
+            "profile": None if profile.empty() else profile,
+        }
         _cv2_available = True
-        logger.info("✅ Face detection initialized (OpenCV Haar cascade, headless-safe)")
-        return _face_cascade
+        logger.info("✅ Face detection initialized (frontal + profile cascades, headless-safe)")
+        return _detectors
 
     except ImportError as e:
         _cv2_available = False
@@ -51,6 +58,18 @@ def _get_face_detector():
         _cv2_available = False
         logger.error(f"❌ Failed to initialize face detection: {e}", exc_info=True)
         return None
+
+
+def _detect_faces(cascade, gray):
+    """Run detectMultiScale with strict settings to minimise false positives."""
+    import cv2
+    return cascade.detectMultiScale(
+        gray,
+        scaleFactor=1.05,   # smaller step = more thorough scan
+        minNeighbors=8,     # high value = strict: requires strong consensus
+        minSize=(80, 80),   # faces must be at least 80x80px
+        flags=cv2.CASCADE_SCALE_IMAGE,
+    )
 
 
 def validate_human_image(image_bytes: bytes) -> Tuple[bool, str]:
@@ -67,8 +86,8 @@ def validate_human_image(image_bytes: bytes) -> Tuple[bool, str]:
     if not settings.face_detection_enabled:
         return True, "Face detection disabled"
 
-    detector = _get_face_detector()
-    if detector is None:
+    detectors = _get_detectors()
+    if detectors is None:
         # opencv not installed — allow upload (graceful degradation for missing lib)
         return True, "Face detection unavailable – skipping check"
 
@@ -76,7 +95,6 @@ def validate_human_image(image_bytes: bytes) -> Tuple[bool, str]:
         import cv2
         import numpy as np
 
-        # Open with PIL, convert to RGB then grayscale for Haar cascade
         img = Image.open(io.BytesIO(image_bytes))
         if img.mode != "RGB":
             img = img.convert("RGB")
@@ -84,19 +102,25 @@ def validate_human_image(image_bytes: bytes) -> Tuple[bool, str]:
         img_array = np.array(img)
         gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
 
-        # Detect faces — scaleFactor and minNeighbors tuned for strict detection
-        # minNeighbors=6 (default 3) reduces false positives significantly
-        faces = detector.detectMultiScale(
-            gray,
-            scaleFactor=1.1,
-            minNeighbors=6,
-            minSize=(60, 60),  # Ignore tiny detected regions
-            flags=cv2.CASCADE_SCALE_IMAGE
-        )
-
+        # Pass 1: frontal face cascade
+        faces = _detect_faces(detectors["frontal"], gray)
         if len(faces) > 0:
-            logger.debug(f"👤 Face detected: {len(faces)} face(s) found")
+            logger.debug(f"👤 Frontal face detected: {len(faces)} face(s)")
             return True, f"Face detected ({len(faces)} face(s) found)"
+
+        # Pass 2: profile face cascade (side-facing portraits)
+        if detectors["profile"] is not None:
+            profile_faces = _detect_faces(detectors["profile"], gray)
+            if len(profile_faces) > 0:
+                logger.debug(f"👤 Profile face detected: {len(profile_faces)} face(s)")
+                return True, f"Face detected ({len(profile_faces)} profile face(s) found)"
+
+            # Also check horizontally flipped image for profile faces
+            flipped = cv2.flip(gray, 1)
+            profile_flipped = _detect_faces(detectors["profile"], flipped)
+            if len(profile_flipped) > 0:
+                logger.debug(f"👤 Profile face detected (flipped): {len(profile_flipped)} face(s)")
+                return True, f"Face detected ({len(profile_flipped)} profile face(s) found)"
 
         logger.info("🚫 No human face detected in uploaded image")
         return False, (
