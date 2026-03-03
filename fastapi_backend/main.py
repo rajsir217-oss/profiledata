@@ -180,7 +180,18 @@ async def lifespan(app: FastAPI):
     from services.activity_logger import initialize_activity_logger
     await initialize_activity_logger(db)
     logger.info("✅ Activity Logger initialized")
-    
+
+    # Eagerly initialize face detector so OpenCV loads before requests arrive.
+    # Lazy-loading inside a request handler can deadlock gunicorn workers under
+    # concurrent load (OpenCV CascadeClassifier init blocks the GIL).
+    if settings.face_detection_enabled:
+        try:
+            from services.face_detection import _get_detectors
+            _get_detectors()
+            logger.info("✅ Face detection pre-initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Face detection pre-init failed (will retry on first use): {e}")
+
     yield
     
     # Shutdown
