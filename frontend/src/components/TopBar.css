@@ -480,6 +480,32 @@
   transform: scale(0.95);
 }
 
+/* Warning Messages State - Orange for medium/high urgency (3-9 days unattended) */
+.btn-messages.warning {
+  background: linear-gradient(135deg, var(--warning-color, #f97316) 0%, #ea580c 100%);
+  color: white;
+  animation: swell-warning 2.5s infinite;
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.4);
+}
+
+.btn-messages.warning:hover {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.6);
+}
+
+.btn-messages.warning .unread-count-badge {
+  background: white;
+  color: var(--warning-color, #f97316);
+  border: 2px solid white;
+}
+
+@keyframes swell-warning {
+  0%   { transform: scale(1);    box-shadow: 0 0 16px rgba(249, 115, 22, 0.4); }
+  50%  { transform: scale(1.08); box-shadow: 0 0 24px rgba(249, 115, 22, 0.7); }
+  100% { transform: scale(1);    box-shadow: 0 0 16px rgba(249, 115, 22, 0.4); }
+}
+
 /* Critical Messages State - Red color and pulsing animation */
 .btn-messages.critical {
   background: linear-gradient(135deg, var(--danger-color, #ef4444) 0%, #dc2626 100%);
@@ -500,18 +526,163 @@
 
 /* Pulsing animation for critical messages */
 @keyframes pulse-critical {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
-  }
-  50% {
-    transform: scale(1.1);
-    box-shadow: 0 0 30px rgba(239, 68, 68, 0.8);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
-  }
+  0%   { transform: scale(1);    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+  50%  { transform: scale(1.1);  box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); }
+  100% { transform: scale(1);    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+}
+
+/* Unattended Messages Alert Panel */
+.unattended-alert-panel {
+  position: fixed;
+  top: 70px;
+  right: 16px;
+  width: 320px;
+  background: var(--card-background, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 3000;
+  overflow: hidden;
+  animation: slide-in-alert 0.25s ease;
+}
+
+@keyframes slide-in-alert {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+.unattended-alert-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  background: linear-gradient(135deg, var(--warning-color, #f97316) 0%, #ea580c 100%);
+  color: white;
+}
+
+.unattended-alert-header.has-critical {
+  background: linear-gradient(135deg, var(--danger-color, #ef4444) 0%, #dc2626 100%);
+}
+
+.unattended-alert-title {
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.unattended-alert-close {
+  background: rgba(255,255,255,0.25);
+  border: none;
+  color: white;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+.unattended-alert-close:hover {
+  background: rgba(255,255,255,0.4);
+}
+
+.unattended-alert-body {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.unattended-alert-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--divider-color, #f0f0f0);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.unattended-alert-item:last-child {
+  border-bottom: none;
+}
+
+.unattended-alert-item:hover {
+  background: var(--hover-background, #f9fafb);
+}
+
+.unattended-alert-urgency-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.unattended-alert-urgency-dot.critical { background: var(--danger-color, #ef4444); }
+.unattended-alert-urgency-dot.high     { background: #f97316; }
+.unattended-alert-urgency-dot.medium   { background: var(--warning-color, #eab308); }
+.unattended-alert-urgency-dot.pending  { background: var(--info-color, #3b82f6); }
+
+.unattended-alert-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.unattended-alert-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color, #111);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unattended-alert-meta {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  margin-top: 1px;
+}
+
+.unattended-alert-days {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.unattended-alert-days.critical { background: #fee2e2; color: var(--danger-color, #ef4444); }
+.unattended-alert-days.high     { background: #ffedd5; color: #ea580c; }
+.unattended-alert-days.medium   { background: #fef9c3; color: #a16207; }
+.unattended-alert-days.pending  { background: #dbeafe; color: #1d4ed8; }
+
+.unattended-alert-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--divider-color, #f0f0f0);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.unattended-alert-goto {
+  background: var(--primary-color, #6366f1);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.unattended-alert-goto:hover {
+  opacity: 0.85;
 }
 
 .unread-count-badge {
