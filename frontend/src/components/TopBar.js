@@ -34,6 +34,9 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const adminActionsRef = useRef(null); // Ref for click-outside detection
   const [unreadResponseCount, setUnreadResponseCount] = useState(0); // User unread admin responses
   const [criticalMessagesCount, setCriticalMessagesCount] = useState(0); // Critical messages count
+  const [warningMessagesCount, setWarningMessagesCount] = useState(0); // High/medium urgency count
+  const [unattendedConversations, setUnattendedConversations] = useState([]); // For alert panel
+  const [showUnattendedAlert, setShowUnattendedAlert] = useState(false); // Alert panel visibility
   const navigate = useNavigate();
 
   // Handle message deleted callback
@@ -51,10 +54,12 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const handleCriticalCountUpdate = async () => {
     try {
       const response = await api.get('/messages/unattended');
-      setCriticalMessagesCount(response.data.criticalCount || 0);
-      console.log('🔄 Critical messages count updated:', response.data.criticalCount || 0);
+      const data = response.data;
+      setCriticalMessagesCount(data.criticalCount || 0);
+      setWarningMessagesCount((data.highCount || 0) + (data.mediumCount || 0));
+      setUnattendedConversations(data.conversations || []);
     } catch (error) {
-      console.error('Error updating critical messages count:', error);
+      logger.error('Error updating critical messages count:', error);
     }
   };
 
@@ -389,7 +394,10 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     const fetchCriticalMessagesCount = async () => {
       try {
         const response = await api.get('/messages/unattended');
-        setCriticalMessagesCount(response.data.criticalCount || 0);
+        const data = response.data;
+        setCriticalMessagesCount(data.criticalCount || 0);
+        setWarningMessagesCount((data.highCount || 0) + (data.mediumCount || 0));
+        setUnattendedConversations(data.conversations || []);
       } catch (error) {
         logger.error('Error fetching critical messages count:', error);
       }
@@ -558,15 +566,75 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           {/* Messages Icon with Dropdown */}
           <div className="messages-icon-container">
             <button 
-              className={`btn-messages ${criticalMessagesCount > 0 ? 'critical' : ''}`}
-              onClick={() => setShowMessagesDropdown(!showMessagesDropdown)}
-              title={`Messages${criticalMessagesCount > 0 ? ` - ${criticalMessagesCount} critical message${criticalMessagesCount > 1 ? 's' : ''}!` : ''}`}
+              className={`btn-messages ${criticalMessagesCount > 0 ? 'critical' : warningMessagesCount > 0 ? 'warning' : ''}`}
+              onClick={() => {
+                if (criticalMessagesCount > 0 || warningMessagesCount > 0) {
+                  setShowUnattendedAlert(prev => !prev);
+                } else {
+                  setShowMessagesDropdown(!showMessagesDropdown);
+                }
+              }}
+              title={criticalMessagesCount > 0
+                ? `${criticalMessagesCount} critical message${criticalMessagesCount > 1 ? 's' : ''} need reply!`
+                : warningMessagesCount > 0
+                  ? `${warningMessagesCount} message${warningMessagesCount > 1 ? 's' : ''} pending — reply soon`
+                  : 'Messages'
+              }
             >
               💬
               {unreadCount > 0 && (
                 <span className="unread-count-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
               )}
             </button>
+
+            {/* Unattended Alert Panel */}
+            {showUnattendedAlert && unattendedConversations.length > 0 && (
+              <div className="unattended-alert-panel">
+                <div className={`unattended-alert-header ${criticalMessagesCount > 0 ? 'has-critical' : ''}`}>
+                  <span className="unattended-alert-title">
+                    {criticalMessagesCount > 0 ? '🔴' : '🟠'}
+                    {criticalMessagesCount > 0
+                      ? `${criticalMessagesCount} critical — reply now!`
+                      : `${warningMessagesCount} pending — reply soon`
+                    }
+                  </span>
+                  <button className="unattended-alert-close" onClick={() => setShowUnattendedAlert(false)}>✕</button>
+                </div>
+                <div className="unattended-alert-body">
+                  {unattendedConversations.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="unattended-alert-item"
+                      onClick={() => {
+                        setShowUnattendedAlert(false);
+                        navigate('/messages');
+                      }}
+                    >
+                      <div className={`unattended-alert-urgency-dot ${item.urgency}`} />
+                      <div className="unattended-alert-item-info">
+                        <div className="unattended-alert-name">
+                          {item.sender?.firstName} {item.sender?.lastName}
+                        </div>
+                        <div className="unattended-alert-meta">
+                          {item.lastMessage?.text?.substring(0, 50)}{item.lastMessage?.text?.length > 50 ? '…' : ''}
+                        </div>
+                      </div>
+                      <span className={`unattended-alert-days ${item.urgency}`}>
+                        {item.lastMessage?.waitingDays}d
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="unattended-alert-footer">
+                  <button
+                    className="unattended-alert-goto"
+                    onClick={() => { setShowUnattendedAlert(false); navigate('/messages'); }}
+                  >
+                    Go to Messages →
+                  </button>
+                </div>
+              </div>
+            )}
             <MessagesDropdown
               isOpen={showMessagesDropdown}
               onClose={() => setShowMessagesDropdown(false)}
