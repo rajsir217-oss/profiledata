@@ -2,10 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies (gcc for builds, libgl1/libglib for mediapipe/OpenCV face detection)
+# Install system dependencies (gcc for builds, libglib2.0-0 for opencv-python-headless face detection)
 RUN apt-get update && apt-get install -y \
     gcc \
-    libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 

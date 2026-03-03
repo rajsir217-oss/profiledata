@@ -99,7 +99,7 @@ class Settings(BaseSettings):
     debug_mode: Optional[bool] = False
     registration_open: Optional[bool] = False  # False = invitation-only, True = public registration
     face_detection_enabled: Optional[bool] = True  # Validate uploaded images contain a human face
-    face_detection_confidence: Optional[float] = 0.5  # Minimum confidence for face detection (0.0-1.0)
+    face_detection_confidence: Optional[float] = 0.7  # Minimum confidence for face detection (0.0-1.0)
     
     # ==========================================================================
     # PROFILE PICTURE VISIBILITY SETTING
