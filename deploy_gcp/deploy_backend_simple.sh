@@ -55,6 +55,7 @@ gcloud run deploy $SERVICE_NAME \
   --max-instances 3 \
   --concurrency 80 \
   --no-cpu-throttling \
+  --liveness-probe=httpGet.path=/health,httpGet.port=8080,initialDelaySeconds=60,periodSeconds=30,timeoutSeconds=10,failureThreshold=3 \
   --set-env-vars "\
 ENV=production,\
 DATABASE_NAME=matrimonialDB,\

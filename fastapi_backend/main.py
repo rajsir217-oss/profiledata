@@ -404,14 +404,31 @@ app.include_router(admin_engagement_router)  # Admin engagement routes (already 
 app.include_router(inactive_users_report_router, prefix="/api/admin", tags=["admin-reports"])  # Inactive users report routes
 app.include_router(queue_management_router)  # Queue management routes (already has /api/admin/queue prefix)
 
-# Health check endpoint
+# Health check endpoint — used by Cloud Run liveness probe.
+# Tests MongoDB connectivity so probe fails (503) if workers are deadlocked
+# or DB connection is lost, triggering automatic container restart.
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "ok",
-        "service": "matrimonial-api",
-        "version": "1.0.0"
-    }
+    from fastapi.responses import JSONResponse
+    import time
+    start = time.monotonic()
+    try:
+        db = get_database()
+        await db.command("ping")
+        latency_ms = round((time.monotonic() - start) * 1000)
+        return JSONResponse(status_code=200, content={
+            "status": "ok",
+            "service": "matrimonial-api",
+            "version": "1.0.0",
+            "db": "ok",
+            "latency_ms": latency_ms,
+        })
+    except Exception as e:
+        logger.error(f"❌ Health check failed: {e}")
+        return JSONResponse(status_code=503, content={
+            "status": "unhealthy",
+            "error": str(e),
+        })
 
 @app.get("/")
 async def root():
