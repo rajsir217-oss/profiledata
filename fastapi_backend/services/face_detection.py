@@ -1,7 +1,8 @@
 """
 Face Detection Service
-Validates that uploaded images contain a human face using mediapipe.
-Used during registration and profile editing to prevent non-human image uploads.
+Validates that uploaded images contain a human face using OpenCV (headless).
+Uses Haar cascade classifier - works in headless server environments (Cloud Run, etc.)
+without requiring OpenGL or a display context.
 """
 
 import io
@@ -11,44 +12,43 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
-# Lazy-load mediapipe to avoid import errors if not installed
-_face_detection = None
-_mp_available = None
+# Lazy-load OpenCV to avoid import errors if not installed
+_face_cascade = None
+_cv2_available = None
 
 
 def _get_face_detector():
-    """Lazy-initialize mediapipe face detector (singleton)."""
-    global _face_detection, _mp_available
+    """Lazy-initialize OpenCV Haar cascade face detector (singleton)."""
+    global _face_cascade, _cv2_available
 
-    if _mp_available is False:
+    if _cv2_available is False:
         return None
 
-    if _face_detection is not None:
-        return _face_detection
+    if _face_cascade is not None:
+        return _face_cascade
 
     try:
-        import mediapipe as mp
-        from config import settings
+        import cv2
 
-        min_confidence = settings.face_detection_confidence or 0.5
-        _face_detection = mp.solutions.face_detection.FaceDetection(
-            model_selection=1,  # 1 = full-range model (better for varied distances)
-            min_detection_confidence=min_confidence,
-        )
-        _mp_available = True
-        logger.info(f"✅ Face detection initialized (confidence={min_confidence})")
-        return _face_detection
+        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        _face_cascade = cv2.CascadeClassifier(cascade_path)
+
+        if _face_cascade.empty():
+            raise RuntimeError(f"Failed to load cascade classifier from: {cascade_path}")
+
+        _cv2_available = True
+        logger.info("✅ Face detection initialized (OpenCV Haar cascade, headless-safe)")
+        return _face_cascade
+
     except ImportError as e:
-        _mp_available = False
+        _cv2_available = False
         logger.warning(
-            f"⚠️ mediapipe not available – face detection disabled. "
-            f"Error: {e}. "
-            f"Install with: pip install mediapipe. "
-            f"Also ensure system libs are installed: apt-get install libgl1-mesa-glx libglib2.0-0"
+            f"⚠️ opencv-python-headless not available – face detection disabled. "
+            f"Error: {e}. Install with: pip install opencv-python-headless"
         )
         return None
     except Exception as e:
-        _mp_available = False
+        _cv2_available = False
         logger.error(f"❌ Failed to initialize face detection: {e}", exc_info=True)
         return None
 
@@ -64,35 +64,39 @@ def validate_human_image(image_bytes: bytes) -> Tuple[bool, str]:
     """
     from config import settings
 
-    # Skip validation when feature is disabled
     if not settings.face_detection_enabled:
         return True, "Face detection disabled"
 
     detector = _get_face_detector()
     if detector is None:
-        # If mediapipe isn't available, allow the upload (graceful degradation)
+        # opencv not installed — allow upload (graceful degradation for missing lib)
         return True, "Face detection unavailable – skipping check"
 
     try:
-        # Open image with PIL and convert to RGB (mediapipe expects RGB numpy array)
+        import cv2
+        import numpy as np
+
+        # Open with PIL, convert to RGB then grayscale for Haar cascade
         img = Image.open(io.BytesIO(image_bytes))
         if img.mode != "RGB":
             img = img.convert("RGB")
 
-        import numpy as np
-
         img_array = np.array(img)
+        gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
 
-        # Run face detection
-        results = detector.process(img_array)
+        # Detect faces — scaleFactor and minNeighbors tuned for strict detection
+        # minNeighbors=6 (default 3) reduces false positives significantly
+        faces = detector.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=6,
+            minSize=(60, 60),  # Ignore tiny detected regions
+            flags=cv2.CASCADE_SCALE_IMAGE
+        )
 
-        if results.detections and len(results.detections) > 0:
-            best_score = max(d.score[0] for d in results.detections)
-            logger.debug(
-                f"👤 Face detected (confidence={best_score:.2f}, "
-                f"count={len(results.detections)})"
-            )
-            return True, f"Face detected (confidence={best_score:.2f})"
+        if len(faces) > 0:
+            logger.debug(f"👤 Face detected: {len(faces)} face(s) found")
+            return True, f"Face detected ({len(faces)} face(s) found)"
 
         logger.info("🚫 No human face detected in uploaded image")
         return False, (
@@ -102,8 +106,7 @@ def validate_human_image(image_bytes: bytes) -> Tuple[bool, str]:
 
     except Exception as e:
         logger.error(f"❌ Face detection error: {e}", exc_info=True)
-        # On error, allow the upload (don't block users due to bugs)
-        return True, f"Face detection error – skipping check: {e}"
+        return False, "Unable to validate image. Please upload a clear photo of yourself."
 
 
 async def validate_uploaded_images(files_with_bytes: list) -> Tuple[list, list]:

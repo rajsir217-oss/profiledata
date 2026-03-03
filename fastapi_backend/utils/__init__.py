@@ -93,7 +93,9 @@ async def save_multiple_files(files: List[UploadFile], validate_faces: bool = Tr
                     logger.warning(f"🚫 Face detection rejected '{file.filename}': {message}")
                     continue
             except Exception as e:
-                logger.warning(f"⚠️ Face detection check failed for '{file.filename}': {e} – allowing upload")
+                logger.error(f"❌ Face detection check failed for '{file.filename}': {e} – rejecting upload")
+                rejected_files.append(file.filename or f"image_{idx}")
+                continue
             
         await file.seek(0)  # Reset file pointer
         
