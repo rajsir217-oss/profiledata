@@ -102,37 +102,45 @@ const PhotoVisibilityManager = ({
     } finally {
       setIsLoading(false);
     }
-  }, [username, isEditMode, existingImages]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username, isEditMode]);
 
-  // Initialize photos from props (registration mode) or load from API (edit mode)
+  // Initialize photos from props (registration mode) or load from API (edit mode).
+  // In edit mode: load ONCE on mount via API — do NOT re-init when existingImages changes
+  // because setExistingImages after a delete would race with the fresh API state.
   useEffect(() => {
     if (isEditMode) {
       loadVisibility();
-    } else {
-      // Registration mode: build from existingImages + newImages
-      const photosArray = [];
-      
-      existingImages.forEach((url, idx) => {
-        photosArray.push({
-          url,
-          visibility: idx === 0 ? 'profilePic' : 'memberVisible',
-          isNew: false
-        });
-      });
-      
-      newImages.forEach((file, idx) => {
-        photosArray.push({
-          url: URL.createObjectURL(file),
-          visibility: photosArray.length === 0 ? 'profilePic' : 'memberVisible',
-          file,
-          isNew: true
-        });
-      });
-      
-      setPhotos(photosArray);
-      setIsLoading(false);
     }
-  }, [isEditMode, loadVisibility, existingImages, newImages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode]);
+
+  // Registration mode only: rebuild photos from props when they change
+  useEffect(() => {
+    if (isEditMode) return;
+
+    const photosArray = [];
+
+    existingImages.forEach((url, idx) => {
+      photosArray.push({
+        url,
+        visibility: idx === 0 ? 'profilePic' : 'memberVisible',
+        isNew: false
+      });
+    });
+
+    newImages.forEach((file) => {
+      photosArray.push({
+        url: URL.createObjectURL(file),
+        visibility: photosArray.length === 0 ? 'profilePic' : 'memberVisible',
+        file,
+        isNew: true
+      });
+    });
+
+    setPhotos(photosArray);
+    setIsLoading(false);
+  }, [isEditMode, existingImages, newImages]);
 
   // Cleanup object URLs on unmount
   useEffect(() => {
