@@ -25,4 +25,4 @@ EXPOSE 8080
 # Multiple workers cause: split Socket.IO state, Redis/MongoDB connection storms,
 # and GIL contention during startup (leading to 504 hangs requiring manual restart).
 # Cloud Run horizontal scaling (min-instances/max-instances) handles load, not workers.
-CMD ["gunicorn", "main:socket_app", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8080", "--workers", "1", "--timeout", "120"]
+CMD ["gunicorn", "main:socket_app", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8080", "--workers", "1", "--timeout", "300"]
