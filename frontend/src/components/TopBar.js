@@ -33,10 +33,17 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [showAdminActions, setShowAdminActions] = useState(false); // Admin Action Center dropdown
   const adminActionsRef = useRef(null); // Ref for click-outside detection
   const [unreadResponseCount, setUnreadResponseCount] = useState(0); // User unread admin responses
-  const [criticalMessagesCount, setCriticalMessagesCount] = useState(0); // Critical messages count
-  const [warningMessagesCount, setWarningMessagesCount] = useState(0); // High/medium urgency count
+  const [urgencyCounts, setUrgencyCounts] = useState({ pending: 0, medium: 0, high: 0, critical: 0 }); // All urgency levels
   const [unattendedConversations, setUnattendedConversations] = useState([]); // For alert panel
   const [showUnattendedAlert, setShowUnattendedAlert] = useState(false); // Alert panel visibility
+
+  // Compute highest urgency level for icon color
+  const urgencyLevel = urgencyCounts.critical > 0 ? 'critical'
+    : urgencyCounts.high > 0 ? 'high'
+    : urgencyCounts.medium > 0 ? 'medium'
+    : urgencyCounts.pending > 0 ? 'pending'
+    : null;
+  const totalUnattended = urgencyCounts.critical + urgencyCounts.high + urgencyCounts.medium + urgencyCounts.pending;
   const navigate = useNavigate();
 
   // Handle message deleted callback
@@ -50,13 +57,17 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     }
   };
 
-  // Handle critical messages count update
+  // Handle urgency count update
   const handleCriticalCountUpdate = async () => {
     try {
       const response = await api.get('/messages/unattended');
       const data = response.data;
-      setCriticalMessagesCount(data.criticalCount || 0);
-      setWarningMessagesCount((data.highCount || 0) + (data.mediumCount || 0));
+      setUrgencyCounts({
+        pending: data.pendingCount || 0,
+        medium: data.mediumCount || 0,
+        high: data.highCount || 0,
+        critical: data.criticalCount || 0
+      });
       setUnattendedConversations(data.conversations || []);
     } catch (error) {
       logger.error('Error updating critical messages count:', error);
@@ -387,7 +398,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   // Poll for critical messages count
   useEffect(() => {
     if (!currentUser) {
-      setCriticalMessagesCount(0);
+      setUrgencyCounts({ pending: 0, medium: 0, high: 0, critical: 0 });
       return;
     }
 
@@ -395,8 +406,12 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
       try {
         const response = await api.get('/messages/unattended');
         const data = response.data;
-        setCriticalMessagesCount(data.criticalCount || 0);
-        setWarningMessagesCount((data.highCount || 0) + (data.mediumCount || 0));
+        setUrgencyCounts({
+          pending: data.pendingCount || 0,
+          medium: data.mediumCount || 0,
+          high: data.highCount || 0,
+          critical: data.criticalCount || 0
+        });
         setUnattendedConversations(data.conversations || []);
       } catch (error) {
         logger.error('Error fetching critical messages count:', error);
@@ -566,19 +581,23 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           {/* Messages Icon with Dropdown */}
           <div className="messages-icon-container">
             <button 
-              className={`btn-messages ${criticalMessagesCount > 0 ? 'critical' : warningMessagesCount > 0 ? 'warning' : ''}`}
+              className={`btn-messages ${urgencyLevel || ''}`}
               onClick={() => {
-                if (criticalMessagesCount > 0 || warningMessagesCount > 0) {
+                if (urgencyLevel) {
                   setShowUnattendedAlert(prev => !prev);
                 } else {
                   setShowMessagesDropdown(!showMessagesDropdown);
                 }
               }}
-              title={criticalMessagesCount > 0
-                ? `${criticalMessagesCount} critical message${criticalMessagesCount > 1 ? 's' : ''} need reply!`
-                : warningMessagesCount > 0
-                  ? `${warningMessagesCount} message${warningMessagesCount > 1 ? 's' : ''} pending — reply soon`
-                  : 'Messages'
+              title={urgencyLevel === 'critical'
+                ? `${urgencyCounts.critical} critical message${urgencyCounts.critical > 1 ? 's' : ''} — reply now!`
+                : urgencyLevel === 'high'
+                  ? `${urgencyCounts.high} message${urgencyCounts.high > 1 ? 's' : ''} waiting 6-9 days`
+                  : urgencyLevel === 'medium'
+                    ? `${urgencyCounts.medium} message${urgencyCounts.medium > 1 ? 's' : ''} waiting 3-5 days`
+                    : urgencyLevel === 'pending'
+                      ? `${urgencyCounts.pending} message${urgencyCounts.pending > 1 ? 's' : ''} waiting 1-2 days`
+                      : 'Messages'
               }
             >
               💬
@@ -590,15 +609,20 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             {/* Unattended Alert Panel */}
             {showUnattendedAlert && unattendedConversations.length > 0 && (
               <div className="unattended-alert-panel">
-                <div className={`unattended-alert-header ${criticalMessagesCount > 0 ? 'has-critical' : ''}`}>
+                <div className={`unattended-alert-header urgency-${urgencyLevel}`}>
                   <span className="unattended-alert-title">
-                    {criticalMessagesCount > 0 ? '🔴' : '🟠'}
-                    {criticalMessagesCount > 0
-                      ? `${criticalMessagesCount} critical — reply now!`
-                      : `${warningMessagesCount} pending — reply soon`
-                    }
+                    {urgencyLevel === 'critical' && `🔴 ${urgencyCounts.critical} critical — reply now!`}
+                    {urgencyLevel === 'high' && `🟠 ${urgencyCounts.high} message${urgencyCounts.high > 1 ? 's' : ''} waiting 6-9 days`}
+                    {urgencyLevel === 'medium' && `🟡 ${urgencyCounts.medium} message${urgencyCounts.medium > 1 ? 's' : ''} waiting 3-5 days`}
+                    {urgencyLevel === 'pending' && `💬 ${urgencyCounts.pending} message${urgencyCounts.pending > 1 ? 's' : ''} waiting 1-2 days`}
                   </span>
                   <button className="unattended-alert-close" onClick={() => setShowUnattendedAlert(false)}>✕</button>
+                </div>
+                <div className="unattended-alert-subtitle">
+                  {urgencyLevel === 'critical' && 'These messages have been waiting over 10 days. Please respond or decline.'}
+                  {urgencyLevel === 'high' && 'These messages are about to become critical. Please reply soon.'}
+                  {urgencyLevel === 'medium' && 'Someone is waiting to hear from you. A timely response is appreciated.'}
+                  {urgencyLevel === 'pending' && 'New messages are waiting for your reply.'}
                 </div>
                 <div className="unattended-alert-body">
                   {unattendedConversations.map((item, idx) => (
@@ -626,6 +650,12 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
                   ))}
                 </div>
                 <div className="unattended-alert-footer">
+                  <button
+                    className="unattended-alert-cancel"
+                    onClick={() => setShowUnattendedAlert(false)}
+                  >
+                    Cancel
+                  </button>
                   <button
                     className="unattended-alert-goto"
                     onClick={() => { setShowUnattendedAlert(false); navigate('/messages'); }}

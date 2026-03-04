@@ -480,52 +480,96 @@
   transform: scale(0.95);
 }
 
-/* Warning Messages State - Orange for medium/high urgency (3-9 days unattended) */
-.btn-messages.warning {
-  background: linear-gradient(135deg, var(--warning-color, #f97316) 0%, #ea580c 100%);
+/* === MESSAGE ICON URGENCY STATES === */
+
+/* Pending (1-2 days) - Blue swell */
+.btn-messages.pending {
+  background: linear-gradient(135deg, var(--info-color, #3b82f6) 0%, #2563eb 100%);
   color: white;
-  animation: swell-warning 2.5s infinite;
-  box-shadow: 0 0 16px rgba(249, 115, 22, 0.4);
+  animation: swell-pending 3s infinite;
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.4);
+}
+.btn-messages.pending:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+}
+.btn-messages.pending .unread-count-badge {
+  background: white;
+  color: var(--info-color, #3b82f6);
+  border: 2px solid white;
+}
+@keyframes swell-pending {
+  0%   { transform: scale(1);    box-shadow: 0 0 14px rgba(59, 130, 246, 0.4); }
+  50%  { transform: scale(1.06); box-shadow: 0 0 20px rgba(59, 130, 246, 0.6); }
+  100% { transform: scale(1);    box-shadow: 0 0 14px rgba(59, 130, 246, 0.4); }
 }
 
-.btn-messages.warning:hover {
+/* Medium (3-5 days) - Yellow swell */
+.btn-messages.medium {
+  background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+  color: white;
+  animation: swell-medium 2.8s infinite;
+  box-shadow: 0 0 16px rgba(234, 179, 8, 0.4);
+}
+.btn-messages.medium:hover {
+  background: linear-gradient(135deg, #ca8a04 0%, #a16207 100%);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(234, 179, 8, 0.6);
+}
+.btn-messages.medium .unread-count-badge {
+  background: white;
+  color: #a16207;
+  border: 2px solid white;
+}
+@keyframes swell-medium {
+  0%   { transform: scale(1);    box-shadow: 0 0 16px rgba(234, 179, 8, 0.4); }
+  50%  { transform: scale(1.07); box-shadow: 0 0 22px rgba(234, 179, 8, 0.65); }
+  100% { transform: scale(1);    box-shadow: 0 0 16px rgba(234, 179, 8, 0.4); }
+}
+
+/* High (6-9 days) - Orange swell */
+.btn-messages.high {
+  background: linear-gradient(135deg, var(--warning-color, #f97316) 0%, #ea580c 100%);
+  color: white;
+  animation: swell-high 2.5s infinite;
+  box-shadow: 0 0 18px rgba(249, 115, 22, 0.4);
+}
+.btn-messages.high:hover {
   background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 6px 20px rgba(249, 115, 22, 0.6);
 }
-
-.btn-messages.warning .unread-count-badge {
+.btn-messages.high .unread-count-badge {
   background: white;
   color: var(--warning-color, #f97316);
   border: 2px solid white;
 }
-
-@keyframes swell-warning {
-  0%   { transform: scale(1);    box-shadow: 0 0 16px rgba(249, 115, 22, 0.4); }
-  50%  { transform: scale(1.08); box-shadow: 0 0 24px rgba(249, 115, 22, 0.7); }
-  100% { transform: scale(1);    box-shadow: 0 0 16px rgba(249, 115, 22, 0.4); }
+@keyframes swell-high {
+  0%   { transform: scale(1);    box-shadow: 0 0 18px rgba(249, 115, 22, 0.4); }
+  50%  { transform: scale(1.08); box-shadow: 0 0 26px rgba(249, 115, 22, 0.7); }
+  100% { transform: scale(1);    box-shadow: 0 0 18px rgba(249, 115, 22, 0.4); }
 }
 
-/* Critical Messages State - Red color and pulsing animation */
+/* Critical (10+ days) - Red pulse */
 .btn-messages.critical {
   background: linear-gradient(135deg, var(--danger-color, #ef4444) 0%, #dc2626 100%);
   color: white;
-  animation: pulse-critical 2s infinite;
+  animation: swell-critical 2s infinite;
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
 }
-
 .btn-messages.critical:hover {
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
 }
-
-.btn-messages.critical:active {
-  transform: scale(0.95);
+.btn-messages.critical .unread-count-badge {
+  background: white;
+  color: var(--danger-color, #ef4444);
+  border: 2px solid white;
+  animation: bounce-critical 1s infinite;
 }
-
-/* Pulsing animation for critical messages */
-@keyframes pulse-critical {
+@keyframes swell-critical {
   0%   { transform: scale(1);    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
   50%  { transform: scale(1.1);  box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); }
   100% { transform: scale(1);    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
@@ -556,12 +600,28 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px 10px;
-  background: linear-gradient(135deg, var(--warning-color, #f97316) 0%, #ea580c 100%);
   color: white;
 }
 
-.unattended-alert-header.has-critical {
+.unattended-alert-header.urgency-pending {
+  background: linear-gradient(135deg, var(--info-color, #3b82f6) 0%, #2563eb 100%);
+}
+.unattended-alert-header.urgency-medium {
+  background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+}
+.unattended-alert-header.urgency-high {
+  background: linear-gradient(135deg, var(--warning-color, #f97316) 0%, #ea580c 100%);
+}
+.unattended-alert-header.urgency-critical {
   background: linear-gradient(135deg, var(--danger-color, #ef4444) 0%, #dc2626 100%);
+}
+
+.unattended-alert-subtitle {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  border-bottom: 1px solid var(--divider-color, #f0f0f0);
+  line-height: 1.4;
 }
 
 .unattended-alert-title {
@@ -667,6 +727,23 @@
   border-top: 1px solid var(--divider-color, #f0f0f0);
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
+}
+
+.unattended-alert-cancel {
+  background: var(--surface-color, #f3f4f6);
+  color: var(--text-color, #374151);
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.unattended-alert-cancel:hover {
+  background: var(--hover-background, #e5e7eb);
 }
 
 .unattended-alert-goto {
@@ -701,22 +778,10 @@
   animation: bounce 0.5s ease;
 }
 
-/* Enhanced unread badge when messages are critical */
-.btn-messages.critical .unread-count-badge {
-  background: white;
-  color: var(--danger-color, #ef4444);
-  border: 2px solid white;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-  animation: bounce-critical 1s infinite;
-}
-
+/* bounce-critical keyframe used by .btn-messages.critical .unread-count-badge */
 @keyframes bounce-critical {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.2);
-  }
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.2); }
 }
 
 @keyframes bounce {
