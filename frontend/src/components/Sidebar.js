@@ -134,7 +134,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
     const items = [
       { 
-        icon: '🏠', 
+        icon: '🦋', 
         label: 'My Dashboard', 
         subLabel: 'Overview & Activity',
         action: () => navigate('/dashboard'),
