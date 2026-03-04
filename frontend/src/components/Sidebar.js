@@ -99,15 +99,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     navigate('/login');
   };
 
-  // Helper function to handle menu item clicks (auto-close after selection)
+  // Helper function to handle menu item clicks
   const handleMenuClick = (action) => {
     if (action) {
-      action(); // Execute the navigation action
-      
-      // Always auto-close sidebar after menu selection for better UX
-      if (onToggle) {
-        onToggle();
-      }
+      action(); // Execute the navigation action — panel stays open
     }
   };
 
@@ -482,6 +477,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       <div 
         className={`sidebar ${expanded ? 'expanded' : 'collapsed'}`}
       >
+          {/* Toggle button at top of sidebar */}
+          <div className="sidebar-toggle-top" onClick={onToggle} title={expanded ? 'Close sidebar' : 'Open sidebar'}>
+            <span className="sidebar-toggle-icon">{expanded ? '✕' : '☰'}</span>
+          </div>
 
           {/* Menu Items */}
           <div className="sidebar-menu">

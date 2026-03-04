@@ -32,7 +32,44 @@
   box-shadow: 2px 0 15px rgba(0, 0, 0, 0.15);
 }
 
+/* Toggle button at top of sidebar */
+.sidebar-toggle-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  min-height: 48px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.1));
+}
 
+.sidebar.collapsed .sidebar-toggle-top {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-toggle-top:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar.expanded .sidebar-toggle-top {
+  justify-content: flex-end;
+  padding-right: 16px;
+}
+
+.sidebar.expanded .sidebar-toggle-top:hover {
+  background: var(--hover-background, rgba(0, 0, 0, 0.04));
+}
+
+.sidebar-toggle-icon {
+  font-size: 18px;
+  color: var(--text-muted, #999);
+  user-select: none;
+}
+
+.sidebar.expanded .sidebar-toggle-icon {
+  color: var(--text-secondary, #666);
+}
 
 /* Menu Items */
 .sidebar-menu {
