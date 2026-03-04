@@ -427,6 +427,15 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     return () => clearInterval(interval);
   }, [currentUser]);
 
+  // Auto-show urgency modal when urgency level appears or escalates
+  const prevUrgencyRef = useRef(null);
+  useEffect(() => {
+    if (urgencyLevel && urgencyLevel !== prevUrgencyRef.current) {
+      setShowUnattendedAlert(true);
+    }
+    prevUrgencyRef.current = urgencyLevel;
+  }, [urgencyLevel]);
+
   if (!isLoggedIn) {
     return (
       <div className={`top-bar ${isOpen ? 'sidebar-open' : ''}`}>
@@ -582,13 +591,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           <div className="messages-icon-container">
             <button 
               className={`btn-messages ${urgencyLevel || ''}`}
-              onClick={() => {
-                if (urgencyLevel) {
-                  setShowUnattendedAlert(prev => !prev);
-                } else {
-                  setShowMessagesDropdown(!showMessagesDropdown);
-                }
-              }}
+              onClick={() => setShowMessagesDropdown(!showMessagesDropdown)}
               title={urgencyLevel === 'critical'
                 ? `${urgencyCounts.critical} critical message${urgencyCounts.critical > 1 ? 's' : ''} — reply now!`
                 : urgencyLevel === 'high'
@@ -606,65 +609,6 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
               )}
             </button>
 
-            {/* Unattended Alert Panel */}
-            {showUnattendedAlert && unattendedConversations.length > 0 && (
-              <div className="unattended-alert-panel">
-                <div className={`unattended-alert-header urgency-${urgencyLevel}`}>
-                  <span className="unattended-alert-title">
-                    {urgencyLevel === 'critical' && `🔴 ${urgencyCounts.critical} critical — reply now!`}
-                    {urgencyLevel === 'high' && `🟠 ${urgencyCounts.high} message${urgencyCounts.high > 1 ? 's' : ''} waiting 6-9 days`}
-                    {urgencyLevel === 'medium' && `🟡 ${urgencyCounts.medium} message${urgencyCounts.medium > 1 ? 's' : ''} waiting 3-5 days`}
-                    {urgencyLevel === 'pending' && `💬 ${urgencyCounts.pending} message${urgencyCounts.pending > 1 ? 's' : ''} waiting 1-2 days`}
-                  </span>
-                  <button className="unattended-alert-close" onClick={() => setShowUnattendedAlert(false)}>✕</button>
-                </div>
-                <div className="unattended-alert-subtitle">
-                  {urgencyLevel === 'critical' && 'These messages have been waiting over 10 days. Please respond or decline.'}
-                  {urgencyLevel === 'high' && 'These messages are about to become critical. Please reply soon.'}
-                  {urgencyLevel === 'medium' && 'Someone is waiting to hear from you. A timely response is appreciated.'}
-                  {urgencyLevel === 'pending' && 'New messages are waiting for your reply.'}
-                </div>
-                <div className="unattended-alert-body">
-                  {unattendedConversations.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="unattended-alert-item"
-                      onClick={() => {
-                        setShowUnattendedAlert(false);
-                        navigate('/messages');
-                      }}
-                    >
-                      <div className={`unattended-alert-urgency-dot ${item.urgency}`} />
-                      <div className="unattended-alert-item-info">
-                        <div className="unattended-alert-name">
-                          {item.sender?.firstName} {item.sender?.lastName}
-                        </div>
-                        <div className="unattended-alert-meta">
-                          {item.lastMessage?.text?.substring(0, 50)}{item.lastMessage?.text?.length > 50 ? '…' : ''}
-                        </div>
-                      </div>
-                      <span className={`unattended-alert-days ${item.urgency}`}>
-                        {item.lastMessage?.waitingDays}d
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="unattended-alert-footer">
-                  <button
-                    className="unattended-alert-cancel"
-                    onClick={() => setShowUnattendedAlert(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="unattended-alert-goto"
-                    onClick={() => { setShowUnattendedAlert(false); navigate('/messages'); }}
-                  >
-                    Go to Messages →
-                  </button>
-                </div>
-              </div>
-            )}
             <MessagesDropdown
               isOpen={showMessagesDropdown}
               onClose={() => setShowMessagesDropdown(false)}
@@ -722,6 +666,47 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             {pageTitle.subtitle && (
               <span className="page-title-subtitle">{pageTitle.subtitle}</span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Urgency Popup Modal — rendered outside top-bar so it overlays the whole page */}
+      {showUnattendedAlert && urgencyLevel && unattendedConversations.length > 0 && (
+        <div className="urgency-modal-backdrop" onClick={() => setShowUnattendedAlert(false)}>
+          <div className="urgency-modal" onClick={(e) => e.stopPropagation()}>
+            <div className={`urgency-modal-header urgency-${urgencyLevel}`}>
+              <span className="urgency-modal-title">
+                {urgencyLevel === 'critical' && `🔴 ${urgencyCounts.critical} Critical Message${urgencyCounts.critical > 1 ? 's' : ''}`}
+                {urgencyLevel === 'high' && `🟠 ${urgencyCounts.high} Message${urgencyCounts.high > 1 ? 's' : ''} Waiting 6-9 Days`}
+                {urgencyLevel === 'medium' && `🟡 ${urgencyCounts.medium} Message${urgencyCounts.medium > 1 ? 's' : ''} Waiting 3-5 Days`}
+                {urgencyLevel === 'pending' && `💬 ${urgencyCounts.pending} Message${urgencyCounts.pending > 1 ? 's' : ''} Waiting 1-2 Days`}
+              </span>
+              <button className="urgency-modal-close" onClick={() => setShowUnattendedAlert(false)}>✕</button>
+            </div>
+            <div className="urgency-modal-body">
+              <p className="urgency-modal-message">
+                {urgencyLevel === 'critical' && 'These messages have been waiting over 10 days. Please respond or politely decline.'}
+                {urgencyLevel === 'high' && 'These messages are about to become critical. Please reply soon to keep the conversation going.'}
+                {urgencyLevel === 'medium' && 'Someone took the time to reach out to you. A timely response would be appreciated.'}
+                {urgencyLevel === 'pending' && 'You have new messages waiting for your reply.'}
+              </p>
+              <div className="urgency-modal-list">
+                {unattendedConversations.map((item, idx) => (
+                  <div key={idx} className="urgency-modal-item">
+                    <div className={`urgency-modal-dot ${item.urgency}`} />
+                    <div className="urgency-modal-item-info">
+                      <span className="urgency-modal-name">{item.sender?.firstName} {item.sender?.lastName}</span>
+                      <span className="urgency-modal-preview">{item.lastMessage?.text?.substring(0, 60)}{item.lastMessage?.text?.length > 60 ? '…' : ''}</span>
+                    </div>
+                    <span className={`urgency-modal-days ${item.urgency}`}>{item.lastMessage?.waitingDays}d</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="urgency-modal-footer">
+              <button className="urgency-modal-cancel" onClick={() => setShowUnattendedAlert(false)}>Cancel</button>
+              <button className="urgency-modal-goto" onClick={() => { setShowUnattendedAlert(false); navigate('/messages'); }}>Go to Messages →</button>
+            </div>
           </div>
         </div>
       )}
