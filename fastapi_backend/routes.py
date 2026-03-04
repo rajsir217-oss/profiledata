@@ -3365,10 +3365,11 @@ async def delete_photo(
     normalized_remaining_paths = [f"/uploads/{fn}" for fn in normalized_remaining]
     normalized_public_paths = [f"/uploads/{fn}" for fn in normalized_public]
     
-    # Update user's images in database
+    # Update user's images in database (use case-insensitive query to match find_one)
+    logger.info(f"📝 Writing to DB: images={normalized_remaining_paths}, visibility={new_visibility}")
     try:
         result = await db.users.update_one(
-            {"username": username},
+            get_username_query(username),
             {"$set": {
                 "images": normalized_remaining_paths,
                 "publicImages": normalized_public_paths,
@@ -3378,8 +3379,15 @@ async def delete_photo(
         )
         
         logger.info(f"📊 DB update result: matched={result.matched_count}, modified={result.modified_count}")
-        if result.modified_count == 0:
-            logger.warning(f"⚠️ No changes made to user '{username}' images (matched={result.matched_count})")
+        if result.matched_count == 0:
+            logger.error(f"❌ CRITICAL: update_one matched 0 docs for username '{username}'")
+        if result.modified_count == 0 and result.matched_count > 0:
+            logger.warning(f"⚠️ Document matched but not modified — values may already be the same")
+        
+        # Verify the update persisted
+        verify = await db.users.find_one(get_username_query(username), {"images": 1, "imageVisibility": 1})
+        if verify:
+            logger.info(f"🔍 Post-delete DB verify: images={verify.get('images', [])}, profilePic={verify.get('imageVisibility', {}).get('profilePic')}")
         
         logger.info(f"✅ Photo deleted successfully for user '{username}'")
         logger.info(f"📸 Images before: {len(existing_images)}, after: {len(normalized_remaining)}")
