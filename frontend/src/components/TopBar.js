@@ -287,6 +287,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('userStatus');
     localStorage.removeItem('appTheme'); // Clear theme cache
+    sessionStorage.removeItem('urgencyModalShown'); // Reset urgency modal for next login
     setIsLoggedIn(false);
     setCurrentUser(null);
     
@@ -427,11 +428,22 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     return () => clearInterval(interval);
   }, [currentUser]);
 
-  // Auto-show urgency modal when urgency level appears or escalates
+  // Auto-show urgency modal once per login session (or when urgency escalates)
   const prevUrgencyRef = useRef(null);
   useEffect(() => {
-    if (urgencyLevel && urgencyLevel !== prevUrgencyRef.current) {
+    if (!urgencyLevel) {
+      prevUrgencyRef.current = null;
+      return;
+    }
+    const shownLevel = sessionStorage.getItem('urgencyModalShown');
+    const urgencyRank = { pending: 1, medium: 2, high: 3, critical: 4 };
+    const currentRank = urgencyRank[urgencyLevel] || 0;
+    const shownRank = urgencyRank[shownLevel] || 0;
+
+    // Show on first detection after login OR when urgency escalates beyond what was already shown
+    if (!shownLevel || currentRank > shownRank) {
       setShowUnattendedAlert(true);
+      sessionStorage.setItem('urgencyModalShown', urgencyLevel);
     }
     prevUrgencyRef.current = urgencyLevel;
   }, [urgencyLevel]);
