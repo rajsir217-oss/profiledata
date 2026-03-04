@@ -3329,7 +3329,7 @@ async def delete_photo(
     normalized_public = [extract_filename(img) for img in current_public]
     normalized_public = [p for p in normalized_public if p and p in normalized_remaining]
     
-    # Also update imageVisibility - remove deleted image from all buckets
+    # Also update imageVisibility - remove deleted image from ALL buckets
     current_visibility = user.get("imageVisibility", {})
     new_visibility = {
         "profilePic": None,
@@ -3337,21 +3337,24 @@ async def delete_photo(
         "onRequest": []
     }
     
-    # Keep only images that are in remaining list
+    # Keep only images that are in remaining list AND not the deleted file
     remaining_set = set(normalized_remaining)
+    deleted_filename = normalized_to_delete  # Explicitly exclude the deleted file
     
     profile_pic = current_visibility.get("profilePic")
-    if profile_pic and extract_filename(profile_pic) in remaining_set:
-        new_visibility["profilePic"] = f"/uploads/{extract_filename(profile_pic)}"
+    if profile_pic:
+        fn = extract_filename(profile_pic)
+        if fn in remaining_set and fn != deleted_filename:
+            new_visibility["profilePic"] = f"/uploads/{fn}"
     
     for img in current_visibility.get("memberVisible", []):
         fn = extract_filename(img)
-        if fn in remaining_set:
+        if fn in remaining_set and fn != deleted_filename:
             new_visibility["memberVisible"].append(f"/uploads/{fn}")
     
     for img in current_visibility.get("onRequest", []):
         fn = extract_filename(img)
-        if fn in remaining_set:
+        if fn in remaining_set and fn != deleted_filename:
             new_visibility["onRequest"].append(f"/uploads/{fn}")
     
     # If profile pic was deleted, promote first remaining image
