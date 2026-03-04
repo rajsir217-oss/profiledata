@@ -11,17 +11,17 @@
 .app-layout {
   position: absolute;
   top: 0;
-  left: 0; /* Start with no offset (sidebar closed by default) */
+  left: 48px; /* Always offset for collapsed icon strip */
   right: 0;
   bottom: 0;
   padding-top: 190px; /* BrandBanner (50px) + TopBar (60px) + PageTitle (40px) + InfoTicker (36px) + spacing (4px) */
-  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   background-color: var(--background-color, #f5f7fa); /* Theme-aware background */
   overflow-y: auto;
 }
 
 .app-layout.sidebar-open {
-  left: 280px; /* Push content when sidebar opens */
+  left: 48px; /* Expanded sidebar overlays, doesn't push */
 }
 
 /* No Navigation Layout (Landing Page, Login, Register) */
@@ -85,19 +85,19 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  /* Mobile/Tablet - sidebar hidden by default, content takes full width */
+  /* Mobile/Tablet - no icon strip, sidebar overlays */
   .app-layout {
-    left: 0; /* Full width when sidebar is hidden */
+    left: 0; /* No icon strip on mobile */
     padding-top: 140px; /* BrandBanner (40px) + TopBar (56px) + PageTitle (36px) + spacing (8px) */
   }
   
   .app-layout.sidebar-open {
-    left: 250px; /* Push content when sidebar is open */
+    left: 0; /* Sidebar overlays on mobile */
   }
   
   .top-bar.sidebar-open {
-    left: 250px;
-    width: calc(100% - 250px);
+    left: 0;
+    width: 100%;
   }
   
   .main-content {
@@ -106,14 +106,9 @@
 }
 
 @media (max-width: 576px) {
-  /* Mobile: sidebar overlays instead of push */
+  /* Mobile: sidebar overlays */
   .app-layout.sidebar-open {
     left: 0;
-  }
-  
-  .top-bar.sidebar-open {
-    left: 0;
-    width: 100%;
   }
   
   /* Add overlay backdrop on mobile when sidebar is open */
