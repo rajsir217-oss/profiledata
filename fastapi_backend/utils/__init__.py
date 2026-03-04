@@ -119,10 +119,10 @@ async def save_multiple_files(files: List[UploadFile], validate_faces: bool = Tr
     logger.info(f"✅ Successfully saved {len(file_paths)}/{len(files)} file(s)")
     return file_paths
 
-def get_full_image_url(image_path: str) -> str:
+def get_full_image_url(image_path: str):
     """Convert relative image path to full URL (local or GCS)"""
     if not image_path:
-        return settings.backend_url
+        return None
 
     # Extract filename for both relative paths and historical full URLs
     filename = image_path.split('/')[-1]
@@ -135,7 +135,7 @@ def get_full_image_url(image_path: str) -> str:
             filename = image_path.split('/')[-1]
 
     if not filename:
-        return settings.backend_url
+        return None
 
     # ALWAYS route through /api/users/media/ endpoint for access control
     # This ensures one-time views, expiry, and per-image access rules work in both local and GCS modes
