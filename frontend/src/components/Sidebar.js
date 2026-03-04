@@ -466,10 +466,12 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   const menuItems = buildMenuItems();
   // console.log('📋 Menu Items Count:', menuItems.length);
 
+  const expanded = !isCollapsed;
+
   return (
     <>
-      {/* Backdrop - Click outside to close sidebar */}
-      {!isCollapsed && (
+      {/* Backdrop - Click outside to close expanded sidebar */}
+      {expanded && (
         <div 
           className="sidebar-backdrop"
           onClick={() => onToggle()}
@@ -478,65 +480,74 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       )}
       
       <div 
-        className={`sidebar ${!isCollapsed ? 'open' : ''}`}
+        className={`sidebar ${expanded ? 'expanded' : 'collapsed'}`}
       >
 
           {/* Menu Items */}
           <div className="sidebar-menu">
-          {menuItems.length === 0 && (
+          {menuItems.length === 0 && expanded && (
             <div style={{padding: '20px', color: '#666'}}>
               No menu items available
             </div>
           )}
-          {menuItems.map((item, index) => (
-            <div 
-              key={index} 
-              className={`menu-item ${item.isHeader ? 'menu-header' : ''} ${item.disabled ? 'disabled' : ''}`}
-              onClick={item.disabled ? undefined : () => handleMenuClick(item.action)}
-              title={item.disabled ? 'Please activate your account to access this feature' : ''}
-            >
-              {item.profileImage ? (
-                <div className="menu-icon profile-icon">
-                  {getProfilePicUrl(userProfile) ? (
-                    <img src={getProfilePicUrl(userProfile)} alt={currentUser} className="profile-avatar" />
-                  ) : (
-                    <div className="profile-avatar-placeholder">
-                      {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="menu-icon">{item.icon}</div>
-              )}
-              <div className="menu-content">
-                <div className="menu-label">{item.label}</div>
-                {item.subLabel && (
-                  <div className="menu-sublabel">{item.subLabel}</div>
+          {menuItems.map((item, index) => {
+            // In collapsed mode, hide section headers
+            if (isCollapsed && item.isHeader) return null;
+
+            return (
+              <div 
+                key={index} 
+                className={`menu-item ${item.isHeader ? 'menu-header' : ''} ${item.disabled ? 'disabled' : ''}`}
+                onClick={item.disabled ? undefined : () => handleMenuClick(item.action)}
+                title={isCollapsed ? item.label : (item.disabled ? 'Please activate your account to access this feature' : '')}
+              >
+                {item.profileImage ? (
+                  <div className="menu-icon profile-icon">
+                    {getProfilePicUrl(userProfile) ? (
+                      <img src={getProfilePicUrl(userProfile)} alt={currentUser} className="profile-avatar" />
+                    ) : (
+                      <div className="profile-avatar-placeholder">
+                        {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="menu-icon">{item.icon}</div>
+                )}
+                {expanded && (
+                  <div className="menu-content">
+                    <div className="menu-label">{item.label}</div>
+                    {item.subLabel && (
+                      <div className="menu-sublabel">{item.subLabel}</div>
+                    )}
+                  </div>
+                )}
+                {expanded && item.disabled && (
+                  <div className="disabled-badge">🔒</div>
                 )}
               </div>
-              {item.disabled && (
-                <div className="disabled-badge">🔒</div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Footer Links */}
-        <div className="sidebar-footer">
-          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/help'))}>📚 Help</span>
-          <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/l3v3l-info'))}>🦋 L3V3L</span>
-          <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/privacy'))}>Privacy</span>
-          <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/about'))}>About Us</span>
-          <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/trademark'))}>Trademark</span>
-          <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/testimonials'))}>💬 Testimonials</span>
-          <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/contact'))}>📧 Contact Us</span>
-        </div>
+        {/* Footer Links - only in expanded mode */}
+        {expanded && (
+          <div className="sidebar-footer">
+            <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/help'))}>📚 Help</span>
+            <span className="footer-separator">|</span>
+            <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/l3v3l-info'))}>🦋 L3V3L</span>
+            <span className="footer-separator">|</span>
+            <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/privacy'))}>Privacy</span>
+            <span className="footer-separator">|</span>
+            <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/about'))}>About Us</span>
+            <span className="footer-separator">|</span>
+            <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/trademark'))}>Trademark</span>
+            <span className="footer-separator">|</span>
+            <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/testimonials'))}>💬 Testimonials</span>
+            <span className="footer-separator">|</span>
+            <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/contact'))}>📧 Contact Us</span>
+          </div>
+        )}
       </div>
     </>
   );
