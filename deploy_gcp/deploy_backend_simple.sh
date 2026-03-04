@@ -49,7 +49,7 @@ gcloud run deploy $SERVICE_NAME \
   --allow-unauthenticated \
   --port 8080 \
   --memory 1Gi \
-  --cpu 1 \
+  --cpu 0.5 \
   --timeout 300 \
   --min-instances 1 \
   --max-instances 3 \
