@@ -3269,7 +3269,7 @@ async def delete_photo(
         )
     
     logger.info(f"🗑️ Deleting photo: {image_to_delete}")
-    logger.info(f"📸 Remaining photos: {len(remaining_images)}")
+    logger.info(f"📸 Remaining photos ({len(remaining_images)}): {remaining_images}")
     
     # Normalize path for comparison
     from pathlib import Path
@@ -3377,8 +3377,9 @@ async def delete_photo(
             }}
         )
         
+        logger.info(f"📊 DB update result: matched={result.matched_count}, modified={result.modified_count}")
         if result.modified_count == 0:
-            logger.warning(f"⚠️ No changes made to user '{username}' images")
+            logger.warning(f"⚠️ No changes made to user '{username}' images (matched={result.matched_count})")
         
         logger.info(f"✅ Photo deleted successfully for user '{username}'")
         logger.info(f"📸 Images before: {len(existing_images)}, after: {len(normalized_remaining)}")
