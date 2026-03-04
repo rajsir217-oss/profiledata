@@ -2126,7 +2126,7 @@ const Profile = ({
             {user.relationshipStatus && <p><strong>Relationship Status:</strong> {user.relationshipStatus}</p>}
             {user.lookingFor && <p><strong>Looking For:</strong> {user.lookingFor}</p>}
             {getWorkingStatus(user) && <p><strong>Working Status:</strong> {getWorkingStatus(user)}</p>}
-            {user.linkedinUrl && <p><strong>LinkedIn:</strong> <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer">{user.linkedinUrl}</a></p>}
+            {user.linkedinUrl && <p><strong>LinkedIn:</strong> <a href={user.linkedinUrl.match(/^https?:\/\//) ? user.linkedinUrl : `https://${user.linkedinUrl}`} target="_blank" rel="noopener noreferrer">{user.linkedinUrl}</a></p>}
             {user.citizenshipStatus && <p><strong>Citizenship Status:</strong> {user.citizenshipStatus}</p>}
           </div>
         ))}
@@ -2316,7 +2316,7 @@ const Profile = ({
                 (user.linkedinUrlVisible || piiAccess.linkedin_url || isOwnProfile) && (!user.linkedinUrlMasked || piiAccess.linkedin_url) ? (
                   <p>
                     <strong>LinkedIn:</strong>{' '}
-                    <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-color, #667eea)' }}>
+                    <a href={user.linkedinUrl.match(/^https?:\/\//) ? user.linkedinUrl : `https://${user.linkedinUrl}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-color, #667eea)' }}>
                       {user.linkedinUrl}
                     </a>
                     {user.linkedinUrlVisible && !isOwnProfile && <span className="member-visible-tag" style={{ marginLeft: '8px', fontSize: '11px', color: '#1e40af', background: '#dbeafe', padding: '2px 8px', borderRadius: '10px' }}>👁️ Member Visible</span>}
