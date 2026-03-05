@@ -248,58 +248,63 @@
   color: white;
 }
 
-/* Online Indicator Container */
+/* Online Count Container */
 .online-indicator-container {
   position: relative;
-  margin-left: 12px;
 }
 
-/* Online Indicator */
-.online-indicator {
+/* Online Count — same style as search/messages buttons */
+.btn-online-count {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #22c55e;
+  font-size: 18px;
+  font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
-  padding: 8px 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  min-height: 44px; /* Accessibility */
+  justify-content: center;
+  cursor: default;
   transition: all 0.2s ease;
+  font-family: inherit;
+  padding: 0;
 }
 
-.online-indicator.clickable {
+.btn-online-count.clickable {
   cursor: pointer;
 }
 
-.online-indicator.clickable:hover {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.3));
-  border-color: rgba(16, 185, 129, 0.5);
-  transform: translateY(-1px);
+.btn-online-count.clickable:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.online-indicator.clickable:active {
-  transform: translateY(0);
+.btn-online-count.clickable:active {
+  transform: scale(0.95);
 }
 
-.online-dot {
-  font-size: 12px;
-  animation: pulse 2s infinite;
+/* Position online users dropdown directly under the button, right-aligned */
+.online-indicator-container .online-users-dropdown {
+  top: 50px;
+  right: 0;
+  left: auto;
+  transform: none;
+  animation: dropdownSlideInRight 0.2s ease-out;
 }
 
-.online-count {
-  color: white;
-  font-size: 14px;
-  font-weight: 700;
-  display: none; /* Hide number on desktop, show text instead */
-}
-
-.online-text {
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-  min-width: 20px;
-  text-align: center;
+@keyframes dropdownSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulse {

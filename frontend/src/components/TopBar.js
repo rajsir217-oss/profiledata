@@ -493,29 +493,6 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
               <span className="logo-text-full"> L3V3L</span>
             </span>
           </div>
-          {onlineCount > 0 && (
-            <div className="online-indicator-container">
-              <div 
-                className={`online-indicator ${userRole === 'admin' || userRole === 'moderator' ? 'clickable' : ''}`}
-                onClick={() => {
-                  if (userRole === 'admin' || userRole === 'moderator') {
-                    setShowOnlineDropdown(!showOnlineDropdown);
-                  }
-                }}
-              >
-                <span className="online-dot">🟢</span>
-                <span className="online-count">{onlineCount}</span>
-                <span className="online-text">{onlineCount} member{onlineCount !== 1 ? 's' : ''} online</span>
-              </div>
-              {(userRole === 'admin' || userRole === 'moderator') && (
-                <OnlineUsersDropdown
-                  isOpen={showOnlineDropdown}
-                  onClose={() => setShowOnlineDropdown(false)}
-                />
-              )}
-            </div>
-          )}
-          
           {/* Event Countdown - Shows for users who RSVPed "Yes" to upcoming events */}
           <EventCountdown />
         </div>
@@ -638,17 +615,25 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             />
           </div>
           
-          <div className="user-info" onClick={handleProfile}>
-            <div className="user-icon">
-              {getProfilePicUrl(userProfile) ? (
-                <img src={getProfilePicUrl(userProfile)} alt={currentUser} className="topbar-profile-avatar" />
-              ) : (
-                <div className="topbar-profile-placeholder">
-                  {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}
-                </div>
-              )}
-            </div>
-            {/* Name hidden - profile pic/initials only */}
+          {/* Online member count — clean number badge */}
+          <div className="online-indicator-container">
+            <button 
+              className={`btn-online-count ${userRole === 'admin' || userRole === 'moderator' ? 'clickable' : ''}`}
+              onClick={() => {
+                if (userRole === 'admin' || userRole === 'moderator') {
+                  setShowOnlineDropdown(!showOnlineDropdown);
+                }
+              }}
+              title={`${onlineCount} member${onlineCount !== 1 ? 's' : ''} online`}
+            >
+              {onlineCount}
+            </button>
+            {(userRole === 'admin' || userRole === 'moderator') && (
+              <OnlineUsersDropdown
+                isOpen={showOnlineDropdown}
+                onClose={() => setShowOnlineDropdown(false)}
+              />
+            )}
           </div>
         </div>
         
