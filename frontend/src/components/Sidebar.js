@@ -170,7 +170,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         disabled: !isActive
       },
       { 
-        icon: '👥', 
+        icon: '🤝', 
         label: 'Invite Friends', 
         subLabel: 'Share with friends & family',
         action: () => navigate('/invite-friends'),
@@ -284,7 +284,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       items.push({ isHeader: true, label: 'ANALYTICS & REPORTS' });
       
       items.push({
-        icon: '📈',
+        icon: '📝',
         label: 'Activity Logs',
         subLabel: 'Monitor user activities',
         action: () => navigate('/activity-logs')
@@ -298,28 +298,28 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
-        icon: '📧',
+        icon: '📮',
         label: 'Email Analytics',
         subLabel: 'Track opens & clicks',
         action: () => navigate('/email-analytics')
       });
       
       items.push({
-        icon: '📧',
+        icon: '💌',
         label: 'Email Templates',
         subLabel: 'Preview & manage templates',
         action: () => navigate('/email-templates')
       });
       
       items.push({
-        icon: '🔍',
+        icon: '😴',
         label: 'Inactive Users Report',
         subLabel: 'User engagement analysis',
         action: () => navigate('/admin/inactive-users')
       });
       
       items.push({
-        icon: '⚙️',
+        icon: '🔧',
         label: 'Notification Config',
         subLabel: 'Status change triggers',
         action: () => navigate('/admin/notification-config')
@@ -333,7 +333,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
-        icon: '📧',
+        icon: '🔎',
         label: 'Saved Search Notifications',
         subLabel: 'Override & manage user alerts',
         action: () => navigate('/admin/notifications')
@@ -354,14 +354,14 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       items.push({ isHeader: true, label: 'TESTING & SUPPORT' });
       
       items.push({
-        icon: '🔔',
+        icon: '🧪',
         label: 'Notification Tester',
         subLabel: 'Test & debug notifications',
         action: () => navigate('/notification-tester')
       });
       
       items.push({
-        icon: '🧪',
+        icon: '💻',
         label: 'Test Dashboard',
         subLabel: 'Run & schedule tests',
         action: () => navigate('/test-dashboard')

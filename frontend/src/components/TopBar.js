@@ -27,7 +27,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [violations, setViolations] = useState(null);
-  const [onlineCount, setOnlineCount] = useState(0);
+  const [onlineCount, setOnlineCount] = useState(1); // Default 1 (current user is online)
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [adminPendingCounts, setAdminPendingCounts] = useState(null); // Unified admin pending counts
   const [showAdminActions, setShowAdminActions] = useState(false); // Admin Action Center dropdown
