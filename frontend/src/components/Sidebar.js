@@ -490,8 +490,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
             </div>
           )}
           {menuItems.map((item, index) => {
-            // In collapsed mode, hide section headers
-            if (isCollapsed && item.isHeader) return null;
+            // In collapsed mode, show section headers as thin divider lines
+            if (isCollapsed && item.isHeader) {
+              return <div key={index} className="menu-divider" />;
+            }
 
             return (
               <div 

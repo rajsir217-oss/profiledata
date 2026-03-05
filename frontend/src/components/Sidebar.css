@@ -122,6 +122,13 @@
   margin-right: 0;
 }
 
+/* Thin divider line for section breaks in collapsed mode */
+.sidebar.collapsed .menu-divider {
+  height: 1px;
+  margin: 6px 10px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .menu-item:hover {
   background: var(--hover-background);
   border-left-color: var(--primary-color);
