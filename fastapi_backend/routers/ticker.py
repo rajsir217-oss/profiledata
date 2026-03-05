@@ -20,10 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 def _strip_html(html_str: str) -> str:
-    """Strip HTML tags from a string for plain-text ticker display"""
+    """Strip HTML tags and entities from a string for plain-text ticker display"""
     if not html_str:
         return ""
-    return re.sub(r'<[^>]+>', '', html_str).strip()
+    import html
+    text = re.sub(r'<[^>]+>', '', html_str)  # Strip tags
+    text = html.unescape(text)  # Decode &nbsp; &amp; etc.
+    text = re.sub(r'\s+', ' ', text).strip()  # Collapse whitespace
+    return text
 
 
 def _get_display_name(user: dict, fallback: str = "") -> str:
@@ -98,70 +102,13 @@ async def get_ticker_items(
     else:
         settings = TickerSettings()  # Use defaults
     
-    # ===== 1. SYSTEM ANNOUNCEMENTS (from existing system) =====
+    # Announcements are NOT shown in the ticker — they have their own AnnouncementBanner.
+    # Ticker only shows user-specific items (views, favorites, messages, PII requests, tips).
     
-    # Get active announcements for this user
-    announcement_query = {
-        "active": True,
-        "$or": [
-            {"startDate": {"$lte": now}},
-            {"startDate": None}
-        ],
-        "$and": [
-            {"$or": [
-                {"endDate": {"$gte": now}},
-                {"endDate": None}
-            ]}
-        ]
-    }
-    
-    # Filter by target audience (reuse existing logic)
+    # Load user for later sections
     user = await db.users.find_one({"username": username})
-    if user:
-        user_role = user.get("role") or user.get("role_name") or "free_user"
-        
-        if user_role == "admin":
-            audience_groups = ["all", "authenticated", "admins"]
-        elif user_role == "premium_user":
-            audience_groups = ["all", "authenticated", "premium"]
-        else:
-            audience_groups = ["all", "authenticated", "free"]
-        
-        announcement_query["targetAudience"] = {"$in": audience_groups}
-        
-        # Exclude dismissed announcements
-        dismissed_ids = await db.announcement_dismissals.find(
-            {"username": username}
-        ).distinct("announcementId")
-        
-        if dismissed_ids:
-            announcement_query["_id"] = {"$nin": [ObjectId(aid) for aid in dismissed_ids if ObjectId.is_valid(aid)]}
     
-    # Fetch announcements
-    announcements = await db.announcements.find(announcement_query).to_list(100)
-    
-    # Convert announcements to ticker items
-    priority_map = {
-        "urgent": 1,
-        "high": 2,
-        "medium": 5,
-        "low": 7
-    }
-    
-    for announcement in announcements:
-        items.append({
-            "type": "announcement",
-            "subtype": announcement.get("type", "info"),
-            "icon": announcement.get("icon") or get_announcement_icon(announcement),
-            "text": _strip_html(announcement["message"]),
-            "link": announcement.get("link"),
-            "linkText": announcement.get("linkText"),
-            "priority": priority_map.get(announcement.get("priority", "medium"), 5),
-            "dismissible": announcement.get("dismissible", True),
-            "announcementId": str(announcement["_id"])
-        })
-    
-    # ===== 2. USER ACTION ITEMS (High Priority) =====
+    # ===== 1. USER ACTION ITEMS (High Priority) =====
     # These show INDIVIDUAL items with specific user names from live data
     
     # Pending PII requests - Show individual requests with requester names (Priority 3)
