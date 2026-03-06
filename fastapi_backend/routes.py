@@ -1232,7 +1232,8 @@ async def register_user(
         "country": countryOfResidence,  # Alias for L3V3L scoring
         "state": state,
         "location": location,
-        "city": location,  # Alias for L3V3L scoring
+        # Parse city from location (e.g., "Boston, MA" -> "Boston")
+        "city": location.split(',')[0].strip().title() if location and ',' in location else (location.strip().title() if location else None),
         # USA-specific field
         "citizenshipStatus": citizenshipStatus if countryOfResidence == "US" else None,
         # India-specific fields
@@ -2555,8 +2556,16 @@ async def update_user_profile(
         update_data["eatingPreference"] = eatingPreference.strip()
     if location is not None and location.strip():
         update_data["location"] = location.strip()
-        # ALSO save as 'city' for L3V3L scoring compatibility
-        update_data["city"] = location.strip()
+        # Parse city from location (e.g., "Boston, MA" -> "Boston")
+        loc = location.strip()
+        if ',' in loc:
+            update_data["city"] = loc.split(',')[0].strip().title()
+            # Derive state from location suffix if not already provided
+            loc_state = loc.split(',', 1)[1].strip()
+            if loc_state and not (state and state.strip()):
+                update_data["state"] = loc_state.upper() if len(loc_state) <= 2 else loc_state.title()
+        else:
+            update_data["city"] = loc.title()
     
     # Education & Work
     if workingStatus is not None and workingStatus.strip():
@@ -4678,9 +4687,9 @@ async def search_users(
     heightMin: int = 0,
     heightMax: int = 0,
     location: str = "",
-    locations: str = "",  # Comma-separated list for multi-select locations
+    locations: List[str] = Query(default=[]),  # Multi-select locations (repeated query params)
     occupation: str = "",
-    occupations: str = "",  # Comma-separated list for multi-select
+    occupations: List[str] = Query(default=[]),  # Multi-select occupations (repeated query params)
     religion: str = "",
     caste: str = "",
     eatingPreference: str = "",
@@ -4825,9 +4834,9 @@ async def search_users(
         
         # Handle locations filtering - support both single and multi-select
         location_list = []
-        if locations and locations.strip():
-            # Parse comma-separated multi-select locations
-            location_list = [loc.strip() for loc in locations.split(',') if loc.strip()]
+        if locations:
+            # locations is List[str] from Query params (?locations=Boston&locations=Arizona)
+            location_list = [loc.strip() for loc in locations if loc.strip()]
             logger.info(f"🔍 Multi-select locations: {location_list}")
         elif location and location.strip():
             # Backward compatibility for single location
@@ -4849,9 +4858,9 @@ async def search_users(
         
         # Handle occupation filtering - support both single and multi-select
         occupation_list = []
-        if occupations and occupations.strip():
-            # Parse comma-separated multi-select occupations
-            occupation_list = [occ.strip() for occ in occupations.split(',') if occ.strip()]
+        if occupations:
+            # occupations is List[str] from Query params (?occupations=Doctor&occupations=Engineer)
+            occupation_list = [occ.strip() for occ in occupations if occ.strip()]
             logger.info(f"🔍 Multi-select occupations: {occupation_list}")
         elif occupation and occupation.strip():
             # Backward compatibility for single occupation
