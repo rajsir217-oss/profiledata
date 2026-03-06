@@ -1518,18 +1518,16 @@ const Profile = ({
                     </span>
                   ) : null;
                 })()}
-              </div>
-            )}
-            
-            {/* Last Activity Status - Only show for other users' profiles */}
-            {!isOwnProfile && user.status?.last_seen && (
-              <div className="last-activity-badge" title={`Last seen: ${getRelativeActivityTime(user.status.last_seen)}`}>
-                <span className="activity-icon" style={{ color: getActivityBadgeProps(user.status.last_seen).color }}>
-                  {getActivityBadgeProps(user.status.last_seen).icon}
-                </span>
-                <span className="activity-text">
-                  {getActivityBadgeProps(user.status.last_seen).label}
-                </span>
+                {/* Last Active pill - only for other users' profiles */}
+                {!isOwnProfile && user.status?.last_seen && (() => {
+                  const badge = getActivityBadgeProps(user.status.last_seen);
+                  return (
+                    <span className="profile-pill" title={`Last seen: ${getRelativeActivityTime(user.status.last_seen)}`}>
+                      <span className="pill-icon">{badge.icon}</span>
+                      <span className="pill-value" style={{ color: badge.color }}>{badge.label}</span>
+                    </span>
+                  );
+                })()}
               </div>
             )}
             {/* Username - visible to admin and profile owner only */}
