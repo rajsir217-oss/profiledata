@@ -1530,46 +1530,39 @@ const Profile = ({
                 })()}
               </div>
             )}
-            {/* Username - visible to admin and profile owner only */}
-            {(isAdmin || isOwnProfile) && user.username && (
-              <p style={{ 
-                fontSize: '14px', 
-                color: '#6c757d', 
-                margin: '5px 0 0 0',
-                fontFamily: 'monospace',
-                letterSpacing: '0.5px'
-              }}>
-                <strong>Username:</strong> <span style={{ 
-                  backgroundColor: '#e3f2fd', 
-                  padding: '3px 10px', 
-                  borderRadius: '4px',
-                  color: '#1976d2',
-                  fontWeight: '500'
-                }}>@{user.username}</span>
-              </p>
-            )}
-            {user.profileId && (
+            {/* Username + Profile ID — single row */}
+            {((isAdmin || isOwnProfile) || user.profileId) && (
               <div style={{ 
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
                 margin: '5px 0 0 0',
-                flexWrap: 'wrap'
+                flexWrap: 'wrap',
+                fontSize: '13px',
+                fontFamily: 'monospace',
+                color: '#6c757d'
               }}>
-                <p style={{ 
-                  fontSize: '14px', 
-                  color: '#6c757d', 
-                  margin: 0,
-                  fontFamily: 'monospace',
-                  letterSpacing: '1px'
-                }}>
-                  <strong>Profile ID:</strong> <span style={{ 
-                    backgroundColor: '#f0f0f0', 
-                    padding: '2px 8px', 
-                    borderRadius: '4px',
-                    color: '#495057'
-                  }}>{user.profileId}</span>
-                </p>
+                {(isAdmin || isOwnProfile) && user.username && (
+                  <span>
+                    <strong>Username:</strong> <span style={{ 
+                      backgroundColor: '#e3f2fd', 
+                      padding: '2px 8px', 
+                      borderRadius: '4px',
+                      color: '#1976d2',
+                      fontWeight: '500'
+                    }}>@{user.username}</span>
+                  </span>
+                )}
+                {user.profileId && (
+                  <span>
+                    <strong>Profile ID:</strong> <span style={{ 
+                      backgroundColor: '#f0f0f0', 
+                      padding: '2px 8px', 
+                      borderRadius: '4px',
+                      color: '#495057'
+                    }}>{user.profileId}</span>
+                  </span>
+                )}
                 <button
                   className="share-profile-btn"
                   onClick={async (e) => {
