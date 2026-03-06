@@ -4567,44 +4567,62 @@ async def get_occupation_options(db = Depends(get_database)):
 
 @router.get("/search/location-options")
 async def get_location_options(db = Depends(get_database)):
-    """Get unique location options from city and state fields (region excluded - freeform/messy)"""
+    """Get unique location options from region, city, and state fields (normalized, case-deduped)"""
     logger.info("🔍 Fetching unique location options")
     
     try:
-        locations_set = set()
-        skip_values = {"", "N/A", "n/a", "None", "none", "null"}
+        locations_map = {}  # key=lowercase, value=display form (for dedup)
+        skip_values = {"", "N/A", "n/a", "None", "none", "null", "undefined"}
         
-        # NOTE: region field excluded — it's freeform text with inconsistent entries
-        # Only using city + state for a clean, deduplicated dropdown
+        def add_loc(raw):
+            """Add with case-insensitive dedup and normalization"""
+            if not raw or not isinstance(raw, str):
+                return
+            val = raw.strip()
+            if not val or val in skip_values or len(val) < 2:
+                return
+            # Normalize "City, ST" → "City, ST" (title city, upper state abbr)
+            if ',' in val:
+                parts = [p.strip() for p in val.split(',', 1)]
+                city_part = parts[0].title()
+                state_part = parts[1].upper() if len(parts[1]) <= 2 else parts[1].title()
+                val = f"{city_part}, {state_part}"
+            key = val.lower()
+            if key not in locations_map:
+                locations_map[key] = val
         
-        # 1. Get from city field
+        # 1. Get from region field (normalized, no splitting)
+        region_pipeline = [
+            {"$match": {"region": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
+            {"$group": {"_id": "$region"}},
+            {"$limit": 300}
+        ]
+        region_results = await db.users.aggregate(region_pipeline).to_list(length=300)
+        for result in region_results:
+            add_loc(result["_id"])
+        
+        # 2. Get from city field
         city_pipeline = [
             {"$match": {"city": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
             {"$group": {"_id": "$city"}},
-            {"$sort": {"_id": 1}},
             {"$limit": 200}
         ]
         city_results = await db.users.aggregate(city_pipeline).to_list(length=200)
         for result in city_results:
-            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
-            if val and val not in skip_values:
-                locations_set.add(val)
+            add_loc(result["_id"])
         
         # 3. Get from state field
         state_pipeline = [
             {"$match": {"state": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
             {"$group": {"_id": "$state"}},
-            {"$sort": {"_id": 1}},
             {"$limit": 100}
         ]
         state_results = await db.users.aggregate(state_pipeline).to_list(length=100)
         for result in state_results:
-            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
-            if val and val not in skip_values:
-                locations_set.add(val)
+            add_loc(result["_id"])
         
         # 4. Add US states as fallback if no data found
-        if len(locations_set) < 10:
+        if len(locations_map) < 10:
             us_states = [
                 "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut",
                 "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
@@ -4616,21 +4634,12 @@ async def get_location_options(db = Depends(get_database)):
                 "Wisconsin", "Wyoming"
             ]
             for state in us_states:
-                locations_set.add(state)
+                add_loc(state)
         
         # Sort locations alphabetically for better UX
-        sorted_locations = sorted(list(locations_set))
+        sorted_locations = sorted(locations_map.values())
         
-        # Log sample of locations for debugging
-        logger.info(f"🔍 Found {len(sorted_locations)} total location options")
-        logger.info(f"🔍 Sample locations: {sorted_locations[:10]}")
-        
-        # Check for Nashville specifically
-        nashville_matches = [loc for loc in sorted_locations if 'nashville' in loc.lower()]
-        if nashville_matches:
-            logger.info(f"🔍 Found Nashville-related locations: {nashville_matches}")
-        else:
-            logger.warning("⚠️ No Nashville-related locations found in database")
+        logger.info(f"🔍 Found {len(sorted_locations)} location options (normalized, deduped)")
         
         return {
             "options": sorted_locations,
