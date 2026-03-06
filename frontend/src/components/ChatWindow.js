@@ -50,6 +50,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const [sendingReconnect, setSendingReconnect] = useState(false);
   const [showNotInterestedMenu, setShowNotInterestedMenu] = useState(false);
   const [notInterestedProcessing, setNotInterestedProcessing] = useState(false);
+  const [showStopTip, setShowStopTip] = useState(false);
   const notInterestedRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -189,6 +190,17 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       setNotInterestedProcessing(false);
     }
   };
+
+  // Show stop tip bubble when conversation loads (first conversation per page visit)
+  useEffect(() => {
+    if (otherUser && conversationStatus?.status !== 'closed' && !blockStatus.iBlockedThem && !blockStatus.theyBlockedMe) {
+      setShowStopTip(true);
+      const timer = setTimeout(() => setShowStopTip(false), 8000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowStopTip(false);
+    }
+  }, [otherUser?.username]);
 
   // Close the Not Interested dropdown when clicking outside
   useEffect(() => {
@@ -333,12 +345,18 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
           <div className="chat-header-actions" ref={notInterestedRef}>
             <button
               className={`not-interested-btn ${showNotInterestedMenu ? 'active' : ''}`}
-              onClick={() => setShowNotInterestedMenu(!showNotInterestedMenu)}
+              onClick={() => { setShowNotInterestedMenu(!showNotInterestedMenu); setShowStopTip(false); }}
               title="Not interested — decline, close & exclude"
               disabled={notInterestedProcessing}
             >
               {notInterestedProcessing ? '...' : '✋'}
             </button>
+            {showStopTip && (
+              <div className="stop-tip-bubble" onClick={() => setShowStopTip(false)}>
+                To stop messaging further, click stop
+                <span className="stop-tip-arrow" />
+              </div>
+            )}
             {showNotInterestedMenu && (
               <div className="not-interested-dropdown">
                 <div className="ni-dropdown-header">Not Interested?</div>

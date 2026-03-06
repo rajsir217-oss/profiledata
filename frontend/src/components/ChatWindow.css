@@ -223,6 +223,40 @@
   transform: none;
 }
 
+/* Stop tip bubble — to the LEFT of the ✋ button, arrow points right */
+.stop-tip-bubble {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 14px);
+  transform: translateY(-50%);
+  background: #111;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  z-index: 101;
+  animation: tipSlideLeft 0.3s ease;
+}
+
+.stop-tip-arrow {
+  position: absolute;
+  top: 50%;
+  right: -5px;
+  transform: translateY(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: #111;
+}
+
+@keyframes tipSlideLeft {
+  from { opacity: 0; transform: translateY(-50%) translateX(8px); }
+  to { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
 .not-interested-dropdown {
   position: absolute;
   top: calc(100% + 8px);
