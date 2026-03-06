@@ -326,7 +326,7 @@ function AppContent() {
         />
       )}
       <div className={`app-layout ${!isSidebarCollapsed && !hideNavigation ? 'sidebar-open' : ''} ${hideNavigation ? 'no-navigation' : ''}`}>
-        {!hideNavigation && <BrandBanner />}
+        {/* BrandBanner removed — branding merged into TopBar */}
         {!hideNavigation && <AnnouncementBanner />}
         {!hideNavigation && (
           <TopBar onSidebarToggle={handleSidebarToggle} isOpen={!isSidebarCollapsed} />

@@ -14,7 +14,7 @@
   left: 48px; /* Always offset for collapsed icon strip */
   right: 0;
   bottom: 0;
-  padding-top: 190px; /* BrandBanner (50px) + TopBar (60px) + PageTitle (40px) + InfoTicker (36px) + spacing (4px) */
+  padding-top: 140px; /* TopBar (60px) + PageTitle (40px) + InfoTicker (36px) + spacing (4px) */
   transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   background-color: var(--background-color, #f5f7fa); /* Theme-aware background */
   overflow-y: auto;
@@ -88,7 +88,7 @@
   /* Mobile/Tablet - no icon strip, sidebar overlays */
   .app-layout {
     left: 0; /* No icon strip on mobile */
-    padding-top: 140px; /* BrandBanner (40px) + TopBar (56px) + PageTitle (36px) + spacing (8px) */
+    padding-top: 100px; /* TopBar (56px) + PageTitle (36px) + spacing (8px) */
   }
   
   .app-layout.sidebar-open {
