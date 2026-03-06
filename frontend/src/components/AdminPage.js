@@ -442,7 +442,7 @@ const AdminPage = () => {
                 AGE {sortField === 'computedAge' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th onClick={() => handleSort('computedDaysActive')} style={{ cursor: 'pointer' }}>
-                DAYS ACTIVE {sortField === 'computedDaysActive' && (sortOrder === 'asc' ? '↑' : '↓')}
+                DAYS {sortField === 'computedDaysActive' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th onClick={() => handleSort('contactEmail')} style={{ cursor: 'pointer' }}>
                 EMAIL {sortField === 'contactEmail' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -451,22 +451,22 @@ const AdminPage = () => {
                 CONTACT {sortField === 'contactNumber' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th onClick={() => handleSort('sex')} style={{ cursor: 'pointer' }}>
-                GENDER {sortField === 'sex' && (sortOrder === 'asc' ? '↑' : '↓')}
+                GNDR {sortField === 'sex' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th onClick={() => handleSort('location')} style={{ cursor: 'pointer' }}>
-                LOCATION {sortField === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
+                LOC{sortField === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th onClick={() => handleSort('imagesCount')} style={{ cursor: 'pointer' }}>
                 IMAGES {sortField === 'imagesCount' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th onClick={() => handleSort('invitedBy')} style={{ cursor: 'pointer' }}>
-                INVITED BY {sortField === 'invitedBy' && (sortOrder === 'asc' ? '↑' : '↓')}
+                INV BY {sortField === 'invitedBy' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th onClick={() => handleSort('promoCode')} style={{ cursor: 'pointer' }}>
-                PROMO CODE {sortField === 'promoCode' && (sortOrder === 'asc' ? '↑' : '↓')}
+                PROMO CD {sortField === 'promoCode' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th onClick={() => handleSort('adminApprovedAt')} style={{ cursor: 'pointer' }}>
-                APPROVED DATE {sortField === 'adminApprovedAt' && (sortOrder === 'asc' ? '↑' : '↓')}
+                APPRV DT {sortField === 'adminApprovedAt' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th onClick={() => handleSort('accountStatus')} style={{ cursor: 'pointer' }}>
                 STATUS {sortField === 'accountStatus' && (sortOrder === 'asc' ? '↑' : '↓')}
