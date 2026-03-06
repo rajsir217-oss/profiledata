@@ -4567,37 +4567,17 @@ async def get_occupation_options(db = Depends(get_database)):
 
 @router.get("/search/location-options")
 async def get_location_options(db = Depends(get_database)):
-    """Get unique location options from region, city, and state fields"""
+    """Get unique location options from city and state fields (region excluded - freeform/messy)"""
     logger.info("🔍 Fetching unique location options")
     
     try:
         locations_set = set()
         skip_values = {"", "N/A", "n/a", "None", "none", "null"}
         
-        # 1. Get from region field (most comprehensive location field)
-        region_pipeline = [
-            {"$match": {"region": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
-            {"$group": {"_id": "$region"}},
-            {"$sort": {"_id": 1}},
-            {"$limit": 300}
-        ]
-        region_results = await db.users.aggregate(region_pipeline).to_list(length=300)
-        for result in region_results:
-            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
-            if val and val not in skip_values:
-                locations_set.add(val)
-                # Also extract city and state from combined formats like "Nashville, TN"
-                if ',' in val:
-                    parts = [part.strip() for part in val.split(',')]
-                    if len(parts) >= 2:
-                        city_part = parts[0]
-                        state_part = parts[1]
-                        if city_part and city_part not in skip_values:
-                            locations_set.add(city_part)
-                        if state_part and state_part not in skip_values:
-                            locations_set.add(state_part)
+        # NOTE: region field excluded — it's freeform text with inconsistent entries
+        # Only using city + state for a clean, deduplicated dropdown
         
-        # 2. Get from city field
+        # 1. Get from city field
         city_pipeline = [
             {"$match": {"city": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
             {"$group": {"_id": "$city"}},
