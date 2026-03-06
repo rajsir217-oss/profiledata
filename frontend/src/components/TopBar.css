@@ -1,7 +1,7 @@
 /* Top Bar */
 .top-bar {
   position: fixed;
-  top: 50px; /* Position below BrandBanner (50px height) */
+  top: 0; /* BrandBanner removed — TopBar is now at the top */
   left: 48px; /* Offset for collapsed icon strip */
   right: 0;
   height: auto; /* Changed from 60px to auto to accommodate page title section */
@@ -149,6 +149,43 @@
   color: #ffffff !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Branding text merged from BrandBanner */
+.topbar-branding {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.topbar-brand-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.topbar-brand-name {
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.topbar-brand-tagline {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+@media (max-width: 768px) {
+  .topbar-branding {
+    display: none; /* Hide branding on mobile — not enough space */
+  }
 }
 
 .app-logo:hover {
@@ -1264,7 +1301,7 @@
 @media (max-width: 768px) {
   /* Mobile/Tablet - TopBar full width when sidebar is hidden */
   .top-bar {
-    top: 36px; /* Position below BrandBanner (36px on mobile) */
+    top: 0; /* BrandBanner removed */
     left: 0;
     width: 100%;
     height: 56px; /* Slightly smaller on mobile */

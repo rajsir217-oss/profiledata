@@ -13,6 +13,7 @@ import InfoTicker from './InfoTicker';
 import EventCountdown from './EventCountdown';
 import { getFirstName } from '../utils/userDisplay';
 import logger from '../utils/logger';
+import { loadWhitelabelConfig } from '../utils/whitelabelConfig';
 import './TopBar.css';
 
 const TopBar = ({ onSidebarToggle, isOpen }) => {
@@ -36,6 +37,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [urgencyCounts, setUrgencyCounts] = useState({ pending: 0, medium: 0, high: 0, critical: 0 }); // All urgency levels
   const [unattendedConversations, setUnattendedConversations] = useState([]); // For alert panel
   const [showUnattendedAlert, setShowUnattendedAlert] = useState(false); // Alert panel visibility
+  const [brandConfig, setBrandConfig] = useState(null); // Whitelabel branding config
 
   // Compute highest urgency level for icon color
   const urgencyLevel = urgencyCounts.critical > 0 ? 'critical'
@@ -45,6 +47,11 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     : null;
   const totalUnattended = urgencyCounts.critical + urgencyCounts.high + urgencyCounts.medium + urgencyCounts.pending;
   const navigate = useNavigate();
+
+  // Load branding config
+  useEffect(() => {
+    loadWhitelabelConfig().then(cfg => setBrandConfig(cfg));
+  }, []);
 
   // Handle message deleted callback
   const handleMessageDeleted = (messageId) => {
@@ -493,6 +500,23 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
               <span className="logo-text-full"> L3V3L</span>
             </span>
           </div>
+          {/* Branding text - merged from BrandBanner */}
+          {brandConfig && (
+            <div className="topbar-branding">
+              {brandConfig.branding.logoPath && (
+                <img 
+                  src={brandConfig.branding.logoPath} 
+                  alt="" 
+                  className="topbar-brand-logo"
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+              )}
+              <span className="topbar-brand-name">{brandConfig.branding.appName}</span>
+              {!isMobile && brandConfig.branding.tagline && (
+                <span className="topbar-brand-tagline">{brandConfig.branding.tagline}</span>
+              )}
+            </div>
+          )}
           {/* Event Countdown - Shows for users who RSVPed "Yes" to upcoming events */}
           <EventCountdown />
         </div>
