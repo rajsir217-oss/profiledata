@@ -4576,7 +4576,7 @@ async def get_occupation_options(db = Depends(get_database)):
 
 @router.get("/search/location-options")
 async def get_location_options(db = Depends(get_database)):
-    """Get unique location options from region, city, and state fields (normalized, case-deduped)"""
+    """Get unique location options from city and state fields (normalized, case-deduped)"""
     logger.info("🔍 Fetching unique location options")
     
     try:
@@ -4600,17 +4600,7 @@ async def get_location_options(db = Depends(get_database)):
             if key not in locations_map:
                 locations_map[key] = val
         
-        # 1. Get from region field (normalized, no splitting)
-        region_pipeline = [
-            {"$match": {"region": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
-            {"$group": {"_id": "$region"}},
-            {"$limit": 300}
-        ]
-        region_results = await db.users.aggregate(region_pipeline).to_list(length=300)
-        for result in region_results:
-            add_loc(result["_id"])
-        
-        # 2. Get from city field
+        # 1. Get from city field
         city_pipeline = [
             {"$match": {"city": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
             {"$group": {"_id": "$city"}},
@@ -4620,7 +4610,7 @@ async def get_location_options(db = Depends(get_database)):
         for result in city_results:
             add_loc(result["_id"])
         
-        # 3. Get from state field
+        # 2. Get from state field
         state_pipeline = [
             {"$match": {"state": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
             {"$group": {"_id": "$state"}},
@@ -4757,14 +4747,13 @@ async def search_users(
     
     if not profileId:
         # Text search - store separately to merge properly later
-        # ⚠️ IMPORTANT: Don't search encrypted fields (location is encrypted, use region and city)
+        # ⚠️ IMPORTANT: Don't search encrypted fields (location is encrypted, use city and state)
         if keyword and keyword.strip():
             keyword_or_condition = [
                 {"firstName": {"$regex": keyword, "$options": "i"}},
                 {"lastName": {"$regex": keyword, "$options": "i"}},
                 {"username": {"$regex": keyword, "$options": "i"}},
-                {"region": {"$regex": keyword, "$options": "i"}},  # Search region, not location
-                {"city": {"$regex": keyword, "$options": "i"}},  # Also search city field
+                {"city": {"$regex": keyword, "$options": "i"}},
                 {"education": {"$regex": keyword, "$options": "i"}},
                 {"occupation": {"$regex": keyword, "$options": "i"}},
                 {"aboutYou": {"$regex": keyword, "$options": "i"}},
@@ -4821,13 +4810,11 @@ async def search_users(
                 and_conditions.append(height_condition)
 
         # Other filters
-        # ⚠️ IMPORTANT: Can't search on encrypted location, search on region, city, and aboutYou instead
+        # ⚠️ IMPORTANT: Can't search on encrypted location, search on city, state, and aboutYou instead
         if location and location.strip():
-            # Search in region, city, OR aboutYou field (all unencrypted) instead of location (encrypted)
-            # aboutYou often contains location info like "I live in Indianapolis, IN"
             location_query = {"$or": [
-                {"region": {"$regex": location, "$options": "i"}},
                 {"city": {"$regex": location, "$options": "i"}},
+                {"state": {"$regex": location, "$options": "i"}},
                 {"aboutYou": {"$regex": location, "$options": "i"}}
             ]}
             and_conditions.append(location_query)
@@ -4848,7 +4835,6 @@ async def search_users(
             location_or_conditions = []
             for loc in location_list:
                 location_or_conditions.extend([
-                    {"region": {"$regex": loc, "$options": "i"}},
                     {"city": {"$regex": loc, "$options": "i"}},
                     {"state": {"$regex": loc, "$options": "i"}},
                     {"aboutYou": {"$regex": loc, "$options": "i"}}

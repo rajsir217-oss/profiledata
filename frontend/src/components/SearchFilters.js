@@ -277,7 +277,7 @@ const SearchFilters = ({
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Location
                 <Tooltip 
-                  text="Filter by city, state, or region. Select multiple locations to expand your search."
+                  text="Filter by city or state. Select multiple locations to expand your search."
                   position="top"
                   icon 
                 />
