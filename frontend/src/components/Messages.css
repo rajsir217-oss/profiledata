@@ -318,8 +318,8 @@
 
 @media (max-width: 768px) {
   .messages-page {
-    padding: 6px;
-    height: calc(100vh - 120px);
+    padding: 4px;
+    height: calc(100vh - 100px);
   }
 
   .messages-container {
@@ -344,7 +344,18 @@
     display: none;
   }
   
-  /* On mobile: When chat is active, hide list and show chat */
+  /* On mobile: When chat is active, take full screen as overlay */
+  .messages-container.chat-active {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    border-radius: 0;
+    background: var(--background-color, #1a1a2e);
+  }
+
   .messages-container.chat-active .message-list {
     display: none;
   }
@@ -352,6 +363,8 @@
   .messages-container.chat-active .chat-window {
     display: flex;
     flex-direction: column;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
   }
 
   /* Compact banners on mobile */
