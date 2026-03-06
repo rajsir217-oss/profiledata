@@ -465,6 +465,9 @@ const AdminPage = () => {
               <th onClick={() => handleSort('promoCode')} style={{ cursor: 'pointer' }}>
                 PROMO CODE {sortField === 'promoCode' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
+              <th onClick={() => handleSort('adminApprovedAt')} style={{ cursor: 'pointer' }}>
+                APPROVED DATE {sortField === 'adminApprovedAt' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th onClick={() => handleSort('accountStatus')} style={{ cursor: 'pointer' }}>
                 STATUS {sortField === 'accountStatus' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
@@ -473,7 +476,7 @@ const AdminPage = () => {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="13" className="text-center text-muted py-4">
+                <td colSpan="14" className="text-center text-muted py-4">
                   No users found
                 </td>
               </tr>
@@ -552,6 +555,15 @@ const AdminPage = () => {
                     <span className="badge bg-info" style={{ fontSize: '11px' }}>
                       🎫 {user.promoCode || 'USVEDIKA'}
                     </span>
+                  </td>
+                  <td>
+                    {user.adminApprovedAt ? (
+                      <span style={{ fontSize: '12px' }}>
+                        {new Date(user.adminApprovedAt).toLocaleDateString()}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#999', fontStyle: 'italic', fontSize: '12px' }}>—</span>
+                    )}
                   </td>
                   <td>
                     {(() => {
