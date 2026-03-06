@@ -503,19 +503,12 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           {/* Branding text - merged from BrandBanner */}
           {brandConfig && (
             <div className="topbar-branding">
-              {brandConfig.branding.logoPath && (
-                <img 
-                  src={brandConfig.branding.logoPath} 
-                  alt="" 
-                  className="topbar-brand-logo"
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-              )}
               <span className="topbar-brand-name">{brandConfig.branding.appName}</span>
               {!isMobile && brandConfig.branding.tagline && (
                 <span className="topbar-brand-tagline">{brandConfig.branding.tagline}</span>
               )}
             </div>
+
           )}
           {/* Event Countdown - Shows for users who RSVPed "Yes" to upcoming events */}
           <EventCountdown />
