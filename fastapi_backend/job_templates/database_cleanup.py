@@ -29,6 +29,8 @@ class DatabaseCleanupTemplate(JobTemplate):
         "logs",
         "sessions",
         "messages",
+        "conversation_status",       # Chat conversation metadata
+        "blocked_message_attempts",  # Blocked messaging attempts
         "contact_tickets",
         "notifications",
         "activity_logs",
