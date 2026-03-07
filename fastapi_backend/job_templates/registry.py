@@ -237,9 +237,5 @@ def initialize_templates():
     # Register queue cleanup template
     registry.register(QueueCleanupTemplate())
     
-    # Register message cleanup template
-    from .message_cleanup_template import MessageCleanupTemplate
-    registry.register(MessageCleanupTemplate())
-    
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
