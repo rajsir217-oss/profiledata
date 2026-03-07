@@ -138,42 +138,21 @@
   background-color: var(--hover-background);
 }
 
-/* FIXED COLUMN WIDTHS - 6 columns: Username, Name, Gender, Last Login, Days Elapsed, Actions */
+/* FIXED COLUMN WIDTHS - 7 columns */
 .inactive-users-table th:nth-child(1),
-.inactive-users-table td:nth-child(1) { 
-  width: 15%; 
-  text-align: left !important;
-} /* Username */
-
+.inactive-users-table td:nth-child(1) { width: 13%; text-align: left !important; }
 .inactive-users-table th:nth-child(2),
-.inactive-users-table td:nth-child(2) { 
-  width: 18%; 
-  text-align: left !important;
-} /* Name */
-
+.inactive-users-table td:nth-child(2) { width: 16%; text-align: left !important; }
 .inactive-users-table th:nth-child(3),
-.inactive-users-table td:nth-child(3) { 
-  width: 10%; 
-  text-align: center !important;
-} /* Gender */
-
+.inactive-users-table td:nth-child(3) { width: 9%; text-align: center !important; }
 .inactive-users-table th:nth-child(4),
-.inactive-users-table td:nth-child(4) { 
-  width: 22%; 
-  text-align: left !important;
-} /* Last Login */
-
+.inactive-users-table td:nth-child(4) { width: 7%; text-align: center !important; }
 .inactive-users-table th:nth-child(5),
-.inactive-users-table td:nth-child(5) { 
-  width: 15%; 
-  text-align: center !important;
-} /* Days Elapsed */
-
+.inactive-users-table td:nth-child(5) { width: 20%; text-align: left !important; }
 .inactive-users-table th:nth-child(6),
-.inactive-users-table td:nth-child(6) { 
-  width: 20%; 
-  text-align: center !important;
-} /* Actions */
+.inactive-users-table td:nth-child(6) { width: 15%; text-align: center !important; }
+.inactive-users-table th:nth-child(7),
+.inactive-users-table td:nth-child(7) { width: 20%; text-align: center !important; }
 
 .inactive-users-table tbody tr:hover {
   background-color: var(--hover-background);
