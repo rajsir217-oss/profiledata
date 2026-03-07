@@ -28,7 +28,7 @@ export const ACTION_ICONS = {
   REMOVE_SHORTLIST: '📤',   // Remove from shortlist
   
   // Blocking/Exclusions
-  HIDE: '�',               // Hide profile (exclude/not interested)
+  HIDE: '🙈',               // Hide profile (exclude/not interested)
   UNHIDE: '👀',             // Unhide profile (remove exclusion)
   NOT_INTERESTED: '🙈',     // Alias for HIDE (backward compat)
   BLOCK: '🚫',              // Block user (legacy alias)

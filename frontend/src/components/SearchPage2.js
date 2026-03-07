@@ -1537,6 +1537,9 @@ const SearchPage2 = () => {
       await api.post(`/exclusions/${targetUsername}`);
       setExcludedUsers(prev => new Set([...prev, targetUsername]));
       
+      // Remove hidden user from search results immediately
+      setUsers(prev => prev.filter(u => u.username !== targetUsername));
+      
       // Auto-remove from favorites and shortlist in UI
       setFavoritedUsers(prev => {
         const newSet = new Set(prev);
@@ -1552,11 +1555,11 @@ const SearchPage2 = () => {
       setShowExclusionPreview(false);
       setExclusionPreviewData(null);
       setSelectedUserForExclusion(null);
-      setStatusMessage('✅ Marked as not interested');
+      setStatusMessage('✅ Profile hidden');
       setTimeout(() => setStatusMessage(''), 3000);
     } catch (err) {
-      logger.error(`Failed to add to exclusions: ${err.message}`);
-      setStatusMessage(`❌ Failed to mark as not interested`);
+      logger.error(`Failed to hide profile: ${err.message}`);
+      setStatusMessage('❌ Failed to hide profile');
       setTimeout(() => setStatusMessage(''), 3000);
     } finally {
       setExclusionLoading(false);
@@ -2749,7 +2752,7 @@ const SearchPage2 = () => {
           <div className="exclusion-preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', padding: '20px', borderRadius: '16px 16px 0 0' }}>
               <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                ⚠️ Confirm Exclusion
+                🙈 Confirm Hide
               </h2>
               <button 
                 className="modal-close" 
@@ -2761,7 +2764,7 @@ const SearchPage2 = () => {
             </div>
             <div className="modal-body" style={{ padding: '24px', background: 'var(--card-background)' }}>
               <p style={{ marginBottom: '16px', fontSize: '15px' }}>
-                Marking <strong>{selectedUserForExclusion?.firstName || exclusionPreviewData.target_username}</strong> as "Not Interested" will permanently remove:
+                Hiding <strong>{selectedUserForExclusion?.firstName || exclusionPreviewData.target_username}</strong> will permanently remove:
               </p>
               
               <div style={{ background: 'var(--surface-color)', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
@@ -2824,7 +2827,7 @@ const SearchPage2 = () => {
                 disabled={exclusionLoading}
                 style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', cursor: 'pointer', fontWeight: '600' }}
               >
-                {exclusionLoading ? '⏳ Processing...' : '🚫 Confirm Exclusion'}
+                {exclusionLoading ? '⏳ Processing...' : '🙈 Confirm Hide'}
               </button>
             </div>
           </div>

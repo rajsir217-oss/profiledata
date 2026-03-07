@@ -629,7 +629,7 @@ const SearchResultCard = ({
               }}
               title={isExcluded ? 'Unhide' : 'Hide'}
             >
-              {isExcluded ? '�' : '🙈'}
+              {isExcluded ? '👀' : '🙈'}
             </button>
           )}
         </div>
