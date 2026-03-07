@@ -163,6 +163,7 @@ async def get_inactive_users(
             "firstName": 1,
             "lastName": 1,
             "gender": 1,
+            "birthYear": 1,
             "security.last_login_at": 1,
             "lastLogin": 1,
             "status.last_seen": 1,
@@ -209,12 +210,17 @@ async def get_inactive_users(
             last = user.get("lastName") or ""
             full_name = f"{first} {last}".strip() or None
 
+            # Calculate age from birthYear
+            birth_year = user.get("birthYear")
+            age = today.year - birth_year if birth_year else None
+
             processed.append({
                 "username": user.get("username"),
                 "firstName": first,
                 "lastName": last,
                 "fullName": full_name,
                 "gender": user.get("gender"),
+                "age": age,
                 "lastLogin": last_login_dt.isoformat() if last_login_dt else None,
                 "daysElapsed": days_elapsed,  # None means never logged in
                 "accountStatus": "active",
@@ -224,7 +230,7 @@ async def get_inactive_users(
         total = len(processed)
 
         # Sort
-        valid_sort_fields = {"username", "gender", "lastLogin", "daysElapsed"}
+        valid_sort_fields = {"username", "gender", "age", "lastLogin", "daysElapsed"}
         if sort_by not in valid_sort_fields:
             sort_by = "daysElapsed"
 

@@ -126,11 +126,12 @@ const InactiveUsersReport = () => {
   }, []);
 
   const exportToCSV = () => {
-    const headers = ['Username', 'Name', 'Gender', 'Last Login', 'Days Elapsed'];
+    const headers = ['Username', 'Name', 'Gender', 'Age', 'Last Login', 'Days Elapsed'];
     const csvData = users.map(user => [
       user.username,
       user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'N/A',
       user.gender || 'Unknown',
+      user.age != null ? user.age : 'N/A',
       user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never',
       user.daysElapsed != null ? user.daysElapsed : 'Never logged in'
     ]);
@@ -335,6 +336,9 @@ const InactiveUsersReport = () => {
                   <th onClick={() => handleSort('gender')}>
                     Gender {getSortIcon('gender')}
                   </th>
+                  <th onClick={() => handleSort('age')}>
+                    Age {getSortIcon('age')}
+                  </th>
                   <th onClick={() => handleSort('lastLogin')}>
                     Last Login {getSortIcon('lastLogin')}
                   </th>
@@ -367,6 +371,9 @@ const InactiveUsersReport = () => {
                       <span className={`gender-badge gender-${user.gender?.toLowerCase()}`}>
                         {user.gender || 'Unknown'}
                       </span>
+                    </td>
+                    <td className="age-cell">
+                      {user.age != null ? user.age : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                     </td>
                     <td className="date-cell">
                       {formatDate(user.lastLogin)}
