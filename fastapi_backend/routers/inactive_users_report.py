@@ -394,11 +394,11 @@ async def send_test_reminder(
             "toUsername": username, "isRead": False
         })
         profile_views_count = await db.profile_views.count_documents({
-            "viewedUsername": username,
-            "viewedAt": {"$gte": last_login.isoformat() if last_login else "2000-01-01"}
+            "profileUsername": username,
+            "lastViewedAt": {"$gte": last_login.isoformat() if last_login else "2000-01-01"}
         }) if last_login else 0
         new_matches_count = await db.favorites.count_documents({
-            "targetUsername": username,
+            "favoriteUsername": username,
             "createdAt": {"$gte": last_login.isoformat() if last_login else "2000-01-01"}
         }) if last_login else 0
 
