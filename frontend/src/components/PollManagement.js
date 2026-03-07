@@ -197,6 +197,23 @@ const PollManagement = () => {
     }
   };
 
+  const handleClonePoll = (poll) => {
+    setEditingPoll(null);
+    setFormData({
+      title: `Copy of ${poll.title || ''}`,
+      description: poll.description || '',
+      poll_type: poll.poll_type || 'rsvp',
+      event_date: '',
+      event_time: poll.event_time || '',
+      event_location: poll.event_location || '',
+      event_details: poll.event_details || '',
+      collect_contact_info: poll.collect_contact_info !== false,
+      allow_comments: poll.allow_comments !== false,
+      options: poll.options?.map(o => typeof o === 'string' ? o : o.text) || ['']
+    });
+    setShowCreateModal(true);
+  };
+
   const handleOpenEdit = (poll) => {
     setEditingPoll(poll);
     setFormData({
@@ -497,6 +514,14 @@ const PollManagement = () => {
                   onClick={() => handleViewResults(poll)}
                 >
                   📈 Results
+                </button>
+                
+                <button 
+                  className="poll-action-btn poll-action-clone"
+                  onClick={() => handleClonePoll(poll)}
+                  title="Clone this poll"
+                >
+                  📋 Clone
                 </button>
                 
                 {(poll.status === 'active' || poll.status === 'draft' || poll.status === 'closed') && (

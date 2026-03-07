@@ -561,6 +561,7 @@
   margin-top: 12px;
 }
 
+.btn-clone,
 .btn-edit {
   background: var(--card-bg);
   border: 2px solid var(--border-color);
@@ -572,6 +573,13 @@
   transition: all 0.2s ease;
   width: 120px;
   color: var(--text-color);
+}
+
+.btn-clone:hover {
+  background: var(--secondary-color, #6c757d);
+  color: white;
+  border-color: var(--secondary-color, #6c757d);
+  transform: translateY(-1px);
 }
 
 .btn-edit:hover {

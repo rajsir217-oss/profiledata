@@ -161,6 +161,24 @@ const AnnouncementManagement = () => {
     setShowForm(true);
   };
 
+  const handleClone = (announcement) => {
+    setEditingId(null);
+    setFormData({
+      message: announcement.message,
+      type: announcement.type,
+      priority: announcement.priority,
+      targetAudience: announcement.targetAudience,
+      link: announcement.link || '',
+      linkText: announcement.linkText || '',
+      dismissible: announcement.dismissible,
+      icon: announcement.icon || '',
+      startDate: '',
+      endDate: '',
+      recurringFrequencyDays: announcement.recurringFrequencyDays || ''
+    });
+    setShowForm(true);
+  };
+
   const handleEdit = (announcement) => {
     setEditingId(announcement.id);
     setFormData({
@@ -564,6 +582,9 @@ const AnnouncementManagement = () => {
               </div>
 
               <div className="item-actions">
+                <button onClick={() => handleClone(announcement)} className="btn-clone">
+                  📋 Clone
+                </button>
                 <button onClick={() => handleEdit(announcement)} className="btn-edit">
                   ✏️ Edit
                 </button>
