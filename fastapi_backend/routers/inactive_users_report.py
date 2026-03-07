@@ -163,6 +163,7 @@ async def get_inactive_users(
             "firstName": 1,
             "lastName": 1,
             "gender": 1,
+            "birthMonth": 1,
             "birthYear": 1,
             "security.last_login_at": 1,
             "lastLogin": 1,
@@ -210,9 +211,15 @@ async def get_inactive_users(
             last = user.get("lastName") or ""
             full_name = f"{first} {last}".strip() or None
 
-            # Calculate age from birthYear
+            # Calculate age from birthMonth + birthYear
             birth_year = user.get("birthYear")
-            age = today.year - birth_year if birth_year else None
+            birth_month = user.get("birthMonth") or 1
+            if birth_year:
+                age = today.year - birth_year
+                if (today.month, today.day) < (birth_month, 15):
+                    age -= 1
+            else:
+                age = None
 
             processed.append({
                 "username": user.get("username"),
