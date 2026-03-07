@@ -442,6 +442,7 @@ class EnhancedLoginReminderJob(JobTemplate):
         
         template_data = {
             "firstName": user_data["firstName"],
+            "username": user_data["username"],
             "daysInactive": days_inactive,
             "lastLoginDate": user_data["last_login_date"],
             "newMatchesCount": user_data["new_matches_count"],

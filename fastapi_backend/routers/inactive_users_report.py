@@ -389,13 +389,27 @@ async def send_test_reminder(
         from services.notification_service import NotificationService
         notification_service = NotificationService(db)
 
+        # Fetch real engagement stats
+        unread_count = await db.messages.count_documents({
+            "toUsername": username, "isRead": False
+        })
+        profile_views_count = await db.profile_views.count_documents({
+            "viewedUsername": username,
+            "viewedAt": {"$gte": last_login.isoformat() if last_login else "2000-01-01"}
+        }) if last_login else 0
+        new_matches_count = await db.favorites.count_documents({
+            "targetUsername": username,
+            "createdAt": {"$gte": last_login.isoformat() if last_login else "2000-01-01"}
+        }) if last_login else 0
+
         template_data = {
             "firstName": user.get("firstName", username),
+            "username": username,
             "daysInactive": days_inactive,
             "lastLoginDate": last_login.strftime("%Y-%m-%d") if last_login else "Never",
-            "newMatchesCount": 0,
-            "unreadMessagesCount": 0,
-            "profileViewsCount": 0,
+            "newMatchesCount": new_matches_count,
+            "unreadMessagesCount": unread_count,
+            "profileViewsCount": profile_views_count,
             "escalationLevel": "warning"
         }
 
