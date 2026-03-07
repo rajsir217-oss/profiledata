@@ -106,13 +106,13 @@ const Exclusions = () => {
         return itemUsername !== targetUsername;
       }));
 
-      setStatusMessage('✅ Removed from not interested!');
+      setStatusMessage('✅ Profile unhidden!');
       setTimeout(() => setStatusMessage(''), 3000);
       console.log(`Successfully removed ${targetUsername} from exclusions`);
     } catch (err) {
       console.error('Error removing exclusion:', err);
-      setError('Failed to remove from not interested');
-      setStatusMessage('❌ Failed to remove from not interested');
+      setError('Failed to unhide profile');
+      setStatusMessage('❌ Failed to unhide profile');
       setTimeout(() => setStatusMessage(''), 3000);
     }
   };
@@ -126,7 +126,7 @@ const Exclusions = () => {
   return (
     <div className="search-page">
       <div className="container-fluid">
-        <h2 className="mb-4">🙈 Not Interested</h2>
+        <h2 className="mb-4">🙈 Hidden Profiles</h2>
 
         {statusMessage && (
           <div className={`alert ${statusMessage.includes('❌') ? 'alert-danger' : 'alert-success'} alert-dismissible fade show`} role="alert">
@@ -139,7 +139,7 @@ const Exclusions = () => {
 
         {exclusions.length === 0 ? (
           <div className="alert alert-info">
-            <p className="mb-0">No profiles marked as not interested. These profiles will be hidden from your search results.</p>
+            <p className="mb-0">No hidden profiles. Profiles you hide will be removed from your search results.</p>
           </div>
         ) : (
           <div className="results-grid">

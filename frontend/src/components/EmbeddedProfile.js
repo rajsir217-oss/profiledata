@@ -340,9 +340,9 @@ const EmbeddedProfile = ({
           <button
             className={`fab-btn fab-hide ${isExcluded ? 'active' : ''}`}
             onClick={handleExclude}
-            title={isExcluded ? 'Unhide Profile' : 'Hide Profile'}
+            title={isExcluded ? 'Unhide' : 'Hide'}
           >
-            {isExcluded ? '✅' : '🚫'} <span className="fab-text">{isExcluded ? 'Unhide' : 'Hide'}</span>
+            {isExcluded ? '👀' : '�'} <span className="fab-text">{isExcluded ? 'Unhide' : 'Hide'}</span>
           </button>
           
           {/* Request Info */}

@@ -627,9 +627,9 @@ const SearchResultCard = ({
                 color: isExcluded ? 'white' : 'var(--text-color)',
                 transition: 'all 0.2s ease'
               }}
-              title={isExcluded ? 'Remove from Excluded' : 'Exclude'}
+              title={isExcluded ? 'Unhide' : 'Hide'}
             >
-              {isExcluded ? '🚫' : '⊘'}
+              {isExcluded ? '�' : '🙈'}
             </button>
           )}
         </div>
