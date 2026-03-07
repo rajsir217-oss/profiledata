@@ -28,9 +28,11 @@ export const ACTION_ICONS = {
   REMOVE_SHORTLIST: '📤',   // Remove from shortlist
   
   // Blocking/Exclusions
-  BLOCK: '🚫',              // Block user
-  UNBLOCK: '👀',            // Unblock/Remove exclusion - "see again" eye icon
-  NOT_INTERESTED: '🙈',     // Not interested section icon
+  HIDE: '�',               // Hide profile (exclude/not interested)
+  UNHIDE: '👀',             // Unhide profile (remove exclusion)
+  NOT_INTERESTED: '🙈',     // Alias for HIDE (backward compat)
+  BLOCK: '🚫',              // Block user (legacy alias)
+  UNBLOCK: '👀',            // Unblock (legacy alias)
   
   // PII/Contact Requests
   REQUEST_CONTACT: '🔒',    // Request contact info (outgoing)
@@ -61,7 +63,7 @@ export const SECTION_ICONS = {
   MY_FAVORITES: '⭐',
   MY_SHORTLISTS: '📋',
   MY_PHOTO_REQUESTS: '📷',  // Outgoing photo requests I made
-  NOT_INTERESTED: '🙈',
+  HIDDEN: '🙈',              // Hidden profiles (exclusions)
   
   // Others' Activities
   PROFILE_VIEWS: '👁️',

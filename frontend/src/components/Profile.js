@@ -2805,8 +2805,8 @@ const Profile = ({
           <button className="btn-sticky-action btn-action-pii" onClick={handleOpenPIIRequest} disabled={hasAllAccess} title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}>
             <span className="action-icon">{hasAllAccess ? ACTION_ICONS.HAS_ACCESS : ACTION_ICONS.REQUEST_CONTACT}</span>
           </button>
-          <button className={`btn-sticky-action btn-action-exclude ${isExcluded ? 'active' : ''}`} onClick={handleToggleExclude} disabled={exclusionLoading} title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}>
-            <span className="action-icon">{exclusionLoading ? '⏳' : (isExcluded ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.NOT_INTERESTED)}</span>
+          <button className={`btn-sticky-action btn-action-exclude ${isExcluded ? 'active' : ''}`} onClick={handleToggleExclude} disabled={exclusionLoading} title={isExcluded ? 'Unhide' : 'Hide'}>
+            <span className="action-icon">{exclusionLoading ? '⏳' : (isExcluded ? ACTION_ICONS.UNHIDE : ACTION_ICONS.HIDE)}</span>
           </button>
         </div>
       )}
@@ -2830,9 +2830,9 @@ const Profile = ({
             <span className="action-icon">{hasAllAccess ? ACTION_ICONS.HAS_ACCESS : ACTION_ICONS.REQUEST_CONTACT}</span>
             <span className="action-label">{hasAllAccess ? 'Full Access' : 'Request PII'}</span>
           </button>
-          <button className={`btn-profile-action btn-action-exclude ${isExcluded ? 'active' : ''}`} onClick={handleToggleExclude} disabled={exclusionLoading} title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}>
-            <span className="action-icon">{exclusionLoading ? '⏳' : (isExcluded ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.NOT_INTERESTED)}</span>
-            <span className="action-label">{isExcluded ? 'Unblock' : 'Not Interested'}</span>
+          <button className={`btn-profile-action btn-action-exclude ${isExcluded ? 'active' : ''}`} onClick={handleToggleExclude} disabled={exclusionLoading} title={isExcluded ? 'Unhide' : 'Hide'}>
+            <span className="action-icon">{exclusionLoading ? '⏳' : (isExcluded ? ACTION_ICONS.UNHIDE : ACTION_ICONS.HIDE)}</span>
+            <span className="action-label">{isExcluded ? 'Unhide' : 'Hide'}</span>
           </button>
         </div>
       )}
@@ -2843,7 +2843,7 @@ const Profile = ({
           <div className="exclusion-preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', padding: '20px', borderRadius: '16px 16px 0 0' }}>
               <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                ⚠️ Confirm Exclusion
+                🙈 Confirm Hide
               </h2>
               <button 
                 className="modal-close" 
@@ -2855,7 +2855,7 @@ const Profile = ({
             </div>
             <div className="modal-body" style={{ padding: '24px', background: 'var(--card-background)' }}>
               <p style={{ marginBottom: '16px', fontSize: '15px' }}>
-                Marking <strong>{user?.firstName || exclusionPreviewData.target_username}</strong> as "Not Interested" will permanently remove:
+                Hiding <strong>{user?.firstName || exclusionPreviewData.target_username}</strong> will permanently remove:
               </p>
               
               <div style={{ background: 'var(--surface-color)', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
@@ -2932,7 +2932,7 @@ const Profile = ({
                 disabled={exclusionLoading}
                 style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', cursor: 'pointer', fontWeight: '600' }}
               >
-                {exclusionLoading ? '⏳ Processing...' : '🚫 Confirm Exclusion'}
+                {exclusionLoading ? '⏳ Processing...' : '🙈 Confirm Hide'}
               </button>
             </div>
           </div>
