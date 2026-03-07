@@ -160,14 +160,14 @@ const SimpleKebabMenu = ({
         </button>
       )}
       
-      {/* Block/Unblock - always enabled, changes label when blocked */}
+      {/* Hide/Unhide - always enabled, changes label when hidden */}
       {onBlock && (
         <button onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          handleItemClick(onBlock, isBlocked ? 'Unblock' : 'Hide');
+          handleItemClick(onBlock, isBlocked ? 'Unhide' : 'Hide');
         }}>
-          {isBlocked ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.BLOCK} {isBlocked ? 'Remove Exclusion' : 'Hide'}
+          {isBlocked ? ACTION_ICONS.UNHIDE : ACTION_ICONS.HIDE} {isBlocked ? 'Unhide' : 'Hide'}
         </button>
       )}
       
