@@ -502,7 +502,7 @@ class EnhancedLoginReminderJob(JobTemplate):
             return "dormant"
     
     async def _get_new_matches_count(self, db, username: str) -> int:
-        """Get count of new matches since last login"""
+        """Get count of users who favorited this user since last login"""
         try:
             user = await db.users.find_one(
                 {"username": username},
@@ -513,9 +513,9 @@ class EnhancedLoginReminderJob(JobTemplate):
             last_activity = self._get_last_login(user)
             if not last_activity:
                 return 0
-            count = await db.matches.count_documents({
-                "participants": username,
-                "createdAt": {"$gte": last_activity}
+            count = await db.favorites.count_documents({
+                "favoriteUsername": username,
+                "createdAt": {"$gte": last_activity.isoformat()}
             })
             return count
         except Exception:
@@ -525,10 +525,9 @@ class EnhancedLoginReminderJob(JobTemplate):
         """Get count of unread messages"""
         try:
             count = await db.messages.count_documents({
-                "recipient": username,
-                "read": False
+                "toUsername": username,
+                "isRead": False
             })
-            
             return count
         except Exception:
             return 0
@@ -545,10 +544,9 @@ class EnhancedLoginReminderJob(JobTemplate):
             last_activity = self._get_last_login(user)
             if not last_activity:
                 return 0
-            count = await db.activity_logs.count_documents({
-                "action": "profile_view",
-                "targetUsername": username,
-                "timestamp": {"$gte": last_activity}
+            count = await db.profile_views.count_documents({
+                "profileUsername": username,
+                "lastViewedAt": {"$gte": last_activity.isoformat()}
             })
             return count
         except Exception:
