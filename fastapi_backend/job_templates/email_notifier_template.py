@@ -824,15 +824,13 @@ class EmailNotifierTemplate(JobTemplate):
         frontend_url = settings.frontend_url or "http://localhost:3000"
         
         # Check if body already contains full HTML structure (from database template)
-        # Look for common HTML wrapper indicators
-        body_lower = body.lower()
+        # Only match document-level tags, NOT inline styles in body content
+        body_lower = body.lower().strip()
         has_full_html = (
-            '<!doctype' in body_lower or 
-            '<html' in body_lower or
-            'l3v3l match' in body_lower or  # Our branded template header (L3V3L MATCHES or L3V3LMATCH)
+            body_lower.startswith('<!doctype') or 
+            body_lower.startswith('<html') or
             '<head>' in body_lower or
-            'linear-gradient' in body_lower or  # Our header gradient (any format)
-            ('background:' in body_lower and '#667eea' in body_lower)  # Our brand colors
+            '💜 l3v3l matches' in body_lower  # Our branded header text (already wrapped)
         )
         
         if has_full_html:
