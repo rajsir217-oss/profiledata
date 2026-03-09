@@ -33,6 +33,8 @@ class DatabaseCleanupTemplate(JobTemplate):
         "blocked_message_attempts",  # Blocked messaging attempts
         "contact_tickets",
         "notifications",
+        "notification_log",          # Sent notification history - 30 day retention
+        "notification_queue",        # Notification queue - cleanup processed items
         "activity_logs",
         "job_executions",
         "favorites",      # User favorites - 45 day retention
