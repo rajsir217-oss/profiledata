@@ -369,44 +369,52 @@ async def get_ticker_items(
             })
     
     # ===== 4. TIPS & INSIGHTS (Lower Priority) =====
+    # Pull Tip of the Day from DB (tips collection) instead of hardcoded tips
     
     if settings.enableTips and user:
-        # Profile completion tip - Priority 6
-        completion = calculate_profile_completion(user)
-        if completion < 80:
-            items.append({
-                "type": "tip",
-                "subtype": "profile_completion",
-                "icon": "💡",
-                "text": f"Profile {completion}% complete - Add more details to increase visibility",
-                "link": "/edit-profile",
-                "priority": 6,
-                "dismissible": True
-            })
+        # Get dismissed tips for this user
+        dismissed_tips = set()
+        user_dismissed = user.get("dismissedTips", [])
+        for d in user_dismissed:
+            if isinstance(d, dict):
+                dismissed_tips.add(d.get("type", ""))
+            elif isinstance(d, str):
+                dismissed_tips.add(d)
         
-        # Photo tip - Priority 6
-        if not user.get("images") or len(user.get("images", [])) < 3:
-            items.append({
-                "type": "tip",
-                "subtype": "add_photos",
-                "icon": "📸",
-                "text": "Profiles with 3+ photos get 5x more views",
-                "link": "/edit-profile",
-                "priority": 6,
-                "dismissible": True
-            })
+        # Fetch active ticker tips from DB
+        db_tips = await db.tips.find(
+            {"active": True, "showInTicker": True}
+        ).sort("priority", 1).to_list(100)
         
-        # L3V3L matching tip - always show if no other tips
-        if completion >= 80 and len(user.get("images", [])) >= 3:
-            items.append({
-                "type": "tip",
-                "subtype": "l3v3l_tip",
-                "icon": "🦋",
-                "text": "Try L3V3L Matches for AI-powered compatibility scoring",
-                "link": "/l3v3l-matches",
-                "priority": 6,
-                "dismissible": True
-            })
+        if db_tips:
+            # Rotate: pick today's tip based on day-of-year
+            day_of_year = now.timetuple().tm_yday
+            tip = db_tips[day_of_year % len(db_tips)]
+            tip_id = str(tip["_id"])
+            
+            if tip_id not in dismissed_tips:
+                items.append({
+                    "type": "tip",
+                    "subtype": tip_id,
+                    "icon": tip.get("icon", "�"),
+                    "text": tip.get("tipText", ""),
+                    "link": tip.get("link", "/help"),
+                    "priority": 6,
+                    "dismissible": True
+                })
+        else:
+            # Fallback: dynamic profile completion tip if no DB tips exist
+            completion = calculate_profile_completion(user)
+            if completion < 80:
+                items.append({
+                    "type": "tip",
+                    "subtype": "profile_completion",
+                    "icon": "💡",
+                    "text": f"Profile {completion}% complete - Add more details to increase visibility",
+                    "link": "/edit-profile",
+                    "priority": 6,
+                    "dismissible": True
+                })
     
     # ===== 5. SORT BY PRIORITY =====
     

@@ -41,6 +41,7 @@ from routers.short_urls import router as short_urls_router
 from routers.ai_router import router as ai_router
 from routers.polls import router as polls_router
 from routers.ticker import router as ticker_router
+from routers.tips import router as tips_router
 from routers.admin_reports import router as admin_reports_router
 from routers.promo_codes import router as promo_codes_router
 from routers.payments import router as payments_router
@@ -390,6 +391,7 @@ app.include_router(short_urls_router)  # Short URL redirects (no prefix - uses /
 app.include_router(ai_router)  # AI routes (already has /api/ai prefix)
 app.include_router(polls_router)  # Polls routes (already has /api/polls prefix)
 app.include_router(ticker_router, prefix="/api/ticker")  # Scrolling info ticker routes
+app.include_router(tips_router)  # Tips routes (already has /api/tips prefix)
 app.include_router(admin_reports_router)  # Admin reports routes (already has /api/admin/reports prefix)
 app.include_router(promo_codes_router)  # Promo codes routes (already has /api/promo-codes prefix)
 app.include_router(payments_router)  # Payment history routes (already has /api/payments prefix)
