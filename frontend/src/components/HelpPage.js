@@ -1,6 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getBackendUrl } from '../config/apiConfig';
 import './HelpPage.css';
+
+const HelpTips = ({ category }) => {
+  const [tips, setTips] = useState([]);
+
+  useEffect(() => {
+    const fetchTips = async () => {
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/tips/by-category?category=${category}&help_only=true`);
+        if (res.ok) {
+          const data = await res.json();
+          setTips(data.tips?.[category] || []);
+        }
+      } catch (err) {
+        // Silent fail — hardcoded tips still render inline
+      }
+    };
+    fetchTips();
+  }, [category]);
+
+  if (tips.length === 0) return null;
+
+  return (
+    <div className="help-tip">
+      <strong>💡 Pro Tips:</strong>
+      <ul style={{ marginTop: '8px', marginBottom: 0 }}>
+        {tips.map(tip => (
+          <li key={tip.id}>
+            {tip.icon && <span>{tip.icon} </span>}
+            {tip.tipText}
+            {tip.link && tip.linkText && (
+              <> — <a href={tip.link} style={{ color: 'var(--primary-color)' }}>{tip.linkText}</a></>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
 const HelpPage = () => {
   const navigate = useNavigate();
@@ -809,6 +848,7 @@ const HelpPage = () => {
 
         <div className="help-main">
           {renderContent()}
+          <HelpTips category={activeSection} />
         </div>
       </div>
     </div>
