@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
 import './TipOfTheDay.css';
+
+const PUBLIC_ROUTES = ['/', '/login', '/register', '/register2', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/refund', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help', '/about', '/trademark'];
 
 /**
  * Tip of the Day Modal
@@ -8,6 +11,7 @@ import './TipOfTheDay.css';
  * Displays once per session; user can dismiss or browse tips.
  */
 const TipOfTheDay = () => {
+  const location = useLocation();
   const [tips, setTips] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -17,6 +21,9 @@ const TipOfTheDay = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
+
+      // Don't show on public/login pages
+      if (PUBLIC_ROUTES.includes(location.pathname)) return;
 
       // Check if already dismissed this session
       if (sessionStorage.getItem('tip_of_day_dismissed')) return;
@@ -49,7 +56,7 @@ const TipOfTheDay = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [location.pathname]);
 
   useEffect(() => {
     // Delay showing the modal so the page loads first
