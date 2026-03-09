@@ -26,17 +26,14 @@ const HelpTips = ({ category }) => {
   return (
     <div className="help-tip">
       <strong>💡 Pro Tips:</strong>
-      <ul style={{ marginTop: '8px', marginBottom: 0 }}>
-        {tips.map(tip => (
-          <li key={tip.id}>
-            {tip.icon && <span>{tip.icon} </span>}
-            {tip.tipText}
-            {tip.link && tip.linkText && (
-              <> — <a href={tip.link} style={{ color: 'var(--primary-color)' }}>{tip.linkText}</a></>
-            )}
-          </li>
-        ))}
-      </ul>
+      {tips.map(tip => (
+        <div key={tip.id} style={{ marginTop: '12px' }}>
+          <div dangerouslySetInnerHTML={{ __html: tip.tipText }} />
+          {tip.link && tip.linkText && (
+            <p><a href={tip.link} style={{ color: 'var(--primary-color)', fontWeight: 500 }}>{tip.linkText} →</a></p>
+          )}
+        </div>
+      ))}
     </div>
   );
 };
