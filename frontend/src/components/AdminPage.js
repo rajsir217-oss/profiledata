@@ -4,6 +4,7 @@ import { createApiInstance } from '../api';
 import './AdminPage.css';
 import './LoadMore.css'; // Import LoadMore styles
 import MetaFieldsModal from './MetaFieldsModal';
+import { startImpersonation } from '../utils/impersonation';
 
 // Use global API factory for session handling
 const adminApi = createApiInstance();
@@ -218,6 +219,21 @@ const AdminPage = () => {
     }
   };
 
+
+  const handleImpersonate = async (user) => {
+    try {
+      setError('');
+      const response = await adminApi.post(`/api/admin/impersonate/${user.username}`);
+      if (response.data.success) {
+        startImpersonation(response.data.token, response.data.username, response.data.role);
+        // Full page reload to reset all app state as the impersonated user
+        window.location.href = '/dashboard';
+      }
+    } catch (err) {
+      console.error('Impersonation failed:', err);
+      setError(err.response?.data?.detail || 'Failed to impersonate user');
+    }
+  };
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -512,6 +528,13 @@ const AdminPage = () => {
                         title="Delete Profile"
                       >
                         🗑️
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => handleImpersonate(user)}
+                        title={`Impersonate ${user.username}`}
+                      >
+                        🎭
                       </button>
                     </div>
                   </td>

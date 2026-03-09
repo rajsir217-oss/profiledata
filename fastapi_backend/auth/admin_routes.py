@@ -1269,3 +1269,56 @@ async def get_admin_pending_counts(
             "pendingTestimonials": 0,
             "total": 0
         }
+
+
+# ===== IMPERSONATION =====
+
+@router.post("/impersonate/{username}")
+async def impersonate_user(
+    username: str,
+    current_user: dict = Depends(get_current_user_dependency),
+    db=Depends(get_database)
+):
+    """
+    Generate an impersonation token so admin can view the app as a specific user.
+    Token is short-lived (15 min) and carries an audit trail claim.
+    """
+    admin_username = current_user.get("username")
+    admin_role = current_user.get("role") or current_user.get("role_name")
+
+    if admin_role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    # Look up target user
+    target_user = await db.users.find_one({"username": username})
+    if not target_user:
+        raise HTTPException(status_code=404, detail=f"User '{username}' not found")
+
+    # Prevent impersonating other admins
+    target_role = target_user.get("role") or target_user.get("role_name", "free_user")
+    if target_role == "admin" and username != admin_username:
+        raise HTTPException(status_code=403, detail="Cannot impersonate another admin")
+
+    # Create impersonation token
+    from .jwt_auth import JWTManager
+    token = JWTManager.create_impersonation_token(target_user, admin_username)
+
+    # Log the impersonation event
+    await db.activity_logs.insert_one({
+        "action": "admin_impersonation",
+        "adminUsername": admin_username,
+        "targetUsername": username,
+        "timestamp": datetime.utcnow(),
+        "metadata": {"tokenTTL": "15min"}
+    })
+
+    logger.info(f"🎭 Admin '{admin_username}' impersonating user '{username}'")
+
+    return {
+        "success": True,
+        "token": token,
+        "username": username,
+        "firstName": target_user.get("firstName", ""),
+        "role": target_role,
+        "expiresInMinutes": 15
+    }
