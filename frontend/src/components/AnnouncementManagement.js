@@ -6,6 +6,7 @@ import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
 import RichTextEditor from './shared/RichTextEditor';
 import logger from '../utils/logger';
+import TipsManagement from './TipsManagement';
 import './AnnouncementManagement.css';
 import './TickerSettings.css';
 
@@ -322,6 +323,12 @@ const AnnouncementManagement = () => {
           onClick={() => setActiveTab('ticker')}
         >
           ⚙️ Ticker Settings
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'tips' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tips')}
+        >
+          💡 Tips
         </button>
       </div>
 
@@ -923,6 +930,11 @@ const AnnouncementManagement = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Tips Tab */}
+      {activeTab === 'tips' && (
+        <TipsManagement />
       )}
     </div>
   );
