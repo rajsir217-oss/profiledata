@@ -102,7 +102,11 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   // Helper function to handle menu item clicks
   const handleMenuClick = (action) => {
     if (action) {
-      action(); // Execute the navigation action — panel stays open
+      action(); // Execute the navigation action
+    }
+    // Auto-collapse to slim mode after clicking a menu item
+    if (!isCollapsed) {
+      onToggle();
     }
   };
 
