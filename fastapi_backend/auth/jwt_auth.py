@@ -69,6 +69,25 @@ class JWTManager:
         return encoded_jwt
     
     @staticmethod
+    def create_impersonation_token(target_user: dict, admin_username: str) -> str:
+        """Create a short-lived JWT for admin impersonation.
+        Includes 'impersonator' claim for audit trail. 15-minute TTL."""
+        to_encode = {
+            "sub": target_user["username"],
+            "role": target_user.get("role_name", "free_user"),
+            "permissions": target_user.get("custom_permissions", []),
+            "impersonator": admin_username,
+            "exp": datetime.utcnow() + timedelta(minutes=15),
+            "iat": datetime.utcnow(),
+            "type": "access"
+        }
+        return jwt.encode(
+            to_encode,
+            security_settings.JWT_SECRET_KEY,
+            algorithm=security_settings.JWT_ALGORITHM
+        )
+
+    @staticmethod
     def decode_token(token: str) -> Dict:
         """Decode and validate JWT token"""
         try:

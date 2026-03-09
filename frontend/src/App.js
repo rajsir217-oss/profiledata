@@ -51,6 +51,7 @@ import PaymentSuccess from './components/PaymentSuccess';
 import PaymentCancel from './components/PaymentCancel';
 import ContributionCancel from './components/ContributionCancel';
 import ContributionPopupWrapper from './components/ContributionPopupWrapper';
+import ImpersonationBanner from './components/ImpersonationBanner';
 import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import InactiveUsersPage from './components/InactiveUsersPage';
@@ -447,6 +448,7 @@ function App() {
         <ToastContainer />
         <PIIAccessRefreshNotification />
         <ContributionPopupWrapper />
+        <ImpersonationBanner />
       </Router>
     </HelmetProvider>
   );
