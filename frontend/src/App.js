@@ -52,6 +52,7 @@ import PaymentCancel from './components/PaymentCancel';
 import ContributionCancel from './components/ContributionCancel';
 import ContributionPopupWrapper from './components/ContributionPopupWrapper';
 import ImpersonationBanner from './components/ImpersonationBanner';
+import TipOfTheDay from './components/TipOfTheDay';
 import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import InactiveUsersPage from './components/InactiveUsersPage';
@@ -449,6 +450,7 @@ function App() {
         <PIIAccessRefreshNotification />
         <ContributionPopupWrapper />
         <ImpersonationBanner />
+        <TipOfTheDay />
       </Router>
     </HelmetProvider>
   );

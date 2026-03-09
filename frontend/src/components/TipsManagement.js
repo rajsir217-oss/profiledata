@@ -3,6 +3,7 @@ import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
+import RichTextEditor from './shared/RichTextEditor';
 import logger from '../utils/logger';
 
 const tipsApi = createApiInstance(`${getBackendUrl()}/api`);
@@ -175,12 +176,11 @@ const TipsManagement = () => {
             <form onSubmit={handleSubmit} className="announcement-form">
               <div className="form-group">
                 <label>Tip Text *</label>
-                <textarea
+                <RichTextEditor
                   value={formData.tipText}
-                  onChange={(e) => setFormData({...formData, tipText: e.target.value})}
-                  placeholder="Enter tip text..."
-                  rows={3}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '2px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-color)', resize: 'vertical' }}
+                  onChange={(value) => setFormData({...formData, tipText: value})}
+                  placeholder="Enter tip text (supports rich text and images)..."
+                  minHeight="120px"
                 />
               </div>
 
@@ -328,9 +328,7 @@ const TipsManagement = () => {
                   <span className="status-label">{tip.active ? 'Active' : 'Inactive'}</span>
                 </div>
               </div>
-              <div className="item-message" style={{ fontStyle: 'normal' }}>
-                {tip.tipText}
-              </div>
+              <div className="item-message" style={{ fontStyle: 'normal' }} dangerouslySetInnerHTML={{ __html: tip.tipText }} />
               {tip.link && (
                 <div className="item-details">
                   <span>🔗 {tip.linkText || 'Link'}: {tip.link}</span>
