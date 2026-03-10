@@ -63,7 +63,7 @@ Flow:
    
 2. **New endpoint:** `POST /api/l3v3l-score/{viewer}/{target}/refresh`
    - Run full L3V3LMatchingEngine.calculate_match_score()
-   - Save result to `l3v3l_scores` with `calculatedAt`
+   - Save result to `l3v3l_scores` with a **120-day TTL** — auto-expire
    - Return full breakdown
 
 3. **Quick score function:** `calculate_quick_score(user1, user2)`
@@ -71,9 +71,10 @@ Flow:
    - No DB queries, no ML — just field comparisons
    - Returns score + level (no detailed breakdown)
 
-4. **TTL index:** `db.l3v3l_scores.createIndex({ calculatedAt: 1 }, { expireAfterSeconds: 2592000 })`
-   - 30 days = 2,592,000 seconds
-   - MongoDB auto-deletes expired docs
+4. **TTL index:** `db.l3v3l_scores.createIndex({ calculatedAt: 1 }, { expireAfterSeconds: 10368000 })`
+   - 120 days = 10,368,000 seconds (~4 months)
+   - Rationale: most members find a match within this window; scores auto-expire after
+   - Users can always click Refresh for a fresh calculation before TTL expires
 
 5. **Disable batch calculator job** — stop the L3V3LScoreCalculatorTemplate from running
 
@@ -93,7 +94,7 @@ Flow:
 
 ### Migration Steps
 
-1. Add TTL index to `l3v3l_scores.calculatedAt` (30 days)
+1. Add TTL index to `l3v3l_scores.calculatedAt` (120 days)
 2. Deploy backend with new endpoints + quick score function
 3. Deploy frontend with Refresh button + quick score display
 4. Disable L3V3L batch calculator job in Dynamic Scheduler
@@ -130,4 +131,4 @@ Flow:
 Old scores could be purged immediately, but keeping them with a TTL is safer:
 - Users who already have cached scores continue to see them
 - No sudden "score disappeared" experience
-- Gradual transition as old scores expire naturally over 30 days
+- Gradual transition as old scores expire naturally over 120 days
