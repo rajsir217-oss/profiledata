@@ -2741,19 +2741,12 @@ const Profile = ({
       {/* L3V3L Matching Breakdown Table */}
       {l3v3lMatchData && !isOwnProfile && (
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', padding: '0 4px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-              {l3v3lIsQuickScore ? '~ Approximate score' : '🦋 Deep L3V3L analysis'}
-            </span>
-            <button
-              onClick={handleRefreshL3v3l}
-              disabled={l3v3lRefreshing}
-              style={{ padding: '6px 14px', borderRadius: '8px', border: '2px solid var(--primary-color)', background: l3v3lRefreshing ? 'var(--surface-color)' : 'var(--card-background)', color: 'var(--primary-color)', fontSize: '13px', fontWeight: 600, cursor: l3v3lRefreshing ? 'wait' : 'pointer' }}
-            >
-              {l3v3lRefreshing ? '⏳ Calculating...' : '🔄 Refresh L3V3L Score'}
-            </button>
-          </div>
-          <L3V3LMatchingTable matchingData={l3v3lMatchData} />
+          {l3v3lIsQuickScore && (
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '0 4px', marginBottom: '4px' }}>
+              ~ Approximate score — click the score bubble to calculate deep analysis
+            </p>
+          )}
+          <L3V3LMatchingTable matchingData={l3v3lMatchData} onRefresh={handleRefreshL3v3l} refreshing={l3v3lRefreshing} />
         </div>
       )}
 

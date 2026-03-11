@@ -6,7 +6,7 @@ import './L3V3LMatchingTable.css';
  * Shows detailed compatibility across all matching dimensions
  * Used on profile pages when viewing matches from L3V3L Matches page
  */
-const L3V3LMatchingTable = ({ matchingData }) => {
+const L3V3LMatchingTable = ({ matchingData, onRefresh, refreshing }) => {
   if (!matchingData) return null;
 
   // Helper to get color based on match percentage
@@ -81,9 +81,10 @@ const L3V3LMatchingTable = ({ matchingData }) => {
       <div className="l3v3l-matching-header">
         <h3>🦋 L3V3L Matching Breakdown</h3>
         <div className="overall-compatibility">
-          <div className={`overall-score-badge ${getMatchColor(overallScore)}`}>
-            <span className="score-value">{overallScore}%</span>
+          <div className={`overall-score-badge ${getMatchColor(overallScore)}`} onClick={onRefresh && !refreshing ? onRefresh : undefined} style={{ cursor: onRefresh ? 'pointer' : 'default', position: 'relative' }} title={onRefresh ? 'Click to refresh score' : ''}>
+            <span className="score-value">{refreshing ? '⏳' : `${overallScore}%`}</span>
             <span className="score-label">Overall Match</span>
+            {onRefresh && !refreshing && <span style={{ position:'absolute', top:'4px', right:'4px', fontSize:'12px', opacity:0.7 }}>🔄</span>}
           </div>
         </div>
       </div>
