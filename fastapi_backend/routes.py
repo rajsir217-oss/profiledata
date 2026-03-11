@@ -11499,6 +11499,79 @@ async def get_l3v3l_match_details(
         # Return None silently so frontend can gracefully handle missing data
         raise HTTPException(status_code=404, detail="Match details not available")
 
+
+# ===== ON-DEMAND L3V3L SCORING =====
+
+@router.get("/l3v3l-score/{viewer}/{target}")
+async def get_l3v3l_score_cached(viewer: str, target: str, db=Depends(get_database)):
+    """Get L3V3L score: return cached deep score if exists, else quick score."""
+    try:
+        cached = await db.l3v3l_scores.find_one(
+            {"fromUsername": viewer, "toUsername": target},
+            {"_id": 0}
+        )
+        if cached:
+            return {
+                "cached": True,
+                "score": cached.get("score", 0),
+                "level": cached.get("level", ""),
+                "breakdown": cached.get("breakdown", {}),
+                "calculatedAt": cached.get("calculatedAt"),
+                "isQuickScore": False
+            }
+        # No cache — compute quick score
+        user1 = await db.users.find_one({"username": viewer})
+        user2 = await db.users.find_one({"username": target})
+        if not user1 or not user2:
+            raise HTTPException(status_code=404, detail="User not found")
+        quick = matching_engine.calculate_quick_score(user1, user2)
+        return {"cached": False, **quick}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting L3V3L score: {e}")
+        return {"cached": False, "score": 50, "level": "Unknown", "isQuickScore": True}
+
+
+@router.post("/l3v3l-score/{viewer}/{target}/refresh")
+async def refresh_l3v3l_score(viewer: str, target: str, db=Depends(get_database)):
+    """Deep L3V3L calculation + save to DB cache."""
+    try:
+        user1 = await db.users.find_one({"username": viewer})
+        user2 = await db.users.find_one({"username": target})
+        if not user1 or not user2:
+            raise HTTPException(status_code=404, detail="User not found")
+        user1["_id"] = str(user1["_id"])
+        user2["_id"] = str(user2["_id"])
+        result = matching_engine.calculate_match_score(user1, user2)
+        from datetime import datetime
+        now = datetime.utcnow()
+        await db.l3v3l_scores.update_one(
+            {"fromUsername": viewer, "toUsername": target},
+            {"$set": {
+                "fromUsername": viewer, "toUsername": target,
+                "score": result["total_score"],
+                "level": result["compatibility_level"],
+                "breakdown": result.get("component_scores", {}),
+                "matchReasons": result.get("match_reasons", []),
+                "calculatedAt": now
+            }},
+            upsert=True
+        )
+        return {
+            "cached": True, "score": result["total_score"],
+            "level": result["compatibility_level"],
+            "breakdown": result.get("component_scores", {}),
+            "matchReasons": result.get("match_reasons", []),
+            "calculatedAt": now.isoformat(), "isQuickScore": False
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error refreshing L3V3L score: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ===== CONTACT US / SUPPORT TICKETS =====
 
 @router.post("/contact")

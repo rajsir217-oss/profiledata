@@ -795,6 +795,64 @@ class L3V3LMatchingEngine:
         
         return reasons[:5]  # Return top 5 reasons
 
+    def calculate_quick_score(self, user1: Dict, user2: Dict) -> Dict:
+        """Tier 1: Lightweight quick score from profile fields only. No DB, no ML."""
+        score = 0.0
+        factors = 0
+
+        g1 = (user1.get('gender') or '').lower()
+        g2 = (user2.get('gender') or '').lower()
+        if g1 and g2:
+            factors += 1
+            if (g1 == 'male' and g2 == 'female') or (g1 == 'female' and g2 == 'male'):
+                score += 100
+
+        a1 = self._calculate_age(user1)
+        a2 = self._calculate_age(user2)
+        if a1 and a2:
+            factors += 1
+            diff = abs(a1 - a2)
+            if diff <= 3: score += 100
+            elif diff <= 5: score += 80
+            elif diff <= 10: score += 60
+            else: score += 40
+
+        s1 = (user1.get('state') or '').lower()
+        s2 = (user2.get('state') or '').lower()
+        if s1 and s2:
+            factors += 1
+            score += 100 if s1 == s2 else 50
+
+        edu_map = {'high school': 1, 'diploma': 2, 'bachelor': 3, 'master': 4, 'phd': 5, 'md': 5}
+        e1 = next((v for k, v in edu_map.items() if k in (user1.get('education') or '').lower()), None)
+        e2 = next((v for k, v in edu_map.items() if k in (user2.get('education') or '').lower()), None)
+        if e1 and e2:
+            factors += 1
+            diff = abs(e1 - e2)
+            if diff == 0: score += 100
+            elif diff == 1: score += 85
+            else: score += 60
+
+        d1 = (user1.get('eatingPreference') or '').lower()
+        d2 = (user2.get('eatingPreference') or '').lower()
+        if d1 and d2:
+            factors += 1
+            score += 100 if d1 == d2 else 60
+
+        r1 = (user1.get('religion') or '').lower()
+        r2 = (user2.get('religion') or '').lower()
+        if r1 and r2:
+            factors += 1
+            score += 100 if r1 == r2 else 40
+
+        total = round(score / factors, 1) if factors > 0 else 50.0
+        if total >= 80: level = 'Great Match ⭐'
+        elif total >= 60: level = 'Good Match 👍'
+        elif total >= 45: level = 'Moderate Match 🤝'
+        else: level = 'Low Match 📊'
+
+        return {'score': total, 'level': level, 'isQuickScore': True}
+
 
 # Global instance
 matching_engine = L3V3LMatchingEngine()
