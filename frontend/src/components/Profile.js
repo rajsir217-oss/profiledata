@@ -66,6 +66,8 @@ const Profile = ({
   
   // L3V3L Matching Data
   const [l3v3lMatchData, setL3v3lMatchData] = useState(null);
+  const [l3v3lIsQuickScore, setL3v3lIsQuickScore] = useState(false);
+  const [l3v3lRefreshing, setL3v3lRefreshing] = useState(false);
   
   // Editable About Me state
   const [isEditingAboutMe, setIsEditingAboutMe] = useState(false);
@@ -383,38 +385,45 @@ const Profile = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username, currentUsername]);
 
-  // Fetch L3V3L matching data if viewing from matches page
+  // Fetch L3V3L score: check cache first, fallback to quick score
+  const applyL3v3lData = (data) => {
+    setL3v3lIsQuickScore(data.isQuickScore || false);
+    if (data.isQuickScore) {
+      setL3v3lMatchData({ overall: data.score, compatibilityLevel: data.level, matchReasons: [] });
+    } else {
+      setL3v3lMatchData({
+        overall: data.score, compatibilityLevel: data.level,
+        gender: data.breakdown?.gender || 0, l3v3l_pillars: data.breakdown?.l3v3l_pillars || 0,
+        demographics: data.breakdown?.demographics || 0, partner_preferences: data.breakdown?.partner_preferences || 0,
+        habits_personality: data.breakdown?.habits_personality || 0, career_education: data.breakdown?.career_education || 0,
+        physical_attributes: data.breakdown?.physical_attributes || 0, cultural_factors: data.breakdown?.cultural_factors || 0,
+        matchReasons: data.matchReasons || []
+      });
+    }
+  };
+
+  const handleRefreshL3v3l = async () => {
+    setL3v3lRefreshing(true);
+    try {
+      const response = await api.post(`/l3v3l-score/${currentUsername}/${username}/refresh`);
+      if (response.data) applyL3v3lData(response.data);
+    } catch (error) {
+      logger.error('L3V3L refresh failed:', error);
+    } finally {
+      setL3v3lRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     const fetchL3V3LMatchData = async () => {
-      // Only fetch if viewing someone else's profile
       if (!currentUsername || isOwnProfile) return;
-      
       try {
-        logger.debug('Fetching L3V3L match data for:', username);
-        const response = await api.get(`/l3v3l-match-details/${currentUsername}/${username}`);
-        
-        if (response.data && response.data.matchScore) {
-          setL3v3lMatchData({
-            overall: response.data.matchScore,
-            compatibilityLevel: response.data.compatibilityLevel || 'Good Match',
-            gender: response.data.breakdown?.gender || 0,
-            l3v3l_pillars: response.data.breakdown?.l3v3l_pillars || 0,
-            demographics: response.data.breakdown?.demographics || 0,
-            partner_preferences: response.data.breakdown?.partner_preferences || 0,
-            habits_personality: response.data.breakdown?.habits_personality || 0,
-            career_education: response.data.breakdown?.career_education || 0,
-            physical_attributes: response.data.breakdown?.physical_attributes || 0,
-            cultural_factors: response.data.breakdown?.cultural_factors || 0,
-            matchReasons: response.data.matchReasons || []
-          });
-          logger.debug('L3V3L match data loaded:', response.data);
-        }
+        const response = await api.get(`/l3v3l-score/${currentUsername}/${username}`);
+        if (response.data) applyL3v3lData(response.data);
       } catch (error) {
-        // Silently fail - not all profiles will have L3V3L data
-        logger.debug('No L3V3L match data available');
+        logger.debug('No L3V3L data available');
       }
     };
-    
     fetchL3V3LMatchData();
   }, [username, currentUsername, isOwnProfile]);
 
@@ -2731,7 +2740,21 @@ const Profile = ({
 
       {/* L3V3L Matching Breakdown Table */}
       {l3v3lMatchData && !isOwnProfile && (
-        <L3V3LMatchingTable matchingData={l3v3lMatchData} />
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', padding: '0 4px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+              {l3v3lIsQuickScore ? '~ Approximate score' : '🦋 Deep L3V3L analysis'}
+            </span>
+            <button
+              onClick={handleRefreshL3v3l}
+              disabled={l3v3lRefreshing}
+              style={{ padding: '6px 14px', borderRadius: '8px', border: '2px solid var(--primary-color)', background: l3v3lRefreshing ? 'var(--surface-color)' : 'var(--card-background)', color: 'var(--primary-color)', fontSize: '13px', fontWeight: 600, cursor: l3v3lRefreshing ? 'wait' : 'pointer' }}
+            >
+              {l3v3lRefreshing ? '⏳ Calculating...' : '🔄 Refresh L3V3L Score'}
+            </button>
+          </div>
+          <L3V3LMatchingTable matchingData={l3v3lMatchData} />
+        </div>
       )}
 
       {/* Edit Profile Button - Show only for own profile */}
