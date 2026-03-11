@@ -139,17 +139,15 @@
 .totd-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: nowrap;
-  gap: 8px;
+  justify-content: center;
+  gap: 16px;
   padding: 12px 20px;
   border-top: 1px solid var(--border-color, #e5e5e5);
   background: var(--surface-color, #f8f9fa);
 }
 
 .totd-nav-btn {
-  flex-shrink: 0;
-  padding: 6px 16px;
+  padding: 8px 20px;
   border: 2px solid var(--border-color, #ddd);
   border-radius: 8px;
   background: var(--card-background, #fff);
@@ -158,6 +156,8 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .totd-nav-btn:hover {
@@ -167,11 +167,11 @@
 }
 
 .totd-counter {
-  white-space: nowrap;
-  flex-shrink: 0;
   font-size: 13px;
   color: var(--text-secondary, #888);
   font-weight: 500;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 @media (max-width: 480px) {
@@ -186,20 +186,11 @@
     font-size: 32px;
   }
   .totd-footer {
-    padding: 10px 12px;
-    gap: 8px;
+    padding: 10px 16px;
+    gap: 12px;
   }
   .totd-nav-btn {
-  flex-shrink: 0;
-    padding: 8px 14px;
+    padding: 8px 16px;
     font-size: 13px;
-    min-width: 70px;
-    text-align: center;
-  }
-  .totd-counter {
-  white-space: nowrap;
-  flex-shrink: 0;
-    font-size: 13px;
-    white-space: nowrap;
   }
 }
