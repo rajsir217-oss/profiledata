@@ -82,9 +82,8 @@ const L3V3LMatchingTable = ({ matchingData, onRefresh, refreshing }) => {
         <h3>🦋 L3V3L Matching Breakdown</h3>
         <div className="overall-compatibility">
           <div className={`overall-score-badge ${getMatchColor(overallScore)}`} onClick={onRefresh && !refreshing ? onRefresh : undefined} style={{ cursor: onRefresh ? 'pointer' : 'default', position: 'relative' }} title={onRefresh ? 'Click to refresh score' : ''}>
-            <span className="score-value">{refreshing ? '⏳' : `${overallScore}%`}</span>
+            <span className="score-value">{onRefresh && !refreshing && <span style={{ fontSize:'16px', verticalAlign:'middle', marginRight:'4px', cursor:'pointer' }}>🔄</span>}{refreshing ? '⏳' : `${overallScore}%`}</span>
             <span className="score-label">Overall Match</span>
-            {onRefresh && !refreshing && <span style={{ position:'absolute', top:'4px', right:'4px', fontSize:'12px', opacity:0.7 }}>🔄</span>}
           </div>
         </div>
       </div>
