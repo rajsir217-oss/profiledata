@@ -169,62 +169,6 @@ const SearchFilters = ({
         </div>
       </div>
 
-      {/* 1. L3V3L COMPATIBILITY SLIDER */}
-      {(systemConfig?.enable_l3v3l_for_all || isPremiumUser) && (
-        <div className="l3v3l-slider-section" style={{ marginBottom: '24px' }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            marginBottom: '16px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '20px' }}>🎯</span>
-              <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--text-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                Minimum Compatibility Score
-                <Tooltip 
-                  text="Filter matches by L3V3L compatibility score. Higher scores indicate better alignment with your values, preferences, and personality traits."
-                  position="top"
-                  icon 
-                />
-              </h4>
-            </div>
-            <span style={{ 
-              fontSize: '20px', 
-              fontWeight: 700,
-              color: 'var(--primary-color)'
-            }}>
-              {minMatchScore}%
-            </span>
-          </div>
-          
-          <input
-            id="matchScoreSlider"
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            value={minMatchScore}
-            onChange={handleSliderChange}
-            className="match-score-slider"
-            style={{ width: '100%', height: '8px', cursor: 'pointer', marginBottom: '12px' }}
-          />
-          
-          <div className="slider-labels" style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            fontSize: '13px', 
-            color: 'var(--text-secondary)',
-            fontWeight: '500'
-          }}>
-            <span>0%</span>
-            <span>25%</span>
-            <span>50%</span>
-            <span>75%</span>
-            <span>100%</span>
-          </div>
-        </div>
-      )}
       
       {/* 2. BASIC FILTERS - Always Visible */}
       <div className="basic-filters-section">
@@ -483,7 +427,66 @@ const SearchFilters = ({
               />
             </label>
           </div>
+
+          
         </div>
+        {/* 1. L3V3L COMPATIBILITY SLIDER */}
+      {(systemConfig?.enable_l3v3l_for_all || isPremiumUser) && (
+        <div className="l3v3l-slider-section" style={{ marginBottom: '24px' }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            marginBottom: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '20px' }}>🎯</span>
+              <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--text-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Minimum Compatibility Score
+                <Tooltip 
+                  text="Filter matches by L3V3L compatibility score. Higher scores indicate better alignment with your values, preferences, and personality traits."
+                  position="top"
+                  icon 
+                />
+              </h4>
+            </div>
+            <span style={{ 
+              fontSize: '20px', 
+              fontWeight: 700,
+              color: 'var(--primary-color)'
+            }}>
+              {minMatchScore}%
+            </span>
+          </div>
+          
+          <input
+            id="matchScoreSlider"
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={minMatchScore}
+            onChange={handleSliderChange}
+            className="match-score-slider"
+            style={{ width: '100%', height: '8px', cursor: 'pointer', marginBottom: '12px' }}
+          />
+          
+          <div className="slider-labels" style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            fontSize: '13px', 
+            color: 'var(--text-secondary)',
+            fontWeight: '500'
+          }}>
+            <span>0%</span>
+            <span>25%</span>
+            <span>50%</span>
+            <span>75%</span>
+            <span>100%</span>
+          </div>
+        </div>
+      )}
+      
       </div>
       
       {/* Validation Error Message */}
