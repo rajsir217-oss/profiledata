@@ -1,0 +1,31 @@
+{
+  "mongodb_url": "mongodb://localhost:27017",
+  "database_name": "matrimonialDB",
+  "backup_dir": "./backups",
+  "dev_copy_dir": "./dev_backups",
+  "gcp_bucket_name": "l3v3l-mongodb-backups",
+  "gcp_credentials_path": "./gcp-credentials.json",
+  "retention_days": 30,
+  "compress_backups": true,
+  "local_dev_copy": true,
+  "gcp_backup": true,
+  "backup_schedule": {
+    "full_backup": "0 2 * * *",
+    "collection_backup": "0 6 * * *",
+    "cleanup": "0 3 * * 0"
+  },
+  "collections_to_backup": [
+    "users",
+    "l3v3l_scores",
+    "notifications",
+    "notification_queue",
+    "notification_log",
+    "activity_logs",
+    "verification_codes"
+  ],
+  "notification_settings": {
+    "email_on_success": false,
+    "email_on_failure": true,
+    "slack_webhook": ""
+  }
+}
