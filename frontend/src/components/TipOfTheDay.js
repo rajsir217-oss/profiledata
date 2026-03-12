@@ -118,15 +118,9 @@ const TipOfTheDay = () => {
 
         {/* Footer with navigation */}
         <div className="totd-footer">
-          <button className="totd-nav-btn" onClick={handlePrev} title="Previous tip">
-            ← Prev
-          </button>
-          <span className="totd-counter">
-            {currentIndex + 1} / {tips.length}
-          </span>
-          <button className="totd-nav-btn" onClick={handleNext} title="Next tip">
-            Next →
-          </button>
+          <button className="totd-nav-btn" onClick={handlePrev} title="Previous tip">◀</button>
+          <span className="totd-counter">{currentIndex + 1} / {tips.length}</span>
+          <button className="totd-nav-btn" onClick={handleNext} title="Next tip">▶</button>
         </div>
       </div>
     </div>

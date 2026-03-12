@@ -190,7 +190,12 @@
     gap: 12px;
   }
   .totd-nav-btn {
-    padding: 8px 16px;
-    font-size: 13px;
+    padding: 8px 12px;
+    font-size: 16px;
+    min-width: 44px;
+    width: auto;
+  }
+  .totd-counter {
+    display: none;
   }
 }
