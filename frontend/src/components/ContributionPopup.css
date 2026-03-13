@@ -525,6 +525,80 @@
   font-size: 12px;
 }
 
+/* Clover Icon */
+.payment-method-btn .clover-icon {
+  color: #4caf50;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Clover Checkout Section */
+.clover-checkout-section {
+  margin: 16px 0;
+  text-align: center;
+}
+
+.clover-info {
+  margin-bottom: 12px;
+}
+
+.clover-info p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+
+.clover-pay-btn {
+  width: 100%;
+}
+
+/* Clover Iframe Embed */
+.clover-iframe-container {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-color);
+}
+
+.clover-iframe-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, var(--surface-color) 0%, var(--input-bg) 100%);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.clover-back-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clover-back-btn:hover {
+  background: var(--hover-background);
+  color: var(--text-color);
+}
+
+.clover-iframe-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.clover-checkout-iframe {
+  width: 100%;
+  height: 520px;
+  border: none;
+}
+
 /* QR Code Sections */
 .qr-code-section {
   margin: 16px 0;

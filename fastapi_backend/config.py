@@ -149,6 +149,11 @@ class Settings(BaseSettings):
     paypal_client_secret: Optional[str] = None
     paypal_mode: Optional[str] = "sandbox"  # "sandbox" or "live"
     
+    # Clover Hosted Checkout Configuration
+    clover_environment: Optional[str] = "production"  # "sandbox" or "production"
+    clover_merchant_id: Optional[str] = None
+    clover_private_token: Optional[str] = None
+    
     # Logging Configuration
     log_level: Optional[str] = "INFO"
     log_file: Optional[str] = "logs/app.log"
