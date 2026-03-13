@@ -15,7 +15,9 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const paypalScriptLoaded = useRef(false);
   const amountRef = useRef(25);
   const paypalInitialized = useRef(false);
-  const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'paypal', 'venmo-qr', 'paypal-qr'
+  const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'paypal', 'venmo-qr', 'paypal-qr', 'clover'
+  const [cloverLoading, setCloverLoading] = useState(false);
+  const [cloverCheckoutUrl, setCloverCheckoutUrl] = useState(null);
 
   // Use amounts from config and always ensure $50 is included
   const baseAmounts = contributionConfig?.amounts || [10, 15, 25];
@@ -357,6 +359,14 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                 <span className="paypal-p">P</span>
                 PayPal QR
               </button>
+              <button
+                className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('clover')}
+                disabled={loading || cloverLoading}
+              >
+                <span className="clover-icon">☘</span>
+                Card
+              </button>
             </div>
           </div>
 
@@ -434,6 +444,81 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                   <p>3. Send ${getAmount().toFixed(2)}</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Clover Hosted Checkout */}
+          {paymentMethod === 'clover' && (
+            <div className="clover-checkout-section">
+              {cloverCheckoutUrl ? (
+                <div className="clover-iframe-container">
+                  <div className="clover-iframe-header">
+                    <button
+                      className="clover-back-btn"
+                      onClick={() => setCloverCheckoutUrl(null)}
+                    >
+                      ← Back
+                    </button>
+                    <span className="clover-iframe-title">Secure Card Payment</span>
+                  </div>
+                  <iframe
+                    src={cloverCheckoutUrl}
+                    title="Clover Checkout"
+                    className="clover-checkout-iframe"
+                    allow="payment"
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="clover-info">
+                    <p>Pay securely with credit or debit card via Clover.</p>
+                  </div>
+                  <button
+                    className="contribution-proceed-btn clover-pay-btn"
+                    onClick={async () => {
+                      const amount = getAmount();
+                      if (!amount || amount < 1) {
+                        setError('Please select a valid amount (minimum $1)');
+                        return;
+                      }
+                      setCloverLoading(true);
+                      setError('');
+                      try {
+                        const token = localStorage.getItem('token');
+                        const response = await fetch(`${getBackendUrl()}/api/clover/create-checkout`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                          },
+                          body: JSON.stringify({
+                            amount: amount.toFixed(2),
+                            description: `Contribution - $${amount.toFixed(2)}`
+                          })
+                        });
+                        const data = await response.json();
+                        if (data.success && data.checkout_url) {
+                          logActivity('proceed_to_payment', amount, 'clover');
+                          setCloverCheckoutUrl(data.checkout_url);
+                        } else {
+                          setError(data.detail || 'Failed to create checkout session.');
+                        }
+                      } catch (err) {
+                        setError('Failed to connect to payment service. Please try again.');
+                      } finally {
+                        setCloverLoading(false);
+                      }
+                    }}
+                    disabled={cloverLoading || loading}
+                  >
+                    {cloverLoading ? (
+                      <><span className="spinner"></span> Creating checkout...</>
+                    ) : (
+                      <>☘ Pay ${getAmount().toFixed(2)} with Card</>
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           )}
 

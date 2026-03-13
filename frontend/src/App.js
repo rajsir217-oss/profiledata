@@ -68,6 +68,7 @@ import ContributionManagement from './components/ContributionManagement';
 import AdminRecurringContributions from './components/AdminRecurringContributions';
 import PayPalRecurringSetup from './components/PayPalRecurringSetup';
 import PayPalRecurringReturn from './components/PayPalRecurringReturn';
+import CloverPaymentReturn from './components/CloverPaymentReturn';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import TooltipDemo from './components/TooltipDemo';
@@ -420,6 +421,8 @@ function AppContent() {
               <Route path="/payment/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
               <Route path="/payment-cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
               <Route path="/contribution/cancel" element={<ProtectedRoute><ContributionCancel /></ProtectedRoute>} />
+              <Route path="/contribution/clover-success" element={<ProtectedRoute><CloverPaymentReturn status="success" /></ProtectedRoute>} />
+              <Route path="/contribution/clover-failure" element={<ProtectedRoute><CloverPaymentReturn status="failure" /></ProtectedRoute>} />
               <Route path="/lead-generation" element={<ProtectedRoute><PromoCodeAccounting /></ProtectedRoute>} />
               <Route path="/contribution-management" element={<ProtectedRoute><ContributionManagement /></ProtectedRoute>} />
               <Route path="/admin/recurring-contributions" element={<ProtectedRoute><AdminRecurringContributions /></ProtectedRoute>} />
