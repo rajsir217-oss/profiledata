@@ -304,6 +304,88 @@ class StorageService:
             return False
 
 
+    async def rotate_file(self, file_path: str, degrees: int = 90, folder: str = "uploads") -> bool:
+        """
+        Rotate an image file in-place (on GCS or local disk).
+        
+        Args:
+            file_path: Relative path like /uploads/abc123.jpg
+            degrees: Clockwise rotation (90, 180, 270)
+            folder: Storage folder prefix
+            
+        Returns:
+            True if rotated successfully
+        """
+        filename = file_path.split('/')[-1]
+        if not filename:
+            logger.error(f"❌ rotate_file: invalid path '{file_path}'")
+            return False
+        
+        try:
+            if self.use_gcs:
+                return await self._rotate_gcs(filename, degrees, folder)
+            else:
+                return await self._rotate_local(filename, degrees)
+        except Exception as e:
+            logger.error(f"❌ rotate_file failed for {filename}: {e}", exc_info=True)
+            return False
+    
+    async def _rotate_gcs(self, filename: str, degrees: int, folder: str) -> bool:
+        """Download from GCS, rotate, re-upload."""
+        blob_path = f"{folder}/{filename}"
+        blob = self.gcs_bucket.blob(blob_path)
+        
+        content = blob.download_as_bytes()
+        logger.info(f"🔄 Downloaded {blob_path} ({len(content)} bytes) for rotation")
+        
+        rotated = self._rotate_image_bytes(content, degrees)
+        
+        blob.upload_from_string(rotated, content_type="image/jpeg")
+        logger.info(f"✅ Rotated {blob_path} by {degrees}° and re-uploaded")
+        return True
+    
+    async def _rotate_local(self, filename: str, degrees: int) -> bool:
+        """Read local file, rotate, overwrite."""
+        from config import settings
+        
+        full_path = Path(settings.upload_dir) / filename
+        if not full_path.exists():
+            logger.error(f"❌ File not found for rotation: {full_path}")
+            return False
+        
+        content = full_path.read_bytes()
+        logger.info(f"🔄 Read {full_path} ({len(content)} bytes) for rotation")
+        
+        rotated = self._rotate_image_bytes(content, degrees)
+        
+        full_path.write_bytes(rotated)
+        logger.info(f"✅ Rotated {full_path} by {degrees}° and saved")
+        return True
+    
+    def _rotate_image_bytes(self, content: bytes, degrees: int) -> bytes:
+        """Rotate image bytes by given degrees clockwise. Strips EXIF orientation."""
+        img = Image.open(io.BytesIO(content))
+        
+        # Strip EXIF orientation to prevent double-rotation
+        try:
+            from PIL import ImageOps
+            img = ImageOps.exif_transpose(img)
+        except Exception:
+            pass
+        
+        # Pillow rotates counter-clockwise, so negate for clockwise
+        img = img.rotate(-degrees, expand=True)
+        
+        # Convert RGBA → RGB for JPEG
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+        
+        output = io.BytesIO()
+        fmt = 'JPEG'
+        img.save(output, format=fmt, quality=85, optimize=True)
+        return output.getvalue()
+
+
 # Global storage service instance
 _storage_service: Optional[StorageService] = None
 
