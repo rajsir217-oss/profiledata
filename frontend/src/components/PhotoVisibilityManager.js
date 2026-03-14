@@ -48,6 +48,7 @@ const PhotoVisibilityManager = ({
   const [isLoading, setIsLoading] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [rotatingIndex, setRotatingIndex] = useState(null);
 
   const showStatus = (type, message, duration = 4000) => {
     setLocalStatus({ type, message });
@@ -446,6 +447,105 @@ const PhotoVisibilityManager = ({
     }
   };
 
+  // Handle rotate photo (90° clockwise)
+  const handleRotatePhoto = async (index) => {
+    const photo = photos[index];
+    if (rotatingIndex !== null) return; // Prevent double-click
+    
+    setRotatingIndex(index);
+    
+    if (isEditMode && username) {
+      // Edit mode: call backend to rotate on GCS/local
+      try {
+        const cleanUrl = photo.url.split('?')[0]; // Strip cache-bust
+        const response = await api.post(`/profile/${username}/rotate-photo`, {
+          imageUrl: cleanUrl,
+          degrees: 90
+        });
+        
+        if (response.data.success) {
+          const newPhotos = [...photos];
+          newPhotos[index] = { ...newPhotos[index], url: response.data.imageUrl };
+          setPhotos(newPhotos);
+          
+          if (setExistingImages) {
+            setExistingImages(newPhotos.map(p => p.url));
+          }
+          
+          showStatus('success', '🔄 Photo rotated!');
+        }
+      } catch (error) {
+        showStatus('error', '❌ Rotate failed: ' + (error.response?.data?.detail || error.message));
+      } finally {
+        setRotatingIndex(null);
+      }
+    } else {
+      // Registration mode: rotate client-side via Canvas
+      try {
+        const rotatedFile = await rotateImageClientSide(photo.file || photo.url, photo.isNew);
+        
+        const newPhotos = [...photos];
+        // Revoke old blob URL
+        if (photo.url.startsWith('blob:')) {
+          URL.revokeObjectURL(photo.url);
+        }
+        newPhotos[index] = {
+          ...newPhotos[index],
+          url: URL.createObjectURL(rotatedFile),
+          file: rotatedFile,
+          isNew: true
+        };
+        setPhotos(newPhotos);
+        
+        if (setNewImages) {
+          const allNewFiles = newPhotos.filter(p => p.isNew && p.file).map(p => p.file);
+          setNewImages(allNewFiles);
+        }
+        
+        showStatus('success', '🔄 Photo rotated!');
+      } catch (error) {
+        showStatus('error', '❌ Rotate failed: ' + error.message);
+      } finally {
+        setRotatingIndex(null);
+      }
+    }
+  };
+
+  // Rotate image client-side using Canvas (for registration mode)
+  const rotateImageClientSide = (fileOrUrl, isNew) => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        // Swap width/height for 90° rotation
+        canvas.width = img.height;
+        canvas.height = img.width;
+        const ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((90 * Math.PI) / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error('Canvas toBlob failed'));
+            const rotatedFile = new File([blob], 'rotated.jpg', { type: 'image/jpeg' });
+            resolve(rotatedFile);
+          },
+          'image/jpeg',
+          0.85
+        );
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      
+      if (isNew && fileOrUrl instanceof File) {
+        img.src = URL.createObjectURL(fileOrUrl);
+      } else if (typeof fileOrUrl === 'string') {
+        img.src = fileOrUrl;
+      } else {
+        img.src = URL.createObjectURL(fileOrUrl);
+      }
+    });
+  };
+
   // Get visibility icon and label
   const getVisibilityInfo = (visibility) => {
     switch (visibility) {
@@ -542,40 +642,52 @@ const PhotoVisibilityManager = ({
                 </select>
               </div>
               
-              {/* Delete Button */}
-              <div className={`btn-delete-container ${isConfirmDelete ? 'confirm' : ''}`}>
-                {isConfirmDelete ? (
-                  <div className="delete-confirmation">
-                    <span className="delete-question">Are you sure?</span>
-                    <div className="delete-buttons">
-                      <button
-                        type="button"
-                        className="btn-confirm-yes"
-                        onClick={() => handleDeletePhoto(index)}
-                        title="Yes, delete this photo"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-confirm-no"
-                        onClick={() => setDeleteConfirmIndex(null)}
-                        title="No, keep this photo"
-                      >
-                        No
-                      </button>
+              {/* Action Buttons: Rotate + Delete */}
+              <div className="photo-action-buttons">
+                <button
+                  type="button"
+                  className={`btn-rotate ${rotatingIndex === index ? 'spinning' : ''}`}
+                  onClick={() => handleRotatePhoto(index)}
+                  disabled={rotatingIndex !== null}
+                  title="Rotate 90° clockwise"
+                >
+                  🔄
+                </button>
+                
+                <div className={`btn-delete-container ${isConfirmDelete ? 'confirm' : ''}`}>
+                  {isConfirmDelete ? (
+                    <div className="delete-confirmation">
+                      <span className="delete-question">Sure?</span>
+                      <div className="delete-buttons">
+                        <button
+                          type="button"
+                          className="btn-confirm-yes"
+                          onClick={() => handleDeletePhoto(index)}
+                          title="Yes, delete this photo"
+                        >
+                          Yes
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-confirm-no"
+                          onClick={() => setDeleteConfirmIndex(null)}
+                          title="No, keep this photo"
+                        >
+                          No
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn-delete"
-                    onClick={() => handleDeletePhoto(index)}
-                    title="Delete this photo"
-                  >
-                    🗑️
-                  </button>
-                )}
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-delete"
+                      onClick={() => handleDeletePhoto(index)}
+                      title="Delete this photo"
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
               </div>
               
               {/* Drag Handle */}

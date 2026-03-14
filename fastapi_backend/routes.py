@@ -3212,6 +3212,78 @@ async def reorder_photos(
             detail=f"Failed to reorder photos: {str(e)}"
         )
 
+@router.post("/profile/{username}/rotate-photo")
+async def rotate_photo(
+    username: str,
+    data: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Rotate a profile photo 90° clockwise in-place.
+    Body: { "imageUrl": "/uploads/abc123.jpg", "degrees": 90 }
+    """
+    current_username = current_user.get("username")
+    user_role = current_user.get("role", "user")
+    
+    if current_username != username and user_role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only rotate photos on your own profile"
+        )
+    
+    image_url = data.get("imageUrl", "")
+    degrees = data.get("degrees", 90)
+    
+    if not image_url:
+        raise HTTPException(status_code=400, detail="imageUrl is required")
+    
+    if degrees not in (90, 180, 270):
+        raise HTTPException(status_code=400, detail="degrees must be 90, 180, or 270")
+    
+    # Verify user exists and owns this photo
+    user = await db.users.find_one(get_username_query(username))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Extract filename from URL for matching
+    from urllib.parse import urlparse
+    target_filename = image_url.split('/')[-1].split('?')[0]
+    
+    user_images = user.get("images", [])
+    found = any(target_filename in (img.split('/')[-1].split('?')[0]) for img in user_images)
+    
+    if not found:
+        logger.warning(f"⚠️ Rotate rejected: {target_filename} not in {username}'s images")
+        raise HTTPException(status_code=400, detail="Image not found in your profile")
+    
+    # Rotate the actual file via storage service
+    from services.storage_service import get_storage_service
+    storage = get_storage_service()
+    
+    # Normalize to relative path for storage service
+    clean_path = f"/uploads/{target_filename}"
+    
+    success = await storage.rotate_file(clean_path, degrees=degrees)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to rotate image")
+    
+    # Return the URL with cache-bust timestamp
+    import time
+    cache_bust = int(time.time())
+    
+    # Build the response URL using the same format as existing images
+    rotated_url = get_full_image_url(clean_path) + f"?v={cache_bust}"
+    
+    logger.info(f"🔄 Photo rotated {degrees}° for {username}: {target_filename}")
+    
+    return {
+        "success": True,
+        "imageUrl": rotated_url,
+        "message": f"Photo rotated {degrees}°"
+    }
+
+
 @router.put("/profile/{username}/delete-photo")
 async def delete_photo(
     username: str,

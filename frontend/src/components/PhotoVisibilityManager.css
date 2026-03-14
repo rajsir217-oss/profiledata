@@ -100,7 +100,7 @@
 .photo-slot {
   position: relative;
   width: 140px;
-  height: 180px;
+  height: auto;
   border-radius: var(--radius-md, 8px);
   overflow: hidden;
   transition: all 0.2s ease;
@@ -225,12 +225,56 @@
   background-color: rgba(99, 102, 241, 0.1);
 }
 
+/* Action Buttons Row (Rotate + Delete) */
+.photo-action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--background-secondary, #f8f9fa);
+}
+
+/* Rotate Button */
+.btn-rotate {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary-color, #6366f1);
+  color: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+  padding: 0;
+  line-height: 1;
+}
+
+.btn-rotate:hover:not(:disabled) {
+  opacity: 1;
+  transform: rotate(90deg);
+}
+
+.btn-rotate:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-rotate.spinning {
+  animation: spinOnce 0.5s ease;
+}
+
+@keyframes spinOnce {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Delete Button Container */
 .btn-delete-container {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -238,7 +282,7 @@
 }
 
 .btn-delete-container.confirm {
-  background: white;
+  background: var(--card-background, white);
   border: 2px solid var(--warning-color, #ffc107);
   border-radius: 8px;
   padding: 4px;
@@ -259,11 +303,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
+  opacity: 0.7;
   transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
 }
 
-.photo-slot:hover .btn-delete {
+.btn-delete:hover {
   opacity: 1;
 }
 
