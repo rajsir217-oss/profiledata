@@ -219,7 +219,14 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
-        icon: '🔔',
+        icon: '�',
+        label: 'Database Backups',
+        subLabel: 'Backup & restore MongoDB',
+        action: () => navigate('/admin-backups')
+      });
+      
+      items.push({
+        icon: '�🔔',
         label: 'Notification Management',
         subLabel: 'Queue, logs & templates',
         action: () => navigate('/notification-management')

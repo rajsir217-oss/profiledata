@@ -1,171 +1,330 @@
 """
 Backup Job Template
-Creates backups of database collections
+Creates compressed mongodump backups → local + optional GCS upload.
+Falls back to Python-based JSON dump if mongodump binary is not available.
+Supports retention policies and automatic cleanup of old backups.
 """
 
 from typing import Dict, Any, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from .base import JobTemplate, JobResult, JobExecutionContext
 from pathlib import Path
 import json
+import gzip
+import shutil
+import subprocess
 import logging
 
 logger = logging.getLogger(__name__)
 
+BACKUP_DIR = Path("backups")
+
 
 class BackupJobTemplate(JobTemplate):
-    """Template for backup operations"""
+    """Template for MongoDB backup operations with GCS support"""
     
     template_type = "backup_job"
-    template_name = "Backup Job"
-    template_description = "Create backups of database collections"
+    template_name = "MongoDB Backup"
+    template_description = "Full database backup via mongodump → local + GCS. Falls back to JSON dump if mongodump unavailable."
     category = "maintenance"
     icon = "💾"
-    estimated_duration = "10-60 minutes"
+    estimated_duration = "5-30 minutes"
     resource_usage = "high"
     risk_level = "low"
     
     def get_schema(self) -> Dict[str, Any]:
-        """Return JSON schema for parameters"""
         return {
             "type": "object",
             "properties": {
-                "collections": {
-                    "type": "array",
-                    "description": "Collections to backup (empty for all)",
-                    "items": {"type": "string"}
-                },
-                "backup_type": {
-                    "type": "string",
-                    "description": "Type of backup",
-                    "enum": ["full", "incremental"],
-                    "default": "full"
-                },
-                "compression": {
-                    "type": "boolean",
-                    "description": "Compress backup files",
-                    "default": True
-                },
                 "retention_days": {
                     "type": "integer",
-                    "description": "Days to keep backups",
+                    "title": "Retention Days",
+                    "description": "Days to keep old backups before cleanup",
                     "minimum": 1,
                     "maximum": 365,
                     "default": 30
                 },
-                "destination": {
+                "upload_to_gcs": {
+                    "type": "boolean",
+                    "title": "Upload to GCS",
+                    "description": "Upload backup archive to Google Cloud Storage",
+                    "default": True
+                },
+                "gcs_prefix": {
                     "type": "string",
-                    "description": "Backup destination",
-                    "enum": ["local", "s3", "ftp"],
-                    "default": "local"
+                    "title": "GCS Prefix",
+                    "description": "Folder prefix in the GCS bucket for backups",
+                    "default": "backups"
+                },
+                "collections": {
+                    "type": "string",
+                    "title": "Collections (comma-separated)",
+                    "description": "Specific collections to backup (empty = all)",
+                    "default": ""
                 }
             },
             "required": []
         }
     
     def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
-        """Validate parameters"""
-        retention_days = params.get("retention_days", 30)
-        if not isinstance(retention_days, int) or retention_days < 1 or retention_days > 365:
-            return False, "Retention days must be between 1 and 365"
-        
+        retention = params.get("retention_days", 30)
+        if not isinstance(retention, int) or retention < 1 or retention > 365:
+            return False, "retention_days must be between 1 and 365"
         return True, None
     
     async def execute(self, context: JobExecutionContext) -> JobResult:
-        """Execute backup job"""
         params = context.parameters
-        collections = params.get("collections", [])
-        backup_type = params.get("backup_type", "full")
-        compression = params.get("compression", True)
         retention_days = params.get("retention_days", 30)
-        destination = params.get("destination", "local")
+        upload_to_gcs = params.get("upload_to_gcs", True)
+        gcs_prefix = params.get("gcs_prefix", "backups")
+        collections_str = params.get("collections", "")
+        collections = [c.strip() for c in collections_str.split(",") if c.strip()] if collections_str else []
         
-        context.log("INFO", f"Starting {backup_type} backup")
-        context.log("INFO", f"Destination: {destination}")
+        from config import settings
+        
+        now = datetime.now(timezone.utc)
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        db_name = settings.database_name
+        
+        context.log("INFO", f"Starting backup of '{db_name}' at {timestamp}")
+        
+        # Ensure backup directory exists
+        BACKUP_DIR.mkdir(parents=True, exist_ok=True)
         
         try:
-            # Create backup directory
-            backup_dir = Path("backups") / datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-            backup_dir.mkdir(parents=True, exist_ok=True)
+            # Try mongodump first, fall back to Python dump
+            mongodump_available = self._check_mongodump()
             
-            # Get collections to backup
-            if not collections:
-                collections = await context.db.list_collection_names()
-                context.log("INFO", f"Backing up all collections: {len(collections)}")
+            if mongodump_available:
+                context.log("INFO", "Using mongodump binary")
+                archive_path, method = await self._backup_mongodump(
+                    context, settings.mongodb_url, db_name, timestamp, collections
+                )
             else:
-                context.log("INFO", f"Backing up {len(collections)} specified collections")
+                context.log("INFO", "mongodump not found — using Python JSON dump")
+                archive_path, method = await self._backup_python(
+                    context, db_name, timestamp, collections
+                )
             
-            backed_up = 0
-            total_records = 0
+            if not archive_path or not archive_path.exists():
+                return JobResult(
+                    status="failed",
+                    message="Backup file was not created",
+                    errors=["Archive file missing after backup"]
+                )
             
-            for collection_name in collections:
-                try:
-                    collection = context.db[collection_name]
-                    records = await collection.find({}).to_list(length=None)
-                    
-                    # Convert ObjectId to string
-                    for record in records:
-                        if "_id" in record:
-                            record["_id"] = str(record["_id"])
-                    
-                    # Save to file
-                    backup_file = backup_dir / f"{collection_name}.json"
-                    with open(backup_file, 'w') as f:
-                        json.dump(records, f, indent=2, default=str)
-                    
-                    backed_up += 1
-                    total_records += len(records)
-                    context.log("INFO", f"Backed up {collection_name}: {len(records)} records")
-                    
-                except Exception as e:
-                    context.log("ERROR", f"Failed to backup {collection_name}: {str(e)}")
+            file_size = archive_path.stat().st_size
+            size_mb = file_size / (1024 * 1024)
+            context.log("INFO", f"Backup archive: {archive_path.name} ({size_mb:.1f} MB)")
             
-            # Clean old backups
-            await self._cleanup_old_backups(retention_days, context)
+            # Upload to GCS if configured
+            gcs_url = None
+            if upload_to_gcs and settings.use_gcs and settings.gcs_bucket_name:
+                gcs_url = await self._upload_to_gcs(
+                    context, archive_path, settings.gcs_bucket_name, gcs_prefix
+                )
+            elif upload_to_gcs:
+                context.log("WARNING", "GCS not configured — backup saved locally only")
             
-            context.log("INFO", f"Backup completed: {backed_up} collections, {total_records} records")
+            # Log backup metadata to database
+            backup_record = {
+                "filename": archive_path.name,
+                "timestamp": now,
+                "size_bytes": file_size,
+                "method": method,
+                "collections": collections or "all",
+                "local_path": str(archive_path),
+                "gcs_url": gcs_url,
+                "gcs_bucket": settings.gcs_bucket_name if gcs_url else None,
+                "gcs_prefix": gcs_prefix if gcs_url else None,
+                "database": db_name,
+                "status": "completed",
+            }
+            await context.db.backup_history.insert_one(backup_record)
+            
+            # Cleanup old backups
+            cleaned = await self._cleanup_old(context, retention_days, settings, gcs_prefix)
+            
+            msg = f"Backup complete: {archive_path.name} ({size_mb:.1f} MB, {method})"
+            if gcs_url:
+                msg += f" — uploaded to GCS"
+            if cleaned > 0:
+                msg += f" — cleaned {cleaned} old backup(s)"
             
             return JobResult(
                 status="success",
-                message=f"Successfully backed up {backed_up} collections ({total_records} records)",
+                message=msg,
                 details={
-                    "backup_path": str(backup_dir),
-                    "collections": backed_up,
-                    "total_records": total_records,
-                    "backup_type": backup_type
+                    "filename": archive_path.name,
+                    "size_mb": round(size_mb, 2),
+                    "method": method,
+                    "gcs_url": gcs_url,
+                    "cleaned_count": cleaned,
                 },
-                records_processed=backed_up,
-                records_affected=total_records
+                records_processed=1,
+                records_affected=1
             )
             
         except Exception as e:
-            context.log("ERROR", f"Backup failed: {str(e)}")
+            context.log("ERROR", f"Backup failed: {e}")
             return JobResult(
                 status="failed",
-                message=f"Backup job failed: {str(e)}",
+                message=f"Backup failed: {str(e)}",
                 errors=[str(e)]
             )
     
-    async def _cleanup_old_backups(self, retention_days: int, context: JobExecutionContext):
-        """Remove backups older than retention period"""
+    def _check_mongodump(self) -> bool:
+        """Check if mongodump binary is available."""
         try:
-            backups_dir = Path("backups")
-            if not backups_dir.exists():
-                return
-            
-            cutoff_date = datetime.utcnow().timestamp() - (retention_days * 86400)
-            removed_count = 0
-            
-            for backup_path in backups_dir.iterdir():
-                if backup_path.is_dir():
-                    if backup_path.stat().st_mtime < cutoff_date:
-                        # Remove old backup directory
-                        import shutil
-                        shutil.rmtree(backup_path)
-                        removed_count += 1
-            
-            if removed_count > 0:
-                context.log("INFO", f"Cleaned up {removed_count} old backup(s)")
+            result = subprocess.run(
+                ["mongodump", "--version"],
+                capture_output=True, text=True, timeout=10
+            )
+            return result.returncode == 0
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return False
+    
+    async def _backup_mongodump(
+        self, context, mongodb_url, db_name, timestamp, collections
+    ) -> Tuple[Optional[Path], str]:
+        """Run mongodump and produce a gzipped archive."""
+        archive_name = f"{db_name}_{timestamp}.archive.gz"
+        archive_path = BACKUP_DIR / archive_name
         
+        cmd = [
+            "mongodump",
+            f"--uri={mongodb_url}",
+            f"--db={db_name}",
+            "--archive=" + str(archive_path),
+            "--gzip",
+        ]
+        
+        if collections:
+            for coll in collections:
+                cmd.extend([f"--collection={coll}"])
+        
+        context.log("INFO", f"Running: mongodump --db={db_name} --archive={archive_name} --gzip")
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        
+        if result.returncode != 0:
+            context.log("ERROR", f"mongodump stderr: {result.stderr[:500]}")
+            raise RuntimeError(f"mongodump failed: {result.stderr[:200]}")
+        
+        context.log("INFO", "mongodump completed successfully")
+        return archive_path, "mongodump"
+    
+    async def _backup_python(
+        self, context, db_name, timestamp, collections
+    ) -> Tuple[Optional[Path], str]:
+        """Python-based JSON dump as fallback."""
+        backup_name = f"{db_name}_{timestamp}_json"
+        backup_subdir = BACKUP_DIR / backup_name
+        backup_subdir.mkdir(parents=True, exist_ok=True)
+        
+        if not collections:
+            collections = await context.db.list_collection_names()
+        
+        total_records = 0
+        for coll_name in collections:
+            try:
+                coll = context.db[coll_name]
+                records = await coll.find({}).to_list(length=None)
+                
+                for r in records:
+                    if "_id" in r:
+                        r["_id"] = str(r["_id"])
+                
+                out_file = backup_subdir / f"{coll_name}.json"
+                with open(out_file, "w") as f:
+                    json.dump(records, f, default=str)
+                
+                total_records += len(records)
+                context.log("INFO", f"  {coll_name}: {len(records)} records")
+            except Exception as e:
+                context.log("ERROR", f"  Failed {coll_name}: {e}")
+        
+        # Compress into a single .tar.gz
+        archive_name = f"{db_name}_{timestamp}.tar.gz"
+        archive_path = BACKUP_DIR / archive_name
+        
+        shutil.make_archive(
+            str(BACKUP_DIR / f"{db_name}_{timestamp}"),
+            "gztar",
+            root_dir=str(BACKUP_DIR),
+            base_dir=backup_name
+        )
+        
+        # Clean up the uncompressed directory
+        shutil.rmtree(backup_subdir, ignore_errors=True)
+        
+        context.log("INFO", f"Python dump complete: {total_records} records across {len(collections)} collections")
+        return archive_path, "python_json"
+    
+    async def _upload_to_gcs(
+        self, context, archive_path: Path, bucket_name: str, prefix: str
+    ) -> Optional[str]:
+        """Upload backup archive to GCS."""
+        try:
+            from google.cloud import storage
+            client = storage.Client()
+            bucket = client.bucket(bucket_name)
+            
+            blob_path = f"{prefix}/{archive_path.name}"
+            blob = bucket.blob(blob_path)
+            
+            context.log("INFO", f"Uploading to gs://{bucket_name}/{blob_path}")
+            blob.upload_from_filename(str(archive_path))
+            
+            gcs_url = f"gs://{bucket_name}/{blob_path}"
+            context.log("INFO", f"Uploaded to {gcs_url}")
+            return gcs_url
         except Exception as e:
-            context.log("WARNING", f"Failed to cleanup old backups: {str(e)}")
+            context.log("ERROR", f"GCS upload failed: {e}")
+            return None
+    
+    async def _cleanup_old(
+        self, context, retention_days: int, settings, gcs_prefix: str
+    ) -> int:
+        """Remove backups older than retention_days from local and GCS."""
+        cutoff = datetime.now(timezone.utc).timestamp() - (retention_days * 86400)
+        cleaned = 0
+        
+        # Local cleanup
+        if BACKUP_DIR.exists():
+            for f in BACKUP_DIR.iterdir():
+                if f.is_file() and f.stat().st_mtime < cutoff:
+                    f.unlink()
+                    cleaned += 1
+                    context.log("INFO", f"Deleted old local backup: {f.name}")
+        
+        # GCS cleanup
+        if settings.use_gcs and settings.gcs_bucket_name:
+            try:
+                from google.cloud import storage
+                from datetime import timedelta
+                client = storage.Client()
+                bucket = client.bucket(settings.gcs_bucket_name)
+                
+                cutoff_dt = datetime.now(timezone.utc) - timedelta(days=retention_days)
+                blobs = bucket.list_blobs(prefix=f"{gcs_prefix}/")
+                
+                for blob in blobs:
+                    if blob.time_created and blob.time_created < cutoff_dt:
+                        blob.delete()
+                        cleaned += 1
+                        context.log("INFO", f"Deleted old GCS backup: {blob.name}")
+            except Exception as e:
+                context.log("WARNING", f"GCS cleanup failed: {e}")
+        
+        # DB cleanup — remove old backup_history records
+        try:
+            from datetime import timedelta
+            cutoff_dt = datetime.now(timezone.utc) - timedelta(days=retention_days)
+            await context.db.backup_history.delete_many({
+                "timestamp": {"$lt": cutoff_dt}
+            })
+        except Exception:
+            pass
+        
+        return cleaned
