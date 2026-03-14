@@ -26911,3 +26911,342 @@
 2026-03-13 23:31:15,162 - utils - DEBUG - 📸 Image URL: /uploads/profile_images/abhisheksethi013_1.jpg -> http://localhost:8000/api/users/media/abhisheksethi013_1.jpg
 2026-03-13 23:31:15,162 - routes - INFO - ✅ Found 1 users who favorited admin
 2026-03-13 23:31:15,162 - main - INFO - ✅ GET /api/users/their-favorites/admin - Status: 200 - Duration: 0.007s
+2026-03-13 23:55:25,886 - main - INFO - Logger initialized in DEBUG mode (env: development)
+2026-03-13 23:55:25,887 - main - INFO - 📁 Logging to file: logs/app.log
+2026-03-13 23:55:25,887 - main - INFO - 📁 Static files mounted at /uploads
+2026-03-13 23:55:25,887 - main - DEBUG - 🔍 CORS Configuration:
+2026-03-13 23:55:25,887 - main - DEBUG -    ENV = development
+2026-03-13 23:55:25,888 - main - DEBUG -    FRONTEND_URL = http://localhost:3000
+2026-03-13 23:55:25,888 - main - INFO - 🔓 Development CORS enabled for: ['http://localhost', 'http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://192.168.1.246:3000']
+2026-03-13 23:55:26,075 - main - INFO - 🚀 Starting FastAPI application...
+2026-03-13 23:55:26,075 - main - INFO - ✅ Upload directory ready: uploads
+2026-03-13 23:55:26,075 - services.storage_service - INFO - 📦 Storage service initialized (GCS: False)
+2026-03-13 23:55:26,075 - main - INFO - ✅ Storage service initialized (GCS: False, bucket: <local>)
+2026-03-13 23:55:26,075 - database - INFO - 🔌 Attempting to connect to MongoDB at mongodb://localhost:27017...
+2026-03-13 23:55:26,093 - database - INFO - ✅ Successfully connected to MongoDB database: matrimonialDB
+2026-03-13 23:55:26,093 - database - INFO -    Pool: maxPoolSize=50, minPoolSize=5, maxIdleTimeMS=45s, socketTimeoutMS=30s
+2026-03-13 23:55:26,094 - redis_manager - INFO - ✅ Connected to Redis at localhost:6379
+2026-03-13 23:55:26,094 - main - INFO - ✅ Redis connected successfully
+2026-03-13 23:55:26,095 - sse_manager - INFO - ✅ SSE Manager initialized with Redis
+2026-03-13 23:55:26,095 - main - INFO - ✅ SSE Manager initialized for real-time messaging
+2026-03-13 23:55:26,125 - job_templates.registry - INFO - ✅ Registered job template: database_cleanup (Database Cleanup)
+2026-03-13 23:55:26,125 - job_templates.registry - INFO - ✅ Registered job template: email_notification (Bulk Email Notification)
+2026-03-13 23:55:26,125 - job_templates.registry - INFO - ✅ Registered job template: data_export (Data Export)
+2026-03-13 23:55:26,125 - job_templates.registry - INFO - ✅ Registered job template: report_generation (Report Generation)
+2026-03-13 23:55:26,125 - job_templates.registry - INFO - ✅ Registered job template: backup_job (MongoDB Backup)
+2026-03-13 23:55:26,125 - job_templates.registry - INFO - ✅ Registered job template: webhook_trigger (Webhook Trigger)
+2026-03-13 23:55:26,125 - job_templates.registry - INFO - ✅ Registered job template: system_cleanup (System Cleanup)
+2026-03-13 23:55:26,125 - job_templates.registry - INFO - ✅ Registered job template: test_scheduler (Test Scheduler)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: ticket_cleanup (Ticket Cleanup)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: message_stats_sync (Message Statistics Sync)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: age_updater (Age Updater)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: retroactive_invitation_matcher (Retroactive Invitation Matcher)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: invitation_resend (Invitation Resend)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: pii_access_cleanup (PII Access Cleanup)
+2026-03-13 23:55:26,126 - utils.gcp_secrets - INFO - 📧 Using Resend for email delivery (SMTP fallback available)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: email_notifier (Email Notifier)
+2026-03-13 23:55:26,126 - services.simpletexting_service - INFO - ✅ SimpleTexting SMS Service initialized (Phone: 83386***)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: sms_notifier (SMS Notifier)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: weekly_digest_notifier (Weekly Digest Emailer)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: push_notifier (Push Notifier)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: saved_search_matches_notifier (Saved Search Matches Notifier)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: pii_expiry_notifier (PII Expiry Notifier)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: profile_completion_reminder (Profile Completion Reminder)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: conversation_monitor (Conversation Monitor)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: analytics_notifier (Analytics Notifier)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: pending_messages_notifier (Pending Messages Notifier)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: pending_requests_notifier (Pending Requests Notifier)
+2026-03-13 23:55:26,126 - job_templates.registry - INFO - ✅ Registered job template: monthly_digest_notifier (Monthly Digest with Weekly Breakdown)
+2026-03-13 23:55:26,127 - job_templates.registry - INFO - ✅ Registered job template: pending_approvals_sms_notifier (Pending Approvals SMS Alert)
+2026-03-13 23:55:26,127 - job_templates.registry - INFO - ✅ Registered job template: l3v3l_score_calculator (L3V3L Score Calculator)
+2026-03-13 23:55:26,127 - job_templates.registry - INFO - ✅ Registered job template: notes_cleanup (Notes Cleanup)
+2026-03-13 23:55:26,127 - job_templates.registry - INFO - ✅ Registered job template: poll_reminder_notifier (Poll Reminder Notifier)
+2026-03-13 23:55:26,127 - job_templates.registry - INFO - ✅ Registered job template: daily_digest (Daily Digest)
+2026-03-13 23:55:26,127 - job_templates.registry - INFO - ✅ Registered job template: poll_auto_close (Poll Auto-Close)
+2026-03-13 23:55:26,127 - job_templates.registry - INFO - ✅ Registered job template: enhanced_login_reminder (Enhanced Login Reminder)
+2026-03-13 23:55:26,127 - job_templates.registry - INFO - ✅ Registered job template: contribution_popup_activity_cleanup (Contribution Popup Activity Cleanup)
+2026-03-13 23:55:26,128 - job_templates.registry - INFO - ✅ Registered job template: process_recurring_contributions (Process Recurring Contributions)
+2026-03-13 23:55:26,128 - job_templates.registry - INFO - ✅ Registered job template: queue_cleanup (Queue Cleanup)
+2026-03-13 23:55:26,128 - job_templates.registry - INFO - ✅ Initialized 36 job templates
+2026-03-13 23:55:26,128 - main - INFO - ✅ Job Templates initialized
+2026-03-13 23:55:26,128 - unified_scheduler - INFO - ℹ️ Legacy hardcoded jobs are disabled - using Dynamic Scheduler instead
+2026-03-13 23:55:26,128 - unified_scheduler - INFO - ✅ Unified Scheduler initialized with all jobs
+2026-03-13 23:55:26,128 - main - INFO - ✅ Unified Scheduler initialized
+2026-03-13 23:55:26,128 - unified_scheduler - INFO - 🚀 Unified Scheduler started
+2026-03-13 23:55:26,128 - unified_scheduler - INFO - 📋 Total static jobs: 0
+2026-03-13 23:55:26,132 - unified_scheduler - DEBUG - 📋 Found 4 dynamic job(s) ready to run
+2026-03-13 23:55:26,133 - unified_scheduler - INFO - ▶️ Executing dynamic job: Email Notifications
+2026-03-13 23:55:26,133 - services.job_executor - INFO - ▶️ Executing job: Email Notifications (template: email_notifier)
+2026-03-13 23:55:26,133 - services.activity_logger - INFO - ✅ Activity logger initialized with indexes
+2026-03-13 23:55:26,133 - main - INFO - ✅ Activity Logger initialized
+2026-03-13 23:55:26,292 - services.face_detection - INFO - ✅ Face detection initialized (frontal + profile cascades, headless-safe)
+2026-03-13 23:55:26,293 - main - INFO - ✅ Face detection pre-initialized
+2026-03-13 23:55:26,293 - services.job_executor - DEBUG - Created execution record: 69b5065e7dd2692b053bf3f0
+2026-03-13 23:55:26,293 - job_templates.base - INFO - [Job: Email Notifications] Starting job execution: Email Notifications
+2026-03-13 23:55:26,295 - job_templates.base - INFO - [Job: Email Notifications] 📧 Email Provider: RESEND
+2026-03-13 23:55:26,296 - job_templates.base - INFO - [Job: Email Notifications] Fetching pending email notifications (limit: 100)
+2026-03-13 23:55:26,297 - job_templates.base - INFO - [Job: Email Notifications] Job execution completed: success
+2026-03-13 23:55:26,298 - services.job_executor - DEBUG - Updated execution record: 69b5065e7dd2692b053bf3f0
+2026-03-13 23:55:26,299 - services.job_registry - DEBUG - Updated job Email Notifications - Next run: 2026-03-14 06:56:26.298797
+2026-03-13 23:55:26,299 - services.job_executor - INFO - ✅ Job completed: Email Notifications - success
+2026-03-13 23:55:26,300 - services.job_registry - DEBUG - Updated job Email Notifications - Next run: 2026-03-14 06:56:26.300364
+2026-03-13 23:55:26,300 - unified_scheduler - INFO - ▶️ Executing dynamic job: Database Cleanup
+2026-03-13 23:55:26,300 - services.job_executor - INFO - ▶️ Executing job: Database Cleanup (template: database_cleanup)
+2026-03-13 23:55:26,301 - services.job_executor - DEBUG - Created execution record: 69b5065e7dd2692b053bf3f1
+2026-03-13 23:55:26,301 - job_templates.base - INFO - [Job: Database Cleanup] Starting job execution: Database Cleanup
+2026-03-13 23:55:26,301 - job_templates.base - INFO - [Job: Database Cleanup] 🧹 Starting multi-collection database cleanup
+2026-03-13 23:55:26,301 - job_templates.base - INFO - [Job: Database Cleanup] 📋 Targets: 11 collections
+2026-03-13 23:55:26,301 - job_templates.base - INFO - [Job: Database Cleanup] 🗑️  LIVE DELETION MODE
+2026-03-13 23:55:26,301 - job_templates.base - INFO - [Job: Database Cleanup] ============================================================
+2026-03-13 23:55:26,301 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: sessions
+2026-03-13 23:55:26,301 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 1 days
+2026-03-13 23:55:26,301 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: created_at
+2026-03-13 23:55:26,303 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ sessions: No old records found
+2026-03-13 23:55:26,303 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: logs
+2026-03-13 23:55:26,303 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 1 days
+2026-03-13 23:55:26,303 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: created_at
+2026-03-13 23:55:26,303 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ logs: No old records found
+2026-03-13 23:55:26,303 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: activity_logs
+2026-03-13 23:55:26,303 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 1 days
+2026-03-13 23:55:26,303 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: timestamp
+2026-03-13 23:55:26,305 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ activity_logs: No old records found
+2026-03-13 23:55:26,305 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: job_executions
+2026-03-13 23:55:26,305 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 1 days
+2026-03-13 23:55:26,305 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: started_at
+2026-03-13 23:55:26,330 - job_templates.base - INFO - [Job: Database Cleanup]    ✅ job_executions: Deleted 6 of 6 old records
+2026-03-13 23:55:26,330 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: notifications
+2026-03-13 23:55:26,330 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 1 days
+2026-03-13 23:55:26,330 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: createdAt
+2026-03-13 23:55:26,330 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ notifications: No old records found
+2026-03-13 23:55:26,331 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: favorites
+2026-03-13 23:55:26,331 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 45 days
+2026-03-13 23:55:26,331 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: createdAt
+2026-03-13 23:55:26,331 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ favorites: No old records found
+2026-03-13 23:55:26,331 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: shortlists
+2026-03-13 23:55:26,331 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 45 days
+2026-03-13 23:55:26,331 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: createdAt
+2026-03-13 23:55:26,332 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ shortlists: No old records found
+2026-03-13 23:55:26,332 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: audit_logs
+2026-03-13 23:55:26,332 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 30 days
+2026-03-13 23:55:26,332 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: timestamp
+2026-03-13 23:55:26,333 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ audit_logs: No old records found
+2026-03-13 23:55:26,333 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: messages
+2026-03-13 23:55:26,333 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 120 days
+2026-03-13 23:55:26,333 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: createdAt
+2026-03-13 23:55:26,333 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ messages: No old records found
+2026-03-13 23:55:26,333 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: conversation_status
+2026-03-13 23:55:26,333 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 120 days
+2026-03-13 23:55:26,333 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: createdAt
+2026-03-13 23:55:26,334 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ conversation_status: No old records found
+2026-03-13 23:55:26,334 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: blocked_message_attempts
+2026-03-13 23:55:26,334 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 120 days
+2026-03-13 23:55:26,334 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: attemptedAt
+2026-03-13 23:55:26,334 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ blocked_message_attempts: No old records found
+2026-03-13 23:55:26,334 - job_templates.base - INFO - [Job: Database Cleanup] ============================================================
+2026-03-13 23:55:26,334 - job_templates.base - INFO - [Job: Database Cleanup] 
+📊 SUMMARY:
+2026-03-13 23:55:26,334 - job_templates.base - INFO - [Job: Database Cleanup]    Collections processed: 11
+2026-03-13 23:55:26,334 - job_templates.base - INFO - [Job: Database Cleanup]    Total old records found: 6
+2026-03-13 23:55:26,334 - job_templates.base - INFO - [Job: Database Cleanup]    Total deleted: 6
+2026-03-13 23:55:26,334 - job_templates.base - INFO - [Job: Database Cleanup] Job execution completed: success
+2026-03-13 23:55:26,335 - services.job_executor - DEBUG - Updated execution record: 69b5065e7dd2692b053bf3f1
+2026-03-13 23:55:26,336 - services.job_registry - DEBUG - Updated job Database Cleanup - Next run: 2026-03-14 06:56:26.336303
+2026-03-13 23:55:26,336 - services.job_executor - INFO - ✅ Job completed: Database Cleanup - success
+2026-03-13 23:55:26,337 - services.job_registry - DEBUG - Updated job Database Cleanup - Next run: 2026-03-14 06:56:26.337237
+2026-03-13 23:55:26,337 - unified_scheduler - INFO - ▶️ Executing dynamic job: PII Data Cleanup
+2026-03-13 23:55:26,337 - services.job_executor - INFO - ▶️ Executing job: PII Data Cleanup (template: database_cleanup)
+2026-03-13 23:55:26,337 - services.job_executor - DEBUG - Created execution record: 69b5065e7dd2692b053bf3f2
+2026-03-13 23:55:26,337 - job_templates.base - INFO - [Job: PII Data Cleanup] Starting job execution: PII Data Cleanup
+2026-03-13 23:55:26,337 - job_templates.base - INFO - [Job: PII Data Cleanup] 🧹 Starting multi-collection database cleanup
+2026-03-13 23:55:26,337 - job_templates.base - INFO - [Job: PII Data Cleanup] 📋 Targets: 3 collections
+2026-03-13 23:55:26,337 - job_templates.base - INFO - [Job: PII Data Cleanup] 🗑️  LIVE DELETION MODE
+2026-03-13 23:55:26,338 - job_templates.base - INFO - [Job: PII Data Cleanup] ============================================================
+2026-03-13 23:55:26,338 - job_templates.base - INFO - [Job: PII Data Cleanup] 
+📁 Processing: pii_requests
+2026-03-13 23:55:26,338 - job_templates.base - INFO - [Job: PII Data Cleanup]    ⏰ Retention: 7 days
+2026-03-13 23:55:26,338 - job_templates.base - INFO - [Job: PII Data Cleanup]    📅 Date field: requestedAt
+2026-03-13 23:55:26,338 - job_templates.base - INFO - [Job: PII Data Cleanup]    ✨ pii_requests: No old records found
+2026-03-13 23:55:26,338 - job_templates.base - INFO - [Job: PII Data Cleanup] 
+📁 Processing: pii_requests
+2026-03-13 23:55:26,338 - job_templates.base - INFO - [Job: PII Data Cleanup]    🗑️  Delete ALL with status: ['rejected', 'revoked', 'cancelled']
+2026-03-13 23:55:26,338 - job_templates.base - INFO - [Job: PII Data Cleanup]    📅 Date field: requestedAt
+2026-03-13 23:55:26,339 - job_templates.base - INFO - [Job: PII Data Cleanup]    ✨ pii_requests: No old records found
+2026-03-13 23:55:26,339 - job_templates.base - INFO - [Job: PII Data Cleanup] 
+📁 Processing: pii_access
+2026-03-13 23:55:26,339 - job_templates.base - INFO - [Job: PII Data Cleanup]    ⏰ Retention: 10 days
+2026-03-13 23:55:26,339 - job_templates.base - INFO - [Job: PII Data Cleanup]    📅 Date field: grantedAt
+2026-03-13 23:55:26,339 - job_templates.base - INFO - [Job: PII Data Cleanup]    ✨ pii_access: No old records found
+2026-03-13 23:55:26,339 - job_templates.base - INFO - [Job: PII Data Cleanup] ============================================================
+2026-03-13 23:55:26,339 - job_templates.base - INFO - [Job: PII Data Cleanup] 
+📊 SUMMARY:
+2026-03-13 23:55:26,339 - job_templates.base - INFO - [Job: PII Data Cleanup]    Collections processed: 3
+2026-03-13 23:55:26,339 - job_templates.base - INFO - [Job: PII Data Cleanup]    Total old records found: 0
+2026-03-13 23:55:26,339 - job_templates.base - INFO - [Job: PII Data Cleanup]    Total deleted: 0
+2026-03-13 23:55:26,339 - job_templates.base - INFO - [Job: PII Data Cleanup] Job execution completed: success
+2026-03-13 23:55:26,340 - services.job_executor - DEBUG - Updated execution record: 69b5065e7dd2692b053bf3f2
+2026-03-13 23:55:26,341 - services.job_registry - DEBUG - Updated job PII Data Cleanup - Next run: 2026-03-14 06:56:26.341136
+2026-03-13 23:55:26,341 - services.job_executor - INFO - ✅ Job completed: PII Data Cleanup - success
+2026-03-13 23:55:26,342 - services.job_registry - DEBUG - Updated job PII Data Cleanup - Next run: 2026-03-14 06:56:26.342002
+2026-03-13 23:55:26,342 - unified_scheduler - INFO - ▶️ Executing dynamic job: PII Expiry Notifier
+2026-03-13 23:55:26,342 - services.job_executor - INFO - ▶️ Executing job: PII Expiry Notifier (template: pii_expiry_notifier)
+2026-03-13 23:55:26,342 - services.job_executor - DEBUG - Created execution record: 69b5065e7dd2692b053bf3f3
+2026-03-13 23:55:26,342 - job_templates.base - INFO - [Job: PII Expiry Notifier] Starting job execution: PII Expiry Notifier
+2026-03-13 23:55:26,342 - job_templates.base - INFO - [Job: PII Expiry Notifier] Checking for PII access expiring between 2026-03-21 and 2026-03-22
+2026-03-13 23:55:26,342 - job_templates.base - INFO - [Job: PII Expiry Notifier] Found 0 PII access records expiring soon
+2026-03-13 23:55:26,343 - job_templates.base - INFO - [Job: PII Expiry Notifier] Job execution completed: success
+2026-03-13 23:55:26,343 - services.job_executor - DEBUG - Updated execution record: 69b5065e7dd2692b053bf3f3
+2026-03-13 23:55:26,343 - services.job_registry - DEBUG - Updated job PII Expiry Notifier - Next run: 2026-03-14 06:56:38.343541
+2026-03-13 23:55:26,343 - services.job_executor - INFO - ✅ Job completed: PII Expiry Notifier - success
+2026-03-13 23:55:26,345 - services.job_registry - DEBUG - Updated job PII Expiry Notifier - Next run: 2026-03-14 06:56:38.344879
+2026-03-13 23:55:46,356 - main - INFO - Logger initialized in DEBUG mode (env: development)
+2026-03-13 23:55:46,357 - main - INFO - 📁 Logging to file: logs/app.log
+2026-03-13 23:55:46,357 - main - INFO - 📁 Static files mounted at /uploads
+2026-03-13 23:55:46,357 - main - DEBUG - 🔍 CORS Configuration:
+2026-03-13 23:55:46,357 - main - DEBUG -    ENV = development
+2026-03-13 23:55:46,357 - main - DEBUG -    FRONTEND_URL = http://localhost:3000
+2026-03-13 23:55:46,357 - main - INFO - 🔓 Development CORS enabled for: ['http://localhost', 'http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://192.168.1.246:3000']
+2026-03-13 23:55:46,479 - main - INFO - 🚀 Starting FastAPI application...
+2026-03-13 23:55:46,479 - main - INFO - ✅ Upload directory ready: uploads
+2026-03-13 23:55:46,479 - services.storage_service - INFO - 📦 Storage service initialized (GCS: False)
+2026-03-13 23:55:46,479 - main - INFO - ✅ Storage service initialized (GCS: False, bucket: <local>)
+2026-03-13 23:55:46,479 - database - INFO - 🔌 Attempting to connect to MongoDB at mongodb://localhost:27017...
+2026-03-13 23:55:46,495 - database - INFO - ✅ Successfully connected to MongoDB database: matrimonialDB
+2026-03-13 23:55:46,495 - database - INFO -    Pool: maxPoolSize=50, minPoolSize=5, maxIdleTimeMS=45s, socketTimeoutMS=30s
+2026-03-13 23:55:46,496 - redis_manager - INFO - ✅ Connected to Redis at localhost:6379
+2026-03-13 23:55:46,496 - main - INFO - ✅ Redis connected successfully
+2026-03-13 23:55:46,497 - sse_manager - INFO - ✅ SSE Manager initialized with Redis
+2026-03-13 23:55:46,497 - main - INFO - ✅ SSE Manager initialized for real-time messaging
+2026-03-13 23:55:46,514 - job_templates.registry - INFO - ✅ Registered job template: database_cleanup (Database Cleanup)
+2026-03-13 23:55:46,514 - job_templates.registry - INFO - ✅ Registered job template: email_notification (Bulk Email Notification)
+2026-03-13 23:55:46,514 - job_templates.registry - INFO - ✅ Registered job template: data_export (Data Export)
+2026-03-13 23:55:46,514 - job_templates.registry - INFO - ✅ Registered job template: report_generation (Report Generation)
+2026-03-13 23:55:46,514 - job_templates.registry - INFO - ✅ Registered job template: backup_job (MongoDB Backup)
+2026-03-13 23:55:46,514 - job_templates.registry - INFO - ✅ Registered job template: webhook_trigger (Webhook Trigger)
+2026-03-13 23:55:46,514 - job_templates.registry - INFO - ✅ Registered job template: system_cleanup (System Cleanup)
+2026-03-13 23:55:46,514 - job_templates.registry - INFO - ✅ Registered job template: test_scheduler (Test Scheduler)
+2026-03-13 23:55:46,514 - job_templates.registry - INFO - ✅ Registered job template: ticket_cleanup (Ticket Cleanup)
+2026-03-13 23:55:46,514 - job_templates.registry - INFO - ✅ Registered job template: message_stats_sync (Message Statistics Sync)
+2026-03-13 23:55:46,514 - job_templates.registry - INFO - ✅ Registered job template: age_updater (Age Updater)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: retroactive_invitation_matcher (Retroactive Invitation Matcher)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: invitation_resend (Invitation Resend)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: pii_access_cleanup (PII Access Cleanup)
+2026-03-13 23:55:46,515 - utils.gcp_secrets - INFO - 📧 Using Resend for email delivery (SMTP fallback available)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: email_notifier (Email Notifier)
+2026-03-13 23:55:46,515 - services.simpletexting_service - INFO - ✅ SimpleTexting SMS Service initialized (Phone: 83386***)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: sms_notifier (SMS Notifier)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: weekly_digest_notifier (Weekly Digest Emailer)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: push_notifier (Push Notifier)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: saved_search_matches_notifier (Saved Search Matches Notifier)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: pii_expiry_notifier (PII Expiry Notifier)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: profile_completion_reminder (Profile Completion Reminder)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: conversation_monitor (Conversation Monitor)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: analytics_notifier (Analytics Notifier)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: pending_messages_notifier (Pending Messages Notifier)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: pending_requests_notifier (Pending Requests Notifier)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: monthly_digest_notifier (Monthly Digest with Weekly Breakdown)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: pending_approvals_sms_notifier (Pending Approvals SMS Alert)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: l3v3l_score_calculator (L3V3L Score Calculator)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: notes_cleanup (Notes Cleanup)
+2026-03-13 23:55:46,515 - job_templates.registry - INFO - ✅ Registered job template: poll_reminder_notifier (Poll Reminder Notifier)
+2026-03-13 23:55:46,516 - job_templates.registry - INFO - ✅ Registered job template: daily_digest (Daily Digest)
+2026-03-13 23:55:46,516 - job_templates.registry - INFO - ✅ Registered job template: poll_auto_close (Poll Auto-Close)
+2026-03-13 23:55:46,516 - job_templates.registry - INFO - ✅ Registered job template: enhanced_login_reminder (Enhanced Login Reminder)
+2026-03-13 23:55:46,516 - job_templates.registry - INFO - ✅ Registered job template: contribution_popup_activity_cleanup (Contribution Popup Activity Cleanup)
+2026-03-13 23:55:46,516 - job_templates.registry - INFO - ✅ Registered job template: process_recurring_contributions (Process Recurring Contributions)
+2026-03-13 23:55:46,516 - job_templates.registry - INFO - ✅ Registered job template: queue_cleanup (Queue Cleanup)
+2026-03-13 23:55:46,516 - job_templates.registry - INFO - ✅ Initialized 36 job templates
+2026-03-13 23:55:46,516 - main - INFO - ✅ Job Templates initialized
+2026-03-13 23:55:46,516 - unified_scheduler - INFO - ℹ️ Legacy hardcoded jobs are disabled - using Dynamic Scheduler instead
+2026-03-13 23:55:46,516 - unified_scheduler - INFO - ✅ Unified Scheduler initialized with all jobs
+2026-03-13 23:55:46,516 - main - INFO - ✅ Unified Scheduler initialized
+2026-03-13 23:55:46,516 - unified_scheduler - INFO - 🚀 Unified Scheduler started
+2026-03-13 23:55:46,516 - unified_scheduler - INFO - 📋 Total static jobs: 0
+2026-03-13 23:55:46,519 - services.activity_logger - INFO - ✅ Activity logger initialized with indexes
+2026-03-13 23:55:46,519 - main - INFO - ✅ Activity Logger initialized
+2026-03-13 23:55:46,572 - services.face_detection - INFO - ✅ Face detection initialized (frontal + profile cascades, headless-safe)
+2026-03-13 23:55:46,572 - main - INFO - ✅ Face detection pre-initialized
+2026-03-13 23:55:46,573 - main - INFO - 👋 Shutting down FastAPI application...
+2026-03-13 23:55:46,573 - unified_scheduler - INFO - 🛑 Unified Scheduler stopped
+2026-03-13 23:55:46,573 - main - INFO - ✅ Activity Logger cleaned up
+2026-03-13 23:55:46,573 - database - INFO - 🔌 Closing MongoDB connection...
+2026-03-13 23:55:46,573 - database - INFO - ✅ MongoDB connection closed
+2026-03-13 23:55:46,573 - main - INFO - 🔌 SSE Manager closed
+2026-03-13 23:55:46,573 - redis_manager - INFO - 🔌 Redis connection closed
+2026-03-13 23:56:12,508 - main - INFO - Logger initialized in DEBUG mode (env: development)
+2026-03-13 23:56:12,509 - main - INFO - 📁 Logging to file: logs/app.log
+2026-03-13 23:56:12,509 - main - INFO - 📁 Static files mounted at /uploads
+2026-03-13 23:56:12,509 - main - DEBUG - 🔍 CORS Configuration:
+2026-03-13 23:56:12,509 - main - DEBUG -    ENV = development
+2026-03-13 23:56:12,509 - main - DEBUG -    FRONTEND_URL = http://localhost:3000
+2026-03-13 23:56:12,509 - main - INFO - 🔓 Development CORS enabled for: ['http://localhost', 'http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://192.168.1.246:3000']
+2026-03-13 23:56:12,695 - main - INFO - 🚀 Starting FastAPI application...
+2026-03-13 23:56:12,695 - main - INFO - ✅ Upload directory ready: uploads
+2026-03-13 23:56:12,695 - services.storage_service - INFO - 📦 Storage service initialized (GCS: False)
+2026-03-13 23:56:12,695 - main - INFO - ✅ Storage service initialized (GCS: False, bucket: <local>)
+2026-03-13 23:56:12,695 - database - INFO - 🔌 Attempting to connect to MongoDB at mongodb://localhost:27017...
+2026-03-13 23:56:12,709 - database - INFO - ✅ Successfully connected to MongoDB database: matrimonialDB
+2026-03-13 23:56:12,709 - database - INFO -    Pool: maxPoolSize=50, minPoolSize=5, maxIdleTimeMS=45s, socketTimeoutMS=30s
+2026-03-13 23:56:12,710 - redis_manager - INFO - ✅ Connected to Redis at localhost:6379
+2026-03-13 23:56:12,710 - main - INFO - ✅ Redis connected successfully
+2026-03-13 23:56:12,710 - sse_manager - INFO - ✅ SSE Manager initialized with Redis
+2026-03-13 23:56:12,710 - main - INFO - ✅ SSE Manager initialized for real-time messaging
+2026-03-13 23:56:12,726 - job_templates.registry - INFO - ✅ Registered job template: database_cleanup (Database Cleanup)
+2026-03-13 23:56:12,726 - job_templates.registry - INFO - ✅ Registered job template: email_notification (Bulk Email Notification)
+2026-03-13 23:56:12,726 - job_templates.registry - INFO - ✅ Registered job template: data_export (Data Export)
+2026-03-13 23:56:12,726 - job_templates.registry - INFO - ✅ Registered job template: report_generation (Report Generation)
+2026-03-13 23:56:12,726 - job_templates.registry - INFO - ✅ Registered job template: backup_job (MongoDB Backup)
+2026-03-13 23:56:12,726 - job_templates.registry - INFO - ✅ Registered job template: webhook_trigger (Webhook Trigger)
+2026-03-13 23:56:12,726 - job_templates.registry - INFO - ✅ Registered job template: system_cleanup (System Cleanup)
+2026-03-13 23:56:12,726 - job_templates.registry - INFO - ✅ Registered job template: test_scheduler (Test Scheduler)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: ticket_cleanup (Ticket Cleanup)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: message_stats_sync (Message Statistics Sync)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: age_updater (Age Updater)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: retroactive_invitation_matcher (Retroactive Invitation Matcher)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: invitation_resend (Invitation Resend)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: pii_access_cleanup (PII Access Cleanup)
+2026-03-13 23:56:12,727 - utils.gcp_secrets - INFO - 📧 Using Resend for email delivery (SMTP fallback available)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: email_notifier (Email Notifier)
+2026-03-13 23:56:12,727 - services.simpletexting_service - INFO - ✅ SimpleTexting SMS Service initialized (Phone: 83386***)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: sms_notifier (SMS Notifier)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: weekly_digest_notifier (Weekly Digest Emailer)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: push_notifier (Push Notifier)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: saved_search_matches_notifier (Saved Search Matches Notifier)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: pii_expiry_notifier (PII Expiry Notifier)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: profile_completion_reminder (Profile Completion Reminder)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: conversation_monitor (Conversation Monitor)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: analytics_notifier (Analytics Notifier)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: pending_messages_notifier (Pending Messages Notifier)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: pending_requests_notifier (Pending Requests Notifier)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: monthly_digest_notifier (Monthly Digest with Weekly Breakdown)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: pending_approvals_sms_notifier (Pending Approvals SMS Alert)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: l3v3l_score_calculator (L3V3L Score Calculator)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: notes_cleanup (Notes Cleanup)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: poll_reminder_notifier (Poll Reminder Notifier)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: daily_digest (Daily Digest)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: poll_auto_close (Poll Auto-Close)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: enhanced_login_reminder (Enhanced Login Reminder)
+2026-03-13 23:56:12,727 - job_templates.registry - INFO - ✅ Registered job template: contribution_popup_activity_cleanup (Contribution Popup Activity Cleanup)
+2026-03-13 23:56:12,728 - job_templates.registry - INFO - ✅ Registered job template: process_recurring_contributions (Process Recurring Contributions)
+2026-03-13 23:56:12,728 - job_templates.registry - INFO - ✅ Registered job template: queue_cleanup (Queue Cleanup)
+2026-03-13 23:56:12,728 - job_templates.registry - INFO - ✅ Initialized 36 job templates
+2026-03-13 23:56:12,728 - main - INFO - ✅ Job Templates initialized
+2026-03-13 23:56:12,728 - unified_scheduler - INFO - ℹ️ Legacy hardcoded jobs are disabled - using Dynamic Scheduler instead
+2026-03-13 23:56:12,728 - unified_scheduler - INFO - ✅ Unified Scheduler initialized with all jobs
+2026-03-13 23:56:12,728 - main - INFO - ✅ Unified Scheduler initialized
+2026-03-13 23:56:12,728 - unified_scheduler - INFO - 🚀 Unified Scheduler started
+2026-03-13 23:56:12,728 - unified_scheduler - INFO - 📋 Total static jobs: 0
+2026-03-13 23:56:12,731 - services.activity_logger - INFO - ✅ Activity logger initialized with indexes
+2026-03-13 23:56:12,731 - main - INFO - ✅ Activity Logger initialized
+2026-03-13 23:56:12,858 - services.face_detection - INFO - ✅ Face detection initialized (frontal + profile cascades, headless-safe)
+2026-03-13 23:56:12,858 - main - INFO - ✅ Face detection pre-initialized

@@ -56,6 +56,7 @@ from routers.admin_engagement import router as admin_engagement_router
 from routers.inactive_users_report import router as inactive_users_report_router
 from routers.queue_management import router as queue_management_router
 from routers.clover_payments import router as clover_payments_router
+from routers.admin_backups import router as admin_backups_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -407,6 +408,7 @@ app.include_router(admin_engagement_router)  # Admin engagement routes (already 
 app.include_router(inactive_users_report_router, prefix="/api/admin", tags=["admin-reports"])  # Inactive users report routes
 app.include_router(queue_management_router)  # Queue management routes (already has /api/admin/queue prefix)
 app.include_router(clover_payments_router)  # Clover Hosted Checkout routes
+app.include_router(admin_backups_router)  # Admin backups routes (already has /api/admin/backups prefix)
 
 # Health check endpoint — used by Cloud Run liveness probe.
 # Tests MongoDB connectivity so probe fails (503) if workers are deadlocked

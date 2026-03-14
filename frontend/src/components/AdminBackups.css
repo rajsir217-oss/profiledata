@@ -1,0 +1,436 @@
+/* AdminBackups.css - Theme-aware backup management page */
+
+.admin-backups-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-lg, 24px);
+}
+
+/* Header */
+.backups-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-lg, 24px);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.backups-title-section h2 {
+  margin: 0 0 4px 0;
+  font-size: 1.5rem;
+  color: var(--text-color);
+}
+
+.backups-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.backups-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-trigger-backup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-trigger-backup:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-trigger-backup:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.btn-refresh {
+  padding: 10px 16px;
+  background: var(--surface-color, #f5f5f5);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: var(--hover-background);
+}
+
+/* Stats Row */
+.backups-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: var(--spacing-lg, 24px);
+}
+
+.stat-card {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  padding: 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Loading & Empty */
+.backups-loading,
+.backups-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  background: var(--card-background);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-color);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+/* Table */
+.backups-table-wrapper {
+  background: var(--card-background);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-color);
+  overflow-x: auto;
+}
+
+.backups-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.backups-table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--border-color);
+  background: var(--surface-color, transparent);
+}
+
+.backups-table tbody tr {
+  border-bottom: 1px solid var(--divider-color, var(--border-color));
+  transition: background 0.15s ease;
+}
+
+.backups-table tbody tr:hover {
+  background: var(--hover-background);
+}
+
+.backups-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.backups-table td {
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  color: var(--text-color);
+  vertical-align: middle;
+}
+
+.col-filename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 200px;
+}
+
+.filename-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.filename-text {
+  font-family: monospace;
+  font-size: 0.82rem;
+  word-break: break-all;
+}
+
+.col-date {
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.col-size {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* Method Badge */
+.method-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.method-badge.mongodump {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary-color);
+}
+
+.method-badge.python_json {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning-color);
+}
+
+/* Storage Badges */
+.storage-badges {
+  display: flex;
+  gap: 4px;
+}
+
+.storage-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.storage-badge.local {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success-color);
+}
+
+.storage-badge.gcs {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--info-color);
+}
+
+.storage-badge.none {
+  color: var(--text-muted);
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-action {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--card-background);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.btn-action:hover {
+  background: var(--hover-background);
+  transform: translateY(-1px);
+}
+
+.btn-delete-backup.confirm {
+  background: var(--danger-color, #dc3545);
+  border-color: var(--danger-color, #dc3545);
+  animation: pulse 0.6s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Restore Command Modal */
+.restore-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.restore-modal {
+  background: var(--card-background);
+  border-radius: var(--radius-lg, 12px);
+  max-width: 700px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.restore-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.restore-modal-header h3 {
+  margin: 0;
+  color: var(--text-color);
+}
+
+.btn-close-modal {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.btn-close-modal:hover {
+  background: var(--hover-background);
+  color: var(--text-color);
+}
+
+.restore-modal-body {
+  padding: 20px;
+}
+
+.restore-filename,
+.restore-type {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.restore-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--warning-color);
+  border-radius: var(--radius-md, 8px);
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 0.85rem;
+  color: var(--warning-color);
+  font-weight: 500;
+}
+
+.restore-command-block {
+  position: relative;
+  background: var(--surface-color, #1e1e2e);
+  border-radius: var(--radius-md, 8px);
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.restore-command-block pre {
+  margin: 0;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.82rem;
+  color: var(--text-color);
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.6;
+}
+
+.btn-copy-command {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-copy-command:hover {
+  opacity: 0.8;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .admin-backups-page {
+    padding: var(--spacing-md, 16px);
+  }
+
+  .backups-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .backups-actions {
+    justify-content: stretch;
+  }
+
+  .backups-actions button {
+    flex: 1;
+  }
+
+  .backups-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .backups-table-wrapper {
+    font-size: 0.82rem;
+  }
+
+  .col-filename {
+    min-width: 150px;
+  }
+}

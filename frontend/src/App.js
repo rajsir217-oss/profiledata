@@ -34,6 +34,7 @@ import RoleManagement from './components/RoleManagement';
 import SavedSearchNotificationManager from './components/admin/SavedSearchNotificationManager';
 import { TestDashboard } from './test-dashboard';
 import DynamicScheduler from './components/DynamicScheduler';
+import AdminBackups from './components/AdminBackups';
 import NotificationTester from './components/NotificationTester';
 import NotificationManagement from './components/NotificationManagement';
 import NotificationConfigManager from './components/NotificationConfigManager';
@@ -402,6 +403,7 @@ function AppContent() {
               <Route path="/role-management" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
               <Route path="/test-dashboard" element={<ProtectedRoute><TestDashboard /></ProtectedRoute>} />
               <Route path="/dynamic-scheduler" element={<ProtectedRoute><DynamicScheduler currentUser={localStorage.getItem('username')} /></ProtectedRoute>} />
+              <Route path="/admin-backups" element={<ProtectedRoute><AdminBackups /></ProtectedRoute>} />
               <Route path="/notification-tester" element={<ProtectedRoute><NotificationTester /></ProtectedRoute>} />
               <Route path="/notification-management" element={<ProtectedRoute><NotificationManagement /></ProtectedRoute>} />
               <Route path="/admin/notification-config" element={<ProtectedRoute><NotificationConfigManager /></ProtectedRoute>} />
