@@ -41,3 +41,11 @@ uploads/*
 !uploads/default-avatar.svg
 !uploads/README.md
 mongodb_backup_*.tar.gz
+
+# Logs
+logs/
+
+# Backup archives
+fastapi_backend/backups/*.archive.gz
+fastapi_backend/backups/*.tar.gz
+fastapi_backend/backups/*.json
