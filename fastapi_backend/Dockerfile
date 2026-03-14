@@ -4,16 +4,16 @@ WORKDIR /app
 
 # Install system dependencies (gcc for builds, libgl1/libglib for mediapipe/OpenCV face detection)
 # mongodb-database-tools provides mongodump/mongorestore for scheduled backups
+# Downloaded directly to avoid Debian Trixie GPG/SHA1 rejection of MongoDB apt repo
 RUN apt-get update && apt-get install -y \
     gcc \
     libgl1 \
     libglib2.0-0 \
-    wget \
-    gnupg \
-    && wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" > /etc/apt/sources.list.d/mongodb-org-7.0.list \
-    && apt-get update && apt-get install -y mongodb-database-tools \
-    && apt-get purge -y wget gnupg \
+    curl \
+    && curl -fSL https://fastdl.mongodb.org/tools/db/mongodb-database-tools-debian12-x86_64-100.10.0.deb -o /tmp/mongo-tools.deb \
+    && dpkg -i /tmp/mongo-tools.deb \
+    && rm /tmp/mongo-tools.deb \
+    && apt-get purge -y curl \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
