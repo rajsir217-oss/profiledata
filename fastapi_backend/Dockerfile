@@ -3,10 +3,18 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies (gcc for builds, libgl1/libglib for mediapipe/OpenCV face detection)
+# mongodb-database-tools provides mongodump/mongorestore for scheduled backups
 RUN apt-get update && apt-get install -y \
     gcc \
     libgl1 \
     libglib2.0-0 \
+    wget \
+    gnupg \
+    && wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" > /etc/apt/sources.list.d/mongodb-org-7.0.list \
+    && apt-get update && apt-get install -y mongodb-database-tools \
+    && apt-get purge -y wget gnupg \
+    && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python dependencies
@@ -16,8 +24,8 @@ RUN pip install --no-cache-dir -r requirements.txt gunicorn
 # Copy application code
 COPY . .
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create uploads and backups directories
+RUN mkdir -p uploads backups
 
 # Expose port
 EXPOSE 8080
