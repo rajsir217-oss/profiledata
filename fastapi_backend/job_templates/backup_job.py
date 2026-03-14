@@ -127,6 +127,7 @@ class BackupJobTemplate(JobTemplate):
                 context.log("WARNING", "GCS not configured — backup saved locally only")
             
             # Log backup metadata to database
+            env = getattr(settings, "env", "development") or "development"
             backup_record = {
                 "filename": archive_path.name,
                 "timestamp": now,
@@ -138,6 +139,7 @@ class BackupJobTemplate(JobTemplate):
                 "gcs_bucket": settings.gcs_bucket_name if gcs_url else None,
                 "gcs_prefix": gcs_prefix if gcs_url else None,
                 "database": db_name,
+                "environment": env,
                 "status": "completed",
             }
             await context.db.backup_history.insert_one(backup_record)

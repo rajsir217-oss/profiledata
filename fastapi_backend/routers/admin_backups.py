@@ -40,9 +40,16 @@ async def list_backups(
 
     backups = []
 
-    # 1. Get backup records from database
+    # 1. Get backup records from database — filtered by current environment
+    from config import settings
+    current_env = getattr(settings, "env", "development") or "development"
+
     try:
-        cursor = db.backup_history.find({}).sort("timestamp", -1).limit(100)
+        env_filter = {"$or": [
+            {"environment": current_env},
+            {"environment": {"$exists": False}},  # legacy records without env tag
+        ]}
+        cursor = db.backup_history.find(env_filter).sort("timestamp", -1).limit(100)
         db_records = await cursor.to_list(length=100)
 
         for rec in db_records:
@@ -76,7 +83,6 @@ async def list_backups(
                 })
 
     # 3. Check GCS for backups not tracked locally
-    from config import settings
     if settings.use_gcs and settings.gcs_bucket_name:
         try:
             from google.cloud import storage as gcs_storage
