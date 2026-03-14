@@ -1558,9 +1558,20 @@ const SearchPage2 = () => {
       setStatusMessage('✅ Profile hidden');
       setTimeout(() => setStatusMessage(''), 3000);
     } catch (err) {
-      logger.error(`Failed to hide profile: ${err.message}`);
-      setStatusMessage('❌ Failed to hide profile');
-      setTimeout(() => setStatusMessage(''), 3000);
+      if (err.response?.status === 409) {
+        // Already excluded — treat as success
+        setExcludedUsers(prev => new Set([...prev, targetUsername]));
+        setUsers(prev => prev.filter(u => u.username !== targetUsername));
+        setShowExclusionPreview(false);
+        setExclusionPreviewData(null);
+        setSelectedUserForExclusion(null);
+        setStatusMessage('✅ Profile already hidden');
+        setTimeout(() => setStatusMessage(''), 3000);
+      } else {
+        logger.error(`Failed to hide profile: ${err.message}`);
+        setStatusMessage('❌ Failed to hide profile');
+        setTimeout(() => setStatusMessage(''), 3000);
+      }
     } finally {
       setExclusionLoading(false);
     }
