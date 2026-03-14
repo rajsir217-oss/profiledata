@@ -27250,3 +27250,210 @@
 2026-03-13 23:56:12,731 - main - INFO - ✅ Activity Logger initialized
 2026-03-13 23:56:12,858 - services.face_detection - INFO - ✅ Face detection initialized (frontal + profile cascades, headless-safe)
 2026-03-13 23:56:12,858 - main - INFO - ✅ Face detection pre-initialized
+2026-03-13 23:56:34,848 - main - INFO - 📨 Incoming OPTIONS request to /api/users/contact/user/admin/unread-count from origin: http://localhost:3000
+2026-03-13 23:56:34,849 - main - INFO - 🔀 CORS preflight request from http://localhost:3000
+2026-03-13 23:56:34,849 - main - DEBUG - Request headers: {'host': 'localhost:8000', 'connection': 'keep-alive', 'accept': '*/*', 'access-control-request-method': 'GET', 'access-control-request-headers': 'authorization', 'origin': 'http://localhost:3000', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:3000/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9'}
+2026-03-13 23:56:34,850 - main - INFO - 📨 Incoming OPTIONS request to /api/users/messages/unattended from origin: http://localhost:3000
+2026-03-13 23:56:34,850 - main - INFO - 🔀 CORS preflight request from http://localhost:3000
+2026-03-13 23:56:34,850 - main - DEBUG - Request headers: {'host': 'localhost:8000', 'connection': 'keep-alive', 'accept': '*/*', 'access-control-request-method': 'GET', 'access-control-request-headers': 'authorization', 'origin': 'http://localhost:3000', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:3000/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9'}
+2026-03-13 23:56:34,850 - main - INFO - 📨 Incoming OPTIONS request to /api/ticker/items from origin: http://localhost:3000
+2026-03-13 23:56:34,851 - main - INFO - 🔀 CORS preflight request from http://localhost:3000
+2026-03-13 23:56:34,851 - main - DEBUG - Request headers: {'host': 'localhost:8000', 'connection': 'keep-alive', 'accept': '*/*', 'access-control-request-method': 'GET', 'access-control-request-headers': 'authorization', 'origin': 'http://localhost:3000', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:3000/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9'}
+2026-03-13 23:56:34,988 - main - INFO - ✅ OPTIONS /api/users/contact/user/admin/unread-count - Status: 200 - Duration: 0.141s
+2026-03-13 23:56:34,989 - main - INFO - ✅ OPTIONS /api/users/messages/unattended - Status: 200 - Duration: 0.139s
+2026-03-13 23:56:34,989 - main - INFO - ✅ OPTIONS /api/ticker/items - Status: 200 - Duration: 0.139s
+2026-03-13 23:56:34,992 - main - INFO - 📨 Incoming GET request to /api/users/messages/unattended from origin: http://localhost:3000
+2026-03-13 23:56:34,993 - main - DEBUG - Request headers: {'host': 'localhost:8000', 'connection': 'keep-alive', 'sec-ch-ua-platform': '"macOS"', 'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbXSwiZXhwIjoxNzczNDczMTM1LCJpYXQiOjE3NzM0NzEzMzUsInR5cGUiOiJhY2Nlc3MifQ.JeQir-B4EumzSqXEx4SpJ82NB0HkmS_SVEBGtIXcr6A', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', 'accept': 'application/json, text/plain, */*', 'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"', 'dnt': '1', 'sec-ch-ua-mobile': '?0', 'origin': 'http://localhost:3000', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:3000/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9'}
+2026-03-13 23:56:34,993 - main - INFO - 📨 Incoming GET request to /api/ticker/items from origin: http://localhost:3000
+2026-03-13 23:56:34,993 - main - DEBUG - Request headers: {'host': 'localhost:8000', 'connection': 'keep-alive', 'sec-ch-ua-platform': '"macOS"', 'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbXSwiZXhwIjoxNzczNDczMTM1LCJpYXQiOjE3NzM0NzEzMzUsInR5cGUiOiJhY2Nlc3MifQ.JeQir-B4EumzSqXEx4SpJ82NB0HkmS_SVEBGtIXcr6A', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', 'accept': 'application/json, text/plain, */*', 'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"', 'dnt': '1', 'sec-ch-ua-mobile': '?0', 'origin': 'http://localhost:3000', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:3000/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9'}
+2026-03-13 23:56:35,003 - main - INFO - 📨 Incoming GET request to /api/users/contact/user/admin/unread-count from origin: http://localhost:3000
+2026-03-13 23:56:35,003 - main - DEBUG - Request headers: {'host': 'localhost:8000', 'connection': 'keep-alive', 'sec-ch-ua-platform': '"macOS"', 'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbXSwiZXhwIjoxNzczNDczMTM1LCJpYXQiOjE3NzM0NzEzMzUsInR5cGUiOiJhY2Nlc3MifQ.JeQir-B4EumzSqXEx4SpJ82NB0HkmS_SVEBGtIXcr6A', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', 'accept': 'application/json, text/plain, */*', 'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"', 'dnt': '1', 'sec-ch-ua-mobile': '?0', 'origin': 'http://localhost:3000', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:3000/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9'}
+2026-03-13 23:56:35,007 - routes - INFO - 📬 Getting unattended chats for admin
+2026-03-13 23:56:35,009 - main - INFO - ✅ GET /api/users/contact/user/admin/unread-count - Status: 200 - Duration: 0.006s
+2026-03-13 23:56:35,013 - crypto_utils - INFO - ✅ PII encryption initialized successfully
+2026-03-13 23:56:35,016 - crypto_utils - DEBUG - 🔓 Decrypted field: location
+2026-03-13 23:56:35,016 - crypto_utils - DEBUG - 🔓 Decrypted field: contactEmail
+2026-03-13 23:56:35,016 - crypto_utils - DEBUG - 🔓 Decrypted field: contactNumber
+2026-03-13 23:56:35,018 - crypto_utils - DEBUG - 🔓 Decrypted field: location
+2026-03-13 23:56:35,018 - crypto_utils - DEBUG - 🔓 Decrypted field: contactEmail
+2026-03-13 23:56:35,018 - crypto_utils - DEBUG - 🔓 Decrypted field: contactNumber
+2026-03-13 23:56:35,019 - crypto_utils - DEBUG - 🔓 Decrypted field: location
+2026-03-13 23:56:35,019 - crypto_utils - DEBUG - 🔓 Decrypted field: contactEmail
+2026-03-13 23:56:35,019 - crypto_utils - DEBUG - 🔓 Decrypted field: contactNumber
+2026-03-13 23:56:35,020 - crypto_utils - DEBUG - 🔓 Decrypted field: location
+2026-03-13 23:56:35,020 - crypto_utils - DEBUG - 🔓 Decrypted field: contactEmail
+2026-03-13 23:56:35,020 - crypto_utils - DEBUG - 🔓 Decrypted field: contactNumber
+2026-03-13 23:56:35,022 - crypto_utils - DEBUG - 🔓 Decrypted field: location
+2026-03-13 23:56:35,022 - crypto_utils - DEBUG - 🔓 Decrypted field: contactEmail
+2026-03-13 23:56:35,022 - crypto_utils - DEBUG - 🔓 Decrypted field: contactNumber
+2026-03-13 23:56:35,025 - routers.ticker - INFO - ✅ Generated 5 ticker items for admin
+2026-03-13 23:56:35,026 - main - INFO - ✅ GET /api/ticker/items - Status: 200 - Duration: 0.033s
+2026-03-13 23:56:35,035 - routes - INFO - ✅ Found 0 critical (blocking) + 0 warning chats for admin
+2026-03-13 23:56:35,035 - main - INFO - ✅ GET /api/users/messages/unattended - Status: 200 - Duration: 0.043s
+2026-03-13 23:56:42,738 - unified_scheduler - DEBUG - 📋 Found 4 dynamic job(s) ready to run
+2026-03-13 23:56:42,738 - unified_scheduler - INFO - ▶️ Executing dynamic job: Email Notifications
+2026-03-13 23:56:42,738 - services.job_executor - INFO - ▶️ Executing job: Email Notifications (template: email_notifier)
+2026-03-13 23:56:42,741 - services.job_executor - DEBUG - Created execution record: 69b506aa4699a4f32e131e85
+2026-03-13 23:56:42,741 - job_templates.base - INFO - [Job: Email Notifications] Starting job execution: Email Notifications
+2026-03-13 23:56:42,742 - job_templates.base - INFO - [Job: Email Notifications] 📧 Email Provider: RESEND
+2026-03-13 23:56:42,743 - job_templates.base - INFO - [Job: Email Notifications] Fetching pending email notifications (limit: 100)
+2026-03-13 23:56:42,744 - job_templates.base - INFO - [Job: Email Notifications] Job execution completed: success
+2026-03-13 23:56:42,746 - services.job_executor - DEBUG - Updated execution record: 69b506aa4699a4f32e131e85
+2026-03-13 23:56:42,747 - services.job_registry - DEBUG - Updated job Email Notifications - Next run: 2026-03-14 06:57:42.746708
+2026-03-13 23:56:42,747 - services.job_executor - INFO - ✅ Job completed: Email Notifications - success
+2026-03-13 23:56:42,747 - services.job_registry - DEBUG - Updated job Email Notifications - Next run: 2026-03-14 06:57:42.747565
+2026-03-13 23:56:42,747 - unified_scheduler - INFO - ▶️ Executing dynamic job: Database Cleanup
+2026-03-13 23:56:42,747 - services.job_executor - INFO - ▶️ Executing job: Database Cleanup (template: database_cleanup)
+2026-03-13 23:56:42,748 - services.job_executor - DEBUG - Created execution record: 69b506aa4699a4f32e131e86
+2026-03-13 23:56:42,748 - job_templates.base - INFO - [Job: Database Cleanup] Starting job execution: Database Cleanup
+2026-03-13 23:56:42,748 - job_templates.base - INFO - [Job: Database Cleanup] 🧹 Starting multi-collection database cleanup
+2026-03-13 23:56:42,748 - job_templates.base - INFO - [Job: Database Cleanup] 📋 Targets: 11 collections
+2026-03-13 23:56:42,748 - job_templates.base - INFO - [Job: Database Cleanup] 🗑️  LIVE DELETION MODE
+2026-03-13 23:56:42,748 - job_templates.base - INFO - [Job: Database Cleanup] ============================================================
+2026-03-13 23:56:42,748 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: sessions
+2026-03-13 23:56:42,748 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 1 days
+2026-03-13 23:56:42,748 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: created_at
+2026-03-13 23:56:42,749 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ sessions: No old records found
+2026-03-13 23:56:42,749 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: logs
+2026-03-13 23:56:42,749 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 1 days
+2026-03-13 23:56:42,749 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: created_at
+2026-03-13 23:56:42,750 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ logs: No old records found
+2026-03-13 23:56:42,750 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: activity_logs
+2026-03-13 23:56:42,750 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 1 days
+2026-03-13 23:56:42,750 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: timestamp
+2026-03-13 23:56:42,750 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ activity_logs: No old records found
+2026-03-13 23:56:42,750 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: job_executions
+2026-03-13 23:56:42,750 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 1 days
+2026-03-13 23:56:42,750 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: started_at
+2026-03-13 23:56:42,771 - job_templates.base - INFO - [Job: Database Cleanup]    ✅ job_executions: Deleted 4 of 4 old records
+2026-03-13 23:56:42,771 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: notifications
+2026-03-13 23:56:42,771 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 1 days
+2026-03-13 23:56:42,771 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: createdAt
+2026-03-13 23:56:42,771 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ notifications: No old records found
+2026-03-13 23:56:42,771 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: favorites
+2026-03-13 23:56:42,771 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 45 days
+2026-03-13 23:56:42,771 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: createdAt
+2026-03-13 23:56:42,772 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ favorites: No old records found
+2026-03-13 23:56:42,772 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: shortlists
+2026-03-13 23:56:42,772 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 45 days
+2026-03-13 23:56:42,772 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: createdAt
+2026-03-13 23:56:42,773 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ shortlists: No old records found
+2026-03-13 23:56:42,773 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: audit_logs
+2026-03-13 23:56:42,773 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 30 days
+2026-03-13 23:56:42,773 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: timestamp
+2026-03-13 23:56:42,773 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ audit_logs: No old records found
+2026-03-13 23:56:42,773 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: messages
+2026-03-13 23:56:42,773 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 120 days
+2026-03-13 23:56:42,773 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: createdAt
+2026-03-13 23:56:42,774 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ messages: No old records found
+2026-03-13 23:56:42,774 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: conversation_status
+2026-03-13 23:56:42,774 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 120 days
+2026-03-13 23:56:42,774 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: createdAt
+2026-03-13 23:56:42,775 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ conversation_status: No old records found
+2026-03-13 23:56:42,775 - job_templates.base - INFO - [Job: Database Cleanup] 
+📁 Processing: blocked_message_attempts
+2026-03-13 23:56:42,775 - job_templates.base - INFO - [Job: Database Cleanup]    ⏰ Retention: 120 days
+2026-03-13 23:56:42,775 - job_templates.base - INFO - [Job: Database Cleanup]    📅 Date field: attemptedAt
+2026-03-13 23:56:42,776 - job_templates.base - INFO - [Job: Database Cleanup]    ✨ blocked_message_attempts: No old records found
+2026-03-13 23:56:42,776 - job_templates.base - INFO - [Job: Database Cleanup] ============================================================
+2026-03-13 23:56:42,776 - job_templates.base - INFO - [Job: Database Cleanup] 
+📊 SUMMARY:
+2026-03-13 23:56:42,776 - job_templates.base - INFO - [Job: Database Cleanup]    Collections processed: 11
+2026-03-13 23:56:42,776 - job_templates.base - INFO - [Job: Database Cleanup]    Total old records found: 4
+2026-03-13 23:56:42,776 - job_templates.base - INFO - [Job: Database Cleanup]    Total deleted: 4
+2026-03-13 23:56:42,776 - job_templates.base - INFO - [Job: Database Cleanup] Job execution completed: success
+2026-03-13 23:56:42,777 - services.job_executor - DEBUG - Updated execution record: 69b506aa4699a4f32e131e86
+2026-03-13 23:56:42,777 - services.job_registry - DEBUG - Updated job Database Cleanup - Next run: 2026-03-14 06:57:42.777503
+2026-03-13 23:56:42,777 - services.job_executor - INFO - ✅ Job completed: Database Cleanup - success
+2026-03-13 23:56:42,778 - services.job_registry - DEBUG - Updated job Database Cleanup - Next run: 2026-03-14 06:57:42.778364
+2026-03-13 23:56:42,778 - unified_scheduler - INFO - ▶️ Executing dynamic job: PII Data Cleanup
+2026-03-13 23:56:42,778 - services.job_executor - INFO - ▶️ Executing job: PII Data Cleanup (template: database_cleanup)
+2026-03-13 23:56:42,778 - services.job_executor - DEBUG - Created execution record: 69b506aa4699a4f32e131e87
+2026-03-13 23:56:42,778 - job_templates.base - INFO - [Job: PII Data Cleanup] Starting job execution: PII Data Cleanup
+2026-03-13 23:56:42,778 - job_templates.base - INFO - [Job: PII Data Cleanup] 🧹 Starting multi-collection database cleanup
+2026-03-13 23:56:42,779 - job_templates.base - INFO - [Job: PII Data Cleanup] 📋 Targets: 3 collections
+2026-03-13 23:56:42,779 - job_templates.base - INFO - [Job: PII Data Cleanup] 🗑️  LIVE DELETION MODE
+2026-03-13 23:56:42,779 - job_templates.base - INFO - [Job: PII Data Cleanup] ============================================================
+2026-03-13 23:56:42,779 - job_templates.base - INFO - [Job: PII Data Cleanup] 
+📁 Processing: pii_requests
+2026-03-13 23:56:42,779 - job_templates.base - INFO - [Job: PII Data Cleanup]    ⏰ Retention: 7 days
+2026-03-13 23:56:42,779 - job_templates.base - INFO - [Job: PII Data Cleanup]    📅 Date field: requestedAt
+2026-03-13 23:56:42,779 - job_templates.base - INFO - [Job: PII Data Cleanup]    ✨ pii_requests: No old records found
+2026-03-13 23:56:42,779 - job_templates.base - INFO - [Job: PII Data Cleanup] 
+📁 Processing: pii_requests
+2026-03-13 23:56:42,779 - job_templates.base - INFO - [Job: PII Data Cleanup]    🗑️  Delete ALL with status: ['rejected', 'revoked', 'cancelled']
+2026-03-13 23:56:42,779 - job_templates.base - INFO - [Job: PII Data Cleanup]    📅 Date field: requestedAt
+2026-03-13 23:56:42,780 - job_templates.base - INFO - [Job: PII Data Cleanup]    ✨ pii_requests: No old records found
+2026-03-13 23:56:42,780 - job_templates.base - INFO - [Job: PII Data Cleanup] 
+📁 Processing: pii_access
+2026-03-13 23:56:42,780 - job_templates.base - INFO - [Job: PII Data Cleanup]    ⏰ Retention: 10 days
+2026-03-13 23:56:42,780 - job_templates.base - INFO - [Job: PII Data Cleanup]    📅 Date field: grantedAt
+2026-03-13 23:56:42,780 - job_templates.base - INFO - [Job: PII Data Cleanup]    ✨ pii_access: No old records found
+2026-03-13 23:56:42,780 - job_templates.base - INFO - [Job: PII Data Cleanup] ============================================================
+2026-03-13 23:56:42,780 - job_templates.base - INFO - [Job: PII Data Cleanup] 
+📊 SUMMARY:
+2026-03-13 23:56:42,780 - job_templates.base - INFO - [Job: PII Data Cleanup]    Collections processed: 3
+2026-03-13 23:56:42,780 - job_templates.base - INFO - [Job: PII Data Cleanup]    Total old records found: 0
+2026-03-13 23:56:42,780 - job_templates.base - INFO - [Job: PII Data Cleanup]    Total deleted: 0
+2026-03-13 23:56:42,780 - job_templates.base - INFO - [Job: PII Data Cleanup] Job execution completed: success
+2026-03-13 23:56:42,781 - services.job_executor - DEBUG - Updated execution record: 69b506aa4699a4f32e131e87
+2026-03-13 23:56:42,781 - services.job_registry - DEBUG - Updated job PII Data Cleanup - Next run: 2026-03-14 06:57:42.781337
+2026-03-13 23:56:42,781 - services.job_executor - INFO - ✅ Job completed: PII Data Cleanup - success
+2026-03-13 23:56:42,782 - services.job_registry - DEBUG - Updated job PII Data Cleanup - Next run: 2026-03-14 06:57:42.782282
+2026-03-13 23:56:42,782 - unified_scheduler - INFO - ▶️ Executing dynamic job: PII Expiry Notifier
+2026-03-13 23:56:42,782 - services.job_executor - INFO - ▶️ Executing job: PII Expiry Notifier (template: pii_expiry_notifier)
+2026-03-13 23:56:42,783 - services.job_executor - DEBUG - Created execution record: 69b506aa4699a4f32e131e88
+2026-03-13 23:56:42,783 - job_templates.base - INFO - [Job: PII Expiry Notifier] Starting job execution: PII Expiry Notifier
+2026-03-13 23:56:42,783 - job_templates.base - INFO - [Job: PII Expiry Notifier] Checking for PII access expiring between 2026-03-21 and 2026-03-22
+2026-03-13 23:56:42,784 - job_templates.base - INFO - [Job: PII Expiry Notifier] Found 0 PII access records expiring soon
+2026-03-13 23:56:42,784 - job_templates.base - INFO - [Job: PII Expiry Notifier] Job execution completed: success
+2026-03-13 23:56:42,784 - services.job_executor - DEBUG - Updated execution record: 69b506aa4699a4f32e131e88
+2026-03-13 23:56:42,785 - services.job_registry - DEBUG - Updated job PII Expiry Notifier - Next run: 2026-03-14 06:57:54.784878
+2026-03-13 23:56:42,785 - services.job_executor - INFO - ✅ Job completed: PII Expiry Notifier - success
+2026-03-13 23:56:42,785 - services.job_registry - DEBUG - Updated job PII Expiry Notifier - Next run: 2026-03-14 06:57:54.785567
+2026-03-13 23:57:04,812 - main - INFO - 📨 Incoming GET request to /api/users/messages/unattended from origin: http://localhost:3000
+2026-03-13 23:57:04,815 - main - DEBUG - Request headers: {'host': 'localhost:8000', 'connection': 'keep-alive', 'sec-ch-ua-platform': '"macOS"', 'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbXSwiZXhwIjoxNzczNDczMTM1LCJpYXQiOjE3NzM0NzEzMzUsInR5cGUiOiJhY2Nlc3MifQ.JeQir-B4EumzSqXEx4SpJ82NB0HkmS_SVEBGtIXcr6A', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', 'accept': 'application/json, text/plain, */*', 'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"', 'dnt': '1', 'sec-ch-ua-mobile': '?0', 'origin': 'http://localhost:3000', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:3000/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9'}
+2026-03-13 23:57:04,828 - routes - INFO - 📬 Getting unattended chats for admin
+2026-03-13 23:57:04,845 - routes - INFO - ✅ Found 0 critical (blocking) + 0 warning chats for admin
+2026-03-13 23:57:04,846 - main - INFO - ✅ GET /api/users/messages/unattended - Status: 200 - Duration: 0.034s
+2026-03-13 23:57:34,810 - main - INFO - 📨 Incoming GET request to /api/users/messages/unattended from origin: http://localhost:3000
+2026-03-13 23:57:34,811 - main - DEBUG - Request headers: {'host': 'localhost:8000', 'connection': 'keep-alive', 'sec-ch-ua-platform': '"macOS"', 'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbXSwiZXhwIjoxNzczNDczMTM1LCJpYXQiOjE3NzM0NzEzMzUsInR5cGUiOiJhY2Nlc3MifQ.JeQir-B4EumzSqXEx4SpJ82NB0HkmS_SVEBGtIXcr6A', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', 'accept': 'application/json, text/plain, */*', 'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"', 'dnt': '1', 'sec-ch-ua-mobile': '?0', 'origin': 'http://localhost:3000', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:3000/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9'}
+2026-03-13 23:57:34,812 - main - INFO - 📨 Incoming GET request to /api/ticker/items from origin: http://localhost:3000
+2026-03-13 23:57:34,812 - main - DEBUG - Request headers: {'host': 'localhost:8000', 'connection': 'keep-alive', 'sec-ch-ua-platform': '"macOS"', 'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbXSwiZXhwIjoxNzczNDczMTM1LCJpYXQiOjE3NzM0NzEzMzUsInR5cGUiOiJhY2Nlc3MifQ.JeQir-B4EumzSqXEx4SpJ82NB0HkmS_SVEBGtIXcr6A', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', 'accept': 'application/json, text/plain, */*', 'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"', 'dnt': '1', 'sec-ch-ua-mobile': '?0', 'origin': 'http://localhost:3000', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:3000/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9'}
+2026-03-13 23:57:34,816 - main - INFO - 📨 Incoming OPTIONS request to /api/admin/pending-counts from origin: http://localhost:3000
+2026-03-13 23:57:34,816 - main - INFO - 🔀 CORS preflight request from http://localhost:3000
+2026-03-13 23:57:34,816 - main - DEBUG - Request headers: {'host': 'localhost:8000', 'connection': 'keep-alive', 'accept': '*/*', 'access-control-request-method': 'GET', 'access-control-request-headers': 'authorization', 'origin': 'http://localhost:3000', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:3000/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9'}
+2026-03-13 23:57:34,819 - main - INFO - ✅ OPTIONS /api/admin/pending-counts - Status: 200 - Duration: 0.004s
+2026-03-13 23:57:34,820 - routes - INFO - 📬 Getting unattended chats for admin
+2026-03-13 23:57:34,823 - main - INFO - 📨 Incoming GET request to /api/admin/pending-counts from origin: http://localhost:3000
+2026-03-13 23:57:34,823 - main - DEBUG - Request headers: {'host': 'localhost:8000', 'connection': 'keep-alive', 'sec-ch-ua-platform': '"macOS"', 'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbXSwiZXhwIjoxNzczNDczMTM1LCJpYXQiOjE3NzM0NzEzMzUsInR5cGUiOiJhY2Nlc3MifQ.JeQir-B4EumzSqXEx4SpJ82NB0HkmS_SVEBGtIXcr6A', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', 'accept': 'application/json, text/plain, */*', 'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"', 'dnt': '1', 'sec-ch-ua-mobile': '?0', 'origin': 'http://localhost:3000', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:3000/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9'}
+2026-03-13 23:57:34,827 - crypto_utils - DEBUG - 🔓 Decrypted field: location
+2026-03-13 23:57:34,827 - crypto_utils - DEBUG - 🔓 Decrypted field: contactEmail
+2026-03-13 23:57:34,827 - crypto_utils - DEBUG - 🔓 Decrypted field: contactNumber
+2026-03-13 23:57:34,827 - crypto_utils - DEBUG - 🔓 Decrypted field: location
+2026-03-13 23:57:34,828 - crypto_utils - DEBUG - 🔓 Decrypted field: contactEmail
+2026-03-13 23:57:34,828 - crypto_utils - DEBUG - 🔓 Decrypted field: contactNumber
+2026-03-13 23:57:34,828 - crypto_utils - DEBUG - 🔓 Decrypted field: location
+2026-03-13 23:57:34,828 - crypto_utils - DEBUG - 🔓 Decrypted field: contactEmail
+2026-03-13 23:57:34,829 - crypto_utils - DEBUG - 🔓 Decrypted field: contactNumber
+2026-03-13 23:57:34,829 - main - INFO - ✅ GET /api/admin/pending-counts - Status: 200 - Duration: 0.006s
+2026-03-13 23:57:34,829 - crypto_utils - DEBUG - 🔓 Decrypted field: location
+2026-03-13 23:57:34,829 - crypto_utils - DEBUG - 🔓 Decrypted field: contactEmail
+2026-03-13 23:57:34,830 - crypto_utils - DEBUG - 🔓 Decrypted field: contactNumber
+2026-03-13 23:57:34,831 - crypto_utils - DEBUG - 🔓 Decrypted field: location
+2026-03-13 23:57:34,831 - crypto_utils - DEBUG - 🔓 Decrypted field: contactEmail
+2026-03-13 23:57:34,831 - crypto_utils - DEBUG - 🔓 Decrypted field: contactNumber
+2026-03-13 23:57:34,833 - routers.ticker - INFO - ✅ Generated 5 ticker items for admin
+2026-03-13 23:57:34,833 - main - INFO - ✅ GET /api/ticker/items - Status: 200 - Duration: 0.021s
+2026-03-13 23:57:34,841 - routes - INFO - ✅ Found 0 critical (blocking) + 0 warning chats for admin
+2026-03-13 23:57:34,841 - main - INFO - ✅ GET /api/users/messages/unattended - Status: 200 - Duration: 0.031s
