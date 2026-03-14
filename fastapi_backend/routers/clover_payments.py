@@ -25,6 +25,13 @@ class CloverCheckoutRequest(BaseModel):
     description: Optional[str] = "Platform Contribution"
 
 
+class CloverChargeRequest(BaseModel):
+    source: str  # clv_ token from clover.createToken()
+    amount: str  # Dollar amount as string, e.g. "5.00"
+    description: Optional[str] = "Platform Contribution"
+    recurring: Optional[bool] = False  # Monthly recurring flag
+
+
 @router.get("/status")
 async def get_clover_status():
     """Check if Clover is configured and available."""
@@ -32,6 +39,165 @@ async def get_clover_status():
         "configured": clover_service.is_configured(),
         "environment": clover_service.environment if clover_service.is_configured() else None
     }
+
+
+@router.get("/sdk-config")
+async def get_clover_sdk_config(
+    current_user: dict = Depends(get_current_user),
+):
+    """Return Clover public key and SDK URL for frontend iframe integration."""
+    if not clover_service.is_configured():
+        raise HTTPException(status_code=503, detail="Clover payments not configured")
+    return clover_service.get_public_config()
+
+
+@router.post("/charge")
+async def create_charge(
+    request: CloverChargeRequest,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database),
+):
+    """
+    Charge a card using a Clover token from the iframe SDK.
+    Called after clover.createToken() on the frontend.
+    """
+    if not clover_service.is_configured():
+        raise HTTPException(status_code=503, detail="Clover payments not configured")
+    
+    username = current_user["username"]
+    user = await db.users.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Parse amount
+    try:
+        amount_float = float(request.amount)
+        if amount_float < 1:
+            raise ValueError("Minimum amount is $1")
+        amount_cents = int(round(amount_float * 100))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid amount: {e}")
+    
+    # Get user email for receipt
+    user_email = user.get("email") or user.get("contactEmail")
+    if user_email and user_email.startswith("gAAAAA"):
+        try:
+            from crypto_utils import get_encryptor
+            user_email = get_encryptor().decrypt(user_email)
+        except Exception:
+            user_email = None
+    
+    # Create charge via Clover API
+    result = await clover_service.create_charge(
+        source_token=request.source,
+        amount_cents=amount_cents,
+        description=request.description or f"Contribution - ${amount_float:.2f}",
+        customer_email=user_email,
+    )
+    
+    if result["success"]:
+        now = datetime.utcnow()
+        is_recurring = request.recurring or False
+        payment_type = "contribution_recurring" if is_recurring else "contribution_one_time"
+        
+        # Log completed payment (match PayPal field names so Contribution Management finds it)
+        payment_record = {
+            "username": username,
+            "amount": amount_float,
+            "paymentType": payment_type,
+            "paymentProvider": "clover",
+            "status": "completed",
+            "cloverChargeId": result["charge_id"],
+            "description": request.description or f"Clover Card payment - ${amount_float:.2f}",
+            "createdAt": now,
+            "updatedAt": now,
+        }
+        await db.payments.insert_one(payment_record)
+        
+        # If recurring, create a Clover customer (card on file) for future charges
+        if is_recurring:
+            from dateutil.relativedelta import relativedelta
+            next_payment = now + relativedelta(months=1)
+            
+            # Create Clover customer with stored card
+            first_name = user.get("firstName", "")
+            last_name = user.get("lastName", "")
+            cust_result = await clover_service.create_customer(
+                source_token=request.source,
+                email=user_email,
+                first_name=first_name,
+                last_name=last_name,
+            )
+            
+            clover_customer_id = None
+            if cust_result.get("success"):
+                clover_customer_id = cust_result["customer_id"]
+                logger.info(f"Clover customer created for recurring: {clover_customer_id}")
+            else:
+                logger.warning(f"Failed to create Clover customer for {username}: {cust_result.get('error')}. Recurring will not auto-charge.")
+            
+            recurring_doc = {
+                "username": username,
+                "amount": amount_float,
+                "currency": "USD",
+                "recurring_days": 30,
+                "interval": "monthly",
+                "payment_method": "clover",
+                "clover_customer_id": clover_customer_id,
+                "status": "active" if clover_customer_id else "pending_card",
+                "last_paid_date": now,
+                "next_payment_date": next_payment,
+                "total_contributed": amount_float,
+                "payment_count": 1,
+                "failure_count": 0,
+                "created_at": now,
+                "updated_at": now,
+            }
+            await db.recurring_contributions.insert_one(recurring_doc)
+            logger.info(f"Clover recurring contribution created for {username}: ${amount_float:.2f}/month (customer: {clover_customer_id})")
+        
+        # Update user contribution records
+        await db.users.update_one(
+            {"username": username},
+            {
+                "$set": {
+                    "contributions.lastContributionDate": now,
+                },
+                "$inc": {
+                    "contributions.totalContributed": amount_float
+                }
+            }
+        )
+        
+        # Send thank you email
+        try:
+            from routers.contribution_routes import send_contribution_thank_you_email
+            ptype = "monthly" if is_recurring else "one-time"
+            email_sent = await send_contribution_thank_you_email(db, username, amount_float, ptype, "Clover Card")
+            if email_sent:
+                await db.payments.update_one(
+                    {"_id": payment_record["_id"]},
+                    {"$set": {"thankYouEmailSentAt": datetime.utcnow()}}
+                )
+        except Exception as e:
+            logger.warning(f"Failed to send Clover card thank-you email: {e}")
+        
+        recur_label = " (recurring monthly)" if is_recurring else ""
+        logger.info(f"Clover card charge successful for {username}: ${request.amount}{recur_label} (charge: {result['charge_id']})")
+        
+        return {
+            "success": True,
+            "charge_id": result["charge_id"],
+            "amount": request.amount,
+            "recurring": is_recurring,
+            "message": f"Payment successful! {'Monthly recurring set up.' if is_recurring else 'Thank you for your contribution.'}"
+        }
+    else:
+        logger.error(f"Clover card charge failed for {username}: {result.get('error')}")
+        raise HTTPException(
+            status_code=400,
+            detail=result.get("error", "Card charge failed")
+        )
 
 
 @router.post("/create-checkout")

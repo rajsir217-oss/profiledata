@@ -17,7 +17,12 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const paypalInitialized = useRef(false);
   const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'paypal', 'venmo-qr', 'paypal-qr', 'clover'
   const [cloverLoading, setCloverLoading] = useState(false);
-  const [cloverCheckoutUrl, setCloverCheckoutUrl] = useState(null);
+  const [cloverReady, setCloverReady] = useState(false);
+  const [cloverConfig, setCloverConfig] = useState(null);
+  const cloverInstanceRef = useRef(null);
+  const cloverMountedRef = useRef(false);
+  const [cloverSuccess, setCloverSuccess] = useState(false);
+  const [cloverRecurring, setCloverRecurring] = useState(false);
 
   // Use amounts from config and always ensure $50 is included
   const baseAmounts = contributionConfig?.amounts || [10, 15, 25];
@@ -245,6 +250,136 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, [isOpen, paypalFailed, loadPayPalScript, renderPayPalButtons]);
 
+  // Initialize Clover SDK when Card tab is selected
+  useEffect(() => {
+    if (!isOpen || paymentMethod !== 'clover') return;
+    if (cloverMountedRef.current) return;
+
+    const initClover = async () => {
+      try {
+        // Fetch SDK config from backend
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${getBackendUrl()}/api/clover/sdk-config`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const config = await res.json();
+        if (!config.public_key) {
+          setError('Clover card payments not available.');
+          return;
+        }
+        setCloverConfig(config);
+
+        // Load Clover SDK script if not already loaded
+        if (!window.Clover) {
+          await new Promise((resolve, reject) => {
+            const existing = document.querySelector(`script[src="${config.sdk_url}"]`);
+            if (existing) { resolve(); return; }
+            const script = document.createElement('script');
+            script.src = config.sdk_url;
+            script.async = true;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Failed to load Clover SDK'));
+            document.head.appendChild(script);
+          });
+        }
+
+        // Initialize Clover instance
+        const clover = new window.Clover(config.public_key, { merchantId: config.merchant_id });
+        cloverInstanceRef.current = clover;
+        const elements = clover.elements();
+
+        // Mount card elements into DOM containers
+        const styles = {
+          body: { fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontSize: '14px' },
+          input: { fontSize: '15px', padding: '10px 8px' }
+        };
+        const cardNumber = elements.create('CARD_NUMBER', styles);
+        const cardDate = elements.create('CARD_DATE', styles);
+        const cardCvv = elements.create('CARD_CVV', styles);
+        const cardPostalCode = elements.create('CARD_POSTAL_CODE', styles);
+
+        // Small delay to ensure DOM containers are rendered
+        setTimeout(() => {
+          try {
+            cardNumber.mount('#clover-card-number');
+            cardDate.mount('#clover-card-date');
+            cardCvv.mount('#clover-card-cvv');
+            cardPostalCode.mount('#clover-card-zip');
+            cloverMountedRef.current = true;
+            setCloverReady(true);
+          } catch (mountErr) {
+            setError('Failed to mount card form. Please try again.');
+          }
+        }, 300);
+      } catch (err) {
+        setError('Failed to initialize card payment form.');
+      }
+    };
+    initClover();
+
+    return () => {
+      cloverMountedRef.current = false;
+      setCloverReady(false);
+    };
+  }, [isOpen, paymentMethod]);
+
+  // Handle Clover card payment submission
+  const handleCloverPay = useCallback(async () => {
+    if (!cloverInstanceRef.current) return;
+    const amount = getAmount();
+    if (!amount || amount < 1) {
+      setError('Please select a valid amount (minimum $1)');
+      return;
+    }
+    setCloverLoading(true);
+    setError('');
+    try {
+      const result = await cloverInstanceRef.current.createToken();
+      if (result.errors) {
+        const errMsgs = Object.values(result.errors).map(e => typeof e === 'string' ? e : (e?.message || JSON.stringify(e)));
+        setError(errMsgs.join(', '));
+        setCloverLoading(false);
+        return;
+      }
+      const sourceToken = result.token;
+      logActivity('proceed_to_payment', amount, 'clover-card');
+
+      // Send token to backend to create charge
+      const authToken = localStorage.getItem('token');
+      const chargeRes = await fetch(`${getBackendUrl()}/api/clover/charge`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          source: sourceToken,
+          amount: amount.toFixed(2),
+          description: `Contribution - $${amount.toFixed(2)}`,
+          recurring: cloverRecurring
+        })
+      });
+      const chargeData = await chargeRes.json();
+      if (chargeData.success) {
+        setCloverSuccess(true);
+        if (toastService) {
+          const recurMsg = cloverRecurring ? ' (monthly recurring)' : '';
+          toastService.success(`Payment of $${amount.toFixed(2)}${recurMsg} successful! Thank you!`);
+        }
+        setTimeout(() => onClose(), 2500);
+      } else {
+        const detail = chargeData.detail;
+        const msg = typeof detail === 'string' ? detail
+          : Array.isArray(detail) ? detail.map(d => d.msg || JSON.stringify(d)).join(', ')
+          : (detail?.msg || 'Card charge failed. Please try again.');
+        setError(msg);
+      }
+    } catch (err) {
+      setError('Failed to process card payment. Please try again.');
+    } finally {
+      setCloverLoading(false);
+    }
+  }, [getAmount, logActivity, onClose, cloverRecurring]);
 
   // Handle dismiss
   const handleDismiss = () => {
@@ -447,74 +582,60 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             </div>
           )}
 
-          {/* Clover Hosted Checkout */}
+          {/* Clover Card Payment (iframe SDK) */}
           {paymentMethod === 'clover' && (
             <div className="clover-checkout-section">
-              {cloverCheckoutUrl ? (
-                <div className="clover-iframe-container">
-                  <div className="clover-iframe-header">
-                    <button
-                      className="clover-back-btn"
-                      onClick={() => setCloverCheckoutUrl(null)}
-                    >
-                      ← Back
-                    </button>
-                    <span className="clover-iframe-title">Secure Card Payment</span>
-                  </div>
-                  <iframe
-                    src={cloverCheckoutUrl}
-                    title="Clover Checkout"
-                    className="clover-checkout-iframe"
-                    allow="payment"
-                  />
+              {cloverSuccess ? (
+                <div className="clover-success-msg">
+                  <span className="clover-success-icon">✓</span>
+                  <p>Payment successful! Thank you for your contribution.</p>
                 </div>
               ) : (
                 <>
                   <div className="clover-info">
-                    <p>Pay securely with credit or debit card via Clover.</p>
+                    <p>Pay securely with credit or debit card.</p>
+                  </div>
+                  <div className="clover-card-form">
+                    <div className="clover-field">
+                      <label className="clover-label">Card Number</label>
+                      <div id="clover-card-number" className="clover-input-container"></div>
+                    </div>
+                    <div className="clover-field-row">
+                      <div className="clover-field clover-field-half">
+                        <label className="clover-label">Expiry</label>
+                        <div id="clover-card-date" className="clover-input-container"></div>
+                      </div>
+                      <div className="clover-field clover-field-half">
+                        <label className="clover-label">CVV</label>
+                        <div id="clover-card-cvv" className="clover-input-container"></div>
+                      </div>
+                    </div>
+                    <div className="clover-field">
+                      <label className="clover-label">ZIP Code</label>
+                      <div id="clover-card-zip" className="clover-input-container"></div>
+                    </div>
+                  </div>
+                  <div
+                    className={`clover-recurring-toggle ${cloverRecurring ? 'active' : ''}`}
+                    onClick={() => setCloverRecurring(prev => !prev)}
+                  >
+                    <div className={`clover-recurring-switch ${cloverRecurring ? 'on' : ''}`} />
+                    <div className="clover-recurring-label">
+                      <span>Monthly recurring</span>
+                      <span>{cloverRecurring ? `$${getAmount().toFixed(2)}/month auto-charge` : 'One-time payment'}</span>
+                    </div>
                   </div>
                   <button
                     className="contribution-proceed-btn clover-pay-btn"
-                    onClick={async () => {
-                      const amount = getAmount();
-                      if (!amount || amount < 1) {
-                        setError('Please select a valid amount (minimum $1)');
-                        return;
-                      }
-                      setCloverLoading(true);
-                      setError('');
-                      try {
-                        const token = localStorage.getItem('token');
-                        const response = await fetch(`${getBackendUrl()}/api/clover/create-checkout`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
-                          body: JSON.stringify({
-                            amount: amount.toFixed(2),
-                            description: `Contribution - $${amount.toFixed(2)}`
-                          })
-                        });
-                        const data = await response.json();
-                        if (data.success && data.checkout_url) {
-                          logActivity('proceed_to_payment', amount, 'clover');
-                          setCloverCheckoutUrl(data.checkout_url);
-                        } else {
-                          setError(data.detail || 'Failed to create checkout session.');
-                        }
-                      } catch (err) {
-                        setError('Failed to connect to payment service. Please try again.');
-                      } finally {
-                        setCloverLoading(false);
-                      }
-                    }}
-                    disabled={cloverLoading || loading}
+                    onClick={handleCloverPay}
+                    disabled={cloverLoading || !cloverReady || loading}
                   >
                     {cloverLoading ? (
-                      <><span className="spinner"></span> Creating checkout...</>
+                      <><span className="spinner"></span> Processing...</>
+                    ) : !cloverReady ? (
+                      <><span className="spinner"></span> Loading card form...</>
                     ) : (
-                      <>☘ Pay ${getAmount().toFixed(2)} with Card</>
+                      <>{cloverRecurring ? `Pay $${getAmount().toFixed(2)}/mo` : `Pay $${getAmount().toFixed(2)}`}</>
                     )}
                   </button>
                 </>
