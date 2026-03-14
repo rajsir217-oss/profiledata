@@ -251,6 +251,13 @@ fi
 # Get current branch
 CURRENT_BRANCH=$(git branch --show-current)
 
+print_status "Pulling latest changes from remote (branch: $CURRENT_BRANCH)..."
+if git pull --rebase origin "$CURRENT_BRANCH" 2>/dev/null; then
+    print_success "Local branch is up to date"
+else
+    print_warning "Could not pull (might be a new branch or no remote tracking)"
+fi
+
 print_status "Pushing to remote repository (branch: $CURRENT_BRANCH)..."
 
 # Push changes

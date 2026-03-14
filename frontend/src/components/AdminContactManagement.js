@@ -264,11 +264,6 @@ const AdminContactManagement = () => {
         </div>
       )}
 
-      <div className="admin-header">
-        <h1>📨 Contact Support Management</h1>
-        <p>Manage user support tickets and inquiries</p>
-      </div>
-
       {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card">
@@ -551,7 +546,7 @@ const AdminContactManagement = () => {
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Type your response here... (User will receive this via email)"
-                  rows="6"
+                  rows="1"
                   className="reply-textarea"
                 />
                 <div className="reply-actions">

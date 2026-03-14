@@ -67,21 +67,6 @@
   }
 }
 
-.admin-header {
-  margin-bottom: 16px;
-}
-
-.admin-header h1 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 4px;
-}
-
-.admin-header p {
-  font-size: 13px;
-  color: #6c757d;
-}
 
 /* Stats Grid - More compact */
 .stats-grid {
@@ -435,20 +420,20 @@
   cursor: pointer;
 }
 
-/* Ticket Info Section - Compact 2-column grid */
+/* Ticket Info Section - Compact 3-column grid */
 .ticket-info-section {
-  padding: 16px 20px;
+  padding: 8px 20px;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px 20px;
+  gap: 4px 20px;
 }
 
 .info-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 13px;
   margin: 0;
 }
@@ -704,17 +689,6 @@
     padding: 10px;
   }
 
-  .admin-header {
-    margin-bottom: 12px;
-  }
-
-  .admin-header h1 {
-    font-size: 18px;
-  }
-
-  .admin-header p {
-    font-size: 12px;
-  }
 
   /* Stats grid - horizontal scroll on mobile */
   .stats-grid {
@@ -970,13 +944,6 @@ body.theme-dark .status-bubble {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
-body.theme-dark .admin-header h1 {
-  color: #f9fafb;
-}
-
-body.theme-dark .admin-header p {
-  color: #9ca3af;
-}
 
 body.theme-dark .stat-card {
   background: #1f2937;
