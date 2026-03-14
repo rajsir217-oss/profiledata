@@ -5018,13 +5018,23 @@ async def search_users(
     skip = (page - 1) * limit
     logger.info(f"📄 Pagination: page={page}, limit={limit}, skip={skip}")
 
-    # Get user's exclusions and filter them out from search results
+    # Get user's exclusions (both directions) and filter them out from search results
     current_username = current_user.get("username")
-    exclusions = await db.exclusions.find({"userUsername": current_username}).to_list(100)
-    excluded_usernames = [exc["excludedUsername"] for exc in exclusions]
+    exclusions = await db.exclusions.find({
+        "$or": [
+            {"userUsername": current_username},
+            {"excludedUsername": current_username}
+        ]
+    }).to_list(None)
+    excluded_usernames = set()
+    for exc in exclusions:
+        if exc["userUsername"] == current_username:
+            excluded_usernames.add(exc["excludedUsername"])
+        else:
+            excluded_usernames.add(exc["userUsername"])
     
-    # Build list of usernames to exclude: self + blocked users
-    usernames_to_exclude = excluded_usernames + [current_username]
+    # Build list of usernames to exclude: self + blocked users (both directions)
+    usernames_to_exclude = list(excluded_usernames) + [current_username]
     query["username"] = {"$nin": usernames_to_exclude}
     
     # Exclude admin and moderator roles from search results (unless doing profileId lookup)
