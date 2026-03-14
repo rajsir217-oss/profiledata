@@ -40,10 +40,11 @@ async def ensure_indexes():
     await db.shortlists.create_index([("shortlistedUsername", 1)])  # To count who shortlisted THIS user
     await db.shortlists.create_index([("userUsername", 1)])  # To get user's shortlist
     
-    # 4. exclusions - critical for relationship check
+    # 4. exclusions - critical for search filtering and relationship check
     logger.info("Setting up exclusions indexes...")
     await cleanup_nulls("exclusions")
-    await db.exclusions.create_index([("username", 1)], unique=True)
+    await db.exclusions.create_index([("userUsername", 1), ("excludedUsername", 1)], unique=True)
+    await db.exclusions.create_index([("excludedUsername", 1)])
     
     # 5. profile_views - critical for KPI stats
     logger.info("Setting up profile_views indexes...")
