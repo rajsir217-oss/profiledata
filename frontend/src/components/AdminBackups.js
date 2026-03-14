@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../api';
+import { createApiInstance } from '../api';
+import { getBackendUrl } from '../config/apiConfig';
 import Toast from './Toast';
 import './AdminBackups.css';
+
+const backupApi = createApiInstance(getBackendUrl());
 
 const AdminBackups = () => {
   const [backups, setBackups] = useState([]);
@@ -20,7 +23,7 @@ const AdminBackups = () => {
   const fetchBackups = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/admin/backups');
+      const response = await backupApi.get('/api/admin/backups');
       setBackups(response.data.backups || []);
       setGcsConfigured(response.data.gcs_configured || false);
     } catch (error) {
@@ -38,7 +41,7 @@ const AdminBackups = () => {
     setTriggerLoading(true);
     showToast('Starting backup...', 'info');
     try {
-      const response = await api.post('/admin/backups/trigger');
+      const response = await backupApi.post('/api/admin/backups/trigger');
       if (response.data.success) {
         showToast(response.data.message, 'success');
         await fetchBackups();
@@ -54,7 +57,7 @@ const AdminBackups = () => {
 
   const handleDownload = async (filename) => {
     try {
-      const response = await api.get(`/admin/backups/download/${filename}`, {
+      const response = await backupApi.get(`/api/admin/backups/download/${filename}`, {
         responseType: 'blob'
       });
 
@@ -87,7 +90,7 @@ const AdminBackups = () => {
     }
     setDeleteConfirm(null);
     try {
-      await api.delete(`/admin/backups/${filename}`);
+      await backupApi.delete(`/api/admin/backups/${filename}`);
       showToast(`Deleted: ${filename}`, 'success');
       await fetchBackups();
     } catch (error) {
@@ -97,7 +100,7 @@ const AdminBackups = () => {
 
   const handleRestoreCommand = async (filename) => {
     try {
-      const response = await api.get(`/admin/backups/restore-command/${filename}`);
+      const response = await backupApi.get(`/api/admin/backups/restore-command/${filename}`);
       setRestoreCommand(response.data);
     } catch (error) {
       showToast('Failed to get restore command', 'error');
