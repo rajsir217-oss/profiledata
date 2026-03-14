@@ -1531,9 +1531,9 @@ const SearchPage2 = () => {
   // Confirm exclusion from preview modal
   const confirmExclusion = async () => {
     if (!selectedUserForExclusion) return;
+    const targetUsername = selectedUserForExclusion.username;
     try {
       setExclusionLoading(true);
-      const targetUsername = selectedUserForExclusion.username;
       await api.post(`/exclusions/${targetUsername}`);
       setExcludedUsers(prev => new Set([...prev, targetUsername]));
       
