@@ -1155,8 +1155,17 @@ const Dashboard2 = () => {
       await loadDashboardData(currentUser);
       toast.success(`Marked as not interested`);
     } catch (err) {
-      logger.error(`Failed to add to exclusions: ${err.message}`);
-      toast.error(`Failed to add to exclusions`);
+      if (err.response?.status === 409) {
+        // Already excluded — treat as success
+        setShowExclusionPreview(false);
+        setExclusionPreviewData(null);
+        setSelectedUserForExclusion(null);
+        await loadDashboardData(currentUser);
+        toast.success('Profile already hidden');
+      } else {
+        logger.error(`Failed to add to exclusions: ${err.message}`);
+        toast.error('Failed to add to exclusions');
+      }
     } finally {
       setExclusionLoading(false);
     }
