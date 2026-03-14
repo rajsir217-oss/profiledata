@@ -153,6 +153,7 @@ class Settings(BaseSettings):
     clover_environment: Optional[str] = "production"  # "sandbox" or "production"
     clover_merchant_id: Optional[str] = None
     clover_private_token: Optional[str] = None
+    clover_public_key: Optional[str] = None
     
     # Logging Configuration
     log_level: Optional[str] = "INFO"
