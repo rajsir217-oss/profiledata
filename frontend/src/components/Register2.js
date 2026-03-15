@@ -85,7 +85,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     passwordConfirm: "",  // For validation only, not sent to backend
     firstName: "",
     lastName: "",
-    contactNumber: "",
+    contactNumber: "",  // Backward compat: primary number (derived from contactNumbers[0])
+    contactNumbers: [{ number: "", label: "primary", visible: true }],  // Multi-contact support
     contactEmail: "",
     smsOptIn: true,  // SMS notifications opt-in (default: opted in)
     // Visibility settings for contact info (default: visible to members)
@@ -588,13 +589,16 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         }
         break;
 
-      case "contactNumber":
-        if (!value.trim()) {
-          error = "Contact number is required";
-        } else if (!/^\+?[\d\s\-()]{10,}$/.test(value)) {
+      case "contactNumber": {
+        // Validate primary number from contactNumbers array
+        const primaryNum = typeof value === 'string' ? value : '';
+        if (!primaryNum.trim()) {
+          error = "At least one contact number is required";
+        } else if (!/^\+?[\d\s\-()]{10,}$/.test(primaryNum)) {
           error = "Enter a valid phone number (at least 10 digits)";
         }
         break;
+      }
 
       case "contactEmail":
         if (!value.trim()) {
@@ -864,6 +868,130 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     );
   };
 
+  // ========== MULTI-CONTACT NUMBER HANDLERS ==========
+  const CONTACT_LABELS = ['primary', 'secondary', 'self', 'parent', 'spouse', 'work', 'other'];
+
+  // Normalize phone number for duplicate comparison (strip non-digits)
+  const normalizePhone = (num) => (num || '').replace(/[^\d]/g, '');
+
+  // Check for duplicate numbers across all entries, returns error map
+  const checkDuplicateNumbers = (contacts) => {
+    const errors = {};
+    contacts.forEach((entry, i) => {
+      const norm = normalizePhone(entry.number);
+      if (!norm) return;
+      const dupIdx = contacts.findIndex((other, j) => j !== i && normalizePhone(other.number) === norm);
+      if (dupIdx !== -1) {
+        errors[`contactNumber_${i}`] = 'Duplicate number — each contact must be unique';
+      }
+    });
+    return errors;
+  };
+
+  const handleContactNumberChange = (index, field, value) => {
+    setFormData(prev => {
+      const updated = [...prev.contactNumbers];
+      updated[index] = { ...updated[index], [field]: value };
+      // Sync contactNumber with primary entry for backward compat
+      const primaryEntry = updated.find(c => c.label === 'primary') || updated[0];
+      const contactNumber = primaryEntry?.number || '';
+      const contactNumberVisible = primaryEntry?.visible !== false;
+      const newData = { ...prev, contactNumbers: updated, contactNumber, contactNumberVisible };
+      // Auto-save in edit mode
+      if (isEditMode) {
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = setTimeout(() => {
+          autoSaveField('contactNumbers', JSON.stringify(updated), newData);
+          autoSaveField('contactNumber', contactNumber, newData);
+          autoSaveField('contactNumberVisible', contactNumberVisible, newData);
+        }, 1000);
+      }
+      return newData;
+    });
+    // Validate on change if touched
+    if (field === 'number') {
+      // Check format
+      let error = '';
+      if (touchedFields[`contactNumber_${index}`]) {
+        error = (!value.trim()) ? "Contact number is required" :
+          (!/^\+?[\d\s\-()]{10,}$/.test(value)) ? "Enter a valid phone number (at least 10 digits)" : "";
+      }
+      // Check duplicates across all entries (uses updated array)
+      setFormData(prev => {
+        const dupErrors = checkDuplicateNumbers(prev.contactNumbers);
+        setFieldErrors(prevErr => {
+          const cleaned = { ...prevErr };
+          // Clear old dup errors, then apply new ones + format error
+          prev.contactNumbers.forEach((_, i) => {
+            if (cleaned[`contactNumber_${i}`] === 'Duplicate number — each contact must be unique') {
+              delete cleaned[`contactNumber_${i}`];
+            }
+          });
+          return { ...cleaned, ...dupErrors, ...(error ? { [`contactNumber_${index}`]: error } : {}) };
+        });
+        return prev; // no state change, just side-effect
+      });
+    }
+  };
+
+  const handleContactNumberBlur = (index) => {
+    setTouchedFields(prev => ({ ...prev, [`contactNumber_${index}`]: true }));
+    const value = formData.contactNumbers[index]?.number || '';
+    let error = (index === 0 && !value.trim()) ? "Contact number is required" :
+      (value.trim() && !/^\+?[\d\s\-()]{10,}$/.test(value)) ? "Enter a valid phone number (at least 10 digits)" : "";
+    // Check duplicates
+    const dupErrors = checkDuplicateNumbers(formData.contactNumbers);
+    if (!error && dupErrors[`contactNumber_${index}`]) {
+      error = dupErrors[`contactNumber_${index}`];
+    }
+    setFieldErrors(prev => {
+      const cleaned = { ...prev };
+      // Refresh all dup errors
+      formData.contactNumbers.forEach((_, i) => {
+        if (cleaned[`contactNumber_${i}`] === 'Duplicate number — each contact must be unique') {
+          delete cleaned[`contactNumber_${i}`];
+        }
+      });
+      return { ...cleaned, ...dupErrors, [`contactNumber_${index}`]: error };
+    });
+  };
+
+  const addContactNumber = () => {
+    if (formData.contactNumbers.length >= 5) return; // Max 5 numbers
+    // Find first unused label
+    const usedLabels = formData.contactNumbers.map(c => c.label);
+    const nextLabel = CONTACT_LABELS.find(l => !usedLabels.includes(l)) || 'other';
+    setFormData(prev => ({
+      ...prev,
+      contactNumbers: [...prev.contactNumbers, { number: "", label: nextLabel, visible: true }]
+    }));
+  };
+
+  const removeContactNumber = (index) => {
+    if (formData.contactNumbers.length <= 1) return; // Keep at least 1
+    setFormData(prev => {
+      const updated = prev.contactNumbers.filter((_, i) => i !== index);
+      const primaryEntry = updated.find(c => c.label === 'primary') || updated[0];
+      const contactNumber = primaryEntry?.number || '';
+      const contactNumberVisible = primaryEntry?.visible !== false;
+      const newData = { ...prev, contactNumbers: updated, contactNumber, contactNumberVisible };
+      if (isEditMode) {
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = setTimeout(() => {
+          autoSaveField('contactNumbers', JSON.stringify(updated), newData);
+          autoSaveField('contactNumber', contactNumber, newData);
+        }, 1000);
+      }
+      return newData;
+    });
+    // Clear any errors for removed index
+    setFieldErrors(prev => {
+      const cleaned = { ...prev };
+      delete cleaned[`contactNumber_${index}`];
+      return cleaned;
+    });
+  };
+
   // Handle text input changes with validation
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -1122,17 +1250,51 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       }
     }
 
+    // Validate contactNumbers array - at least first entry must have a number
+    if (!formData.contactNumbers || formData.contactNumbers.length === 0 ||
+        !formData.contactNumbers[0].number || !formData.contactNumbers[0].number.trim()) {
+      setErrorMsg("❌ At least one contact number is required.");
+      setFieldErrors(prev => ({ ...prev, contactNumber_0: "Contact number is required" }));
+      setTouchedFields(prev => ({ ...prev, contactNumber_0: true }));
+      return;
+    }
+    
     // Validate all fields before submission
     const errors = {};
     let hasErrors = false;
     const errorFields = [];
 
     Object.keys(formData).forEach((key) => {
+      // Skip contactNumbers array validation here (handled above)
+      if (key === 'contactNumbers') return;
       const error = validateField(key, formData[key]);
       if (error) {
         errors[key] = error;
         hasErrors = true;
         errorFields.push(key);
+      }
+    });
+    
+    // Validate each contactNumber entry
+    formData.contactNumbers.forEach((contact, index) => {
+      if (index === 0 && (!contact.number || !contact.number.trim())) {
+        errors[`contactNumber_${index}`] = "Contact number is required";
+        hasErrors = true;
+        errorFields.push(`contactNumber_${index}`);
+      } else if (contact.number && contact.number.trim() && !/^\+?[\d\s\-()]{10,}$/.test(contact.number)) {
+        errors[`contactNumber_${index}`] = "Enter a valid phone number (at least 10 digits)";
+        hasErrors = true;
+        errorFields.push(`contactNumber_${index}`);
+      }
+    });
+    
+    // Check for duplicate numbers
+    const dupErrors = checkDuplicateNumbers(formData.contactNumbers);
+    Object.entries(dupErrors).forEach(([key, msg]) => {
+      if (!errors[key]) { // Don't override format errors
+        errors[key] = msg;
+        hasErrors = true;
+        if (!errorFields.includes(key)) errorFields.push(key);
       }
     });
 
@@ -1182,6 +1344,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       // Skip creatorInfo - will be handled separately below
       if (key === 'creatorInfo') continue;
       
+      // Skip contactNumbers - handled below (serialize as JSON)
+      if (key === 'contactNumbers') continue;
+      
       // Handle arrays and objects specially
       if (key === 'languagesSpoken') {
         data.append(key, JSON.stringify(formData[key]));
@@ -1196,6 +1361,19 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         data.append(key, formData[key].toString());
       } else {
         data.append(key, formData[key]);
+      }
+    }
+    
+    // Handle contactNumbers array - serialize as JSON and sync contactNumber
+    if (formData.contactNumbers && formData.contactNumbers.length > 0) {
+      // Filter out empty entries
+      const validNumbers = formData.contactNumbers.filter(c => c.number && c.number.trim());
+      data.append('contactNumbers', JSON.stringify(validNumbers));
+      // Sync primary contactNumber for backward compat
+      const primaryEntry = validNumbers.find(c => c.label === 'primary') || validNumbers[0];
+      if (primaryEntry) {
+        data.set('contactNumber', primaryEntry.number.trim());
+        data.set('contactNumberVisible', (primaryEntry.visible !== false).toString());
       }
     }
     
@@ -1573,13 +1751,19 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             }
             
             // Pre-fill form with invitation data
-            setFormData(prev => ({
-              ...prev,
-              firstName: invitation.name ? invitation.name.split(' ')[0] : prev.firstName,
-              lastName: invitation.name ? invitation.name.split(' ').slice(1).join(' ') : prev.lastName,
-              contactEmail: invitation.email || prev.contactEmail,
-              contactNumber: invitation.phone || prev.contactNumber
-            }));
+            setFormData(prev => {
+              const phone = invitation.phone || prev.contactNumber;
+              return {
+                ...prev,
+                firstName: invitation.name ? invitation.name.split(' ')[0] : prev.firstName,
+                lastName: invitation.name ? invitation.name.split(' ').slice(1).join(' ') : prev.lastName,
+                contactEmail: invitation.email || prev.contactEmail,
+                contactNumber: phone,
+                contactNumbers: phone
+                  ? [{ number: phone, label: 'primary', visible: true }]
+                  : prev.contactNumbers
+              };
+            });
             
             setSuccessMsg(`✨ Welcome! You're registering with an invitation from ${invitation.invitedBy}`);
           } catch (err) {
@@ -1641,6 +1825,18 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             lastName: userData.lastName || '',
             // Don't pre-fill masked values - user needs to re-enter them
             contactNumber: isMaskedPhone ? '' : (userData.contactNumber || ''),
+            // Multi-contact: load contactNumbers from server, or build from single contactNumber
+            contactNumbers: (() => {
+              if (userData.contactNumbers && Array.isArray(userData.contactNumbers) && userData.contactNumbers.length > 0) {
+                // Mask numbers if needed
+                return isMaskedPhone
+                  ? userData.contactNumbers.map(c => ({ ...c, number: '' }))
+                  : userData.contactNumbers;
+              }
+              // Backward compat: create array from single contactNumber
+              const num = isMaskedPhone ? '' : (userData.contactNumber || '');
+              return [{ number: num, label: 'primary', visible: userData.contactNumberVisible !== false }];
+            })(),
             contactEmail: isMaskedEmail ? '' : (userData.contactEmail || ''),
             smsOptIn: userData.smsOptIn || false,  // SMS opt-in preference
             birthMonth: userData.birthMonth || '',
@@ -2367,7 +2563,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         )}
 
-        {/* Custom row for contactNumber and contactEmail */}
+        {/* Custom row for contactNumbers and contactEmail */}
         {isEditMode && !formData.contactNumber && !formData.contactEmail && (
           <div className="alert alert-info info-tip-box mb-3">
             <strong>🔒 Security Note:</strong> For your privacy, contact information was hidden. 
@@ -2375,47 +2571,74 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         )}
         <div className="row mb-3">
+          {/* Multi-Contact Numbers Section */}
           <div className="col-12 mb-3">
-            <label className="form-label">Contact Number <span className="text-danger">*</span></label>
-            <div className="linkedin-url-row">
-              <input 
-                type="text" 
-                className={`form-control ${getFieldClass('contactNumber', formData.contactNumber)} ${fieldErrors.contactNumber && touchedFields.contactNumber ? 'is-invalid' : ''}`}
-                name="contactNumber" 
-                value={formData.contactNumber} 
-                onChange={handleChange}
-                onBlur={handleBlur}
-                required
-                placeholder={isEditMode && !formData.contactNumber ? "Enter your phone number" : ""}
-              />
-              {/* Visibility Checkbox for Contact Number - inline */}
-              <div className="form-check visibility-checkbox linkedin-visibility">
-                <input 
-                  type="checkbox" 
-                  className="form-check-input" 
-                  id="contactNumberVisible"
-                  name="contactNumberVisible"
-                  checked={formData.contactNumberVisible !== false}
-                  onChange={(e) => {
-                    const value = e.target.checked;
-                    setFormData(prev => ({ ...prev, contactNumberVisible: value }));
-                    if (isEditMode) {
-                      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-                      autoSaveTimerRef.current = setTimeout(() => {
-                        autoSaveField('contactNumberVisible', value, { ...formData, contactNumberVisible: value });
-                      }, 500);
-                    }
-                  }}
-                  style={{ margin: 0 }}
-                />
-                <label className="form-check-label" htmlFor="contactNumberVisible" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  👁️ Visible to members
-                </label>
-              </div>
+            <label className="form-label">
+              Contact Numbers <span className="text-danger">*</span>
+              <small className="text-muted ms-2">(at least one required)</small>
+            </label>
+            <div className="contact-numbers-list">
+              {formData.contactNumbers.map((contact, index) => (
+                <div key={index} className="contact-number-row">
+                  <div className="contact-number-fields">
+                    <select
+                      className="form-control contact-label-select"
+                      value={contact.label}
+                      onChange={(e) => handleContactNumberChange(index, 'label', e.target.value)}
+                    >
+                      {CONTACT_LABELS.map(label => (
+                        <option key={label} value={label}>
+                          {label.charAt(0).toUpperCase() + label.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="tel"
+                      className={`form-control contact-number-input ${fieldErrors[`contactNumber_${index}`] && touchedFields[`contactNumber_${index}`] ? 'is-invalid' : ''}`}
+                      value={contact.number}
+                      onChange={(e) => handleContactNumberChange(index, 'number', e.target.value)}
+                      onBlur={() => handleContactNumberBlur(index)}
+                      placeholder={index === 0 ? "Phone number (required)" : "Phone number"}
+                      required={index === 0}
+                    />
+                    <div className="contact-visibility-toggle" title={contact.visible ? "Visible to members" : "Hidden from members"}>
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id={`contactVisible_${index}`}
+                        checked={contact.visible !== false}
+                        onChange={(e) => handleContactNumberChange(index, 'visible', e.target.checked)}
+                      />
+                      <label className="form-check-label" htmlFor={`contactVisible_${index}`}>
+                        {contact.visible !== false ? '👁️' : '🔒'}
+                      </label>
+                    </div>
+                    {formData.contactNumbers.length > 1 && (
+                      <button
+                        type="button"
+                        className="btn-contact-remove"
+                        onClick={() => removeContactNumber(index)}
+                        title="Remove this number"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  {fieldErrors[`contactNumber_${index}`] && touchedFields[`contactNumber_${index}`] && (
+                    <div className="invalid-feedback d-block">{fieldErrors[`contactNumber_${index}`]}</div>
+                  )}
+                </div>
+              ))}
+              {formData.contactNumbers.length < 5 && (
+                <button
+                  type="button"
+                  className="btn-add-contact"
+                  onClick={addContactNumber}
+                >
+                  + Add Another Number
+                </button>
+              )}
             </div>
-            {fieldErrors.contactNumber && touchedFields.contactNumber && (
-              <div className="invalid-feedback d-block">{fieldErrors.contactNumber}</div>
-            )}
           </div>
           <div className="col-12">
             <label className="form-label">

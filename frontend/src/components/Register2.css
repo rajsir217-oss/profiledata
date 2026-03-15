@@ -380,6 +380,122 @@
   }
 }
 
+/* ========== Multi-Contact Numbers ========== */
+.contact-numbers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contact-number-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contact-number-fields {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.contact-label-select {
+  flex: 0 0 130px;
+  max-width: 130px;
+  font-size: 0.875rem;
+  padding: 6px 8px;
+  background: var(--input-bg, var(--surface-color));
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 6px);
+}
+
+.contact-number-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-visibility-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.contact-visibility-toggle .form-check-input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.contact-visibility-toggle .form-check-label {
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-contact-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--danger-light, rgba(220, 53, 69, 0.1));
+  color: var(--danger-color, #dc3545);
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.btn-contact-remove:hover {
+  background: var(--danger-color, #dc3545);
+  color: white;
+  transform: scale(1.1);
+}
+
+.btn-add-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md, 6px);
+  background: transparent;
+  color: var(--primary-color);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+  align-self: flex-start;
+}
+
+.btn-add-contact:hover {
+  background: var(--hover-background, rgba(99, 102, 241, 0.05));
+  border-color: var(--primary-color);
+}
+
+/* Mobile: Stack label and number vertically */
+@media (max-width: 576px) {
+  .contact-number-fields {
+    flex-wrap: wrap;
+  }
+
+  .contact-label-select {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .contact-number-input {
+    flex: 1;
+  }
+}
+
 /* LinkedIn URL Row - Responsive Layout */
 .linkedin-url-row {
   display: flex;

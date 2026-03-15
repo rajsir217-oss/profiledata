@@ -142,6 +142,20 @@ def mask_user_pii(user_data, requester_id=None, access_granted=False, per_field_
             any_masked = True
         else:
             masked_data['contactNumberMasked'] = False
+    
+    # ContactNumbers array - mask each number based on its own visibility or global visibility
+    if 'contactNumbers' in masked_data and masked_data['contactNumbers']:
+        if isinstance(masked_data['contactNumbers'], list):
+            masked_numbers = []
+            for entry in masked_data['contactNumbers']:
+                if isinstance(entry, dict):
+                    entry_visible = entry.get('visible', True)
+                    if (not entry_visible or not contact_number_visible) and not has_number_access:
+                        masked_entry = {**entry, 'number': mask_phone(entry.get('number', ''))}
+                        masked_numbers.append(masked_entry)
+                    else:
+                        masked_numbers.append(entry)
+            masked_data['contactNumbers'] = masked_numbers
 
     # Location - always partially mask for privacy (just city, not full address)
     if 'location' in masked_data and masked_data['location']:
