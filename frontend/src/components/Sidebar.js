@@ -246,6 +246,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/poll-management')
       });
       
+      items.push({
+        icon: '📱',
+        label: 'WhatsApp Verification',
+        subLabel: 'Group member verification',
+        action: () => navigate('/whatsapp-verification')
+      });
+      
       // === MEMBER ACQUIRE ===
       items.push({ isHeader: true, label: 'MEMBER ACQUIRE' });
       

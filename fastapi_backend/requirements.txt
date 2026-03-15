@@ -50,6 +50,9 @@ resend>=2.0.0
 # Courier (for transactional emails - backup)
 trycourier>=7.0.0
 
+# Phone number validation (for WhatsApp verification)
+phonenumbers>=9.0.0
+
 # Testing dependencies
 pytest==8.0.0
 pytest-asyncio==0.23.5

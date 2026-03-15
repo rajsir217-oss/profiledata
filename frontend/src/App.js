@@ -28,6 +28,7 @@ import PIIManagement from './components/PIIManagement';
 import Testimonials from './components/Testimonials';
 import ContactUs from './components/ContactUs';
 import AdminContactManagement from './components/AdminContactManagement';
+import WhatsAppVerification from './components/WhatsAppVerification';
 import UserManagement from './components/UserManagement';
 import ChangeAdminPassword from './components/ChangeAdminPassword';
 import RoleManagement from './components/RoleManagement';
@@ -431,6 +432,7 @@ function AppContent() {
               <Route path="/paypal-recurring-setup" element={<ProtectedRoute><PayPalRecurringSetup /></ProtectedRoute>} />
               <Route path="/paypal-recurring-return" element={<ProtectedRoute><PayPalRecurringReturn /></ProtectedRoute>} />
               <Route path="/poll-management" element={<ProtectedRoute><PollManagement /></ProtectedRoute>} />
+              <Route path="/whatsapp-verification" element={<ProtectedRoute><WhatsAppVerification /></ProtectedRoute>} />
               <Route path="/admin-reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
               {/* Legacy routes - redirect to unified page */}
               <Route path="/template-manager" element={<Navigate to="/notification-management" replace />} />
