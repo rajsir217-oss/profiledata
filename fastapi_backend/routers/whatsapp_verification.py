@@ -124,29 +124,100 @@ async def compare_whatsapp_group(
     from database import get_database
     db = get_database()
     
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
         # Read uploaded file
         content = await group_file.read()
+        content_str = content.decode('utf-8-sig', errors='replace')
         
-        # Parse CSV (assuming format: name, phone)
+        # Parse file - support CSV and plain text formats
         group_members = []
+        raw_lines = content_str.strip().splitlines()
+        logger.info(f"📱 WhatsApp compare: file={group_file.filename}, lines={len(raw_lines)}")
+        
+        parsed_as_csv = False
         if group_file.filename.endswith('.csv'):
-            content_str = content.decode('utf-8')
-            csv_reader = csv.DictReader(io.StringIO(content_str))
-            
-            for row in csv_reader:
-                # Try different column names for phone
-                phone = row.get('Phone') or row.get('phone') or row.get('Contact') or row.get('contact') or row.get('Number') or row.get('number')
-                name = row.get('Name') or row.get('name') or row.get('Member') or row.get('member')
+            try:
+                csv_reader = csv.DictReader(io.StringIO(content_str))
+                fieldnames = csv_reader.fieldnames or []
+                logger.info(f"📱 CSV columns detected: {fieldnames}")
                 
-                if phone:
+                # Try different column names for phone
+                phone_cols = ['Phone', 'phone', 'Phone Number', 'phone number', 'Contact', 'contact', 
+                              'Number', 'number', 'Mobile', 'mobile', 'Tel', 'tel', 'WhatsApp Number',
+                              'Phone number', 'PHONE', 'MOBILE', 'NUMBER']
+                name_cols = ['Public Display Name', 'Saved Name', 'Name', 'name', 'Display Name',
+                             'Member', 'member', 'display name', 'Contact Name', 'NAME', 'MEMBER']
+                
+                # Find matching column names
+                phone_col = next((c for c in phone_cols if c in fieldnames), None)
+                name_col = next((c for c in name_cols if c in fieldnames), None)
+                
+                # If no known phone column, try first column that looks like it has phone data
+                if not phone_col and fieldnames:
+                    # Read first row to check which column has phone-like data
+                    csv_reader2 = csv.DictReader(io.StringIO(content_str))
+                    for test_row in csv_reader2:
+                        for col_name, col_val in test_row.items():
+                            if col_val and any(c.isdigit() for c in col_val) and sum(c.isdigit() for c in col_val) >= 7:
+                                phone_col = col_name
+                                break
+                        break
+                
+                logger.info(f"📱 Using columns: phone={phone_col}, name={name_col}")
+                
+                # Collect all available name columns for fallback
+                all_name_cols = [c for c in name_cols if c in fieldnames]
+                
+                if phone_col:
+                    for row in csv_reader:
+                        phone = row.get(phone_col, '').strip()
+                        # Try each name column until we find a non-empty value
+                        name = 'Unknown'
+                        for nc in all_name_cols:
+                            val = (row.get(nc) or '').strip()
+                            if val and val != "'":
+                                name = val
+                                break
+                        
+                        if phone:
+                            normalized = normalize_phone_number(phone)
+                            if normalized:
+                                group_members.append({
+                                    'name': name or 'Unknown',
+                                    'phone': phone,
+                                    'normalized_phone': normalized
+                                })
+                    parsed_as_csv = True
+            except Exception as csv_err:
+                logger.warning(f"📱 CSV parsing failed: {csv_err}, falling back to line-by-line")
+        
+        # Fallback: parse as plain text (one phone number per line)
+        if not parsed_as_csv or not group_members:
+            logger.info(f"📱 Parsing as plain text, {len(raw_lines)} lines")
+            for line in raw_lines:
+                line = line.strip()
+                if not line:
+                    continue
+                # Extract phone-like content (digits, +, spaces, dashes, parens)
+                # Could be "John Doe +1234567890" or just "+1234567890" or "1234567890"
+                import re
+                phone_match = re.search(r'[\+]?[\d\s\-\(\)]{7,}', line)
+                if phone_match:
+                    phone = phone_match.group().strip()
+                    # Name is everything before the phone number
+                    name_part = line[:phone_match.start()].strip().rstrip(',;:-')
                     normalized = normalize_phone_number(phone)
                     if normalized:
                         group_members.append({
-                            'name': name or 'Unknown',
+                            'name': name_part or 'Unknown',
                             'phone': phone,
                             'normalized_phone': normalized
                         })
+        
+        logger.info(f"📱 Parsed {len(group_members)} group members from file")
         
         # Get registered users (include contactNumbers array)
         registered_users = await db.users.find(
@@ -197,6 +268,13 @@ async def compare_whatsapp_group(
                         'label': label,
                         'status': status
                     }
+        
+        logger.info(f"📱 Registered phones normalized: {len(registered_phones)} numbers from {len(registered_users)} users")
+        # Log sample for debugging
+        sample_registered = list(registered_phones.keys())[:5]
+        sample_group = [m['normalized_phone'] for m in group_members[:5]]
+        logger.info(f"📱 Sample registered phones: {sample_registered}")
+        logger.info(f"📱 Sample group phones: {sample_group}")
         
         # Compare
         group_phones = {member['normalized_phone']: member for member in group_members}
