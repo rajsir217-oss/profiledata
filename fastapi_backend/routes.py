@@ -9,6 +9,7 @@ import uuid
 import hashlib
 import json
 import re
+import io
 import httpx
 from pathlib import Path
 from urllib.parse import urlparse
@@ -727,15 +728,30 @@ async def get_protected_media(
         else:
             is_one_time_view = True
 
+    # Check if the image format needs conversion for browser compatibility
+    NON_BROWSER_EXTENSIONS = {'.tiff', '.tif', '.bmp', '.heic', '.heif'}
+    file_ext = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    needs_conversion = file_ext in NON_BROWSER_EXTENSIONS
+
+    def _convert_image_to_jpeg(image_data: bytes) -> bytes:
+        """Convert non-browser-compatible image formats to JPEG"""
+        from PIL import Image
+        img = Image.open(io.BytesIO(image_data))
+        if img.mode in ('RGBA', 'LA', 'P'):
+            img = img.convert('RGB')
+        output_buf = io.BytesIO()
+        img.save(output_buf, format='JPEG', quality=90)
+        return output_buf.getvalue()
+
     # Serve from GCS if enabled, else local filesystem
     if settings.use_gcs and settings.gcs_bucket_name:
         try:
             from services.storage_service import get_storage_service
             storage = get_storage_service()
             
-            # If user has full access, use Signed URL to save CPU and Network costs
-            # This redirects the browser to fetch directly from Google Storage
-            if has_full_access:
+            # If user has full access and format is browser-compatible, use Signed URL
+            # For non-browser formats (TIFF, BMP, HEIC), we must proxy and convert
+            if has_full_access and not needs_conversion:
                 signed_url = storage.generate_signed_url(filename)
                 if signed_url:
                     # Mark one-time view as used before redirecting
@@ -746,9 +762,7 @@ async def get_protected_media(
                     from fastapi.responses import RedirectResponse
                     return RedirectResponse(url=signed_url)
             
-            # Fallback for blurred images or if signed URL generation fails
-            # We must proxy through the backend to apply blurring logic (future) 
-            # or if the file needs to be read into memory
+            # Proxy through backend: for blurred images, non-browser formats, or signed URL failure
             from google.cloud import storage as gcs_storage
             client = gcs_storage.Client()
             bucket = client.bucket(settings.gcs_bucket_name)
@@ -757,13 +771,23 @@ async def get_protected_media(
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
             data = blob.download_as_bytes()
             
+            # Convert non-browser formats to JPEG
+            media_type = "application/octet-stream"
+            if needs_conversion:
+                try:
+                    data = _convert_image_to_jpeg(data)
+                    media_type = "image/jpeg"
+                    logger.info(f"🔄 Converted {file_ext} to JPEG for {filename}")
+                except Exception as conv_err:
+                    logger.error(f"❌ Image conversion failed for {filename}: {conv_err}")
+            
             # Mark one-time view as used after serving
             if is_one_time_view:
                 await _mark_image_as_viewed(db, requester_username, owner_username, filename)
             
             # Add header to indicate access status for frontend blurring
             headers = {"X-Image-Access": "full" if has_full_access else "blur"}
-            return Response(content=data, media_type="application/octet-stream", headers=headers)
+            return Response(content=data, media_type=media_type, headers=headers)
         except HTTPException:
             raise
         except Exception as e:
@@ -780,6 +804,16 @@ async def get_protected_media(
     
     # Add header to indicate access status for frontend blurring
     headers = {"X-Image-Access": "full" if has_full_access else "blur"}
+    
+    # Convert non-browser formats to JPEG for local files too
+    if needs_conversion:
+        try:
+            with open(file_path, 'rb') as f:
+                data = _convert_image_to_jpeg(f.read())
+            return Response(content=data, media_type="image/jpeg", headers=headers)
+        except Exception as conv_err:
+            logger.error(f"❌ Local image conversion failed for {filename}: {conv_err}")
+    
     return FileResponse(path=str(file_path), headers=headers)
 
 def parse_height_to_inches(height_str):

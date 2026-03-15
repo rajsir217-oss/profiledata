@@ -344,6 +344,151 @@ async def delete_invitation(
     return {"message": "Invitation deleted successfully"}
 
 
+@router.post("/bulk-create")
+async def bulk_create_invitations(
+    data: dict,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Create multiple invitations from a list of emails (Admin/Moderator only)
+    
+    Request body:
+    {
+        "emails": ["email1@example.com", "email2@example.com", ...],
+        "emailSubject": "Optional custom subject",
+        "promoCode": "USVEDIKA",
+        "sendImmediately": true,
+        "channel": "email"
+    }
+    """
+    check_admin_or_moderator(current_user)
+    
+    import re as re_module
+    
+    emails_raw = data.get("emails", [])
+    email_subject = data.get("emailSubject", "You're Invited to Join USVedika for US Citizens & GC Holders")
+    promo_code = data.get("promoCode", "USVEDIKA")
+    send_immediately = data.get("sendImmediately", True)
+    channel = data.get("channel", "email")
+    
+    if not emails_raw or not isinstance(emails_raw, list):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No emails provided"
+        )
+    
+    # Validate and deduplicate emails
+    email_regex = re_module.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+    
+    results = {
+        "total": len(emails_raw),
+        "created": 0,
+        "sent": 0,
+        "skipped_duplicate": 0,
+        "skipped_invalid": 0,
+        "failed": 0,
+        "details": []
+    }
+    
+    # Check existing invitations in DB (by email, case-insensitive)
+    existing_emails_cursor = db.invitations.find(
+        {"archived": {"$ne": True}},
+        {"email": 1}
+    )
+    existing_emails = set()
+    async for doc in existing_emails_cursor:
+        existing_emails.add(doc.get("email", "").lower().strip())
+    
+    # Also check registered users
+    registered_emails_cursor = db.users.find({}, {"email": 1})
+    registered_emails = set()
+    async for doc in registered_emails_cursor:
+        registered_emails.add(doc.get("email", "").lower().strip())
+    
+    service = InvitationService(db)
+    seen_in_batch = set()
+    
+    for email in emails_raw:
+        email = email.strip().lower()
+        
+        if not email:
+            continue
+        
+        # Validate format
+        if not email_regex.match(email):
+            results["skipped_invalid"] += 1
+            results["details"].append({"email": email, "status": "invalid", "reason": "Invalid email format"})
+            continue
+        
+        # Check batch duplicate
+        if email in seen_in_batch:
+            results["skipped_duplicate"] += 1
+            results["details"].append({"email": email, "status": "duplicate", "reason": "Duplicate in batch"})
+            continue
+        seen_in_batch.add(email)
+        
+        # Check existing invitation
+        if email in existing_emails:
+            results["skipped_duplicate"] += 1
+            results["details"].append({"email": email, "status": "duplicate", "reason": "Already invited"})
+            continue
+        
+        # Check already registered
+        if email in registered_emails:
+            results["skipped_duplicate"] += 1
+            results["details"].append({"email": email, "status": "duplicate", "reason": "Already registered"})
+            continue
+        
+        # Create invitation
+        try:
+            invitation_data = InvitationCreate(
+                name=email.split('@')[0].replace('.', ' ').replace('_', ' ').title(),
+                email=email,
+                channel=InvitationChannel(channel),
+                emailSubject=email_subject,
+                sendImmediately=False,
+                promoCode=promo_code
+            )
+            
+            new_invitation = await service.create_invitation(
+                invitation_data=invitation_data,
+                invited_by=current_user["username"]
+            )
+            results["created"] += 1
+            
+            # Send if requested
+            if send_immediately:
+                try:
+                    await send_invitation_notifications(
+                        invitation=new_invitation,
+                        channel=InvitationChannel(channel),
+                        db=db
+                    )
+                    results["sent"] += 1
+                    results["details"].append({"email": email, "status": "sent"})
+                except Exception as send_err:
+                    results["details"].append({"email": email, "status": "created", "reason": f"Created but send failed: {str(send_err)}"})
+            else:
+                results["details"].append({"email": email, "status": "created"})
+                
+        except Exception as e:
+            results["failed"] += 1
+            results["details"].append({"email": email, "status": "failed", "reason": str(e)})
+    
+    summary_parts = []
+    if results["sent"]: summary_parts.append(f"{results['sent']} sent")
+    elif results["created"]: summary_parts.append(f"{results['created']} created")
+    if results["skipped_duplicate"]: summary_parts.append(f"{results['skipped_duplicate']} skipped (duplicate)")
+    if results["skipped_invalid"]: summary_parts.append(f"{results['skipped_invalid']} invalid")
+    if results["failed"]: summary_parts.append(f"{results['failed']} failed")
+    
+    return {
+        "message": f"Bulk create completed: {', '.join(summary_parts)}",
+        "results": results
+    }
+
+
 @router.post("/bulk-send")
 async def bulk_send_invitations(
     data: dict,
