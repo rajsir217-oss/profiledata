@@ -916,6 +916,7 @@ async def register_user(
     firstName: Optional[str] = Form(None),
     lastName: Optional[str] = Form(None),
     contactNumber: Optional[str] = Form(None),
+    contactNumbers: Optional[str] = Form(None),  # JSON array of {number, label, visible}
     contactEmail: Optional[str] = Form(None),
     smsOptIn: Optional[bool] = Form(False),  # SMS notifications opt-in
     # Visibility settings for contact info (default: visible to members)
@@ -1210,6 +1211,7 @@ async def register_user(
         "firstName": firstName,
         "lastName": lastName,
         "contactNumber": contactNumber,
+        "contactNumbers": safe_json_loads(contactNumbers) if contactNumbers else None,  # Multi-contact support
         "contactEmail": contactEmail,
         "smsOptIn": smsOptIn,  # SMS notifications opt-in
         # Visibility settings for contact info
@@ -2356,6 +2358,7 @@ async def update_user_profile(
     firstName: Optional[str] = Form(None),
     lastName: Optional[str] = Form(None),
     contactNumber: Optional[str] = Form(None),
+    contactNumbers: Optional[str] = Form(None),  # JSON array of {number, label, visible}
     contactEmail: Optional[str] = Form(None),
     smsOptIn: Optional[bool] = Form(None),  # SMS notifications opt-in
     # Visibility settings for contact info
@@ -2477,6 +2480,17 @@ async def update_user_profile(
     # Handle contactNumber update (uniqueness check REMOVED to allow same phone for multiple profiles)
     if contactNumber is not None and contactNumber.strip():
         update_data["contactNumber"] = contactNumber.strip()
+    
+    # Handle contactNumbers array (multi-contact support)
+    if contactNumbers is not None:
+        parsed_contacts = safe_json_loads(contactNumbers)
+        if parsed_contacts and isinstance(parsed_contacts, list):
+            update_data["contactNumbers"] = parsed_contacts
+            # Sync contactNumber from primary entry for backward compat
+            primary = next((c for c in parsed_contacts if c.get("label") == "primary"), None) or (parsed_contacts[0] if parsed_contacts else None)
+            if primary and primary.get("number"):
+                update_data["contactNumber"] = primary["number"].strip()
+                update_data["contactNumberVisible"] = primary.get("visible", True)
     
     # Handle contactEmail update with uniqueness check
     if contactEmail is not None and contactEmail.strip():

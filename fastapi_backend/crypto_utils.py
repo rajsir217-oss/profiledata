@@ -199,6 +199,17 @@ class PIIEncryption:
                     logger.error(f"❌ Failed to encrypt {field}: {e}")
                     # Keep original value on error (or raise depending on requirements)
         
+        # Encrypt contactNumbers array (each entry's number field)
+        if 'contactNumbers' in encrypted_data and encrypted_data['contactNumbers']:
+            try:
+                if isinstance(encrypted_data['contactNumbers'], list):
+                    for entry in encrypted_data['contactNumbers']:
+                        if isinstance(entry, dict) and entry.get('number'):
+                            entry['number'] = self.encrypt(entry['number'])
+                    logger.debug(f"🔒 Encrypted contactNumbers array ({len(encrypted_data['contactNumbers'])} entries)")
+            except Exception as e:
+                logger.error(f"❌ Failed to encrypt contactNumbers: {e}")
+        
         # Optionally encrypt images list
         if 'images' in encrypted_data and encrypted_data['images']:
             try:
@@ -232,6 +243,17 @@ class PIIEncryption:
                     logger.error(f"❌ Failed to decrypt {field}: {e}")
                     # Set to None on error to avoid exposing corrupted data
                     decrypted_data[field] = None
+        
+        # Decrypt contactNumbers array (each entry's number field)
+        if 'contactNumbers' in decrypted_data and decrypted_data['contactNumbers']:
+            try:
+                if isinstance(decrypted_data['contactNumbers'], list):
+                    for entry in decrypted_data['contactNumbers']:
+                        if isinstance(entry, dict) and entry.get('number'):
+                            entry['number'] = self.decrypt(entry['number'])
+                    logger.debug(f"🔓 Decrypted contactNumbers array ({len(decrypted_data['contactNumbers'])} entries)")
+            except Exception as e:
+                logger.error(f"❌ Failed to decrypt contactNumbers: {e}")
         
         # Optionally decrypt images list
         if 'images' in decrypted_data and decrypted_data['images']:

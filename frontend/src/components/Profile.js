@@ -2275,24 +2275,58 @@ const Profile = ({
             </div>
           ) : (
             <div className="profile-info">
-              {/* Show contact number if visible or has access */}
-              {(user.contactNumberVisible || piiAccess.contact_number || isOwnProfile) && user.contactNumber && !user.contactNumberMasked ? (
-                <p>
-                  <strong>Contact Number:</strong> {user.contactNumber}
-                  {user.contactNumberVisible && !isOwnProfile && <span className="member-visible-tag" style={{ marginLeft: '8px', fontSize: '11px', color: '#1e40af', background: '#dbeafe', padding: '2px 8px', borderRadius: '10px' }}>👁️ Member Visible</span>}
-                </p>
-              ) : user.contactNumber ? (
-                <p>
-                  <strong>Contact Number:</strong> <span className="pii-masked">🔒 Private</span>
-                  <button 
-                    className="btn-request-inline" 
-                    onClick={() => setShowPIIRequestModal(true)}
-                    style={{ marginLeft: '10px', fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'var(--primary-color, #667eea)', color: 'white', border: 'none', cursor: 'pointer' }}
-                  >
-                    Request Access
-                  </button>
-                </p>
-              ) : null}
+              {/* Show contact numbers (multi-contact support) */}
+              {user.contactNumbers && Array.isArray(user.contactNumbers) && user.contactNumbers.length > 0 ? (
+                user.contactNumbers.map((contact, idx) => {
+                  const entryVisible = contact.visible !== false;
+                  const canSee = (entryVisible && user.contactNumberVisible !== false) || piiAccess.contact_number || isOwnProfile;
+                  const isMasked = contact.number && contact.number.includes('***');
+                  if (canSee && contact.number && !isMasked) {
+                    return (
+                      <p key={idx}>
+                        <strong>Phone ({contact.label || 'primary'}):</strong> {contact.number}
+                        {entryVisible && !isOwnProfile && <span className="member-visible-tag" style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--info-color, #1e40af)', background: 'var(--info-light, #dbeafe)', padding: '2px 8px', borderRadius: '10px' }}>👁️ Member Visible</span>}
+                        {!entryVisible && isOwnProfile && <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--text-muted)', background: 'var(--surface-color)', padding: '2px 8px', borderRadius: '10px' }}>🔒 Hidden</span>}
+                      </p>
+                    );
+                  } else if (contact.number) {
+                    return (
+                      <p key={idx}>
+                        <strong>Phone ({contact.label || 'primary'}):</strong> <span className="pii-masked">🔒 Private</span>
+                        {idx === 0 && (
+                          <button 
+                            className="btn-request-inline" 
+                            onClick={() => setShowPIIRequestModal(true)}
+                            style={{ marginLeft: '10px', fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'var(--primary-color)', color: 'white', border: 'none', cursor: 'pointer' }}
+                          >
+                            Request Access
+                          </button>
+                        )}
+                      </p>
+                    );
+                  }
+                  return null;
+                })
+              ) : (
+                /* Backward compat: single contactNumber for old profiles */
+                (user.contactNumberVisible || piiAccess.contact_number || isOwnProfile) && user.contactNumber && !user.contactNumberMasked ? (
+                  <p>
+                    <strong>Contact Number:</strong> {user.contactNumber}
+                    {user.contactNumberVisible && !isOwnProfile && <span className="member-visible-tag" style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--info-color, #1e40af)', background: 'var(--info-light, #dbeafe)', padding: '2px 8px', borderRadius: '10px' }}>👁️ Member Visible</span>}
+                  </p>
+                ) : user.contactNumber ? (
+                  <p>
+                    <strong>Contact Number:</strong> <span className="pii-masked">🔒 Private</span>
+                    <button 
+                      className="btn-request-inline" 
+                      onClick={() => setShowPIIRequestModal(true)}
+                      style={{ marginLeft: '10px', fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'var(--primary-color)', color: 'white', border: 'none', cursor: 'pointer' }}
+                    >
+                      Request Access
+                    </button>
+                  </p>
+                ) : null
+              )}
               {/* Show contact email if visible or has access */}
               {(user.contactEmailVisible || piiAccess.contact_email || isOwnProfile) && user.contactEmail && !user.contactEmailMasked ? (
                 <p>

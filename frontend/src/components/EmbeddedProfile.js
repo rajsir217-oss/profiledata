@@ -692,13 +692,31 @@ const EmbeddedProfile = ({
                   <span style={{ color: 'var(--text-muted)' }}>🔒 Request Access</span>
                 }
               </div>
-              <div>
-                <strong>Phone:</strong>{' '}
-                {piiAccess.contact_number || user.contactNumberVisible ? 
-                  (user.contactNumber || 'Not provided') : 
-                  <span style={{ color: 'var(--text-muted)' }}>🔒 Request Access</span>
-                }
-              </div>
+              {/* Multi-contact numbers support */}
+              {user.contactNumbers && Array.isArray(user.contactNumbers) && user.contactNumbers.length > 0 ? (
+                user.contactNumbers.map((contact, idx) => {
+                  const entryVisible = contact.visible !== false;
+                  const canSee = (entryVisible && user.contactNumberVisible !== false) || piiAccess.contact_number;
+                  const isMasked = contact.number && contact.number.includes('***');
+                  return (
+                    <div key={idx}>
+                      <strong>Phone ({contact.label || 'primary'}):</strong>{' '}
+                      {canSee && contact.number && !isMasked
+                        ? contact.number
+                        : <span style={{ color: 'var(--text-muted)' }}>🔒 Request Access</span>
+                      }
+                    </div>
+                  );
+                })
+              ) : (
+                <div>
+                  <strong>Phone:</strong>{' '}
+                  {piiAccess.contact_number || user.contactNumberVisible ? 
+                    (user.contactNumber || 'Not provided') : 
+                    <span style={{ color: 'var(--text-muted)' }}>🔒 Request Access</span>
+                  }
+                </div>
+              )}
               <div>
                 <strong>LinkedIn:</strong>{' '}
                 {piiAccess.linkedin_url || user.linkedinUrlVisible ? 
