@@ -638,13 +638,22 @@
   color: var(--primary-color);
 }
 
+.invitation-modal-footer-sticky {
+  position: sticky;
+  bottom: 0;
+  background: var(--card-background);
+  border-top: 1px solid var(--border-color);
+  padding: 16px 24px;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
 .invitation-modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding-top: 20px;
+  padding-top: 12px;
   margin-top: 10px;
-  border-top: 1px solid var(--border-color);
 }
 
 .invitation-modal-footer .btn-primary {

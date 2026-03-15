@@ -40,6 +40,17 @@ const InvitationManager = () => {
   const [bulkEmailSubject, setBulkEmailSubject] = useState("You're Invited to Join USVedika for US Citizens & GC Holders");
   const [bulkSending, setBulkSending] = useState(false);
   
+  // Bulk create state
+  const [showBulkCreateModal, setShowBulkCreateModal] = useState(false);
+  const [bulkCreateEmails, setBulkCreateEmails] = useState('');
+  const [bulkCreateParsed, setBulkCreateParsed] = useState([]);
+  const [bulkCreateSubject, setBulkCreateSubject] = useState("You're Invited to Join USVedika for US Citizens & GC Holders");
+  const [bulkCreatePromo, setBulkCreatePromo] = useState('USVEDIKA');
+  const [bulkCreateSendNow, setBulkCreateSendNow] = useState(true);
+  const [bulkCreateStep, setBulkCreateStep] = useState('input'); // 'input' | 'preview' | 'sending' | 'done'
+  const [bulkCreateResults, setBulkCreateResults] = useState(null);
+  const [bulkCreateProgress, setBulkCreateProgress] = useState(0);
+  
   // Pagination state
   const [displayedCount, setDisplayedCount] = useState(20);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -120,6 +131,8 @@ const InvitationManager = () => {
           setShowAddModal(false);
         } else if (showBulkSendModal && !bulkSending) {
           setShowBulkSendModal(false);
+        } else if (showBulkCreateModal && bulkCreateStep !== 'sending') {
+          resetBulkCreate();
         }
       }
     };
@@ -131,7 +144,8 @@ const InvitationManager = () => {
     return () => {
       document.removeEventListener('keydown', handleEscKey);
     };
-  }, [showAddModal, showBulkSendModal, bulkSending]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAddModal, showBulkSendModal, showBulkCreateModal, bulkSending, bulkCreateStep]);
 
   // Handle column sorting
   const handleSort = (column) => {
@@ -241,7 +255,7 @@ const InvitationManager = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setError('');
 
     try {
@@ -551,6 +565,83 @@ const InvitationManager = () => {
     }
   };
 
+  // ========== BULK CREATE HANDLERS ==========
+  const parseBulkEmails = (text) => {
+    // Split by pipe, comma, semicolon, newline, or space
+    const parts = text.split(/[|,;\n\r]+/).map(e => e.trim().toLowerCase()).filter(Boolean);
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const seen = new Set();
+    return parts.map(email => {
+      const valid = emailRegex.test(email);
+      const duplicate = seen.has(email);
+      if (valid) seen.add(email);
+      return { email, valid, duplicate };
+    });
+  };
+
+  const handleBulkCreateParse = () => {
+    const parsed = parseBulkEmails(bulkCreateEmails);
+    setBulkCreateParsed(parsed);
+    setBulkCreateStep('preview');
+  };
+
+  const handleBulkCreateSubmit = async () => {
+    const validEmails = bulkCreateParsed
+      .filter(e => e.valid && !e.duplicate)
+      .map(e => e.email);
+    
+    if (validEmails.length === 0) {
+      toastService.error('No valid emails to send');
+      return;
+    }
+
+    setBulkCreateStep('sending');
+    setBulkCreateProgress(0);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${getBackendUrl()}/api/invitations/bulk-create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          emails: validEmails,
+          emailSubject: bulkCreateSubject,
+          promoCode: bulkCreatePromo,
+          sendImmediately: bulkCreateSendNow,
+          channel: 'email'
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setBulkCreateResults(data.results);
+        setBulkCreateStep('done');
+        toastService.success(data.message);
+        loadInvitations();
+        loadStats();
+      } else {
+        const data = await response.json();
+        toastService.error(data.detail || 'Bulk create failed');
+        setBulkCreateStep('preview');
+      }
+    } catch (err) {
+      toastService.error('Error: ' + err.message);
+      setBulkCreateStep('preview');
+    }
+  };
+
+  const resetBulkCreate = () => {
+    setBulkCreateEmails('');
+    setBulkCreateParsed([]);
+    setBulkCreateStep('input');
+    setBulkCreateResults(null);
+    setBulkCreateProgress(0);
+    setShowBulkCreateModal(false);
+  };
+
   // Get counts of selected invitations by status
   const getSelectedCounts = () => {
     const selected = invitations.filter(inv => selectedInvitations.includes(inv.id));
@@ -690,6 +781,9 @@ const InvitationManager = () => {
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn-primary" onClick={() => setShowAddModal(true)}>
             ➕ New Invitation
+          </button>
+          <button className="btn-primary" onClick={() => { setBulkCreateStep('input'); setShowBulkCreateModal(true); }} style={{ background: 'var(--secondary-color)' }}>
+            📋 Bulk Add
           </button>
           {selectedInvitations.length > 0 && (() => {
             const counts = getSelectedCounts();
@@ -1136,28 +1230,31 @@ const InvitationManager = () => {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={formData.sendImmediately}
-                      onChange={(e) => setFormData({ ...formData, sendImmediately: e.target.checked })}
-                    />
-                    Send invitation immediately
-                  </label>
-                </div>
-
-                {error && <div className="error-message">{error}</div>}
-
-                <div className="invitation-modal-footer">
-                  <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Create Invitation
-                  </button>
-                </div>
               </form>
+            </div>
+
+            <div className="invitation-modal-footer-sticky">
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.sendImmediately}
+                    onChange={(e) => setFormData({ ...formData, sendImmediately: e.target.checked })}
+                  />
+                  Send invitation immediately
+                </label>
+              </div>
+
+              {error && <div className="error-message" style={{ margin: '8px 0' }}>{error}</div>}
+
+              <div className="invitation-modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>
+                  Cancel
+                </button>
+                <button type="button" className="btn-primary" onClick={handleSubmit}>
+                  Create Invitation
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1331,6 +1428,263 @@ const InvitationManager = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Create Modal */}
+      {showBulkCreateModal && (
+        <div className="modal-overlay" onClick={() => { if (bulkCreateStep !== 'sending') resetBulkCreate(); }}>
+          <div className="invitation-modal bulk-create-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+            <div className="invitation-modal-header">
+              <h2>📋 Bulk Add Invitations</h2>
+              <button className="modal-close" onClick={resetBulkCreate} disabled={bulkCreateStep === 'sending'}>×</button>
+            </div>
+
+            <div className="invitation-modal-body">
+              {/* Step 1: Input */}
+              {bulkCreateStep === 'input' && (
+                <>
+                  <div className="form-group">
+                    <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>
+                      Paste Emails (separated by | , ; or newline):
+                    </label>
+                    <textarea
+                      value={bulkCreateEmails}
+                      onChange={(e) => setBulkCreateEmails(e.target.value)}
+                      rows="6"
+                      placeholder="email1@example.com | email2@example.com&#10;email3@example.com, email4@example.com&#10;email5@example.com"
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '2px solid var(--border-color)',
+                        fontSize: '14px',
+                        fontFamily: 'monospace',
+                        resize: 'vertical',
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-color)'
+                      }}
+                    />
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                      Accepts pipe (|), comma (,), semicolon (;), or newline as delimiters
+                    </p>
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Email Subject:</label>
+                    <input
+                      type="text"
+                      value={bulkCreateSubject}
+                      onChange={(e) => setBulkCreateSubject(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '2px solid var(--border-color)',
+                        fontSize: '14px',
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-color)'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Promo Code:</label>
+                      <select
+                        value={bulkCreatePromo}
+                        onChange={(e) => setBulkCreatePromo(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          borderRadius: 'var(--radius-md)',
+                          border: '2px solid var(--border-color)',
+                          fontSize: '14px',
+                          background: 'var(--input-bg)',
+                          color: 'var(--text-color)'
+                        }}
+                      >
+                        {promoCodes.map(pc => (
+                          <option key={pc.code} value={pc.code}>{pc.code} - {pc.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Send Now?</label>
+                      <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 0' }}>
+                        <input
+                          type="checkbox"
+                          checked={bulkCreateSendNow}
+                          onChange={(e) => setBulkCreateSendNow(e.target.checked)}
+                        />
+                        Send emails immediately after creating
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Step 2: Preview */}
+              {bulkCreateStep === 'preview' && (
+                <>
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                      <span style={{ padding: '4px 12px', borderRadius: '12px', fontSize: '13px', fontWeight: '600', background: 'var(--success-light)', color: 'var(--success-color)' }}>
+                        ✅ {bulkCreateParsed.filter(e => e.valid && !e.duplicate).length} valid
+                      </span>
+                      {bulkCreateParsed.filter(e => !e.valid).length > 0 && (
+                        <span style={{ padding: '4px 12px', borderRadius: '12px', fontSize: '13px', fontWeight: '600', background: 'var(--danger-light)', color: 'var(--danger-color)' }}>
+                          ❌ {bulkCreateParsed.filter(e => !e.valid).length} invalid
+                        </span>
+                      )}
+                      {bulkCreateParsed.filter(e => e.duplicate).length > 0 && (
+                        <span style={{ padding: '4px 12px', borderRadius: '12px', fontSize: '13px', fontWeight: '600', background: 'var(--warning-light)', color: 'var(--warning-color)' }}>
+                          ⚠️ {bulkCreateParsed.filter(e => e.duplicate).length} duplicates in batch
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      Server will also check against existing invitations and registered users.
+                    </p>
+                  </div>
+
+                  <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--surface-color)', position: 'sticky', top: 0 }}>
+                          <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)' }}>Email</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '2px solid var(--border-color)', width: '100px' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bulkCreateParsed.map((entry, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '6px 12px', fontFamily: 'monospace', color: !entry.valid ? 'var(--danger-color)' : entry.duplicate ? 'var(--warning-color)' : 'var(--text-color)' }}>
+                              {entry.email}
+                            </td>
+                            <td style={{ padding: '6px 12px', textAlign: 'center' }}>
+                              {entry.valid && !entry.duplicate && <span style={{ color: 'var(--success-color)' }}>✅</span>}
+                              {!entry.valid && <span style={{ color: 'var(--danger-color)' }}>❌ Invalid</span>}
+                              {entry.duplicate && <span style={{ color: 'var(--warning-color)' }}>⚠️ Dup</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              {/* Step 3: Sending */}
+              {bulkCreateStep === 'sending' && (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+                  <p style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-color)' }}>
+                    Sending invitations...
+                  </p>
+                  <p style={{ color: 'var(--text-secondary)' }}>Please wait, this may take a moment.</p>
+                </div>
+              )}
+
+              {/* Step 4: Done */}
+              {bulkCreateStep === 'done' && bulkCreateResults && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                    {bulkCreateResults.sent > 0 && (
+                      <div style={{ textAlign: 'center', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--success-light)' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--success-color)' }}>{bulkCreateResults.sent}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--success-color)' }}>Sent</div>
+                      </div>
+                    )}
+                    {bulkCreateResults.created > 0 && bulkCreateResults.sent === 0 && (
+                      <div style={{ textAlign: 'center', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--info-light)' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--info-color)' }}>{bulkCreateResults.created}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--info-color)' }}>Created</div>
+                      </div>
+                    )}
+                    {bulkCreateResults.skipped_duplicate > 0 && (
+                      <div style={{ textAlign: 'center', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--warning-light)' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--warning-color)' }}>{bulkCreateResults.skipped_duplicate}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--warning-color)' }}>Skipped</div>
+                      </div>
+                    )}
+                    {bulkCreateResults.skipped_invalid > 0 && (
+                      <div style={{ textAlign: 'center', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--danger-light)' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--danger-color)' }}>{bulkCreateResults.skipped_invalid}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--danger-color)' }}>Invalid</div>
+                      </div>
+                    )}
+                    {bulkCreateResults.failed > 0 && (
+                      <div style={{ textAlign: 'center', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--danger-light)' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--danger-color)' }}>{bulkCreateResults.failed}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--danger-color)' }}>Failed</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Per-email detail list */}
+                  {bulkCreateResults.details && bulkCreateResults.details.length > 0 && (
+                    <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '12px' }}>
+                      {bulkCreateResults.details.map((d, idx) => (
+                        <div key={idx} style={{ 
+                          padding: '6px 12px', 
+                          borderBottom: '1px solid var(--border-color)',
+                          display: 'flex', 
+                          justifyContent: 'space-between',
+                          background: d.status === 'sent' ? 'var(--success-light)' : d.status === 'duplicate' ? 'var(--warning-light)' : d.status === 'invalid' || d.status === 'failed' ? 'var(--danger-light)' : 'transparent'
+                        }}>
+                          <span style={{ fontFamily: 'monospace' }}>{d.email}</span>
+                          <span>
+                            {d.status === 'sent' && '✅ Sent'}
+                            {d.status === 'created' && '📝 Created'}
+                            {d.status === 'duplicate' && `⚠️ ${d.reason}`}
+                            {d.status === 'invalid' && '❌ Invalid'}
+                            {d.status === 'failed' && `❌ ${d.reason}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              {bulkCreateStep === 'input' && (
+                <>
+                  <button type="button" className="btn-secondary" onClick={resetBulkCreate}>Cancel</button>
+                  <button 
+                    type="button" 
+                    className="btn-primary" 
+                    onClick={handleBulkCreateParse}
+                    disabled={!bulkCreateEmails.trim()}
+                  >
+                    🔍 Parse & Preview
+                  </button>
+                </>
+              )}
+              {bulkCreateStep === 'preview' && (
+                <>
+                  <button type="button" className="btn-secondary" onClick={() => setBulkCreateStep('input')}>← Back</button>
+                  <button 
+                    type="button" 
+                    className="btn-primary" 
+                    onClick={handleBulkCreateSubmit}
+                    disabled={bulkCreateParsed.filter(e => e.valid && !e.duplicate).length === 0}
+                    style={{ background: 'var(--success-color)' }}
+                  >
+                    {bulkCreateSendNow 
+                      ? `📧 Create & Send ${bulkCreateParsed.filter(e => e.valid && !e.duplicate).length} Invitations`
+                      : `📝 Create ${bulkCreateParsed.filter(e => e.valid && !e.duplicate).length} Invitations`
+                    }
+                  </button>
+                </>
+              )}
+              {bulkCreateStep === 'done' && (
+                <button type="button" className="btn-primary" onClick={resetBulkCreate}>Close</button>
+              )}
+            </div>
           </div>
         </div>
       )}
