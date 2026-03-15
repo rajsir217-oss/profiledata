@@ -67,8 +67,8 @@ const WhatsAppVerification = () => {
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (file) {
-      if (!file.name.endsWith('.csv')) {
-        setError('Please select a CSV file');
+      if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
+        setError('Please select a CSV or TXT file');
         return;
       }
       setSelectedFile(file);
@@ -183,7 +183,7 @@ const WhatsAppVerification = () => {
         <div className="upload-area">
           <input
             type="file"
-            accept=".csv"
+            accept=".csv,.txt"
             onChange={handleFileSelect}
             className="file-input"
             id="group-file"
