@@ -48,6 +48,7 @@ from routers.payments import router as payments_router
 from routers.site_settings import router as site_settings_router
 from routers.notes import router as notes_router
 from routers.contribution_routes import router as contribution_routes_router
+from routers.whatsapp_verification import router as whatsapp_verification_router
 from routers.braintree_payments import router as braintree_payments_router
 from routers.paypal_payments import router as paypal_payments_router
 from routers.recurring_contributions import router as recurring_contributions_router
@@ -409,6 +410,7 @@ app.include_router(inactive_users_report_router, prefix="/api/admin", tags=["adm
 app.include_router(queue_management_router)  # Queue management routes (already has /api/admin/queue prefix)
 app.include_router(clover_payments_router)  # Clover Hosted Checkout routes
 app.include_router(admin_backups_router)  # Admin backups routes (already has /api/admin/backups prefix)
+app.include_router(whatsapp_verification_router)  # WhatsApp verification routes
 
 # Health check endpoint — used by Cloud Run liveness probe.
 # Tests MongoDB connectivity so probe fails (503) if workers are deadlocked

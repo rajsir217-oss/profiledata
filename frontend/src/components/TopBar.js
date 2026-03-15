@@ -114,6 +114,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     if (path === '/admin/contact') return { icon: '📩', title: 'Contact Management', subtitle: 'Manage contact form submissions' };
     if (path === '/test-dashboard') return { icon: '🧪', title: 'Test Dashboard', subtitle: 'Testing and development tools' };
     if (path === '/poll-management') return { icon: '📊', title: 'Poll Management', subtitle: 'Create and manage polls' };
+    if (path === '/whatsapp-verification') return { icon: '📱', title: 'WhatsApp Verification', subtitle: 'Verify group members against database' };
     if (path === '/testimonials') return { icon: '💬', title: 'Testimonials', subtitle: 'View success stories' };
     if (path === '/contact') return { icon: '📧', title: 'Contact Us', subtitle: 'Get in touch with support' };
     if (path === '/matching-criteria') return { icon: '🎯', title: 'Matching Criteria', subtitle: 'Configure your matching preferences' };
