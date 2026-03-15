@@ -42,42 +42,62 @@ def normalize_phone_number(phone: str) -> Optional[str]:
 
 @router.get("/export-registered")
 async def export_registered_numbers(current_user: dict = Depends(get_current_user)):
-    """Export all registered phone numbers as CSV"""
+    """Export all registered phone numbers as CSV (includes all contactNumbers entries)"""
     # Check if admin
-    if current_user.get("username") != "admin":
+    if current_user.get("role_name") != "admin" and current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     from database import get_database
     db = get_database()
     
     try:
-        # Get all users with phone numbers
+        from crypto_utils import get_encryptor
+        encryptor = get_encryptor()
+        
+        # Get all users with phone numbers (either contactNumber or contactNumbers array)
         users = await db.users.find(
-            {"contactNumber": {"$exists": True, "$ne": None, "$ne": ""}},
-            {"username": 1, "firstName": 1, "lastName": 1, "contactNumber": 1, "accountStatus": 1}
+            {"$or": [
+                {"contactNumber": {"$exists": True, "$ne": None, "$ne": ""}},
+                {"contactNumbers": {"$exists": True, "$ne": None, "$ne": []}}
+            ]},
+            {"username": 1, "firstName": 1, "lastName": 1, "contactNumber": 1, "contactNumbers": 1, "accountStatus": 1}
         ).to_list(None)
+        
+        # Decrypt PII fields before export
+        for i, user in enumerate(users):
+            try:
+                users[i] = encryptor.decrypt_user_pii(user)
+            except Exception as decrypt_err:
+                pass  # Use as-is if decryption fails
         
         # Create CSV
         output = io.StringIO()
         writer = csv.writer(output)
         
         # Header
-        writer.writerow(["Username", "Full Name", "Phone Number", "Status", "Normalized Phone"])
+        writer.writerow(["Username", "Full Name", "Phone Number", "Label", "Visible", "Status", "Normalized Phone"])
         
-        # Data rows
+        # Data rows - expand contactNumbers array into individual rows
         for user in users:
-            phone = user.get("contactNumber", "")
-            normalized = normalize_phone_number(phone)
             full_name = f"{user.get('firstName', '')} {user.get('lastName', '')}".strip()
             status = user.get("accountStatus", "unknown")
+            username = user.get("username", "")
             
-            writer.writerow([
-                user.get("username", ""),
-                full_name,
-                phone,
-                status,
-                normalized or "INVALID"
-            ])
+            contact_numbers = user.get("contactNumbers")
+            if contact_numbers and isinstance(contact_numbers, list) and len(contact_numbers) > 0:
+                # Write one row per contactNumbers entry
+                for entry in contact_numbers:
+                    if isinstance(entry, dict):
+                        phone = entry.get("number", "")
+                        label = entry.get("label", "primary")
+                        visible = "Yes" if entry.get("visible", True) else "No"
+                        normalized = normalize_phone_number(phone) if phone else None
+                        writer.writerow([username, full_name, phone, label, visible, status, normalized or "INVALID"])
+            else:
+                # Fallback: single contactNumber for old profiles
+                phone = user.get("contactNumber", "")
+                normalized = normalize_phone_number(phone)
+                writer.writerow([username, full_name, phone, "primary", "Yes", status, normalized or "INVALID"])
         
         # Prepare response
         output.seek(0)
@@ -98,7 +118,7 @@ async def compare_whatsapp_group(
 ):
     """Compare WhatsApp group export with registered users"""
     # Check if admin
-    if current_user.get("username") != "admin":
+    if current_user.get("role_name") != "admin" and current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     from database import get_database
@@ -128,24 +148,55 @@ async def compare_whatsapp_group(
                             'normalized_phone': normalized
                         })
         
-        # Get registered users
+        # Get registered users (include contactNumbers array)
         registered_users = await db.users.find(
-            {"contactNumber": {"$exists": True, "$ne": None, "$ne": ""}},
-            {"username": 1, "firstName": 1, "lastName": 1, "contactNumber": 1, "accountStatus": 1}
+            {"$or": [
+                {"contactNumber": {"$exists": True, "$ne": None, "$ne": ""}},
+                {"contactNumbers": {"$exists": True, "$ne": None, "$ne": []}}
+            ]},
+            {"username": 1, "firstName": 1, "lastName": 1, "contactNumber": 1, "contactNumbers": 1, "accountStatus": 1}
         ).to_list(None)
         
-        # Normalize registered phones
+        # Decrypt PII fields before comparison
+        from crypto_utils import get_encryptor
+        encryptor = get_encryptor()
+        for i, user in enumerate(registered_users):
+            try:
+                registered_users[i] = encryptor.decrypt_user_pii(user)
+            except Exception:
+                pass  # Use as-is if decryption fails
+        
+        # Normalize registered phones - include all numbers from contactNumbers array
         registered_phones = {}
         for user in registered_users:
-            phone = user.get("contactNumber", "")
-            normalized = normalize_phone_number(phone)
-            if normalized:
-                registered_phones[normalized] = {
-                    'username': user.get("username", ""),
-                    'full_name': f"{user.get('firstName', '')} {user.get('lastName', '')}".strip(),
-                    'original_phone': phone,
-                    'status': user.get("accountStatus", "unknown")
-                }
+            full_name = f"{user.get('firstName', '')} {user.get('lastName', '')}".strip()
+            status = user.get("accountStatus", "unknown")
+            username = user.get("username", "")
+            
+            # Collect all phone numbers for this user
+            all_phones = []
+            contact_numbers = user.get("contactNumbers")
+            if contact_numbers and isinstance(contact_numbers, list):
+                for entry in contact_numbers:
+                    if isinstance(entry, dict) and entry.get("number"):
+                        all_phones.append((entry["number"], entry.get("label", "primary")))
+            
+            # Fallback: single contactNumber if no contactNumbers array
+            if not all_phones:
+                phone = user.get("contactNumber", "")
+                if phone:
+                    all_phones.append((phone, "primary"))
+            
+            for phone, label in all_phones:
+                normalized = normalize_phone_number(phone)
+                if normalized:
+                    registered_phones[normalized] = {
+                        'username': username,
+                        'full_name': full_name,
+                        'original_phone': phone,
+                        'label': label,
+                        'status': status
+                    }
         
         # Compare
         group_phones = {member['normalized_phone']: member for member in group_members}
@@ -156,11 +207,13 @@ async def compare_whatsapp_group(
             if phone not in registered_phones:
                 unauthorized.append(member)
         
-        # Find registered users not in group
+        # Find registered users not in group (deduplicate by username)
         not_in_group = []
+        seen_usernames = set()
         for phone, user in registered_phones.items():
-            if phone not in group_phones:
+            if phone not in group_phones and user['username'] not in seen_usernames:
                 not_in_group.append(user)
+                seen_usernames.add(user['username'])
         
         # Find verified members (in both)
         verified = []
@@ -177,12 +230,12 @@ async def compare_whatsapp_group(
                 "total_registered_users": len(registered_users),
                 "verified_count": len(verified),
                 "unauthorized_count": len(unauthorized),
-                "not_in_group_count": len(not_in_group)
+                "not_in_group_count": len(not_in_group),
+                "verification_rate": round((len(verified) / len(group_members) * 100), 1) if group_members else 0
             },
             "verified_members": verified,
             "unauthorized_members": unauthorized,
-            "registered_not_in_group": not_in_group,
-            "verification_rate": round((len(verified) / len(group_members) * 100), 1) if group_members else 0
+            "registered_not_in_group": not_in_group
         }
         
     except Exception as e:
@@ -192,17 +245,20 @@ async def compare_whatsapp_group(
 async def get_verification_stats(current_user: dict = Depends(get_current_user)):
     """Get current verification statistics"""
     # Check if admin
-    if current_user.get("username") != "admin":
+    if current_user.get("role_name") != "admin" and current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     from database import get_database
     db = get_database()
     
     try:
-        # Get stats
+        # Get stats - count users with any phone (contactNumber or contactNumbers array)
         total_users = await db.users.count_documents({})
         users_with_phone = await db.users.count_documents({
-            "contactNumber": {"$exists": True, "$ne": None, "$ne": ""}
+            "$or": [
+                {"contactNumber": {"$exists": True, "$ne": None, "$ne": ""}},
+                {"contactNumbers": {"$exists": True, "$ne": None, "$ne": []}}
+            ]
         })
         
         active_users = await db.users.count_documents({"accountStatus": "active"})
