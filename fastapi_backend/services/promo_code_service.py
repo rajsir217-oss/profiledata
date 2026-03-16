@@ -44,9 +44,8 @@ class PromoCodeService:
             raise ValueError(f"Promo code '{promo_data.code}' already exists")
         
         # Build invitation link (for future QR code generation)
-        from config import Settings
-        settings = Settings()
-        base_url = getattr(settings, 'frontend_url', 'https://usvedika.com')
+        from config import settings
+        base_url = getattr(settings, 'frontend_url', 'https://l3v3lmatches.com')
         invitation_link = f"{base_url}/register?promo={promo_data.code}"
         
         # Create promo code document

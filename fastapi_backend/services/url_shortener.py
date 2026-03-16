@@ -7,9 +7,7 @@ import string
 from datetime import datetime
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from config import Settings
-
-settings = Settings()
+from config import settings
 
 
 class URLShortener:
@@ -92,7 +90,10 @@ class URLShortener:
     
     def _build_short_url(self, short_code: str) -> str:
         """Build the complete short URL"""
-        base_url = settings.app_url.rstrip('/')
+        import os
+        base_url = (settings.app_url or settings.frontend_url or "https://l3v3lmatches.com").rstrip('/')
+        if 'localhost' in base_url and os.environ.get('K_SERVICE'):
+            base_url = (os.environ.get('APP_URL') or os.environ.get('FRONTEND_URL') or "https://l3v3lmatches.com").rstrip('/')
         return f"{base_url}/s/{short_code}"
 
 
