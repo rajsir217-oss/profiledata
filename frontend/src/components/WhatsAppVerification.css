@@ -231,6 +231,36 @@
   opacity: 0.9;
 }
 
+/* Section Header Row (heading + action button) */
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.section-header-row h3 {
+  margin-bottom: 0;
+}
+
+.btn-export-csv {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.btn-export-csv:hover {
+  opacity: 0.85;
+}
+
 /* Member Lists */
 .unauthorized-section,
 .verified-section,

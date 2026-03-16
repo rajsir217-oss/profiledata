@@ -108,6 +108,27 @@ const WhatsAppVerification = () => {
     }
   };
 
+  const exportUnauthorizedToCSV = () => {
+    if (!comparisonResult || !comparisonResult.unauthorized_members.length) return;
+
+    const headers = ['Name', 'Phone Number'];
+    const rows = comparisonResult.unauthorized_members.map(m => [
+      `"${(m.name || 'Unknown').replace(/"/g, '""')}"`,
+      `"${(m.phone || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `unauthorized_members_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
   const formatDate = () => {
     return new Date().toLocaleDateString('en-US', {
       year: 'numeric',
@@ -241,7 +262,12 @@ const WhatsAppVerification = () => {
           {/* Unauthorized Members */}
           {comparisonResult.unauthorized_members.length > 0 && (
             <div className="unauthorized-section">
-              <h3>⚠️ Unauthorized Members ({comparisonResult.unauthorized_members.length})</h3>
+              <div className="section-header-row">
+                <h3>⚠️ Unauthorized Members ({comparisonResult.unauthorized_members.length})</h3>
+                <button className="btn btn-export-csv" onClick={exportUnauthorizedToCSV}>
+                  📥 Export CSV
+                </button>
+              </div>
               <div className="members-list">
                 {comparisonResult.unauthorized_members.map((member, index) => (
                   <div key={index} className="member-item unauthorized">
