@@ -170,3 +170,22 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
+
+# ============================================
+# PRODUCTION SAFETY GUARD
+# ============================================
+# If running in production (Cloud Run) but app_url/frontend_url still contain
+# localhost (e.g., due to env var loading order), override with production domain.
+# This prevents invitation emails and other links from using localhost URLs.
+import os as _os
+if _os.environ.get('K_SERVICE') or current_env == 'production':
+    _prod_domain = "https://l3v3lmatches.com"
+    if 'localhost' in (settings.app_url or ''):
+        settings.app_url = _os.environ.get('APP_URL') or settings.frontend_url or _prod_domain
+    if 'localhost' in (settings.frontend_url or ''):
+        settings.frontend_url = _os.environ.get('FRONTEND_URL') or _prod_domain
+    # Final fallback: if still localhost, force production domain
+    if 'localhost' in (settings.app_url or ''):
+        settings.app_url = _prod_domain
+    if 'localhost' in (settings.frontend_url or ''):
+        settings.frontend_url = _prod_domain

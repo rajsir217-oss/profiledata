@@ -10,13 +10,11 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from urllib.parse import quote, unquote
-from config import Settings
+from config import settings
 from crypto_utils import get_encryptor
 import logging
 
 logger = logging.getLogger(__name__)
-
-settings = Settings()
 
 def _decrypt_contact_info(value: str) -> str:
     """

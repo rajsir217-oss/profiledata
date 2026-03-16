@@ -12,9 +12,7 @@ import asyncio
 import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from config import Settings
-
-settings = Settings()
+from config import settings
 logger = logging.getLogger(__name__)
 
 # Rate limiting for Resend API (2 requests per second max)

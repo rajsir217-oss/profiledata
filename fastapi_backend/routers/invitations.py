@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
+import os
 
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from database import get_database
@@ -600,14 +601,17 @@ async def send_invitation_notifications(
     db=None
 ):
     """Send invitation directly via SMTP (bypasses notification queue)"""
-    from config import Settings
+    from config import settings
     from services.email_sender import send_invitation_email
     from urllib.parse import quote
-    settings = Settings()
     
     invitation_service = InvitationService(db)
-    # Use register2 page and prefill email
-    invitation_link = f"{settings.app_url}/register2?invitation={invitation.invitationToken}&email={quote(invitation.email)}"
+    
+    # Build invitation link - use app_url with localhost safety guard
+    base_url = settings.app_url or settings.frontend_url or "https://l3v3lmatches.com"
+    if 'localhost' in base_url and os.environ.get('K_SERVICE'):
+        base_url = os.environ.get('APP_URL') or os.environ.get('FRONTEND_URL') or "https://l3v3lmatches.com"
+    invitation_link = f"{base_url}/register2?invitation={invitation.invitationToken}&email={quote(invitation.email)}"
     
     # Check if this is a resend (email was already sent before)
     is_email_resend = invitation.emailStatus in [InvitationStatus.SENT, InvitationStatus.DELIVERED, InvitationStatus.FAILED]
