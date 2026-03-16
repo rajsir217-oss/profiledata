@@ -370,7 +370,7 @@ async def get_all_contributions(
                 "amount": c.get("amount"),
                 "paymentType": "recurring" if c.get("paymentType") == "contribution_recurring" else "one_time",
                 "status": c.get("status", "completed"),
-                "sessionId": c.get("stripeSessionId") or c.get("paypalOrderId"),
+                "sessionId": c.get("stripeSessionId") or c.get("paypalOrderId") or c.get("cloverChargeId") or c.get("sessionId"),
                 "createdAt": c.get("createdAt").isoformat() if c.get("createdAt") else None,
                 "description": c.get("description"),
                 "thankYouEmailSentAt": c.get("thankYouEmailSentAt").isoformat() if c.get("thankYouEmailSentAt") else None
