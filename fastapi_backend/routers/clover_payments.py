@@ -267,11 +267,14 @@ async def create_checkout(
         # Log the pending checkout in payments collection
         payment_record = {
             "username": username,
+            "paymentProvider": "clover",
             "provider": "clover",
             "sessionId": result["session_id"],
+            "cloverChargeId": result["session_id"],
             "amount": request.amount,
+            "paymentType": "contribution_one_time",
             "status": "pending",
-            "description": request.description,
+            "description": request.description or f"Clover Checkout - ${amount_float:.2f}",
             "createdAt": datetime.utcnow(),
             "expirationTime": result.get("expiration_time")
         }
@@ -307,21 +310,31 @@ async def confirm_clover_payment(
     
     # Find the most recent pending Clover payment for this user
     pending_payment = await db.payments.find_one(
-        {"username": username, "provider": "clover", "status": "pending"},
+        {"username": username, "paymentProvider": "clover", "status": "pending"},
         sort=[("createdAt", -1)]
     )
+    
+    # Fallback: check legacy field name
+    if not pending_payment:
+        pending_payment = await db.payments.find_one(
+            {"username": username, "provider": "clover", "status": "pending"},
+            sort=[("createdAt", -1)]
+        )
     
     if not pending_payment:
         raise HTTPException(status_code=404, detail="No pending Clover payment found")
     
     amount = float(pending_payment.get("amount", 0))
     
-    # Update payment status
+    # Update payment status and ensure consistent fields
     await db.payments.update_one(
         {"_id": pending_payment["_id"]},
         {"$set": {
             "status": "completed",
-            "completedAt": datetime.utcnow()
+            "paymentProvider": "clover",
+            "paymentType": pending_payment.get("paymentType") or "contribution_one_time",
+            "completedAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow()
         }}
     )
     
