@@ -3323,6 +3323,39 @@ async def rotate_photo(
     # Build the response URL using the same format as existing images
     rotated_url = get_full_image_url(clean_path) + f"?v={cache_bust}"
     
+    # Update the images array in MongoDB with cache-busted URL
+    # so browser re-fetches the rotated version on reload
+    updated_images = []
+    for img in user_images:
+        img_filename = img.split('/')[-1].split('?')[0]
+        if img_filename == target_filename:
+            updated_images.append(rotated_url)
+        else:
+            updated_images.append(img)
+    
+    update_fields = {"images": updated_images}
+    
+    # Also update imageVisibility if it exists
+    visibility = user.get("imageVisibility", {})
+    if visibility:
+        if visibility.get("profilePic"):
+            pp_filename = visibility["profilePic"].split('/')[-1].split('?')[0]
+            if pp_filename == target_filename:
+                visibility["profilePic"] = rotated_url
+        
+        for key in ("memberVisible", "onRequest"):
+            if visibility.get(key):
+                visibility[key] = [
+                    rotated_url if (v.split('/')[-1].split('?')[0] == target_filename) else v
+                    for v in visibility[key]
+                ]
+        update_fields["imageVisibility"] = visibility
+    
+    await db.users.update_one(
+        get_username_query(username),
+        {"$set": update_fields}
+    )
+    
     logger.info(f"🔄 Photo rotated {degrees}° for {username}: {target_filename}")
     
     return {
