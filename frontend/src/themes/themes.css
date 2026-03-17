@@ -1220,10 +1220,10 @@ body.theme-ultra-light-green {
    ULTRA BLACK THEME - Pure Black OLED
    ======================================== */
 body.theme-ultra-black {
-  /* Primary Colors - Vibrant contrast on black */
-  --primary-color: #7c3aed;
-  --secondary-color: #6b7280;
-  --accent-color: #ff0080;
+  /* Primary Colors - Light silver accents on pure black */
+  --primary-color: #d1d5db;
+  --secondary-color: #9ca3af;
+  --accent-color: #f59e0b;
   
   /* Backgrounds - True blacks for OLED */
   --background-color: #000000;
@@ -1251,19 +1251,19 @@ body.theme-ultra-black {
   /* Interactive States - Subtle glow */
   --hover-background: #1a1a1a;
   --active-background: #262626;
-  --selected-background: rgba(0, 212, 255, 0.15);
+  --selected-background: rgba(209, 213, 219, 0.1);
   
   /* Status Colors - Vibrant for contrast */
   --success-color: #10b981;
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
-  --info-color: #00d4ff;
+  --info-color: #60a5fa;
   
   /* Button State Colors */
   --success-light: #064e3b;
   --success-hover: #059669;
-  --info-light: #082f49;
-  --info-hover: #0284c7;
+  --info-light: #1e293b;
+  --info-hover: #93c5fd;
   --danger-light: #450a0a;
   --danger-hover: #dc2626;
   --warning-light: #451a03;
@@ -1272,12 +1272,12 @@ body.theme-ultra-black {
   
   /* Input Colors */
   --input-border: #262626;
-  --input-focus: #00d4ff;
+  --input-focus: #d1d5db;
   
   /* Shadow - Minimal, no need on pure black */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 212, 255, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 212, 255, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 212, 255, 0.15);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   
   /* Typography */
   --font-family: 'Plus Jakarta Sans', 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -1298,7 +1298,8 @@ body.theme-ultra-black {
 
 .theme-ultra-black .dashboard-header,
 .theme-ultra-black .preferences-header {
-  background: linear-gradient(135deg, #7c3aed 0%, #6b7280 100%);
+  background: #000000 !important;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .theme-ultra-black .user-card,
@@ -1327,7 +1328,7 @@ body.theme-ultra-black {
 }
 
 .theme-ultra-black .sidebar-item:hover {
-  background: rgba(124, 58, 237, 0.15);
+  background: rgba(209, 213, 219, 0.08);
   color: var(--primary-color);
 }
 
@@ -1350,8 +1351,25 @@ body.theme-ultra-black {
   border-color: var(--primary-color);
 }
 
+.theme-ultra-black .top-bar {
+  background: #000000 !important;
+  border-bottom: 1px solid var(--border-color);
+}
+
 .theme-ultra-black .section-header {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: #000000 !important;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.theme-ultra-black .info-ticker {
+  background: #000000 !important;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.theme-ultra-black .page-title-section {
+  background: #000000 !important;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .theme-ultra-black .empty-section {
@@ -1423,7 +1441,8 @@ body.theme-ultra-black {
 }
 
 .theme-ultra-black .admin-header {
-  background: linear-gradient(135deg, #7c3aed 0%, #6b7280 100%);
+  background: #000000 !important;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .theme-ultra-black .admin-table {
