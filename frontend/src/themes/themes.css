@@ -1220,9 +1220,10 @@ body.theme-ultra-light-green {
    ULTRA BLACK THEME - Pure Black OLED
    ======================================== */
 body.theme-ultra-black {
-  /* Primary Colors - Light silver accents on pure black */
-  --primary-color: #d1d5db;
-  --secondary-color: #9ca3af;
+  /* Primary Colors - Deep navy blue on pure black */
+  --primary-color: #1e3a5f;
+  --secondary-color: #264d73;
+  --link-color: #60a5fa;
   --accent-color: #f59e0b;
   
   /* Backgrounds - True blacks for OLED */
@@ -1251,7 +1252,7 @@ body.theme-ultra-black {
   /* Interactive States - Subtle glow */
   --hover-background: #1a1a1a;
   --active-background: #262626;
-  --selected-background: rgba(209, 213, 219, 0.1);
+  --selected-background: rgba(30, 58, 95, 0.2);
   
   /* Status Colors - Vibrant for contrast */
   --success-color: #10b981;
@@ -1272,7 +1273,7 @@ body.theme-ultra-black {
   
   /* Input Colors */
   --input-border: #262626;
-  --input-focus: #d1d5db;
+  --input-focus: #3b6b9e;
   
   /* Shadow - Minimal, no need on pure black */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
@@ -1319,7 +1320,7 @@ body.theme-ultra-black {
 }
 
 .theme-ultra-black .stat-value {
-  color: var(--primary-color);
+  color: var(--link-color, #60a5fa);
   font-weight: 600;
 }
 
@@ -1328,8 +1329,8 @@ body.theme-ultra-black {
 }
 
 .theme-ultra-black .sidebar-item:hover {
-  background: rgba(209, 213, 219, 0.08);
-  color: var(--primary-color);
+  background: rgba(30, 58, 95, 0.2);
+  color: var(--link-color, #60a5fa);
 }
 
 .theme-ultra-black input,
@@ -1343,6 +1344,14 @@ body.theme-ultra-black {
 .theme-ultra-black input::placeholder,
 .theme-ultra-black textarea::placeholder {
   color: var(--text-muted);
+}
+
+.theme-ultra-black a:not(.btn):not(.tab-button):not(.nav-link) {
+  color: var(--link-color, #60a5fa);
+}
+
+.theme-ultra-black a:not(.btn):not(.tab-button):not(.nav-link):hover {
+  color: #93c5fd;
 }
 
 .theme-ultra-black .btn-primary {
@@ -1420,7 +1429,7 @@ body.theme-ultra-black {
 
 .theme-ultra-black .row-name,
 .theme-ultra-black .result-card .card-title {
-  color: var(--primary-color) !important;
+  color: var(--link-color, #60a5fa) !important;
 }
 
 /* Exception: Card titles in gradient sections always use white */
@@ -1472,7 +1481,7 @@ body.theme-ultra-black {
 .theme-ultra-black .admin-table thead,
 .theme-ultra-black .admin-table th {
   background: var(--surface-color) !important;
-  color: var(--primary-color) !important;
+  color: var(--link-color, #60a5fa) !important;
   border-color: var(--border-color) !important;
 }
 
