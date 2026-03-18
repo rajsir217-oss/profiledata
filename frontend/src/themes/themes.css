@@ -1346,9 +1346,28 @@ body.theme-ultra-black {
 }
 
 .theme-ultra-black .btn-primary {
-  background: var(--primary-color);
-  color: #000000;
-  border-color: var(--primary-color);
+  background: #1e3a5f;
+  color: #e5e5e5;
+  border-color: #1e3a5f;
+}
+
+.theme-ultra-black .btn-primary:hover {
+  background: #264d73;
+  border-color: #264d73;
+}
+
+.theme-ultra-black .tab-button.active {
+  background: #1e3a5f !important;
+  border-color: #1e3a5f !important;
+  color: #e5e5e5 !important;
+}
+
+.theme-ultra-black .tab-button.active .tab-label {
+  color: #e5e5e5 !important;
+}
+
+.theme-ultra-black .tab-button:hover {
+  border-color: #1e3a5f;
 }
 
 .theme-ultra-black .top-bar {

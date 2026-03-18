@@ -99,7 +99,7 @@ const themes = {
   'ultra-light-green': { primary: '#10b981', secondary: '#34d399', background: '#f0fdf4', text: '#064e3b' },
   'indian-wedding': { primary: '#ff6b35', secondary: '#f7931e', background: '#fffaf0', text: '#7c2d12' },
   'newspaper': { primary: '#1a1a1a', secondary: '#4a4a4a', background: '#f4f1ea', text: '#1a1a1a' },
-  'ultra-black': { primary: '#d1d5db', secondary: '#9ca3af', background: '#000000', text: '#e5e5e5' },
+  'ultra-black': { primary: '#1e3a5f', secondary: '#264d73', background: '#000000', text: '#e5e5e5' },
   'cute-bubble': { primary: '#8b5cf6', secondary: '#ec4899', background: '#f8f7ff', text: '#374151' }
 };
 

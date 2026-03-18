@@ -200,7 +200,7 @@ const UnifiedPreferences = () => {
       name: 'Midnight',
       icon: '🌑',
       description: 'Pure black OLED theme with silver accents',
-      preview: { primary: '#d1d5db', secondary: '#9ca3af', background: '#000000', text: '#e5e7eb' }
+      preview: { primary: '#1e3a5f', secondary: '#264d73', background: '#000000', text: '#e5e5e5' }
     },
     {
       id: 'indian-wedding',
