@@ -720,7 +720,7 @@ const EmbeddedProfile = ({
               <div>
                 <strong>LinkedIn:</strong>{' '}
                 {piiAccess.linkedin_url || user.linkedinUrlVisible ? 
-                  (user.linkedinUrl ? <a href={user.linkedinUrl.match(/^https?:\/\//) ? user.linkedinUrl : `https://${user.linkedinUrl}`} target="_blank" rel="noopener noreferrer">{user.linkedinUrl}</a> : 'Not provided') : 
+                  (user.linkedinUrl ? <a href={user.linkedinUrl.match(/^https?:\/\//) ? user.linkedinUrl : `https://${user.linkedinUrl}`} target="_blank" rel="noopener noreferrer">LinkedIn Profile ↗</a> : 'Not provided') : 
                   <span style={{ color: 'var(--text-muted)' }}>🔒 Request Access</span>
                 }
               </div>
