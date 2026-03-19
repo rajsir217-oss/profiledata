@@ -49,3 +49,7 @@ logs/
 fastapi_backend/backups/*.archive.gz
 fastapi_backend/backups/*.tar.gz
 fastapi_backend/backups/*.json
+
+# Terraform
+*.tf
+*.tfvars
