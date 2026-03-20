@@ -32,6 +32,9 @@ export const useSearchActions = (searchState, userState, filterState) => {
     startLoadingTimer,
     updateElapsedTime,
     selectedProfileForDetail, setSelectedProfileForDetail,
+    excludedProfileMessage, setExcludedProfileMessage,
+    excludedProfileId, setExcludedProfileId,
+    excludedProfileUsername, setExcludedProfileUsername,
   } = searchState;
 
   const {
@@ -245,13 +248,26 @@ export const useSearchActions = (searchState, userState, filterState) => {
         signal: abortController.signal
       });
 
-      const { users: newUsers, total, serverReturnedCount, serverReturnedFullPage } = response.data;
+      const { 
+        users: newUsers, 
+        total, 
+        serverReturnedCount, 
+        serverReturnedFullPage,
+        excludedProfileMessage: excludedMsg,
+        excludedProfileId: excludedId,
+        excludedProfileUsername: excludedUsername
+      } = response.data;
       
       if (page === 1) {
         setUsers(newUsers || []);
         setCurrentPage(1);
         setTotalResults(total || 0);
         setHasMoreResults(serverReturnedFullPage);
+        
+        // Set excluded profile data if present
+        setExcludedProfileMessage(excludedMsg || null);
+        setExcludedProfileId(excludedId || null);
+        setExcludedProfileUsername(excludedUsername || null);
         
         // Auto-select first profile in split view so right panel isn't blank
         if (selectedProfileForDetail && newUsers.length > 0) {
