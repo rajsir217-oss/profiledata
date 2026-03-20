@@ -408,60 +408,70 @@ const AdminContactManagement = () => {
               {/* Ticket Header */}
               <div className="ticket-detail-header">
                 <div className="ticket-detail-title">
-                  <h2>{selectedTicket.subject}</h2>
-                  <div className="ticket-badges">
-                    <span className={`badge ${getStatusBadge(selectedTicket.status).class}`}>
-                      {getStatusBadge(selectedTicket.status).icon} {getStatusBadge(selectedTicket.status).label}
-                    </span>
-                    <span className={`badge ${getPriorityBadge(selectedTicket.priority).class}`}>
-                      {getPriorityBadge(selectedTicket.priority).icon} {getPriorityBadge(selectedTicket.priority).label}
-                    </span>
+                  <div className="ticket-topic-row">
+                    <h2>{selectedTicket.subject}</h2>
+                    <div className="ticket-badges">
+                      <span className={`badge ${getStatusBadge(selectedTicket.status).class}`}>
+                        {getStatusBadge(selectedTicket.status).icon} {getStatusBadge(selectedTicket.status).label}
+                      </span>
+                      <span className={`badge ${getPriorityBadge(selectedTicket.priority).class}`}>
+                        {getPriorityBadge(selectedTicket.priority).icon} {getPriorityBadge(selectedTicket.priority).label}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="ticket-metadata-row">
+                    {[{
+                      label: 'From',
+                      value: selectedTicket.name
+                    }, {
+                      label: 'Username',
+                      value: selectedTicket.username || 'Guest'
+                    }, {
+                      label: 'Email',
+                      value: selectedTicket.email
+                    }, {
+                      label: 'Category',
+                      value: categories.find(c => c.value === selectedTicket.category)?.label || selectedTicket.category
+                    }, {
+                      label: 'Created',
+                      value: new Date(selectedTicket.createdAt).toLocaleString()
+                    }, {
+                      label: 'Ticket ID',
+                      value: `#${selectedTicket._id.slice(-8)}`
+                    }].map(item => (
+                      <span key={item.label} className="ticket-metadata-pill">
+                        <strong>{item.label}:</strong> {item.value}
+                      </span>
+                    ))}
                   </div>
                 </div>
                 
-                <div className="ticket-actions">
-                  <select
-                    value={selectedTicket.status}
-                    onChange={(e) => updateTicketStatus(selectedTicket._id, e.target.value)}
-                    className="status-dropdown"
-                  >
-                    <option value="open">🔵 Open</option>
-                    <option value="in_progress">🟡 In Progress</option>
-                    <option value="resolved">🟢 Resolved</option>
-                    <option value="closed">⚫ Closed</option>
-                  </select>
-                  
-                  <button
-                    onClick={() => handleDeleteClick(selectedTicket._id)}
-                    className={`btn btn-sm ${pendingDeleteId === selectedTicket._id ? 'btn-danger-confirm' : 'btn-danger'}`}
-                    title={pendingDeleteId === selectedTicket._id ? 'Click again to confirm delete' : 'Delete Ticket'}
-                  >
-                    {pendingDeleteId === selectedTicket._id ? '⚠️ Confirm Delete' : '🗑️ Delete'}
-                  </button>
+                <div className="ticket-actions-row">
+                  <div className="ticket-actions">
+                    <select
+                      value={selectedTicket.status}
+                      onChange={(e) => updateTicketStatus(selectedTicket._id, e.target.value)}
+                      className="status-dropdown"
+                    >
+                      <option value="open">🔵 Open</option>
+                      <option value="in_progress">🟡 In Progress</option>
+                      <option value="resolved">🟢 Resolved</option>
+                      <option value="closed">⚫ Closed</option>
+                    </select>
+                    
+                    <button
+                      onClick={() => handleDeleteClick(selectedTicket._id)}
+                      className={`btn btn-sm ${pendingDeleteId === selectedTicket._id ? 'btn-danger-confirm' : 'btn-danger'}`}
+                      title={pendingDeleteId === selectedTicket._id ? 'Click again to confirm delete' : 'Delete Ticket'}
+                    >
+                      {pendingDeleteId === selectedTicket._id ? '⚠️ Confirm Delete' : '🗑️ Delete'}
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Ticket Info */}
-              <div className="ticket-info-section">
-                <div className="info-row">
-                  <strong>From:</strong> {selectedTicket.name}
-                </div>
-                <div className="info-row">
-                  <strong>Email:</strong> {selectedTicket.email}
-                </div>
-                <div className="info-row">
-                  <strong>Username:</strong> {selectedTicket.username || 'Guest'}
-                </div>
-                <div className="info-row">
-                  <strong>Category:</strong> {categories.find(c => c.value === selectedTicket.category)?.label}
-                </div>
-                <div className="info-row">
-                  <strong>Created:</strong> {new Date(selectedTicket.createdAt).toLocaleString()}
-                </div>
-                <div className="info-row">
-                  <strong>Ticket ID:</strong> <code>#{selectedTicket._id.slice(-8)}</code>
-                </div>
-              </div>
+              <div className="ticket-topic-gap" aria-hidden="true"></div>
 
               {/* Conversation */}
               <div className="ticket-conversation">
@@ -541,15 +551,20 @@ const AdminContactManagement = () => {
 
               {/* Reply Box */}
               <div className="reply-section">
-                <h4>💬 Send Reply</h4>
-                <textarea
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Type your response here... (User will receive this via email)"
-                  rows="1"
-                  className="reply-textarea"
-                />
-                <div className="reply-actions">
+                <div className="reply-controls">
+                  <button
+                    onClick={() => setReplyText('')}
+                    className="btn btn-outline-secondary"
+                  >
+                    Clear
+                  </button>
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Type your response here... (User will receive this via email)"
+                    rows="1"
+                    className="reply-textarea"
+                  />
                   <button
                     onClick={sendReply}
                     disabled={sending || !replyText.trim()}
@@ -563,12 +578,6 @@ const AdminContactManagement = () => {
                     ) : (
                       <>📤 Send Reply</>
                     )}
-                  </button>
-                  <button
-                    onClick={() => setReplyText('')}
-                    className="btn btn-outline-secondary"
-                  >
-                    Clear
                   </button>
                 </div>
               </div>
