@@ -53,6 +53,11 @@ export const useSearchState = () => {
   const [initialSearchComplete, setInitialSearchComplete] = useState(false);
   const [error, setError] = useState('');
 
+  // ===== EXCLUDED PROFILE STATE =====
+  const [excludedProfileMessage, setExcludedProfileMessage] = useState(null);
+  const [excludedProfileId, setExcludedProfileId] = useState(null);
+  const [excludedProfileUsername, setExcludedProfileUsername] = useState(null);
+
   // ===== PAGINATION STATE =====
   const [currentPage, setCurrentPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
@@ -121,6 +126,9 @@ export const useSearchState = () => {
     setError('');
     setSelectedProfileForDetail(null);
     setSwipeIndex(0);
+    setExcludedProfileMessage(null);
+    setExcludedProfileId(null);
+    setExcludedProfileUsername(null);
     accumulatedCountRef.current = 0;
     loadingPageRef.current = 1;
   }, []);
@@ -254,6 +262,9 @@ export const useSearchState = () => {
     selectedProfileForDetail,
     expandedSections,
     columnWidths,
+    excludedProfileMessage,
+    excludedProfileId,
+    excludedProfileUsername,
 
     // Refs
     hasAutoExecutedRef,
@@ -283,6 +294,9 @@ export const useSearchState = () => {
     setSelectedProfileForDetail,
     setExpandedSections,
     setColumnWidths,
+    setExcludedProfileMessage,
+    setExcludedProfileId,
+    setExcludedProfileUsername,
 
     // Convenience actions
     resetSearchState,

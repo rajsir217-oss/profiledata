@@ -168,6 +168,9 @@ const SearchPage2 = () => {
     selectedProfileForDetail, setSelectedProfileForDetail,
     expandedSections, setExpandedSections,
     columnWidths, setColumnWidths,
+    excludedProfileMessage,
+    excludedProfileId,
+    excludedProfileUsername,
     hasAutoExecutedRef,
     searchResultsRef,
     loadMoreTriggerRef,
@@ -265,7 +268,6 @@ const SearchPage2 = () => {
   // searchResultsRef and hasAutoExecutedRef already declared above
   
   // Additional state variables
-  const [excludedProfileUsername, setExcludedProfileUsername] = useState(null);
   const [pendingPIIRequestUser, setPendingPIIRequestUser] = useState(null);
   const [showChatFirstPrompt, setShowChatFirstPrompt] = useState(false);
   
@@ -404,8 +406,6 @@ const SearchPage2 = () => {
   const [isPremiumUser, setIsPremiumUser] = useState(false); // Premium status for L3V3L filtering
   const [systemConfig, setSystemConfig] = useState({ enable_l3v3l_for_all: true }); // System configuration
   const [isAdmin, setIsAdmin] = useState(false); // Admin role check for clear vs reset behavior
-  const [excludedProfileMessage, setExcludedProfileMessage] = useState(null); // Message when profileId search hits exclusion
-  const [excludedProfileId, setExcludedProfileId] = useState(null); // Profile ID of excluded profile
   
   // Session restore ref
   const hasRestoredStateRef = useRef(false);
