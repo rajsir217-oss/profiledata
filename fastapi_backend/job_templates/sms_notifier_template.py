@@ -374,6 +374,7 @@ class SMSNotifierTemplate(JobTemplate):
                 
                 # Activity & Engagement
                 "login_reminder": f"{GREETING}We miss you! Login to see new matches.",
+                "admin_login_reminder": f"{GREETING}Your profile is noticed—it's been a while since you logged in. Login to see what you're missing.",
                 "weekly_summary": f"{GREETING}You have new activity this week! Login to view.",
                 "success_story": f"{GREETING}Inspiring success story! Login to read it.",
                 "event_invite": f"{GREETING}Upcoming matchmaking event! Login to RSVP.",
