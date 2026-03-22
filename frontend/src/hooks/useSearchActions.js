@@ -220,8 +220,31 @@ export const useSearchActions = (searchState, userState, filterState) => {
       // Build search query
       const query = new URLSearchParams();
       
+      // Convert height feet/inches to total inches before sending to API
+      const criteriaWithHeightInches = { ...criteriaToUse };
+      
+      // Calculate heightMin in total inches (feet * 12 + inches)
+      if (criteriaWithHeightInches.heightMinFeet && criteriaWithHeightInches.heightMinInches !== undefined) {
+        const feet = parseInt(criteriaWithHeightInches.heightMinFeet) || 0;
+        const inches = parseInt(criteriaWithHeightInches.heightMinInches) || 0;
+        criteriaWithHeightInches.heightMin = feet * 12 + inches;
+      }
+      
+      // Calculate heightMax in total inches (feet * 12 + inches)
+      if (criteriaWithHeightInches.heightMaxFeet && criteriaWithHeightInches.heightMaxInches !== undefined) {
+        const feet = parseInt(criteriaWithHeightInches.heightMaxFeet) || 0;
+        const inches = parseInt(criteriaWithHeightInches.heightMaxInches) || 0;
+        criteriaWithHeightInches.heightMax = feet * 12 + inches;
+      }
+      
+      // Remove feet/inches fields - backend doesn't need them
+      delete criteriaWithHeightInches.heightMinFeet;
+      delete criteriaWithHeightInches.heightMinInches;
+      delete criteriaWithHeightInches.heightMaxFeet;
+      delete criteriaWithHeightInches.heightMaxInches;
+      
       // Add basic criteria
-      Object.entries(criteriaToUse).forEach(([key, value]) => {
+      Object.entries(criteriaWithHeightInches).forEach(([key, value]) => {
         if (value !== '' && value !== null && value !== undefined) {
           if (Array.isArray(value)) {
             value.forEach(v => query.append(key, v));
