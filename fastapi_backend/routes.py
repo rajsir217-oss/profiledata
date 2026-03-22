@@ -4852,7 +4852,7 @@ async def search_users(
     db = Depends(get_database)
 ):
     """Advanced search for users with filters"""
-    logger.info(f"🔍 Search request - keyword: '{keyword}', profileId: '{profileId}', status_filter: '{status_filter}', page: {page}, limit: {limit}, gender: '{gender}', ageMin: {ageMin}, ageMax: {ageMax}")
+    logger.info(f"🔍 Search request - keyword: '{keyword}', profileId: '{profileId}', status_filter: '{status_filter}', page: {page}, limit: {limit}, gender: '{gender}', ageMin: {ageMin}, ageMax: {ageMax}, heightMin: {heightMin}, heightMax: {heightMax}")
     
     # Non-active users cannot search for other profiles
     if current_user.get("accountStatus") != "active":
@@ -4944,23 +4944,15 @@ async def search_users(
         age_filter_max = ageMax if ageMax > 0 else None
 
         # Height filter - now using heightInches (numeric field)
-        # Include users who match OR don't have the field (lenient search)
+        # STRICT: Only show users within specified height range
+        # Note: Use separate $and conditions for MongoDB Atlas compatibility
         if heightMin > 0 or heightMax > 0:
-            height_query = {}
             if heightMin > 0:
-                height_query["$gte"] = heightMin
+                and_conditions.append({"heightInches": {"$gte": heightMin}})
+                logger.info(f"📏 Height filter (min): heightInches >= {heightMin}")
             if heightMax > 0:
-                height_query["$lte"] = heightMax
-            
-            # Only add height condition if we have actual constraints
-            if height_query:
-                # Lenient: include users who match OR heightInches field doesn't exist
-                height_condition = {"$or": [
-                    {"heightInches": height_query},
-                    {"heightInches": {"$exists": False}},
-                    {"heightInches": None}
-                ]}
-                and_conditions.append(height_condition)
+                and_conditions.append({"heightInches": {"$lte": heightMax}})
+                logger.info(f"📏 Height filter (max): heightInches <= {heightMax}")
 
         # Other filters
         # ⚠️ IMPORTANT: Can't search on encrypted location, search on city, state, and aboutYou instead
@@ -5203,15 +5195,8 @@ async def search_users(
                     }
                 }},
                 
-                # Stage 3: Filter by calculated age (LENIENT - include users without age data)
-                {"$match": {
-                    "$or": [
-                        # Match age range with all conditions
-                        {"$and": age_conditions},
-                        # OR: No age data (lenient)
-                        {"calculatedAge": None}
-                    ]
-                }},
+                # Stage 3: Filter by calculated age (STRICT - only users within age range)
+                {"$match": {"$and": age_conditions}},
                 
                 # Stage 4: Lookup L3V3L scores from pre-computed collection
                 {"$lookup": {
