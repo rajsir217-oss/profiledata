@@ -430,8 +430,8 @@ const SearchFilters = ({
 
           
         </div>
-        {/* 1. L3V3L COMPATIBILITY SLIDER */}
-      {(systemConfig?.enable_l3v3l_for_all || isPremiumUser) && (
+        {/* HIDDEN: L3V3L COMPATIBILITY SLIDER 
+        {(systemConfig?.enable_l3v3l_for_all || isPremiumUser) && (
         <div className="l3v3l-slider-section" style={{ marginBottom: '24px' }}>
           <div style={{ 
             display: 'flex', 
@@ -486,6 +486,7 @@ const SearchFilters = ({
           </div>
         </div>
       )}
+      */}
       
       </div>
       
