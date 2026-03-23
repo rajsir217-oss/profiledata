@@ -411,6 +411,132 @@ async def get_all_contributions(
         raise HTTPException(status_code=500, detail="Failed to get contributions")
 
 
+@router.get("/admin/export-csv")
+async def export_contributions_csv(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Export all users with contribution details for CSV (admin only)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        # Get ALL users (not just contributors)
+        users_cursor = db.users.find(
+            {},
+            {
+                "username": 1, 
+                "firstName": 1, 
+                "lastName": 1,
+                "age": 1,
+                "gender": 1,
+                "contactPhone": 1,
+                "phone": 1,
+                "contactEmail": 1,
+                "email": 1,
+                "birthYear": 1,
+                "birthMonth": 1,
+                "birthDay": 1,
+                "_id": 0
+            }
+        )
+        all_users = await users_cursor.to_list(length=None)
+        
+        # Get ALL contributions
+        query = {"paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}}
+        contributions = await db.payments.find(query).sort("createdAt", -1).to_list(length=None)
+        
+        # Build contribution map: username -> list of contributions
+        contribution_map = {}
+        for c in contributions:
+            username = c.get("username")
+            if username:
+                if username not in contribution_map:
+                    contribution_map[username] = []
+                contribution_map[username].append(c)
+        
+        # Decrypt PII if encrypted
+        from datetime import datetime as dt
+        
+        def decrypt_if_needed(value):
+            """Decrypt value if it's encrypted"""
+            if not value or not isinstance(value, str):
+                return value
+            if value.startswith("gAAAAA"):
+                try:
+                    from crypto_utils import get_encryptor
+                    return get_encryptor().decrypt(value)
+                except Exception as e:
+                    logger.error(f"Failed to decrypt value: {e}")
+                    return "[Encrypted]"
+            return value
+        
+        def calculate_age(user):
+            """Calculate age from birth date"""
+            if user.get("age"):
+                return user["age"]
+            if user.get("birthYear") and user.get("birthMonth") and user.get("birthDay"):
+                try:
+                    birth_date = dt(user["birthYear"], user["birthMonth"], user["birthDay"])
+                    today = dt.now()
+                    age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+                    return age
+                except:
+                    pass
+            return ""
+        
+        # Format for CSV export - iterate through ALL users
+        formatted_contributions = []
+        for user in all_users:
+            username = user.get("username")
+            
+            # Get contact info with decryption
+            contact_email = decrypt_if_needed(user.get("contactEmail") or user.get("email") or "")
+            contact_phone = decrypt_if_needed(user.get("contactPhone") or user.get("phone") or "")
+            
+            # Build full name
+            first_name = user.get("firstName", "")
+            last_name = user.get("lastName", "")
+            full_name = f"{first_name} {last_name}".strip()
+            
+            # Get contribution data if user has contributed
+            user_contributions = contribution_map.get(username, [])
+            
+            if user_contributions:
+                # User has contributions - create a row for each contribution
+                for c in user_contributions:
+                    formatted_contributions.append({
+                        "username": username,
+                        "fullName": full_name,
+                        "age": calculate_age(user),
+                        "gender": user.get("gender", ""),
+                        "contactPhone": contact_phone,
+                        "contactEmail": contact_email,
+                        "amount": c.get("amount", 0),
+                        "createdAt": c.get("createdAt").isoformat() if c.get("createdAt") else ""
+                    })
+            else:
+                # User has NOT contributed - create a row with empty contribution fields
+                formatted_contributions.append({
+                    "username": username,
+                    "fullName": full_name,
+                    "age": calculate_age(user),
+                    "gender": user.get("gender", ""),
+                    "contactPhone": contact_phone,
+                    "contactEmail": contact_email,
+                    "amount": "",
+                    "createdAt": ""
+                })
+        
+        return {
+            "success": True,
+            "contributions": formatted_contributions
+        }
+    except Exception as e:
+        logger.error(f"Error exporting contributions CSV: {e}")
+        raise HTTPException(status_code=500, detail="Failed to export contributions")
+
+
 @router.post("/admin/contributions/{contribution_id}/thank-you")
 async def send_thank_you_email(
     contribution_id: str,
