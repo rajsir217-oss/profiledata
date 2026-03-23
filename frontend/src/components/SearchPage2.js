@@ -1876,8 +1876,11 @@ const SearchPage2 = () => {
             <span className="results-count-number">{totalResults}</span>
             <span className="results-count-text"> - found</span>
           </span>
-          <button className="btn-modify-search">
-            <span className="modify-text">Modify Search </span><span className="modify-icon">⚙️</span>
+          <button className="btn-modify-search" onClick={(e) => { e.stopPropagation(); setIsSearchModalOpen(true); }}>
+            <span className="modify-text">Modify </span><span className="modify-icon">⚙️</span>
+          </button>
+          <button className="btn-modify-search" onClick={(e) => { e.stopPropagation(); handleSearchHook(1); }} title="Refresh search results">
+            <span className="modify-text">Refresh </span><span className="modify-icon">🔄</span>
           </button>
         </div>
       </div>
