@@ -44,6 +44,7 @@ const ContributionManagement = () => {
   const [thankYouSent, setThankYouSent] = useState({});
   const [toast, setToast] = useState(null);
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
@@ -236,6 +237,73 @@ const ContributionManagement = () => {
     loadContributions();
   };
 
+  const handleExportCSV = async () => {
+    try {
+      setIsExporting(true);
+      const token = localStorage.getItem('token');
+      
+      // Fetch ALL contributions (no pagination limit)
+      const response = await axios.get(
+        `${getBackendUrl()}/api/contributions/admin/export-csv`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        const contributions = response.data.contributions;
+        
+        // CSV Headers
+        const headers = [
+          'Username',
+          'Full Name',
+          'Age',
+          'Gender',
+          'Contact Phone',
+          'Contact Email',
+          'Contributed Amount',
+          'Contribution Date'
+        ];
+        
+        // CSV Rows
+        const rows = contributions.map(c => [
+          c.username || '',
+          c.fullName || '',
+          c.age || '',
+          c.gender || '',
+          c.contactPhone || '',
+          c.contactEmail || '',
+          `$${(c.amount || 0).toFixed(2)}`,
+          c.createdAt ? new Date(c.createdAt).toLocaleString() : ''
+        ]);
+        
+        // Build CSV content
+        const csvContent = [
+          headers.join(','),
+          ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+        
+        // Create download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        const timestamp = new Date().toISOString().split('T')[0];
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `contributions_export_${timestamp}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast(`Exported ${contributions.length} contributions to CSV`, 'success');
+      }
+    } catch (err) {
+      console.error('Error exporting CSV:', err);
+      showToast('Failed to export CSV', 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="contribution-management">
       {toast && (
@@ -254,9 +322,22 @@ const ContributionManagement = () => {
           <h1>💝 Contribution Management</h1>
           <p>View and manage all contributions</p>
         </div>
-        <button className="add-payment-btn" onClick={() => setShowAddPaymentModal(true)}>
-          + Add Payment
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            className="add-payment-btn" 
+            onClick={handleExportCSV}
+            disabled={isExporting}
+            style={{
+              background: isExporting ? 'var(--text-muted)' : 'var(--success-color)',
+              cursor: isExporting ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {isExporting ? '⏳ Exporting...' : '📥 Export'}
+          </button>
+          <button className="add-payment-btn" onClick={() => setShowAddPaymentModal(true)}>
+            + Add Payment
+          </button>
+        </div>
       </div>
 
       {error && (
