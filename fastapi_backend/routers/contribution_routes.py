@@ -437,6 +437,7 @@ async def export_contributions_csv(
                 "birthYear": 1,
                 "birthMonth": 1,
                 "birthDay": 1,
+                "lastLogin": 1,
                 "_id": 0
             }
         )
@@ -502,6 +503,10 @@ async def export_contributions_csv(
             # Get contribution data if user has contributed
             user_contributions = contribution_map.get(username, [])
             
+            # Get last login date
+            last_login = user.get("lastLogin")
+            last_login_str = last_login.isoformat() if last_login else ""
+            
             if user_contributions:
                 # User has contributions - create a row for each contribution
                 for c in user_contributions:
@@ -513,7 +518,8 @@ async def export_contributions_csv(
                         "contactPhone": contact_phone,
                         "contactEmail": contact_email,
                         "amount": c.get("amount", 0),
-                        "createdAt": c.get("createdAt").isoformat() if c.get("createdAt") else ""
+                        "createdAt": c.get("createdAt").isoformat() if c.get("createdAt") else "",
+                        "lastLogin": last_login_str
                     })
             else:
                 # User has NOT contributed - create a row with empty contribution fields
@@ -525,7 +531,8 @@ async def export_contributions_csv(
                     "contactPhone": contact_phone,
                     "contactEmail": contact_email,
                     "amount": "",
-                    "createdAt": ""
+                    "createdAt": "",
+                    "lastLogin": last_login_str
                 })
         
         return {
