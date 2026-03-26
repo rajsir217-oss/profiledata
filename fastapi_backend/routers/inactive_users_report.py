@@ -357,6 +357,93 @@ async def get_inactive_users_summary(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
+@router.get("/inactive-users/login-stats")
+async def get_login_statistics(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get login activity statistics by time period with daily breakdown for charts"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        today = datetime.utcnow()
+        
+        # Define time periods
+        one_day_ago = today - timedelta(days=1)
+        one_week_ago = today - timedelta(days=7)
+        one_month_ago = today - timedelta(days=30)
+        one_year_ago = today - timedelta(days=365)
+        
+        # Fetch all active users with login data
+        projection = {
+            "username": 1,
+            "security.last_login_at": 1,
+            "lastLogin": 1,
+            "status.last_seen": 1,
+            "_id": 0
+        }
+        
+        cursor = db.users.find({"accountStatus": "active"}, projection)
+        all_users = await cursor.to_list(length=10000)
+        
+        # Count logins in each period
+        logins_last_day = 0
+        logins_last_week = 0
+        logins_last_month = 0
+        logins_last_year = 0
+        
+        # For chart: daily login counts for last 30 days
+        daily_logins = {}
+        for i in range(30):
+            date = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+            daily_logins[date] = 0
+        
+        for user in all_users:
+            last_login = _get_last_login(user)
+            if not last_login:
+                continue
+            
+            # Count by period
+            if last_login >= one_day_ago:
+                logins_last_day += 1
+            if last_login >= one_week_ago:
+                logins_last_week += 1
+            if last_login >= one_month_ago:
+                logins_last_month += 1
+            if last_login >= one_year_ago:
+                logins_last_year += 1
+            
+            # Add to daily chart data (last 30 days)
+            if last_login >= one_month_ago:
+                login_date = last_login.strftime("%Y-%m-%d")
+                if login_date in daily_logins:
+                    daily_logins[login_date] += 1
+        
+        # Convert daily_logins to sorted array for chart
+        chart_data = [
+            {"date": date, "count": count}
+            for date, count in sorted(daily_logins.items(), reverse=True)
+        ]
+        
+        return {
+            "success": True,
+            "stats": {
+                "last24Hours": logins_last_day,
+                "last7Days": logins_last_week,
+                "last30Days": logins_last_month,
+                "last365Days": logins_last_year,
+                "totalActiveUsers": len(all_users)
+            },
+            "chartData": chart_data,
+            "generatedAt": today.isoformat()
+        }
+    
+    except Exception as e:
+        logger.error(f"Error fetching login statistics: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
 @router.post("/inactive-users/{username}/send-reminder")
 async def send_test_reminder(
     username: str,

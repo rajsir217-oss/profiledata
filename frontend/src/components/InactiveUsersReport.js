@@ -9,6 +9,9 @@ const InactiveUsersReport = () => {
   const [loading, setLoading] = useState(true);
   const [displayCount, setDisplayCount] = useState(20);
   const rowsPerPage = 20;
+  const [loginStats, setLoginStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('inactive-users'); // 'inactive-users' or 'login-activity'
   const [filters, setFilters] = useState({
     username: '',
     gender: '',
@@ -89,10 +92,26 @@ const InactiveUsersReport = () => {
     }
   }, [filters, sortConfig, pagination.page, pagination.limit]);
 
+  // Load login statistics
+  const loadLoginStats = useCallback(async () => {
+    try {
+      setStatsLoading(true);
+      const apiUrl = `${getBackendUrl()}/api/admin/inactive-users/login-stats`;
+      const response = await api.get(apiUrl);
+      setLoginStats(response.data);
+    } catch (error) {
+      logger.error('Error loading login statistics:', error);
+      console.error('Login stats error:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
   // Load data on mount and when dependencies change
   useEffect(() => {
     loadInactiveUsers();
-  }, [loadInactiveUsers]);
+    loadLoginStats();
+  }, [loadInactiveUsers, loadLoginStats]);
 
   const handleSort = (key) => {
     setSortConfig(prev => ({
@@ -244,12 +263,166 @@ const InactiveUsersReport = () => {
           <button onClick={exportToCSV} className="btn btn-primary">
             📥 Export CSV
           </button>
-          <button onClick={loadInactiveUsers} className="btn btn-secondary">
+          <button onClick={() => { loadInactiveUsers(); loadLoginStats(); }} className="btn btn-secondary">
             🔄 Refresh
           </button>
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="main-tabs" style={{
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '24px',
+        borderBottom: '2px solid var(--border-color)'
+      }}>
+        <button 
+          className={`main-tab ${activeTab === 'inactive-users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('inactive-users')}
+          style={{
+            padding: '12px 24px',
+            background: activeTab === 'inactive-users' ? 'var(--primary-color)' : 'transparent',
+            color: activeTab === 'inactive-users' ? 'white' : 'var(--text-color)',
+            border: 'none',
+            borderBottom: activeTab === 'inactive-users' ? '3px solid var(--primary-color)' : '3px solid transparent',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '14px',
+            borderRadius: '8px 8px 0 0',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          📊 Inactive Users Report
+        </button>
+        <button 
+          className={`main-tab ${activeTab === 'login-activity' ? 'active' : ''}`}
+          onClick={() => setActiveTab('login-activity')}
+          style={{
+            padding: '12px 24px',
+            background: activeTab === 'login-activity' ? 'var(--primary-color)' : 'transparent',
+            color: activeTab === 'login-activity' ? 'white' : 'var(--text-color)',
+            border: 'none',
+            borderBottom: activeTab === 'login-activity' ? '3px solid var(--primary-color)' : '3px solid transparent',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '14px',
+            borderRadius: '8px 8px 0 0',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          📈 Login Activity
+        </button>
+      </div>
+
+      {/* Login Activity Tab Content */}
+      {activeTab === 'login-activity' && !statsLoading && loginStats && (
+        <div className="login-stats-section" style={{ marginBottom: '24px' }}>
+          <h3 style={{ marginBottom: '16px', color: 'var(--text-color)' }}>📈 Login Activity</h3>
+          <div className="stats-grid" style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '16px',
+            marginBottom: '24px'
+          }}>
+            <div className="stat-card" style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              padding: '20px',
+              borderRadius: '12px',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📅 Last 24 Hours</div>
+              <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last24Hours}</div>
+              <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
+            </div>
+            <div className="stat-card" style={{
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              padding: '20px',
+              borderRadius: '12px',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📊 Last 7 Days</div>
+              <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last7Days}</div>
+              <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
+            </div>
+            <div className="stat-card" style={{
+              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              padding: '20px',
+              borderRadius: '12px',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📆 Last 30 Days</div>
+              <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last30Days}</div>
+              <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
+            </div>
+            <div className="stat-card" style={{
+              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+              padding: '20px',
+              borderRadius: '12px',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📈 Last Year</div>
+              <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last365Days}</div>
+              <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
+            </div>
+          </div>
+
+          {/* Chart Placeholder */}
+          <div className="chart-container" style={{
+            background: 'var(--card-background)',
+            padding: '24px',
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
+            marginBottom: '24px'
+          }}>
+            <h4 style={{ marginBottom: '16px', color: 'var(--text-color)' }}>📊 Daily Login Trend (Last 30 Days)</h4>
+            <div style={{ height: '300px', display: 'flex', alignItems: 'flex-end', gap: '4px', padding: '20px 0' }}>
+              {loginStats.chartData.slice().reverse().map((day, index) => {
+                const maxCount = Math.max(...loginStats.chartData.map(d => d.count));
+                const height = maxCount > 0 ? (day.count / maxCount) * 100 : 0;
+                return (
+                  <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div 
+                      style={{
+                        width: '100%',
+                        height: `${height}%`,
+                        background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
+                        borderRadius: '4px 4px 0 0',
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer',
+                        minHeight: day.count > 0 ? '4px' : '0'
+                      }}
+                      title={`${day.date}: ${day.count} logins`}
+                    />
+                    {index % 5 === 0 && (
+                      <div style={{ 
+                        fontSize: '10px', 
+                        color: 'var(--text-muted)', 
+                        marginTop: '8px',
+                        transform: 'rotate(-45deg)',
+                        transformOrigin: 'top left',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              Hover over bars to see exact counts
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inactive Users Tab Content */}
+      {activeTab === 'inactive-users' && (
+        <>
       {/* Filters */}
       <div className="filters-section">
         <div className="filters-grid">
@@ -424,7 +597,8 @@ const InactiveUsersReport = () => {
           </div>
         </div>
       )}
-
+        </>
+      )}
 
     </div>
   );
