@@ -260,7 +260,8 @@ const ContributionManagement = () => {
           'Contact Phone',
           'Contact Email',
           'Contributed Amount',
-          'Contribution Date'
+          'Contribution Date',
+          'Last Logged In'
         ];
         
         // CSV Rows
@@ -271,8 +272,9 @@ const ContributionManagement = () => {
           c.gender || '',
           c.contactPhone || '',
           c.contactEmail || '',
-          `$${(c.amount || 0).toFixed(2)}`,
-          c.createdAt ? new Date(c.createdAt).toLocaleString() : ''
+          c.amount ? `$${(c.amount || 0).toFixed(2)}` : '',
+          c.createdAt ? new Date(c.createdAt).toLocaleString() : '',
+          c.lastLogin ? new Date(c.lastLogin).toLocaleString() : ''
         ]);
         
         // Build CSV content
