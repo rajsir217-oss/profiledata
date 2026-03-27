@@ -501,6 +501,19 @@ const InactiveUsersReport = () => {
                         >
                           <title>{`${new Date(p.date).toLocaleDateString()}: ${p.count} unique logins`}</title>
                         </circle>
+                        {/* Show count labels only for 7-day view to avoid clutter */}
+                        {selectedInterval === '7' && (
+                          <text
+                            x={p.x}
+                            y={p.y - 12}
+                            textAnchor="middle"
+                            fontSize="12"
+                            fontWeight="600"
+                            fill="var(--primary-color)"
+                          >
+                            {p.count}
+                          </text>
+                        )}
                       </g>
                     ))}
                     
