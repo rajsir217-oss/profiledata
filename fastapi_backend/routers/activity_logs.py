@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
 from auth.jwt_auth import get_current_user_dependency as get_current_user
+from database import get_database
 from models.activity_models import (
     ActivityLogFilter, ActivityLogCreate, ActivityLogResponse,
     ActivityStats, ActivityType
@@ -355,7 +356,8 @@ async def delete_bulk_logs(
 @router.get("/chart-data")
 async def get_activity_chart_data(
     days: int = Query(30, ge=1, le=365, description="Number of days to include"),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
 ):
     """
     Get activity data aggregated by date for charting (Admin only)
@@ -364,11 +366,17 @@ async def get_activity_chart_data(
     check_admin(current_user)
     
     try:
-        activity_logger_instance = get_activity_logger()
+        logger.info(f"📊 Loading chart data for {days} days by user: {current_user.get('username')}")
+        
+        # Use database directly - more reliable than activity logger
+        collection = db.activity_logs
+        logger.info("✅ Using direct database access")
         
         # Calculate date range
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=days)
+        
+        logger.info(f"📅 Date range: {start_date} to {end_date}")
         
         # Aggregate by date and action type
         pipeline = [
@@ -391,8 +399,10 @@ async def get_activity_chart_data(
             }
         ]
         
-        cursor = activity_logger_instance.collection.aggregate(pipeline)
+        cursor = collection.aggregate(pipeline)
         results = await cursor.to_list(length=None)
+        
+        logger.info(f"📊 Aggregation returned {len(results)} results")
         
         # Transform data for chart consumption
         # Format: { dates: [...], series: { action_type: [...counts...] } }
@@ -423,7 +433,7 @@ async def get_activity_chart_data(
             total = sum(action_data.get(at, {}).get(date, 0) for at in action_data)
             totals.append(total)
         
-        return {
+        result = {
             "dates": dates,
             "series": series,
             "totals": totals,
@@ -433,6 +443,13 @@ async def get_activity_chart_data(
                 "days": days
             }
         }
+        
+        logger.info(f"📊 Returning chart data: {len(dates)} dates, {len(series)} series, totals sum: {sum(totals)}")
+        
+        return result
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         logger.error(f"❌ Error fetching chart data: {e}")
+        logger.error(f"❌ Full traceback: {error_details}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch chart data: {str(e)}")

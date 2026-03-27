@@ -924,6 +924,27 @@
   font-size: 0.9rem;
 }
 
+.chart-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.chart-empty-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.chart-empty-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
 .chart-wrapper {
   display: flex;
   flex-direction: column;

@@ -83,16 +83,26 @@ const ActivityLogs = () => {
     setChartLoading(true);
     try {
       const token = localStorage.getItem('token');
+      console.log(`🔍 Loading chart data for ${days} days...`);
+      
       const response = await fetch(getBackendApiUrl(`/api/activity-logs/chart-data?days=${days}`), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
+      console.log(`📊 Chart API response status: ${response.status}`);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Chart data received:', data);
         setChartData(data);
+      } else {
+        const errorText = await response.text();
+        console.error(`❌ Chart API error (${response.status}):`, errorText);
+        toast.error(`Failed to load chart data: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error loading chart data:', error);
+      console.error('❌ Error loading chart data:', error);
+      toast.error('Failed to load chart data');
     } finally {
       setChartLoading(false);
     }
@@ -470,7 +480,16 @@ const ActivityLogs = () => {
               </div>
             </div>
           ) : (
-            <div className="chart-empty">No activity data for the selected period</div>
+            <div className="chart-empty">
+              <div className="chart-empty-icon">📊</div>
+              <div className="chart-empty-title">No activity data for the selected period</div>
+              <div className="chart-empty-subtitle">
+                {chartDays === 30 ? 
+                  "Activity logging may have started recently, or there was no activity in this period." :
+                  `No activity found in the last ${chartDays} days. Try a different time period.`
+                }
+              </div>
+            </div>
           )}
         </div>
       )}
