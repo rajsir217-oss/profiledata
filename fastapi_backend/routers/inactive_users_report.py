@@ -360,6 +360,7 @@ async def get_inactive_users_summary(
 @router.get("/inactive-users/login-stats")
 async def get_login_statistics(
     current_user: dict = Depends(get_current_user),
+    interval: str = Query("30", description="Time interval: 7, 30, 90, or 365 days"),
     db=Depends(get_database)
 ):
     """Get login activity statistics by time period with daily breakdown for charts"""
@@ -367,6 +368,14 @@ async def get_login_statistics(
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
+        # Validate and parse interval
+        try:
+            days = int(interval)
+            if days not in [7, 30, 90, 365]:
+                days = 30  # Default to 30 days
+        except ValueError:
+            days = 30
+        
         today = datetime.utcnow()
         
         # Define time periods
@@ -374,6 +383,7 @@ async def get_login_statistics(
         one_week_ago = today - timedelta(days=7)
         one_month_ago = today - timedelta(days=30)
         one_year_ago = today - timedelta(days=365)
+        interval_start = today - timedelta(days=days)
         
         # Fetch all active users with login data
         projection = {
@@ -387,15 +397,15 @@ async def get_login_statistics(
         cursor = db.users.find({"accountStatus": "active"}, projection)
         all_users = await cursor.to_list(length=10000)
         
-        # Count logins in each period
+        # Count unique logins in each period
         logins_last_day = 0
         logins_last_week = 0
         logins_last_month = 0
         logins_last_year = 0
         
-        # For chart: daily login counts for last 30 days
+        # For chart: daily unique login counts for selected interval
         daily_logins = {}
-        for i in range(30):
+        for i in range(days):
             date = (today - timedelta(days=i)).strftime("%Y-%m-%d")
             daily_logins[date] = 0
         
@@ -404,7 +414,7 @@ async def get_login_statistics(
             if not last_login:
                 continue
             
-            # Count by period
+            # Count by period (unique users who logged in during period)
             if last_login >= one_day_ago:
                 logins_last_day += 1
             if last_login >= one_week_ago:
@@ -414,20 +424,21 @@ async def get_login_statistics(
             if last_login >= one_year_ago:
                 logins_last_year += 1
             
-            # Add to daily chart data (last 30 days)
-            if last_login >= one_month_ago:
+            # Add to daily chart data for selected interval
+            if last_login >= interval_start:
                 login_date = last_login.strftime("%Y-%m-%d")
                 if login_date in daily_logins:
                     daily_logins[login_date] += 1
         
-        # Convert daily_logins to sorted array for chart
+        # Convert daily_logins to sorted array for chart (oldest to newest for line graph)
         chart_data = [
             {"date": date, "count": count}
-            for date, count in sorted(daily_logins.items(), reverse=True)
+            for date, count in sorted(daily_logins.items())
         ]
         
         return {
             "success": True,
+            "interval": days,
             "stats": {
                 "last24Hours": logins_last_day,
                 "last7Days": logins_last_week,
