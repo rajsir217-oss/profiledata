@@ -9,13 +9,35 @@ import { getAuthenticatedImageUrl } from '../utils/imageUtils';
 import { getProfilePicUrl } from '../utils/urlHelper';
 import './Sidebar.css';
 
-const Sidebar = ({ isCollapsed, onToggle }) => {
+const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [userRole, setUserRole] = useState(null); // User's role
   const [userStatus, setUserStatus] = useState('active'); // Default to active
+  const [localIsPinned, setLocalIsPinned] = useState(false); // Local pin state
   const navigate = useNavigate();
+
+  // Use prop if provided, otherwise use local state
+  const isPinned = propIsPinned !== undefined ? propIsPinned : localIsPinned;
+  const handlePinToggle = onPinChange || setLocalIsPinned;
+
+  // Load pin state from localStorage on mount (only if not controlled by props)
+  useEffect(() => {
+    if (propIsPinned === undefined) {
+      const savedPinState = localStorage.getItem('sidebarPinned');
+      if (savedPinState !== null) {
+        setLocalIsPinned(savedPinState === 'true');
+      }
+    }
+  }, [propIsPinned]);
+
+  // Save pin state to localStorage when it changes (only for local state)
+  useEffect(() => {
+    if (propIsPinned === undefined) {
+      localStorage.setItem('sidebarPinned', isPinned.toString());
+    }
+  }, [isPinned, propIsPinned]);
 
   // Check login status and user activation status
   useEffect(() => {
@@ -104,8 +126,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     if (action) {
       action(); // Execute the navigation action
     }
-    // Auto-collapse to slim mode after clicking a menu item
-    if (!isCollapsed) {
+    // Auto-collapse to slim mode after clicking a menu item (only if not pinned)
+    if (!isCollapsed && !isPinned) {
       onToggle();
     }
   };
@@ -483,8 +505,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
   return (
     <>
-      {/* Backdrop - Click outside to close expanded sidebar */}
-      {expanded && (
+      {/* Backdrop - Click outside to close expanded sidebar (only if not pinned) */}
+      {expanded && !isPinned && (
         <div 
           className="sidebar-backdrop"
           onClick={() => onToggle()}
@@ -495,9 +517,23 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       <div 
         className={`sidebar ${expanded ? 'expanded' : 'collapsed'}`}
       >
-          {/* Toggle button at top of sidebar */}
-          <div className="sidebar-toggle-top" onClick={onToggle} title={expanded ? 'Close sidebar' : 'Open sidebar'}>
-            <span className="sidebar-toggle-icon">{expanded ? '✕' : '☰'}</span>
+          {/* Header with toggle and pin buttons */}
+          <div className="sidebar-header">
+            {/* Toggle button */}
+            <div className="sidebar-toggle-top" onClick={onToggle} title={expanded ? 'Close sidebar' : 'Open sidebar'}>
+              <span className="sidebar-toggle-icon">{expanded ? '✕' : '☰'}</span>
+            </div>
+            
+            {/* Pin button - only show when expanded */}
+            {expanded && (
+              <div 
+                className="sidebar-pin-button"
+                onClick={() => handlePinToggle(!isPinned)}
+                title={isPinned ? 'Unpin sidebar - will auto-collapse' : 'Pin sidebar - stay open'}
+              >
+                <span className="pin-icon">{isPinned ? '📌' : '📍'}</span>
+              </div>
+            )}
           </div>
 
           {/* Menu Items */}

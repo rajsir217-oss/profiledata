@@ -21,6 +21,11 @@
   width: calc(100% - 48px);
 }
 
+.top-bar.sidebar-pinned {
+  left: 280px; /* Push content to make room for pinned sidebar */
+  width: calc(100% - 280px);
+}
+
 
 .top-bar-content {
   display: flex;

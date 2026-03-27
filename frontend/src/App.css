@@ -20,8 +20,14 @@
   overflow-y: auto;
 }
 
+/* When sidebar is expanded but not pinned - overlay behavior */
 .app-layout.sidebar-open {
   left: 48px; /* Expanded sidebar overlays, doesn't push */
+}
+
+/* When sidebar is expanded and pinned - push content */
+.app-layout.sidebar-pinned {
+  left: 280px; /* Push content to make room for pinned sidebar */
 }
 
 /* No Navigation Layout (Landing Page, Login, Register) */

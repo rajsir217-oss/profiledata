@@ -16,7 +16,7 @@ import logger from '../utils/logger';
 import { loadWhitelabelConfig } from '../utils/whitelabelConfig';
 import './TopBar.css';
 
-const TopBar = ({ onSidebarToggle, isOpen }) => {
+const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -458,7 +458,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
 
   if (!isLoggedIn) {
     return (
-      <div className={`top-bar ${isOpen ? 'sidebar-open' : ''}`}>
+      <div className={`top-bar ${isOpen ? (isPinned ? 'sidebar-pinned' : 'sidebar-open') : ''}`}>
         <div className="top-bar-content">
           <div className="top-bar-left">
             <button className="sidebar-toggle-btn" onClick={onSidebarToggle} title="Toggle Sidebar">
@@ -479,7 +479,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   }
 
   return (
-    <div className={`top-bar ${isOpen ? 'sidebar-open' : ''}`}>
+    <div className={`top-bar ${isOpen ? (isPinned ? 'sidebar-pinned' : 'sidebar-open') : ''}`}>
       {/* Violation Warning Banner */}
       {violations && violations.violationCount > 0 && (
         <div className={`violation-banner violation-${violations.warningLevel}`}>
