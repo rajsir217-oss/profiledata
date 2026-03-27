@@ -12,6 +12,7 @@ const InactiveUsersReport = () => {
   const [loginStats, setLoginStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('inactive-users'); // 'inactive-users' or 'login-activity'
+  const [selectedInterval, setSelectedInterval] = useState('30'); // 7, 30, 90, or 365 days
   const [filters, setFilters] = useState({
     username: '',
     gender: '',
@@ -96,7 +97,7 @@ const InactiveUsersReport = () => {
   const loadLoginStats = useCallback(async () => {
     try {
       setStatsLoading(true);
-      const apiUrl = `${getBackendUrl()}/api/admin/inactive-users/login-stats`;
+      const apiUrl = `${getBackendUrl()}/api/admin/inactive-users/login-stats?interval=${selectedInterval}`;
       const response = await api.get(apiUrl);
       setLoginStats(response.data);
     } catch (error) {
@@ -105,13 +106,19 @@ const InactiveUsersReport = () => {
     } finally {
       setStatsLoading(false);
     }
-  }, []);
+  }, [selectedInterval]);
 
   // Load data on mount and when dependencies change
   useEffect(() => {
     loadInactiveUsers();
-    loadLoginStats();
-  }, [loadInactiveUsers, loadLoginStats]);
+  }, [loadInactiveUsers]);
+
+  // Load login stats when interval changes
+  useEffect(() => {
+    if (activeTab === 'login-activity') {
+      loadLoginStats();
+    }
+  }, [loadLoginStats, activeTab]);
 
   const handleSort = (key) => {
     setSortConfig(prev => ({
@@ -315,108 +322,238 @@ const InactiveUsersReport = () => {
       </div>
 
       {/* Login Activity Tab Content */}
-      {activeTab === 'login-activity' && !statsLoading && loginStats && (
+      {activeTab === 'login-activity' && (
         <div className="login-stats-section" style={{ marginBottom: '24px' }}>
-          <h3 style={{ marginBottom: '16px', color: 'var(--text-color)' }}>📈 Login Activity</h3>
-          <div className="stats-grid" style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-            gap: '16px',
-            marginBottom: '24px'
-          }}>
-            <div className="stat-card" style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              padding: '20px',
-              borderRadius: '12px',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}>
-              <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📅 Last 24 Hours</div>
-              <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last24Hours}</div>
-              <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
-            </div>
-            <div className="stat-card" style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              padding: '20px',
-              borderRadius: '12px',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}>
-              <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📊 Last 7 Days</div>
-              <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last7Days}</div>
-              <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
-            </div>
-            <div className="stat-card" style={{
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-              padding: '20px',
-              borderRadius: '12px',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}>
-              <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📆 Last 30 Days</div>
-              <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last30Days}</div>
-              <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
-            </div>
-            <div className="stat-card" style={{
-              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-              padding: '20px',
-              borderRadius: '12px',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}>
-              <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📈 Last Year</div>
-              <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last365Days}</div>
-              <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0, color: 'var(--text-color)' }}>📈 Login Activity</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-color)' }}>Time Period:</label>
+              <select
+                value={selectedInterval}
+                onChange={(e) => setSelectedInterval(e.target.value)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: '2px solid var(--border-color)',
+                  background: 'var(--card-background)',
+                  color: 'var(--text-color)',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+                <option value="365">Last Year</option>
+              </select>
             </div>
           </div>
+          {!statsLoading && loginStats && (
+            <>
+              <div className="stats-grid" style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                gap: '16px',
+                marginBottom: '24px'
+              }}>
+                <div className="stat-card" style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  color: 'white',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}>
+                  <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📅 Last 24 Hours</div>
+                  <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last24Hours}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
+                </div>
+                <div className="stat-card" style={{
+                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  color: 'white',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}>
+                  <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📊 Last 7 Days</div>
+                  <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last7Days}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
+                </div>
+                <div className="stat-card" style={{
+                  background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  color: 'white',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}>
+                  <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📆 Last 30 Days</div>
+                  <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last30Days}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
+                </div>
+                <div className="stat-card" style={{
+                  background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  color: 'white',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}>
+                  <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>📈 Last Year</div>
+                  <div style={{ fontSize: '32px', fontWeight: 700 }}>{loginStats.stats.last365Days}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>logins</div>
+                </div>
+              </div>
 
-          {/* Chart Placeholder */}
-          <div className="chart-container" style={{
+              {/* Line Chart */}
+              <div className="chart-container" style={{
             background: 'var(--card-background)',
             padding: '24px',
             borderRadius: '12px',
             border: '1px solid var(--border-color)',
             marginBottom: '24px'
           }}>
-            <h4 style={{ marginBottom: '16px', color: 'var(--text-color)' }}>📊 Daily Login Trend (Last 30 Days)</h4>
-            <div style={{ height: '300px', display: 'flex', alignItems: 'flex-end', gap: '4px', padding: '20px 0' }}>
-              {loginStats.chartData.slice().reverse().map((day, index) => {
-                const maxCount = Math.max(...loginStats.chartData.map(d => d.count));
-                const height = maxCount > 0 ? (day.count / maxCount) * 100 : 0;
+            <h4 style={{ marginBottom: '16px', color: 'var(--text-color)' }}>
+              📊 Daily Login Trend ({selectedInterval === '7' ? 'Last 7 Days' : selectedInterval === '30' ? 'Last 30 Days' : selectedInterval === '90' ? 'Last 90 Days' : 'Last Year'})
+            </h4>
+            <svg width="100%" height="350" style={{ overflow: 'visible' }}>
+              {(() => {
+                const data = loginStats.chartData;
+                const maxCount = Math.max(...data.map(d => d.count), 1);
+                const width = 900;
+                const height = 300;
+                const padding = { top: 20, right: 40, bottom: 60, left: 60 };
+                const chartWidth = width - padding.left - padding.right;
+                const chartHeight = height - padding.top - padding.bottom;
+                
+                // Calculate points for line
+                const points = data.map((d, i) => {
+                  const x = padding.left + (i / (data.length - 1)) * chartWidth;
+                  const y = padding.top + chartHeight - (d.count / maxCount) * chartHeight;
+                  return { x, y, date: d.date, count: d.count };
+                });
+                
+                // Create line path
+                const linePath = points.map((p, i) => 
+                  `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
+                ).join(' ');
+                
+                // Create area path (for gradient fill)
+                const areaPath = `M ${padding.left} ${padding.top + chartHeight} ` +
+                  points.map(p => `L ${p.x} ${p.y}`).join(' ') +
+                  ` L ${padding.left + chartWidth} ${padding.top + chartHeight} Z`;
+                
                 return (
-                  <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div 
-                      style={{
-                        width: '100%',
-                        height: `${height}%`,
-                        background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
-                        borderRadius: '4px 4px 0 0',
-                        transition: 'all 0.3s ease',
-                        cursor: 'pointer',
-                        minHeight: day.count > 0 ? '4px' : '0'
-                      }}
-                      title={`${day.date}: ${day.count} logins`}
+                  <g>
+                    {/* Grid lines */}
+                    {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+                      <g key={i}>
+                        <line
+                          x1={padding.left}
+                          y1={padding.top + chartHeight * (1 - ratio)}
+                          x2={padding.left + chartWidth}
+                          y2={padding.top + chartHeight * (1 - ratio)}
+                          stroke="var(--border-color)"
+                          strokeWidth="1"
+                          strokeDasharray="4 4"
+                        />
+                        <text
+                          x={padding.left - 10}
+                          y={padding.top + chartHeight * (1 - ratio) + 4}
+                          textAnchor="end"
+                          fontSize="12"
+                          fill="var(--text-muted)"
+                        >
+                          {Math.round(maxCount * ratio)}
+                        </text>
+                      </g>
+                    ))}
+                    
+                    {/* Area fill with gradient */}
+                    <defs>
+                      <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="var(--primary-color)" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="var(--primary-color)" stopOpacity="0.05" />
+                      </linearGradient>
+                    </defs>
+                    <path d={areaPath} fill="url(#lineGradient)" />
+                    
+                    {/* Line */}
+                    <path
+                      d={linePath}
+                      fill="none"
+                      stroke="var(--primary-color)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
-                    {index % 5 === 0 && (
-                      <div style={{ 
-                        fontSize: '10px', 
-                        color: 'var(--text-muted)', 
-                        marginTop: '8px',
-                        transform: 'rotate(-45deg)',
-                        transformOrigin: 'top left',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </div>
-                    )}
-                  </div>
+                    
+                    {/* Data points */}
+                    {points.map((p, i) => (
+                      <g key={i}>
+                        <circle
+                          cx={p.x}
+                          cy={p.y}
+                          r="5"
+                          fill="white"
+                          stroke="var(--primary-color)"
+                          strokeWidth="3"
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <title>{`${new Date(p.date).toLocaleDateString()}: ${p.count} unique logins`}</title>
+                        </circle>
+                      </g>
+                    ))}
+                    
+                    {/* X-axis labels */}
+                    {points.filter((_, i) => {
+                      const step = Math.ceil(data.length / 8);
+                      return i % step === 0 || i === data.length - 1;
+                    }).map((p, i) => (
+                      <text
+                        key={i}
+                        x={p.x}
+                        y={padding.top + chartHeight + 20}
+                        textAnchor="middle"
+                        fontSize="11"
+                        fill="var(--text-muted)"
+                        transform={`rotate(-45 ${p.x} ${padding.top + chartHeight + 20})`}
+                      >
+                        {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </text>
+                    ))}
+                    
+                    {/* Axis labels */}
+                    <text
+                      x={padding.left + chartWidth / 2}
+                      y={height - 5}
+                      textAnchor="middle"
+                      fontSize="13"
+                      fontWeight="600"
+                      fill="var(--text-color)"
+                    >
+                      Date
+                    </text>
+                    <text
+                      x={15}
+                      y={padding.top + chartHeight / 2}
+                      textAnchor="middle"
+                      fontSize="13"
+                      fontWeight="600"
+                      fill="var(--text-color)"
+                      transform={`rotate(-90 15 ${padding.top + chartHeight / 2})`}
+                    >
+                      Unique Logins
+                    </text>
+                  </g>
                 );
-              })}
-            </div>
+              })()}
+            </svg>
             <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>
-              Hover over bars to see exact counts
+              Hover over points to see exact counts • Showing unique users who logged in each day
             </div>
-          </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
