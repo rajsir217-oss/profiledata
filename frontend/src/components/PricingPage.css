@@ -7,8 +7,15 @@
 }
 
 .pricing-container {
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
+}
+
+/* Override Bootstrap container max-width for pricing page parent */
+.container:has(.pricing-container) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .pricing-header {

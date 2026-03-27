@@ -2,8 +2,15 @@
 
 .poll-management {
   padding: 2rem;
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
+}
+
+/* Override Bootstrap container max-width for poll management page parent */
+.container:has(.poll-management) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Loading */

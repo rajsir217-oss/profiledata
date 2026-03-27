@@ -1,8 +1,15 @@
 /* WhatsApp Verification Page Styles */
 .whatsapp-verification {
   padding: 2rem;
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
+}
+
+/* Override Bootstrap container max-width for whatsapp verification page parent */
+.container:has(.whatsapp-verification) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Page Header */

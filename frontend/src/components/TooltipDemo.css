@@ -2,10 +2,17 @@
 
 .tooltip-demo-page {
   padding: 40px 20px;
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   background: var(--background-color);
   min-height: 100vh;
+}
+
+/* Override Bootstrap container max-width for tooltip demo page parent */
+.container:has(.tooltip-demo-page) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .tooltip-demo-header {

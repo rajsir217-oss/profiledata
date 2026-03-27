@@ -1,0 +1,38 @@
+/* Inactive Users Page Styles */
+
+.inactive-users-page {
+  padding: 20px;
+  background-color: var(--background-color);
+  min-height: 100vh;
+  color: var(--text-color);
+  width: 98%;
+  margin: 0 auto;
+}
+
+/* Override Bootstrap container max-width for inactive users page parent */
+.container:has(.inactive-users-page) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.page-header {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: var(--surface-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.page-header h1 {
+  margin: 0 0 10px 0;
+  color: var(--text-color);
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.page-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
