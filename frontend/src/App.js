@@ -123,7 +123,7 @@ function AuthGuard({ children }) {
   const token = localStorage.getItem('token');
   
   if (!isPublicRoute && !token) {
-    console.warn('🔒 AuthGuard: No token on protected route - redirecting to login');
+    console.warn(' AuthGuard: No token on protected route - redirecting to login');
     return <Navigate to="/login" replace />;
   }
   
@@ -132,8 +132,11 @@ function AuthGuard({ children }) {
 
 // App Content Component (inside Router to use useLocation)
 function AppContent() {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const [isSidebarPinned, setIsSidebarPinned] = useState(false);
   const location = useLocation();
   
   // Routes where sidebar and topbar should be hidden
@@ -330,13 +333,19 @@ function AppContent() {
         <Sidebar 
           isCollapsed={isSidebarCollapsed}
           onToggle={handleSidebarToggle}
+          isPinned={isSidebarPinned}
+          onPinChange={setIsSidebarPinned}
         />
       )}
-      <div className={`app-layout ${!isSidebarCollapsed && !hideNavigation ? 'sidebar-open' : ''} ${hideNavigation ? 'no-navigation' : ''}`}>
+      <div className={`app-layout ${!isSidebarCollapsed && !hideNavigation ? (isSidebarPinned ? 'sidebar-pinned' : 'sidebar-open') : ''} ${hideNavigation ? 'no-navigation' : ''}`}>
         {/* BrandBanner removed — branding merged into TopBar */}
         {!hideNavigation && <AnnouncementBanner />}
         {!hideNavigation && (
-          <TopBar onSidebarToggle={handleSidebarToggle} isOpen={!isSidebarCollapsed} />
+          <TopBar 
+            onSidebarToggle={handleSidebarToggle} 
+            isOpen={!isSidebarCollapsed}
+            isPinned={isSidebarPinned}
+          />
         )}
         {!hideNavigation && <ProfileCompletionChecker user={currentUser} />}
         <div className={hideNavigation ? "main-content-full" : "main-content"}>
