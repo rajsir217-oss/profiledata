@@ -2,9 +2,15 @@
 
 .pause-analytics-dashboard {
   padding: var(--spacing-lg);
-  max-width: 1400px;
-  width: 100%;
+  width: 98%;
   margin: 0 auto;
+}
+
+/* Override Bootstrap container max-width for pause analytics dashboard page parent */
+.container:has(.pause-analytics-dashboard) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .loading-container {

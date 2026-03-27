@@ -4,8 +4,15 @@
   padding: 20px;
   background-color: var(--background-color);
   color: var(--text-color);
-  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
+}
+
+/* Override Bootstrap container max-width for inactive users report page parent */
+.container:has(.inactive-users-report) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .report-header {

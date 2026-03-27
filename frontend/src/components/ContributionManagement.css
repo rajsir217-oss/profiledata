@@ -2,8 +2,15 @@
 
 .contribution-management {
   padding: 20px;
-  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
+}
+
+/* Override Bootstrap container max-width for contribution management page parent */
+.container:has(.contribution-management) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .page-header {

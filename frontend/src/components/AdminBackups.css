@@ -1,9 +1,16 @@
 /* AdminBackups.css - Theme-aware backup management page */
 
 .admin-backups-page {
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   padding: var(--spacing-lg, 24px);
+}
+
+/* Override Bootstrap container max-width for admin backups page parent */
+.container:has(.admin-backups-page) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Header */

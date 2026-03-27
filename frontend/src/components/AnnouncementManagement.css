@@ -1,9 +1,16 @@
 /* Announcement Management Styles */
 
 .announcement-management {
-  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
   padding: var(--spacing-lg);
+}
+
+/* Override Bootstrap container max-width for announcement management page parent */
+.container:has(.announcement-management) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Tab Navigation - Pill Style */

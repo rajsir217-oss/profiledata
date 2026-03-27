@@ -1,7 +1,14 @@
 .admin-recurring-container {
   padding: 2rem;
-  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
+}
+
+/* Override Bootstrap container max-width for admin recurring contributions page parent */
+.container:has(.admin-recurring-container) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .admin-recurring-loading {

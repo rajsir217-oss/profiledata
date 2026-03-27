@@ -4,9 +4,15 @@
 
 .tab-container {
   width: 100%;
-  max-width: 1200px;
   margin: 0 auto;
   padding: 0;
+}
+
+/* Override Bootstrap container max-width for tab container page parent */
+.container:has(.tab-container) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* ============================================

@@ -1,8 +1,33 @@
 /* Promo Code Accounting / Lead Generation */
 .promo-accounting {
   padding: 20px;
-  width: 100%;
+  width: 98%;
+  margin: 0 auto;
   background: var(--background-color);
+}
+
+/* Override Bootstrap container max-width for promo accounting page parent */
+.container:has(.promo-accounting) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Additional overrides for any wrapper containers */
+.container .promo-accounting {
+  width: 98% !important;
+  max-width: 98% !important;
+}
+
+.main-content .promo-accounting {
+  width: 98% !important;
+  max-width: 98% !important;
+}
+
+/* High priority rule - ensure promo accounting is always 98% width */
+.promo-accounting {
+  width: 98% !important;
+  max-width: 98% !important;
 }
 
 /* Loading */

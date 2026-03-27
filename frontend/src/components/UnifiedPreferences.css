@@ -1,9 +1,16 @@
 /* Unified Preferences Container */
 .unified-preferences-container {
-  width: 100%;
+  width: 98%;
   margin: 0 auto;
   padding: 20px;
   min-height: calc(100vh - 80px);
+}
+
+/* Override Bootstrap container max-width for unified preferences page parent */
+.container:has(.unified-preferences-container) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Contributions Settings */
