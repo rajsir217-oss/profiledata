@@ -51,6 +51,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const [showNotInterestedMenu, setShowNotInterestedMenu] = useState(false);
   const [notInterestedProcessing, setNotInterestedProcessing] = useState(false);
   const [showStopTip, setShowStopTip] = useState(false);
+  const [acknowledgingConversation, setAcknowledgingConversation] = useState(false);
   const notInterestedRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -154,6 +155,38 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       toastService.error(message);
     } finally {
       setSendingReconnect(false);
+    }
+  };
+
+  // Handle "Stay in Touch" - send acknowledgment message and mark conversation as acknowledged
+  const handleStayInTouch = async () => {
+    if (!otherUser?.username || acknowledgingConversation) return;
+    setAcknowledgingConversation(true);
+    try {
+      const toastService = (await import('../services/toastService')).default;
+      
+      // Step 1: Send acknowledgment message
+      const acknowledgmentMsg = "Thank you! We've connected and will stay in touch. Best wishes! 🙏";
+      onSendMessage(acknowledgmentMsg);
+      
+      // Step 2: Mark conversation as acknowledged (small delay to ensure message sends first)
+      await new Promise(r => setTimeout(r, 500));
+      const response = await api.post(`/messages/conversation/${otherUser.username}/acknowledge`);
+      
+      if (response.data.success) {
+        toastService.success(`🙏 Acknowledgment sent. You won't be prompted unless new messages arrive.`);
+        // Optionally refresh conversation status
+        if (window.location.pathname === '/messages') {
+          // Trigger parent component refresh if needed
+          setTimeout(() => window.location.reload(), 1500);
+        }
+      }
+    } catch (error) {
+      logger.error('Error acknowledging conversation:', error);
+      const toastService = (await import('../services/toastService')).default;
+      toastService.error('Failed to acknowledge conversation. Please try again.');
+    } finally {
+      setAcknowledgingConversation(false);
     }
   };
 
@@ -286,18 +319,25 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
           </button>
         )}
         <div className="chat-user-info">
-          {getProfilePicUrl(otherUser) && !headerImageError ? (
-            <img 
-              src={getProfilePicUrl(otherUser)} 
-              alt={otherUser.username} 
-              className="chat-avatar"
-              onError={() => setHeaderImageError(true)}
-            />
-          ) : (
-            <div className="chat-avatar-placeholder">
-              {otherUser.firstName?.[0] || otherUser.username?.[0]?.toUpperCase() || '?'}
-            </div>
-          )}
+          <div 
+            className="chat-avatar-container"
+            onClick={() => window.open(`/profile/${otherUser.username}`, '_blank')}
+            style={{ cursor: 'pointer' }}
+            title={`View ${otherUser.firstName || otherUser.username}'s profile`}
+          >
+            {getProfilePicUrl(otherUser) && !headerImageError ? (
+              <img 
+                src={getProfilePicUrl(otherUser)} 
+                alt={otherUser.username} 
+                className="chat-avatar"
+                onError={() => setHeaderImageError(true)}
+              />
+            ) : (
+              <div className="chat-avatar-placeholder">
+                {otherUser.firstName?.[0] || otherUser.username?.[0]?.toUpperCase() || '?'}
+              </div>
+            )}
+          </div>
           <div className="chat-user-details">
             <h4>
               {otherUser.firstName || otherUser.username}
@@ -340,9 +380,36 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
           </div>
         </div>
 
-        {/* Not Interested action - only when conversation is active (not already closed/blocked) */}
+        {/* Chat Actions - only when conversation is active (not already closed/blocked) */}
         {conversationStatus?.status !== 'closed' && !blockStatus.iBlockedThem && !blockStatus.theyBlockedMe && (
           <div className="chat-header-actions" ref={notInterestedRef}>
+            {/* Stay in Touch button */}
+            <button
+              className="stay-in-touch-btn"
+              onClick={handleStayInTouch}
+              title="Stay in Touch — acknowledge conversation, stop reminders"
+              disabled={acknowledgingConversation}
+              style={{
+                background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                fontSize: '20px',
+                cursor: acknowledgingConversation ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
+                opacity: acknowledgingConversation ? 0.6 : 1,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+              }}
+            >
+              {acknowledgingConversation ? '⏳' : '🙏'}
+            </button>
+            
+            {/* Not Interested button */}
             <button
               className={`not-interested-btn ${showNotInterestedMenu ? 'active' : ''}`}
               onClick={() => { setShowNotInterestedMenu(!showNotInterestedMenu); setShowStopTip(false); }}

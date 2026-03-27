@@ -7573,6 +7573,17 @@ async def get_unattended_chats(
             if conv_status:
                 continue
             
+            # Check if conversation was acknowledged (Stay in Touch) and no new messages since
+            conv_ack = await db.conversation_status.find_one({"participants": {"$all": [username, sender]}})
+            if conv_ack and conv_ack.get("lastAcknowledgement"):
+                last_ack = conv_ack.get("lastAcknowledgement")
+                # Make timezone-naive for comparison
+                if hasattr(last_ack, 'tzinfo') and last_ack.tzinfo is not None:
+                    last_ack = last_ack.replace(tzinfo=None)
+                # If last received message is older than acknowledgement, skip (already acknowledged)
+                if last_received_at and last_ack and last_received_at <= last_ack:
+                    continue
+            
             # Check if user has replied after this message
             user_reply = await db.messages.find_one({"fromUsername": username, "toUsername": sender}, sort=[("createdAt", -1)])
             if user_reply:
@@ -8720,6 +8731,83 @@ async def close_conversation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/messages/conversation/{other_username}/acknowledge")
+async def acknowledge_conversation(
+    other_username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Mark conversation as 'acknowledged' (Stay in Touch).
+    - Resets unattended counter to zero
+    - Keeps conversation open and active
+    - Counter restarts if new messages arrive
+    - Perfect for successful introductions where both parties are satisfied
+    """
+    username = current_user["username"]
+    logger.info(f"🙏 Acknowledging conversation: {username} <-> {other_username}")
+    
+    try:
+        # Check if conversation exists
+        convo_exists = await db.messages.find_one({
+            "$or": [
+                {"fromUsername": username, "toUsername": other_username},
+                {"fromUsername": other_username, "toUsername": username}
+            ]
+        })
+        
+        if not convo_exists:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        # Update conversation status to mark as acknowledged
+        sorted_participants = sorted([username, other_username])
+        await db.conversation_status.update_one(
+            {"participants": sorted_participants},
+            {
+                "$set": {
+                    "status": "active",  # Keep active
+                    "acknowledgedBy": username,
+                    "acknowledgedAt": datetime.utcnow(),
+                    "lastAcknowledgement": datetime.utcnow(),
+                    "updatedAt": datetime.utcnow(),
+                    "participants": sorted_participants
+                },
+                "$setOnInsert": {
+                    "createdAt": datetime.utcnow()
+                }
+            },
+            upsert=True
+        )
+        
+        # Log activity
+        try:
+            from services.activity_logger import get_activity_logger
+            from models.activity_models import ActivityType
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=username,
+                action_type=ActivityType.MESSAGE_SENT,  # Use existing type
+                target_username=other_username,
+                metadata={"action": "acknowledged", "note": "stay_in_touch"}
+            )
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log activity: {log_err}")
+        
+        logger.info(f"✅ Conversation acknowledged: {username} <-> {other_username}")
+        
+        return {
+            "success": True,
+            "message": "Conversation acknowledged. You won't be prompted to respond unless new messages arrive.",
+            "acknowledgedAt": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error acknowledging conversation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/messages/conversation/{other_username}/status")
 async def get_conversation_status(
     other_username: str,
@@ -8741,14 +8829,18 @@ async def get_conversation_status(
                 "status": status_doc.get("status", "active"),
                 "closedBy": status_doc.get("closedBy"),
                 "closedAt": status_doc.get("closedAt").isoformat() if status_doc.get("closedAt") else None,
-                "closureReason": status_doc.get("closureReason")
+                "closureReason": status_doc.get("closureReason"),
+                "acknowledgedBy": status_doc.get("acknowledgedBy"),
+                "acknowledgedAt": status_doc.get("acknowledgedAt").isoformat() if status_doc.get("acknowledgedAt") else None
             }
         else:
             return {
                 "status": "active",
                 "closedBy": None,
                 "closedAt": None,
-                "closureReason": None
+                "closureReason": None,
+                "acknowledgedBy": None,
+                "acknowledgedAt": None
             }
             
     except Exception as e:
