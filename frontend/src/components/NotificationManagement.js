@@ -27,8 +27,59 @@ const NotificationManagement = () => {
     }
   }, [navigate]);
 
+  // Force width via JavaScript as backup
+  useEffect(() => {
+    const element = document.querySelector('.notification-management');
+    if (element) {
+      element.style.width = '98%';
+      element.style.maxWidth = '98%';
+      element.style.margin = '0 auto';
+      
+      // Also try to force parent containers
+      const parent = element.parentElement;
+      if (parent) {
+        parent.style.width = '98%';
+        parent.style.maxWidth = '98%';
+        parent.style.margin = '0 auto';
+      }
+      
+      // Force tab containers to use full width
+      const tabContainer = element.querySelector('.universal-tab-container');
+      if (tabContainer) {
+        tabContainer.style.width = '100%';
+        tabContainer.style.maxWidth = '100%';
+      }
+      
+      const tabContentArea = element.querySelector('.tab-content-area');
+      if (tabContentArea) {
+        tabContentArea.style.width = '100%';
+        tabContentArea.style.maxWidth = '100%';
+      }
+      
+      const tabPanels = element.querySelectorAll('.tab-panel');
+      tabPanels.forEach(panel => {
+        panel.style.width = '100%';
+        panel.style.maxWidth = '100%';
+      });
+      
+      // Force all nested components
+      const nestedComponents = element.querySelectorAll('.event-queue-manager, .template-manager, .event-status-log, .delivery-log-tab');
+      nestedComponents.forEach(comp => {
+        comp.style.width = '100%';
+        comp.style.maxWidth = '100%';
+      });
+    }
+  }, []);
+
   return (
-    <div className="notification-management">
+    <div 
+      className="notification-management"
+      style={{
+        width: '98%',
+        maxWidth: '98%',
+        margin: '0 auto'
+      }}
+    >
       {/* Toast notifications handled by ToastContainer in App.js */}
       
       <button

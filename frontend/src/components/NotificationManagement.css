@@ -48,6 +48,38 @@ html .notification-management,
   max-width: 98% !important;
 }
 
+/* Fix tab container width constraints */
+.notification-management .universal-tab-container {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.notification-management .tab-content-area {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.notification-management .tab-panel {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Force all nested components to use full width */
+.notification-management .universal-tab-container *,
+.notification-management .tab-content-area *,
+.notification-management .tab-panel * {
+  max-width: 100% !important;
+}
+
+/* Specifically target the tab content components */
+.notification-management .event-queue-manager,
+.notification-management .template-manager,
+.notification-management .event-status-log,
+.notification-management .delivery-log-tab {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 .notification-management-header {
   margin-bottom: 2rem;
   text-align: center;
