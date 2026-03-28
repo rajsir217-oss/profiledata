@@ -73,6 +73,7 @@ class PollService:
                 "event_time": poll_data.event_time,
                 "event_location": poll_data.event_location,
                 "event_details": poll_data.event_details,
+                "end_time": poll_data.end_time,
                 
                 "collect_contact_info": poll_data.collect_contact_info,
                 "allow_comments": poll_data.allow_comments,
@@ -321,6 +322,8 @@ class PollService:
                 "event_time": 1,
                 "event_location": 1,
                 "event_details": 1,
+                "end_date": 1,
+                "end_time": 1,
                 "collect_contact_info": 1,
                 "allow_comments": 1,
                 "anonymous": 1,

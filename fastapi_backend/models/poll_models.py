@@ -54,6 +54,7 @@ class PollCreate(BaseModel):
     # Scheduling
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    end_time: Optional[str] = None
     
     # Targeting
     target_all_users: bool = True
@@ -78,6 +79,7 @@ class PollUpdate(BaseModel):
     
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    end_time: Optional[str] = None
     status: Optional[PollStatus] = None
     
     target_all_users: Optional[bool] = None
@@ -103,6 +105,7 @@ class Poll(BaseModel):
     
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    end_time: Optional[str] = None
     status: PollStatus = PollStatus.DRAFT
     
     target_all_users: bool = True
