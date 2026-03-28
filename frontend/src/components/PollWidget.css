@@ -158,9 +158,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  padding: 1rem;
   background: var(--surface-color);
   border-radius: 8px;
+  padding: 1rem;
   margin-bottom: 1rem;
 }
 
@@ -169,7 +169,7 @@
   align-items: center;
   gap: 0.5rem;
   color: var(--text-color);
-  font-size: 0.9375rem;
+  font-size: 14px;
 }
 
 .poll-event-icon {
@@ -185,6 +185,47 @@
   color: var(--text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
+}
+
+/* Poll Timer */
+.poll-timer {
+  background: var(--surface-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--primary-color);
+}
+
+.poll-timer-active,
+.poll-timer-expired {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.poll-timer-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.poll-timer-text {
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.poll-timer-text strong {
+  color: var(--primary-color);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.poll-timer-expired {
+  opacity: 0.7;
+}
+
+.poll-timer-expired .poll-timer-text {
+  color: var(--text-secondary);
 }
 
 /* Poll Options */
