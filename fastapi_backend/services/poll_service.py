@@ -5,7 +5,7 @@ Business logic for the polling system
 
 import logging
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
@@ -78,7 +78,7 @@ class PollService:
                 "allow_comments": poll_data.allow_comments,
                 "anonymous": poll_data.anonymous,
                 
-                "start_date": poll_data.start_date or datetime.utcnow(),
+                "start_date": poll_data.start_date or datetime.now(timezone.utc),
                 "end_date": poll_data.end_date,
                 "status": PollStatus.DRAFT.value,
                 
@@ -86,7 +86,7 @@ class PollService:
                 "target_usernames": poll_data.target_usernames or [],
                 
                 "created_by": created_by,
-                "created_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
                 "updated_at": None,
             }
             
@@ -134,7 +134,7 @@ class PollService:
     async def update_poll(self, poll_id: str, poll_data: PollUpdate) -> Dict[str, Any]:
         """Update an existing poll"""
         try:
-            update_doc = {"updated_at": datetime.utcnow()}
+            update_doc = {"updated_at": datetime.now(timezone.utc)}
             
             # Only update provided fields
             update_fields = poll_data.model_dump(exclude_unset=True)
@@ -265,7 +265,7 @@ class PollService:
                 {
                     "$set": {
                         "status": status.value,
-                        "updated_at": datetime.utcnow()
+                        "updated_at": datetime.now(timezone.utc)
                     }
                 }
             )
@@ -295,7 +295,7 @@ class PollService:
     async def get_active_polls_for_user(self, username: str) -> List[Dict[str, Any]]:
         """Get all active polls that a user can respond to"""
         try:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
 
             if not PollService._indexes_ready:
                 async with PollService._indexes_lock:
@@ -517,7 +517,7 @@ class PollService:
                 "text_response": response_data.text_response,
                 "comment": response_data.comment,
                 
-                "responded_at": datetime.utcnow(),
+                "responded_at": datetime.now(timezone.utc),
                 "updated_at": None,
             }
             
@@ -580,7 +580,7 @@ class PollService:
                 "rsvp_response": rsvp_response,
                 "text_response": response_data.text_response,
                 "comment": response_data.comment,
-                "updated_at": datetime.utcnow(),
+                "updated_at": datetime.now(timezone.utc),
             }
             
             result = await self.responses_collection.update_one(

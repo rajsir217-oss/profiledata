@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createApiInstance } from '../api';
 import RichTextEditor from './shared/RichTextEditor';
+import { formatDate, formatDateTime, getTimeRemaining, formatTimeRemaining, toUTCISOString, getDateInputValue } from '../utils/timezoneHelper';
 import './PollManagement.css';
 
 // Use global API factory for session handling
@@ -42,6 +43,8 @@ const PollManagement = () => {
     event_time: '',
     event_location: '',
     event_details: '',
+    end_date: '',
+    end_time: '',
     collect_contact_info: true,
     allow_comments: true,
     options: ['']
@@ -172,13 +175,17 @@ const PollManagement = () => {
         title: formData.title,
         description: formData.description || null,
         poll_type: formData.poll_type,
-        event_date: formData.event_date ? new Date(formData.event_date).toISOString() : null,
+        event_date: formData.event_date ? toUTCISOString(formData.event_date) : null,
         event_time: formData.event_time || null,
         event_location: formData.event_location || null,
         event_details: formData.event_details || null,
+        end_date: formData.end_date ? toUTCISOString(formData.end_date) : null,
+        end_time: formData.end_time || null,
         collect_contact_info: formData.collect_contact_info,
         allow_comments: formData.allow_comments,
-        options: formData.poll_type !== 'rsvp' ? formData.options.filter(o => o.trim()) : null
+        anonymous: formData.anonymous || false,
+        target_all_users: formData.target_all_users !== false,
+        target_usernames: formData.target_usernames || []
       };
 
       const response = await pollsApi.post('/api/polls/admin/create', payload);
@@ -207,9 +214,14 @@ const PollManagement = () => {
       event_time: poll.event_time || '',
       event_location: poll.event_location || '',
       event_details: poll.event_details || '',
+      end_date: poll.end_date ? new Date(poll.end_date).toISOString().split('T')[0] : '',
+      end_time: poll.end_time || '',
       collect_contact_info: poll.collect_contact_info !== false,
       allow_comments: poll.allow_comments !== false,
-      options: poll.options?.map(o => typeof o === 'string' ? o : o.text) || ['']
+      anonymous: poll.anonymous || false,
+      target_all_users: poll.target_all_users !== false,
+      target_usernames: poll.target_usernames || [],
+      options: poll.options?.map(opt => opt.text) || ['']
     });
     setShowCreateModal(true);
   };
@@ -220,13 +232,18 @@ const PollManagement = () => {
       title: poll.title || '',
       description: poll.description || '',
       poll_type: poll.poll_type || 'rsvp',
-      event_date: poll.event_date ? new Date(poll.event_date).toISOString().split('T')[0] : '',
+      event_date: poll.event_date ? getDateInputValue(poll.event_date) : '',
       event_time: poll.event_time || '',
       event_location: poll.event_location || '',
       event_details: poll.event_details || '',
+      end_date: poll.end_date ? getDateInputValue(poll.end_date) : '',
+      end_time: poll.end_time || '',
       collect_contact_info: poll.collect_contact_info !== false,
       allow_comments: poll.allow_comments !== false,
-      options: poll.options?.map(o => typeof o === 'string' ? o : o.text) || ['']
+      anonymous: poll.anonymous || false,
+      target_all_users: poll.target_all_users !== false,
+      target_usernames: poll.target_usernames || [],
+      options: poll.options?.map(opt => opt.text) || ['']
     });
     setShowEditModal(true);
   };
@@ -245,12 +262,17 @@ const PollManagement = () => {
       const payload = {
         title: formData.title,
         description: formData.description || null,
-        event_date: formData.event_date ? new Date(formData.event_date).toISOString() : undefined,
+        event_date: formData.event_date ? toUTCISOString(formData.event_date) : undefined,
         event_time: formData.event_time || null,
         event_location: formData.event_location || null,
         event_details: formData.event_details || null,
+        end_date: formData.end_date ? toUTCISOString(formData.end_date) : undefined,
+        end_time: formData.end_time || null,
         collect_contact_info: formData.collect_contact_info,
-        allow_comments: formData.allow_comments
+        allow_comments: formData.allow_comments,
+        anonymous: formData.anonymous || false,
+        target_all_users: formData.target_all_users !== false,
+        target_usernames: formData.target_usernames || []
       };
 
       const response = await pollsApi.put(`/api/polls/admin/${editingPoll._id}`, payload);
@@ -375,6 +397,8 @@ const PollManagement = () => {
       event_time: '',
       event_location: '',
       event_details: '',
+      end_date: '',
+      end_time: '',
       collect_contact_info: true,
       allow_comments: true,
       options: ['']
@@ -413,18 +437,7 @@ const PollManagement = () => {
     return <span className={`poll-status-badge ${config.className}`}>{config.label}</span>;
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    try {
-      return new Date(dateStr).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+  // Use timezone helper for date formatting
 
   if (loading && polls.length === 0) {
     return (
@@ -676,6 +689,27 @@ const PollManagement = () => {
                   </div>
                 </div>
                 
+                <div className="poll-form-row">
+                  <div className="poll-form-group">
+                    <label>End Date</label>
+                    <input
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div className="poll-form-group">
+                    <label>End Time</label>
+                    <input
+                      type="text"
+                      value={formData.end_time}
+                      onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
+                      placeholder="e.g., 11:59 PM PST"
+                    />
+                  </div>
+                </div>
+                
                 <div className="poll-form-group">
                   <label>Location / Platform</label>
                   <input
@@ -775,6 +809,16 @@ const PollManagement = () => {
                   <div className="poll-form-group">
                     <label>Event Time</label>
                     <input type="text" value={formData.event_time} onChange={(e) => setFormData(prev => ({ ...prev, event_time: e.target.value }))} placeholder="e.g., 7:00 PM PST" />
+                  </div>
+                </div>
+                <div className="poll-form-row">
+                  <div className="poll-form-group">
+                    <label>End Date</label>
+                    <input type="date" value={formData.end_date} onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))} />
+                  </div>
+                  <div className="poll-form-group">
+                    <label>End Time</label>
+                    <input type="text" value={formData.end_time} onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))} placeholder="e.g., 11:59 PM PST" />
                   </div>
                 </div>
                 <div className="poll-form-group">
