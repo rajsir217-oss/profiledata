@@ -3,7 +3,7 @@ Poll Auto-Close Job Template
 Automatically closes polls when their event date/time has passed.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 import logging
 from .base import JobTemplate, JobResult, JobExecutionContext
@@ -67,7 +67,7 @@ class PollAutoCloseTemplate(JobTemplate):
         2. Close them automatically
         3. Log results
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         db = context.db
         params = context.parameters or {}
@@ -79,7 +79,7 @@ class PollAutoCloseTemplate(JobTemplate):
             return JobResult(
                 status="failed",
                 message="Database connection not available",
-                duration_seconds=(datetime.utcnow() - start_time).total_seconds()
+                duration_seconds=(datetime.now(timezone.utc) - start_time).total_seconds()
             )
         
         polls_checked = 0
@@ -87,28 +87,23 @@ class PollAutoCloseTemplate(JobTemplate):
         errors = []
         
         try:
-            # Calculate cutoff time (now minus grace period)
-            cutoff_time = datetime.utcnow() - timedelta(hours=grace_period_hours)
+            # Calculate cutoff time (now minus grace period) - use UTC
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=grace_period_hours)
             
-            context.log("info", f"📊 Checking for polls with event_date before {cutoff_time.isoformat()}")
+            context.log("info", f"📊 Checking for polls with end_date/event_date before {cutoff_time.isoformat()}")
             
-            # Find active polls with event_date in the past
-            # event_date is stored as naive datetime (no timezone), assumed to be PST/PDT
-            # Convert UTC now to PST for accurate comparison
-            # PST is UTC-8, PDT is UTC-7 (we'll use UTC-8 to be conservative)
-            from datetime import timezone
-            utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
-            pst_now = utc_now.astimezone(timezone(timedelta(hours=-8)))  # PST
-            pst_cutoff = pst_now - timedelta(hours=grace_period_hours)
-            
-            # Convert back to naive datetime for comparison with stored event_date
-            adjusted_cutoff_time = pst_cutoff.replace(tzinfo=None)
-            
-            context.log("info", f"📊 Using PST-adjusted cutoff time: {adjusted_cutoff_time.isoformat()} (UTC: {cutoff_time.isoformat()})")
-            
+            # Find active polls that should be closed
+            # Check both end_date and event_date fields, treating stored datetimes as UTC
             query = {
                 "status": "active",
-                "event_date": {"$ne": None, "$lt": adjusted_cutoff_time}
+                "$or": [
+                    {
+                        "end_date": {"$ne": None, "$lt": cutoff_time}
+                    },
+                    {
+                        "event_date": {"$ne": None, "$lt": cutoff_time}
+                    }
+                ]
             }
             
             expired_polls = await db.polls.find(query).to_list(length=None)
@@ -119,11 +114,20 @@ class PollAutoCloseTemplate(JobTemplate):
             for poll in expired_polls:
                 poll_id = str(poll["_id"])
                 poll_title = poll.get("title", "Untitled")
+                end_date = poll.get("end_date")
                 event_date = poll.get("event_date")
+                closing_reason = "auto_closed_event_passed"
+                
+                if end_date and event_date:
+                    closing_reason = "auto_closed_end_date_passed"
+                elif end_date:
+                    closing_reason = "auto_closed_end_date_passed"
+                else:
+                    closing_reason = "auto_closed_event_passed"
                 
                 try:
                     if dry_run:
-                        context.log("info", f"🧪 [DRY RUN] Would close poll: {poll_title} (event: {event_date})")
+                        context.log("info", f"🧪 [DRY RUN] Would close poll: {poll_title} (end_date: {end_date}, event_date: {event_date})")
                         polls_closed += 1
                     else:
                         # Update poll status to closed
@@ -132,8 +136,8 @@ class PollAutoCloseTemplate(JobTemplate):
                             {
                                 "$set": {
                                     "status": "closed",
-                                    "closed_at": datetime.utcnow(),
-                                    "closed_reason": "auto_closed_event_passed"
+                                    "closed_at": datetime.now(timezone.utc),
+                                    "closed_reason": closing_reason
                                 }
                             }
                         )
@@ -149,62 +153,7 @@ class PollAutoCloseTemplate(JobTemplate):
                     errors.append(error_msg)
                     context.log("error", f"❌ {error_msg}")
             
-            context.log("info", f"📊 Poll Auto-Close Summary: {polls_closed} closed out of {polls_checked} expired (using PST timezone)")
-            
-            # Check for polls that were incorrectly closed and reopen them
-            if not dry_run and polls_checked > 0:
-                try:
-                    now = datetime.utcnow()
-                    # Convert to PST for comparison with stored event_date
-                    utc_now = now.replace(tzinfo=timezone.utc)
-                    pst_now = utc_now.astimezone(timezone(timedelta(hours=-8)))
-                    
-                    # Look for polls closed in the last 48 hours with future event dates
-                    recent_cutoff = now - timedelta(hours=48)
-                    future_cutoff = pst_now + timedelta(hours=1)  # 1 hour from now in PST
-                    
-                    query = {
-                        "status": "closed",
-                        "closed_at": {"$gte": recent_cutoff},
-                        "closed_reason": "auto_closed_event_passed",
-                        "event_date": {"$gt": future_cutoff.replace(tzinfo=None)}  # Compare with naive datetime
-                    }
-                    
-                    incorrectly_closed = await db.polls.find(query).to_list(length=None)
-                    
-                    if incorrectly_closed:
-                        context.log("info", f"🔧 Found {len(incorrectly_closed)} polls to reopen (timezone fix)")
-                        
-                        for poll in incorrectly_closed:
-                            poll_id = str(poll["_id"])
-                            poll_title = poll.get("title", "Untitled")
-                            event_date = poll.get("event_date")
-                            
-                            result = await db.polls.update_one(
-                                {"_id": poll["_id"]},
-                                {
-                                    "$set": {
-                                        "status": "active",
-                                        "updated_at": datetime.utcnow(),
-                                        "reopened_at": datetime.utcnow(),
-                                        "reopened_reason": "timezone_mismatch_fix"
-                                    },
-                                    "$unset": {
-                                        "closed_at": "",
-                                        "closed_reason": ""
-                                    }
-                                }
-                            )
-                            
-                            if result.modified_count > 0:
-                                context.log("info", f"✅ Reopened poll: {poll_title} (event: {event_date})")
-                            else:
-                                context.log("warning", f"⚠️ Failed to reopen poll: {poll_title}")
-                    else:
-                        context.log("info", "🔧 No incorrectly closed polls found")
-                        
-                except Exception as e:
-                    context.log("error", f"❌ Error reopening polls: {str(e)}")
+            context.log("info", f"📊 Poll Auto-Close Summary: {polls_closed} closed out of {polls_checked} expired (using UTC timezone)")
             
             return JobResult(
                 status="success" if len(errors) == 0 else "partial",
@@ -218,7 +167,7 @@ class PollAutoCloseTemplate(JobTemplate):
                     "grace_period_hours": grace_period_hours
                 },
                 errors=errors,
-                duration_seconds=(datetime.utcnow() - start_time).total_seconds()
+                duration_seconds=(datetime.now(timezone.utc) - start_time).total_seconds()
             )
             
         except Exception as e:
@@ -227,5 +176,5 @@ class PollAutoCloseTemplate(JobTemplate):
                 status="failed",
                 message=f"Poll auto-close job failed: {str(e)}",
                 errors=[str(e)],
-                duration_seconds=(datetime.utcnow() - start_time).total_seconds()
+                duration_seconds=(datetime.now(timezone.utc) - start_time).total_seconds()
             )
