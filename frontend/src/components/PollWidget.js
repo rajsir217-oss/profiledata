@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createApiInstance } from '../api';
+import { formatDate, getTimeRemaining, formatTimeRemaining } from '../utils/timezoneHelper';
 import './PollWidget.css';
 
 // Use global API factory for session handling
@@ -22,10 +23,29 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
   const [showModal, setShowModal] = useState(false); // Modal state for inline mode
   const [selectedPollId, setSelectedPollId] = useState(null); // Which poll to show in modal
   const [autoPopupShown, setAutoPopupShown] = useState(false); // Track if auto-popup was shown this session
+  const [timers, setTimers] = useState({}); // Store countdown timers for each poll
   
   // Check if user is admin
   const userRole = localStorage.getItem('userRole');
   const isAdmin = userRole === 'admin';
+
+  // Update timers every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newTimers = {};
+      polls.forEach(poll => {
+        // Use end_date if available, otherwise fall back to event_date
+        const targetDate = poll.end_date || poll.event_date;
+        if (targetDate) {
+          const remaining = getTimeRemaining(targetDate);
+          newTimers[poll._id] = remaining;
+        }
+      });
+      setTimers(newTimers);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [polls]);
 
   useEffect(() => {
     fetchActivePolls();
@@ -140,19 +160,14 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
     }
   };
 
+  // Use timezone helper for date formatting
   const formatEventDate = (dateStr) => {
-    if (!dateStr) return null;
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return dateStr;
-    }
+    return formatDate(dateStr, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   // ESC key handler for modal
@@ -271,6 +286,25 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
               <div className="poll-event-item">
                 <span className="poll-event-icon">📍</span>
                 <span>{poll.event_location}</span>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Countdown Timer */}
+        {timers[poll._id] && (
+          <div className="poll-timer">
+            {timers[poll._id].expired ? (
+              <div className="poll-timer-expired">
+                <span className="poll-timer-icon">⏰</span>
+                <span className="poll-timer-text">Poll has ended</span>
+              </div>
+            ) : (
+              <div className="poll-timer-active">
+                <span className="poll-timer-icon">⏱️</span>
+                <span className="poll-timer-text">
+                  Time remaining: <strong>{formatTimeRemaining(poll.end_date || poll.event_date)}</strong>
+                </span>
               </div>
             )}
           </div>
