@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
-import { getApiUrl } from '../config/apiConfig';
+import { createApiInstance } from '../api';
+import { getBackendUrl } from '../config/apiConfig';
 import Toast from './Toast';
 import './VirtualMeets.css';
+
+// Use backend URL directly — the router is at /api/virtual-meets, not /api/users/virtual-meets
+const vmApi = createApiInstance();
 
 const VirtualMeets = () => {
   const navigate = useNavigate();
@@ -16,13 +19,21 @@ const VirtualMeets = () => {
   const [matchLoading, setMatchLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
 
+  // Admin state
+  const isAdmin = localStorage.getItem('userRole') === 'admin';
+  const [adminView, setAdminView] = useState(false);
+  const [adminOverview, setAdminOverview] = useState(null);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [pairUserA, setPairUserA] = useState('');
+  const [pairUserB, setPairUserB] = useState('');
+
   // ─── Load Events ─────────────────────────────────────────────────────
 
   const loadEvents = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get('/virtual-meets/events');
+      const response = await vmApi.get('/api/virtual-meets/events');
       setEvents(response.data.events || []);
     } catch (err) {
       const msg = err.response?.data?.detail || 'Failed to load virtual meet events';
@@ -41,7 +52,7 @@ const VirtualMeets = () => {
   const loadMatchList = async (pollId) => {
     try {
       setMatchLoading(true);
-      const response = await api.get(`/virtual-meets/${pollId}/matches`);
+      const response = await vmApi.get(`/api/virtual-meets/${pollId}/matches`);
       setMatchData(response.data);
     } catch (err) {
       if (err.response?.status === 402) {
@@ -70,7 +81,7 @@ const VirtualMeets = () => {
   const handleRequestRoom = async (targetUsername) => {
     if (!selectedEvent) return;
     try {
-      const response = await api.post(`/virtual-meets/${selectedEvent.poll_id}/request-room`, {
+      const response = await vmApi.post(`/api/virtual-meets/${selectedEvent.poll_id}/request-room`, {
         target_username: targetUsername
       });
       setToast({ message: response.data.message || 'Room request sent!', type: 'success' });
@@ -85,7 +96,7 @@ const VirtualMeets = () => {
   const handleRespondRequest = async (requestId, action) => {
     if (!selectedEvent) return;
     try {
-      const response = await api.post(`/virtual-meets/${selectedEvent.poll_id}/respond-request`, {
+      const response = await vmApi.post(`/api/virtual-meets/${selectedEvent.poll_id}/respond-request`, {
         request_id: requestId,
         action: action
       });
@@ -105,7 +116,7 @@ const VirtualMeets = () => {
   const handlePayment = async (event, method = 'paypal') => {
     try {
       setPaymentLoading(true);
-      const response = await api.post(`/virtual-meets/${event.poll_id}/pay`, {
+      const response = await vmApi.post(`/api/virtual-meets/${event.poll_id}/pay`, {
         payment_method: method
       });
 
@@ -120,6 +131,52 @@ const VirtualMeets = () => {
       setToast({ message: err.response?.data?.detail || 'Payment failed', type: 'error' });
     } finally {
       setPaymentLoading(false);
+    }
+  };
+
+  // ─── Admin Functions ──────────────────────────────────────────────────
+
+  const loadAdminOverview = async (pollId) => {
+    try {
+      setAdminLoading(true);
+      const response = await vmApi.get(`/api/virtual-meets/${pollId}/admin/overview`);
+      setAdminOverview(response.data);
+    } catch (err) {
+      setToast({ message: err.response?.data?.detail || 'Failed to load admin overview', type: 'error' });
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  const handleAdminPair = async () => {
+    if (!selectedEvent || !pairUserA.trim() || !pairUserB.trim()) {
+      setToast({ message: 'Enter both usernames to pair', type: 'error' });
+      return;
+    }
+    try {
+      const response = await vmApi.post(`/api/virtual-meets/${selectedEvent.poll_id}/admin/pair`, {
+        user_a: pairUserA.trim(),
+        user_b: pairUserB.trim()
+      });
+      setToast({ message: response.data.message || 'Users paired!', type: 'success' });
+      setPairUserA('');
+      setPairUserB('');
+      loadAdminOverview(selectedEvent.poll_id);
+    } catch (err) {
+      setToast({ message: err.response?.data?.detail || 'Failed to pair users', type: 'error' });
+    }
+  };
+
+  const handleExpireRooms = async (pollId) => {
+    try {
+      const response = await vmApi.post(`/api/virtual-meets/${pollId}/admin/expire-rooms`);
+      setToast({
+        message: `Expired ${response.data.expired_rooms || 0} rooms and ${response.data.expired_requests || 0} requests`,
+        type: 'success'
+      });
+      loadAdminOverview(pollId);
+    } catch (err) {
+      setToast({ message: err.response?.data?.detail || 'Failed to expire rooms', type: 'error' });
     }
   };
 
@@ -285,6 +342,18 @@ const VirtualMeets = () => {
                   View Matches →
                 </button>
               )}
+              {isAdmin && (
+                <button
+                  className="vm-btn vm-btn-admin"
+                  onClick={() => {
+                    setSelectedEvent(event);
+                    setAdminView(true);
+                    loadAdminOverview(event.poll_id);
+                  }}
+                >
+                  🔧 Admin
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -325,7 +394,7 @@ const VirtualMeets = () => {
                 <div key={req.request_id} className="vm-match-card vm-incoming">
                   <div className="vm-match-avatar">
                     <img
-                      src={`${getApiUrl()}/profile-pic/${req.from_username}`}
+                      src={`${getBackendUrl()}/profile-pic/${req.from_username}`}
                       alt={req.full_name}
                       className="vm-avatar-img"
                       onError={(e) => { e.target.style.display = 'none'; }}
@@ -375,7 +444,7 @@ const VirtualMeets = () => {
                   <div className="vm-room-number">Room #{room.room_number}</div>
                   <div className="vm-room-partner">
                     <img
-                      src={`${getApiUrl()}/profile-pic/${room.partner_username}`}
+                      src={`${getBackendUrl()}/profile-pic/${room.partner_username}`}
                       alt={room.partner_name}
                       className="vm-avatar-img vm-avatar-sm"
                       onError={(e) => { e.target.style.display = 'none'; }}
@@ -411,7 +480,7 @@ const VirtualMeets = () => {
                 >
                   <div className="vm-match-avatar">
                     <img
-                      src={`${getApiUrl()}/profile-pic/${match.username}`}
+                      src={`${getBackendUrl()}/profile-pic/${match.username}`}
                       alt={match.full_name}
                       className="vm-avatar-img"
                       onError={(e) => { e.target.style.display = 'none'; }}
@@ -465,6 +534,179 @@ const VirtualMeets = () => {
     );
   };
 
+  // ─── Render: Admin Overview ────────────────────────────────────────────
+
+  const renderAdminOverview = () => {
+    if (adminLoading) {
+      return <div className="vm-loading">Loading admin overview...</div>;
+    }
+
+    if (!adminOverview) return null;
+
+    const ov = adminOverview;
+
+    return (
+      <div className="vm-admin-view">
+        <div className="vm-match-header">
+          <button className="vm-btn vm-btn-back" onClick={() => {
+            setAdminView(false);
+            setSelectedEvent(null);
+            setAdminOverview(null);
+          }}>
+            ← Back
+          </button>
+          <h2 className="vm-match-title">🔧 Admin: {ov.title}</h2>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="vm-admin-stats">
+          <div className="vm-stat-card">
+            <div className="vm-stat-value">{ov.total_participants}</div>
+            <div className="vm-stat-label">Participants</div>
+          </div>
+          <div className="vm-stat-card">
+            <div className="vm-stat-value">{ov.male_count}</div>
+            <div className="vm-stat-label">Male</div>
+          </div>
+          <div className="vm-stat-card">
+            <div className="vm-stat-value">{ov.female_count}</div>
+            <div className="vm-stat-label">Female</div>
+          </div>
+          <div className="vm-stat-card">
+            <div className="vm-stat-value">{ov.paid_count}</div>
+            <div className="vm-stat-label">Paid</div>
+          </div>
+          <div className="vm-stat-card">
+            <div className="vm-stat-value">{ov.unpaid_count}</div>
+            <div className="vm-stat-label">Unpaid</div>
+          </div>
+          <div className="vm-stat-card">
+            <div className="vm-stat-value">{ov.exempt_count}</div>
+            <div className="vm-stat-label">Exempt</div>
+          </div>
+          <div className="vm-stat-card">
+            <div className="vm-stat-value">{ov.total_rooms}</div>
+            <div className="vm-stat-label">Rooms</div>
+          </div>
+          <div className="vm-stat-card">
+            <div className="vm-stat-value">{ov.total_requests}</div>
+            <div className="vm-stat-label">Requests</div>
+          </div>
+        </div>
+
+        {/* Request Breakdown */}
+        <div className="vm-section">
+          <h3 className="vm-section-title">Request Breakdown</h3>
+          <div className="vm-admin-request-stats">
+            <span className="vm-badge-accepted">✅ {ov.accepted_requests} Accepted</span>
+            <span className="vm-badge-pending">⏳ {ov.pending_requests} Pending</span>
+            <span className="vm-badge-declined">❌ {ov.declined_requests} Declined</span>
+          </div>
+        </div>
+
+        {/* Admin Actions */}
+        <div className="vm-section">
+          <h3 className="vm-section-title">Admin Actions</h3>
+
+          {/* Manual Pair */}
+          <div className="vm-admin-pair">
+            <h4>Force Pair Users</h4>
+            <div className="vm-admin-pair-inputs">
+              <input
+                type="text"
+                placeholder="Username A"
+                value={pairUserA}
+                onChange={(e) => setPairUserA(e.target.value)}
+                className="vm-input"
+              />
+              <span className="vm-pair-arrow">↔</span>
+              <input
+                type="text"
+                placeholder="Username B"
+                value={pairUserB}
+                onChange={(e) => setPairUserB(e.target.value)}
+                className="vm-input"
+              />
+              <button className="vm-btn vm-btn-primary" onClick={handleAdminPair}>
+                Pair
+              </button>
+            </div>
+          </div>
+
+          {/* Expire Rooms */}
+          <div className="vm-admin-action-row">
+            <button
+              className="vm-btn vm-btn-decline"
+              onClick={() => handleExpireRooms(selectedEvent.poll_id)}
+            >
+              Expire Unused Rooms & Pending Requests
+            </button>
+          </div>
+        </div>
+
+        {/* Rooms List */}
+        {ov.rooms && ov.rooms.length > 0 && (
+          <div className="vm-section">
+            <h3 className="vm-section-title">🏠 Rooms ({ov.rooms.length})</h3>
+            <div className="vm-admin-table-wrapper">
+              <table className="vm-admin-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>User A</th>
+                    <th>User B</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ov.rooms.map(room => (
+                    <tr key={room._id}>
+                      <td>{room.room_number}</td>
+                      <td>{room.user_a}</td>
+                      <td>{room.user_b}</td>
+                      <td><span className={`vm-status-badge vm-badge-${room.status === 'confirmed' ? 'accepted' : room.status === 'active' ? 'accepted' : 'declined'}`}>{room.status}</span></td>
+                      <td>{room.notes || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Participants List */}
+        {ov.participants && ov.participants.length > 0 && (
+          <div className="vm-section">
+            <h3 className="vm-section-title">👥 Participants ({ov.participants.length})</h3>
+            <div className="vm-admin-table-wrapper">
+              <table className="vm-admin-table">
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Gender</th>
+                    <th>Payment</th>
+                    <th>Access</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ov.participants.map(p => (
+                    <tr key={p._id}>
+                      <td>{p.username}</td>
+                      <td>{p.gender}</td>
+                      <td><span className={`vm-status-badge vm-badge-${p.payment_status === 'completed' ? 'accepted' : p.payment_status === 'not_required' ? 'accepted' : 'pending'}`}>{p.payment_status}</span></td>
+                      <td>{p.access_unlocked ? '✅' : '🔒'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ─── Main Render ─────────────────────────────────────────────────────
 
   return (
@@ -474,7 +716,7 @@ const VirtualMeets = () => {
         <p className="vm-page-subtitle">Match with participants and connect in 1:1 virtual rooms</p>
       </div>
 
-      {selectedEvent ? renderMatchList() : renderEventsList()}
+      {adminView ? renderAdminOverview() : selectedEvent ? renderMatchList() : renderEventsList()}
 
       {toast && (
         <Toast
