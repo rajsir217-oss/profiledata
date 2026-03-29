@@ -65,6 +65,7 @@ import BrandBanner from './components/BrandBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
 import AnnouncementManagement from './components/AnnouncementManagement';
 import PollManagement from './components/PollManagement';
+import VirtualMeets from './components/VirtualMeets';
 import AdminReports from './components/AdminReports';
 import ContributionManagement from './components/ContributionManagement';
 import AdminRecurringContributions from './components/AdminRecurringContributions';
@@ -427,6 +428,7 @@ function AppContent() {
               <Route path="/pause-analytics" element={<ProtectedRoute><PauseAnalyticsDashboard /></ProtectedRoute>} />
               <Route path="/invitations" element={<ProtectedRoute><InvitationManager /></ProtectedRoute>} />
               <Route path="/invite-friends" element={<ProtectedRoute><InviteFriends /></ProtectedRoute>} />
+              <Route path="/virtual-meets" element={<ProtectedRoute><VirtualMeets /></ProtectedRoute>} />
               <Route path="/promo-codes" element={<ProtectedRoute><PromoCodeManager /></ProtectedRoute>} />
               <Route path="/membership-plans" element={<ProtectedRoute><MembershipPlans /></ProtectedRoute>} />
               <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
