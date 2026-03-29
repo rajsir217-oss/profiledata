@@ -58,6 +58,7 @@ from routers.inactive_users_report import router as inactive_users_report_router
 from routers.queue_management import router as queue_management_router
 from routers.clover_payments import router as clover_payments_router
 from routers.admin_backups import router as admin_backups_router
+from routers.virtual_meets import router as virtual_meets_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -184,6 +185,34 @@ async def lifespan(app: FastAPI):
     from services.activity_logger import initialize_activity_logger
     await initialize_activity_logger(db)
     logger.info("✅ Activity Logger initialized")
+    
+    # Create Virtual Meets indexes (non-blocking)
+    try:
+        await db.virtual_meet_sessions.create_index(
+            [("poll_id", 1), ("username", 1)], unique=True, background=True
+        )
+        await db.virtual_meet_sessions.create_index(
+            [("poll_id", 1), ("gender", 1)], background=True
+        )
+        await db.virtual_room_requests.create_index(
+            [("poll_id", 1), ("requester_username", 1), ("target_username", 1)],
+            unique=True, background=True
+        )
+        await db.virtual_room_requests.create_index(
+            [("poll_id", 1), ("target_username", 1), ("status", 1)], background=True
+        )
+        await db.virtual_rooms.create_index(
+            [("poll_id", 1), ("room_number", 1)], unique=True, background=True
+        )
+        await db.virtual_rooms.create_index(
+            [("poll_id", 1), ("user_a", 1)], background=True
+        )
+        await db.virtual_rooms.create_index(
+            [("poll_id", 1), ("user_b", 1)], background=True
+        )
+        logger.info("✅ Virtual Meets indexes created")
+    except Exception as e:
+        logger.warning(f"⚠️ Virtual Meets index creation failed (non-critical): {e}")
 
     # Eagerly initialize face detector so OpenCV loads before requests arrive.
     # Lazy-loading inside a request handler can deadlock gunicorn workers under
@@ -411,6 +440,7 @@ app.include_router(queue_management_router)  # Queue management routes (already 
 app.include_router(clover_payments_router)  # Clover Hosted Checkout routes
 app.include_router(admin_backups_router)  # Admin backups routes (already has /api/admin/backups prefix)
 app.include_router(whatsapp_verification_router)  # WhatsApp verification routes
+app.include_router(virtual_meets_router)  # Virtual Meets routes (already has /api/virtual-meets prefix)
 
 # Health check endpoint — used by Cloud Run liveness probe.
 # Tests MongoDB connectivity so probe fails (503) if workers are deadlocked

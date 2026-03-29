@@ -10,6 +10,14 @@ from enum import Enum
 from bson import ObjectId
 
 
+class EventType(str, Enum):
+    """Types of events for polls (used by Virtual Meets)"""
+    IN_PERSON = "in-person"
+    VIRTUAL = "virtual"
+    ZOOM_CALL = "zoom-call"
+    HYBRID = "hybrid"
+
+
 class PollType(str, Enum):
     """Types of polls"""
     SINGLE_CHOICE = "single_choice"      # User selects one option
@@ -41,11 +49,15 @@ class PollCreate(BaseModel):
     options: Optional[List[str]] = None  # For single/multiple choice
     
     # Event details (for RSVP type)
+    event_type: Optional[EventType] = None  # in-person, virtual, zoom-call, hybrid
     event_date: Optional[datetime] = None
     event_time: Optional[str] = None
     event_timezone: Optional[str] = 'America/Los_Angeles'  # Default PST
     event_location: Optional[str] = None
     event_details: Optional[str] = None
+    
+    # Virtual Meets payment (admin-configurable per event, default $5)
+    virtual_meet_payment_amount: Optional[float] = 5.00
     
     # Settings
     collect_contact_info: bool = True  # Collect user's contact info with response
@@ -70,11 +82,13 @@ class PollUpdate(BaseModel):
     poll_type: Optional[PollType] = None
     options: Optional[List[str]] = None
     
+    event_type: Optional[EventType] = None
     event_date: Optional[datetime] = None
     event_time: Optional[str] = None
     event_timezone: Optional[str] = None
     event_location: Optional[str] = None
     event_details: Optional[str] = None
+    virtual_meet_payment_amount: Optional[float] = None
     
     collect_contact_info: Optional[bool] = None
     allow_comments: Optional[bool] = None
@@ -98,11 +112,13 @@ class Poll(BaseModel):
     poll_type: PollType
     options: List[PollOption] = []
     
+    event_type: Optional[EventType] = None
     event_date: Optional[datetime] = None
     event_time: Optional[str] = None
     event_timezone: Optional[str] = 'America/Los_Angeles'
     event_location: Optional[str] = None
     event_details: Optional[str] = None
+    virtual_meet_payment_amount: Optional[float] = 5.00
     
     collect_contact_info: bool = True
     allow_comments: bool = True
