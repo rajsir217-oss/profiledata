@@ -60,41 +60,66 @@ const EventCountdown = () => {
           const eventsWithDates = yesPolls
             .filter(poll => poll.event_date)
             .map(poll => {
-              // Parse event_date and apply timezone from event_time if specified
+              // Parse event_date + event_time (HH:MM) + event_timezone
               let eventDateTime;
               try {
-                // Start with the base date
-                eventDateTime = new Date(poll.event_date);
+                // Get the date part (YYYY-MM-DD)
+                const baseDate = new Date(poll.event_date);
+                const dateStr = baseDate.toISOString().split('T')[0]; // "2026-03-29"
                 
-                // If event_time contains timezone info (e.g., "7am pst"), adjust the time
                 if (poll.event_time) {
-                  const timeStr = poll.event_time.toLowerCase();
+                  // event_time is in HH:MM format (e.g., "14:32")
+                  const timeParts = poll.event_time.split(':');
+                  const hour = parseInt(timeParts[0]) || 0;
+                  const minute = parseInt(timeParts[1]) || 0;
                   
-                  // Extract hour from time string (e.g., "7am" -> 7, "2pm" -> 14)
-                  const hourMatch = timeStr.match(/(\d+)\s*(am|pm)/i);
-                  if (hourMatch) {
-                    let hour = parseInt(hourMatch[1]);
-                    const isPM = hourMatch[2].toLowerCase() === 'pm';
-                    if (isPM && hour !== 12) hour += 12;
-                    if (!isPM && hour === 12) hour = 0;
-                    
-                    // Check for timezone and convert to UTC
-                    // PST = UTC-8, PDT = UTC-7, EST = UTC-5, EDT = UTC-4, etc.
-                    let tzOffset = 0;
-                    if (timeStr.includes('pst')) tzOffset = 8;
-                    else if (timeStr.includes('pdt')) tzOffset = 7;
-                    else if (timeStr.includes('est')) tzOffset = 5;
-                    else if (timeStr.includes('edt')) tzOffset = 4;
-                    else if (timeStr.includes('cst')) tzOffset = 6;
-                    else if (timeStr.includes('cdt')) tzOffset = 5;
-                    else if (timeStr.includes('mst')) tzOffset = 7;
-                    else if (timeStr.includes('mdt')) tzOffset = 6;
-                    
-                    // Set the correct time in UTC
-                    // If event is 7am PST, that's 7 + 8 = 15:00 UTC
-                    const utcHour = hour + tzOffset;
-                    eventDateTime.setUTCHours(utcHour, 0, 0, 0);
+                  // Get timezone offset based on event_timezone or end_timezone
+                  const tz = poll.event_timezone || 'America/Los_Angeles';
+                  const tzOffsets = {
+                    'America/Los_Angeles': -7, // PDT (summer) / -8 PST (winter)
+                    'America/Denver': -6,      // MDT / -7 MST
+                    'America/Chicago': -5,     // CDT / -6 CST
+                    'America/New_York': -4,    // EDT / -5 EST
+                    'America/Phoenix': -7,     // MST (no DST)
+                    'Pacific/Honolulu': -10,   // HST
+                    'America/Anchorage': -8,   // AKDT / -9 AKST
+                    'UTC': 0
+                  };
+                  
+                  // Use Intl to get accurate offset for the specific date
+                  let offsetMinutes;
+                  try {
+                    const testDate = new Date(`${dateStr}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00`);
+                    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' });
+                    const parts = formatter.formatToParts(testDate);
+                    const offsetPart = parts.find(p => p.type === 'timeZoneName');
+                    if (offsetPart) {
+                      const match = offsetPart.value.match(/GMT([+-]\d+)/);
+                      if (match) {
+                        offsetMinutes = parseInt(match[1]) * 60;
+                      }
+                    }
+                  } catch (e) {
+                    // Fallback to static offsets
+                    const fallbackOffset = tzOffsets[tz] || -7;
+                    offsetMinutes = fallbackOffset * 60;
                   }
+                  
+                  if (offsetMinutes === undefined) {
+                    const fallbackOffset = tzOffsets[tz] || -7;
+                    offsetMinutes = fallbackOffset * 60;
+                  }
+                  
+                  // Create UTC time: local time - offset = UTC
+                  const totalMinutes = hour * 60 + minute - offsetMinutes;
+                  const utcHour = Math.floor(totalMinutes / 60);
+                  const utcMinute = totalMinutes % 60;
+                  
+                  eventDateTime = new Date(`${dateStr}T00:00:00Z`);
+                  eventDateTime.setUTCHours(utcHour, utcMinute, 0, 0);
+                } else {
+                  // No time specified, use midnight UTC
+                  eventDateTime = new Date(`${dateStr}T00:00:00Z`);
                 }
                 
                 // Check if date is valid
@@ -238,7 +263,28 @@ const EventCountdown = () => {
               {currentEvent.event_time && (
                 <div className="poll-event-item">
                   <span className="poll-event-icon">🕐</span>
-                  <span>{currentEvent.event_time}</span>
+                  <span>
+                    {(() => {
+                      // Format HH:MM to readable time
+                      const parts = currentEvent.event_time.split(':');
+                      if (parts.length === 2) {
+                        let h = parseInt(parts[0]);
+                        const m = parts[1];
+                        const ampm = h >= 12 ? 'PM' : 'AM';
+                        if (h > 12) h -= 12;
+                        if (h === 0) h = 12;
+                        const tzLabels = {
+                          'America/Los_Angeles': 'PT', 'America/Denver': 'MT',
+                          'America/Chicago': 'CT', 'America/New_York': 'ET',
+                          'America/Phoenix': 'MST', 'Pacific/Honolulu': 'HST',
+                          'America/Anchorage': 'AKT', 'UTC': 'UTC'
+                        };
+                        const tzLabel = tzLabels[currentEvent.event_timezone] || '';
+                        return `${h}:${m} ${ampm}${tzLabel ? ` ${tzLabel}` : ''}`;
+                      }
+                      return currentEvent.event_time;
+                    })()}
+                  </span>
                 </div>
               )}
               {currentEvent.event_location && (

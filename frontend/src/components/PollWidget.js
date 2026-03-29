@@ -34,8 +34,23 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
     const interval = setInterval(() => {
       const newTimers = {};
       polls.forEach(poll => {
-        // Use end_date if available, otherwise fall back to event_date
-        const targetDate = poll.end_date || poll.event_date;
+        // Combine date and time for accurate countdown
+        let targetDate = null;
+        
+        if (poll.end_date && poll.end_time) {
+          // Combine end_date and end_time
+          const dateStr = new Date(poll.end_date).toISOString().split('T')[0];
+          targetDate = `${dateStr}T${poll.end_time}`;
+        } else if (poll.event_date && poll.event_time) {
+          // Fall back to event_date and event_time
+          const dateStr = new Date(poll.event_date).toISOString().split('T')[0];
+          targetDate = `${dateStr}T${poll.event_time}`;
+        } else if (poll.end_date) {
+          targetDate = poll.end_date;
+        } else if (poll.event_date) {
+          targetDate = poll.event_date;
+        }
+        
         if (targetDate) {
           const remaining = getTimeRemaining(targetDate);
           newTimers[poll._id] = remaining;
@@ -303,7 +318,12 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
               <div className="poll-timer-active">
                 <span className="poll-timer-icon">⏱️</span>
                 <span className="poll-timer-text">
-                  Time remaining: <strong>{formatTimeRemaining(poll.end_date || poll.event_date)}</strong>
+                  Time remaining: <strong>
+                    {timers[poll._id].days > 0 && `${timers[poll._id].days}d `}
+                    {timers[poll._id].hours > 0 && `${timers[poll._id].hours}h `}
+                    {timers[poll._id].minutes > 0 && `${timers[poll._id].minutes}m `}
+                    {timers[poll._id].days === 0 && timers[poll._id].hours === 0 && `${timers[poll._id].seconds}s`}
+                  </strong>
                 </span>
               </div>
             )}

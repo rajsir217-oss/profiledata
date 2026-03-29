@@ -90,23 +90,54 @@ class PollAutoCloseTemplate(JobTemplate):
             # Calculate cutoff time (now minus grace period) - use UTC
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=grace_period_hours)
             
-            context.log("info", f"📊 Checking for polls with end_date/event_date before {cutoff_time.isoformat()}")
+            context.log("info", f"📊 Checking for polls that should be closed (cutoff: {cutoff_time.isoformat()})")
             
-            # Find active polls that should be closed
-            # Check both end_date and event_date fields, treating stored datetimes as UTC
-            query = {
-                "status": "active",
-                "$or": [
-                    {
-                        "end_date": {"$ne": None, "$lt": cutoff_time}
-                    },
-                    {
-                        "event_date": {"$ne": None, "$lt": cutoff_time}
-                    }
-                ]
-            }
+            # Get all active polls and check them individually
+            # We need to combine date+time+timezone for accurate comparison
+            active_polls = await db.polls.find({"status": "active"}).to_list(length=None)
             
-            expired_polls = await db.polls.find(query).to_list(length=None)
+            expired_polls = []
+            for poll in active_polls:
+                should_close = False
+                
+                # Check end_date + end_time first (priority)
+                end_date = poll.get("end_date")
+                end_time = poll.get("end_time")
+                end_timezone = poll.get("end_timezone", "America/Los_Angeles")
+                
+                if end_date and end_time:
+                    try:
+                        import pytz
+                        from datetime import time as dt_time
+                        
+                        # Combine date and time in poll's timezone
+                        date_part = end_date.date() if isinstance(end_date, datetime) else end_date
+                        time_parts = end_time.split(':')
+                        hour = int(time_parts[0])
+                        minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+                        
+                        tz = pytz.timezone(end_timezone)
+                        end_datetime = datetime.combine(date_part, dt_time(hour, minute))
+                        end_datetime = tz.localize(end_datetime)
+                        end_datetime_utc = end_datetime.astimezone(timezone.utc)
+                        
+                        if end_datetime_utc < cutoff_time:
+                            should_close = True
+                    except Exception as e:
+                        context.log("warning", f"Error parsing end_date/end_time for poll {poll.get('title')}: {e}")
+                        # Fall back to date-only comparison
+                        if end_date and end_date < cutoff_time:
+                            should_close = True
+                elif end_date and end_date < cutoff_time:
+                    # No end_time, use date-only comparison
+                    should_close = True
+                elif poll.get("event_date") and poll.get("event_date") < cutoff_time:
+                    # Fall back to event_date if no end_date
+                    should_close = True
+                
+                if should_close:
+                    expired_polls.append(poll)
+            
             polls_checked = len(expired_polls)
             
             context.log("info", f"📋 Found {polls_checked} expired polls to close")
