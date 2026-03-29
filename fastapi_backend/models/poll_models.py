@@ -43,6 +43,7 @@ class PollCreate(BaseModel):
     # Event details (for RSVP type)
     event_date: Optional[datetime] = None
     event_time: Optional[str] = None
+    event_timezone: Optional[str] = 'America/Los_Angeles'  # Default PST
     event_location: Optional[str] = None
     event_details: Optional[str] = None
     
@@ -55,6 +56,7 @@ class PollCreate(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     end_time: Optional[str] = None
+    end_timezone: Optional[str] = 'America/Los_Angeles'  # Default PST
     
     # Targeting
     target_all_users: bool = True
@@ -70,6 +72,7 @@ class PollUpdate(BaseModel):
     
     event_date: Optional[datetime] = None
     event_time: Optional[str] = None
+    event_timezone: Optional[str] = None
     event_location: Optional[str] = None
     event_details: Optional[str] = None
     
@@ -80,6 +83,7 @@ class PollUpdate(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     end_time: Optional[str] = None
+    end_timezone: Optional[str] = None
     status: Optional[PollStatus] = None
     
     target_all_users: Optional[bool] = None
@@ -96,6 +100,7 @@ class Poll(BaseModel):
     
     event_date: Optional[datetime] = None
     event_time: Optional[str] = None
+    event_timezone: Optional[str] = 'America/Los_Angeles'
     event_location: Optional[str] = None
     event_details: Optional[str] = None
     
@@ -106,6 +111,7 @@ class Poll(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     end_time: Optional[str] = None
+    end_timezone: Optional[str] = 'America/Los_Angeles'
     status: PollStatus = PollStatus.DRAFT
     
     target_all_users: bool = True

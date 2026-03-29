@@ -71,9 +71,11 @@ class PollService:
                 
                 "event_date": poll_data.event_date,
                 "event_time": poll_data.event_time,
+                "event_timezone": poll_data.event_timezone,
                 "event_location": poll_data.event_location,
                 "event_details": poll_data.event_details,
                 "end_time": poll_data.end_time,
+                "end_timezone": poll_data.end_timezone,
                 
                 "collect_contact_info": poll_data.collect_contact_info,
                 "allow_comments": poll_data.allow_comments,
@@ -320,10 +322,12 @@ class PollService:
                 "options": 1,
                 "event_date": 1,
                 "event_time": 1,
+                "event_timezone": 1,
                 "event_location": 1,
                 "event_details": 1,
                 "end_date": 1,
                 "end_time": 1,
+                "end_timezone": 1,
                 "collect_contact_info": 1,
                 "allow_comments": 1,
                 "anonymous": 1,
@@ -346,6 +350,9 @@ class PollService:
                 start_date = p.get("start_date")
                 if start_date not in (None, ""):
                     if isinstance(start_date, datetime):
+                        # Make start_date timezone-aware if it's naive
+                        if start_date.tzinfo is None:
+                            start_date = start_date.replace(tzinfo=timezone.utc)
                         if start_date > now:
                             continue
                     else:
@@ -355,17 +362,56 @@ class PollService:
                         except Exception:
                             continue
 
+                # Check if poll has ended - combine end_date and end_time for accurate comparison
                 end_date = p.get("end_date")
+                end_time = p.get("end_time")
+                end_timezone = p.get("end_timezone", "America/Los_Angeles")
+                
                 if end_date not in (None, ""):
-                    if isinstance(end_date, datetime):
-                        if end_date < now:
-                            continue
-                    else:
+                    # If we have both end_date and end_time, combine them
+                    if end_time:
                         try:
+                            # Combine date and time for accurate comparison
+                            from datetime import time as dt_time
+                            import pytz
+                            
+                            if isinstance(end_date, datetime):
+                                date_part = end_date.date()
+                            else:
+                                date_part = end_date
+                            
+                            # Parse time (HH:MM format)
+                            time_parts = end_time.split(':')
+                            hour = int(time_parts[0])
+                            minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+                            
+                            # Create datetime in the poll's timezone
+                            tz = pytz.timezone(end_timezone)
+                            end_datetime = datetime.combine(date_part, dt_time(hour, minute))
+                            end_datetime = tz.localize(end_datetime)
+                            
+                            # Convert to UTC for comparison
+                            end_datetime_utc = end_datetime.astimezone(timezone.utc)
+                            
+                            if end_datetime_utc < now:
+                                continue
+                        except Exception as e:
+                            logger.warning(f"Error parsing end_date/end_time: {e}")
+                            # Fall back to date-only comparison
+                            if isinstance(end_date, datetime):
+                                if end_date < now:
+                                    continue
+                    else:
+                        # No end_time, use date-only comparison
+                        if isinstance(end_date, datetime):
                             if end_date < now:
                                 continue
-                        except Exception:
-                            continue
+                        else:
+                            try:
+                                if end_date < now:
+                                    continue
+                            except Exception:
+                                continue
 
                 if p.get("target_all_users") is not True and "target_all_users" in p:
                     tu = p.get("target_usernames")

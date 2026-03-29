@@ -41,10 +41,12 @@ const PollManagement = () => {
     poll_type: 'rsvp',
     event_date: '',
     event_time: '',
+    event_timezone: 'America/Los_Angeles', // Default to PST
     event_location: '',
     event_details: '',
     end_date: '',
     end_time: '',
+    end_timezone: 'America/Los_Angeles', // Default to PST
     collect_contact_info: true,
     allow_comments: true,
     options: ['']
@@ -55,13 +57,49 @@ const PollManagement = () => {
     // Check if user is admin or moderator
     const userRole = localStorage.getItem('userRole');
     if (userRole !== 'admin' && userRole !== 'moderator') {
-      navigate('/dashboard');
+      navigate('/');
       return;
     }
-    
     fetchPolls();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, statusFilter]);
+
+  // Handle ?edit=<poll_id> URL parameter
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const editPollId = params.get('edit');
+    
+    if (editPollId && polls.length > 0 && !showEditModal) {
+      const pollToEdit = polls.find(p => p._id === editPollId);
+      if (pollToEdit) {
+        // Open edit modal
+        setEditingPoll(pollToEdit);
+        setFormData({
+          title: pollToEdit.title || '',
+          description: pollToEdit.description || '',
+          poll_type: pollToEdit.poll_type || 'rsvp',
+          event_date: pollToEdit.event_date ? getDateInputValue(pollToEdit.event_date) : '',
+          event_time: pollToEdit.event_time || '',
+          event_timezone: pollToEdit.event_timezone || 'America/Los_Angeles',
+          event_location: pollToEdit.event_location || '',
+          event_details: pollToEdit.event_details || '',
+          end_date: pollToEdit.end_date ? getDateInputValue(pollToEdit.end_date) : '',
+          end_time: pollToEdit.end_time || '',
+          end_timezone: pollToEdit.end_timezone || 'America/Los_Angeles',
+          collect_contact_info: pollToEdit.collect_contact_info !== false,
+          allow_comments: pollToEdit.allow_comments !== false,
+          anonymous: pollToEdit.anonymous || false,
+          target_all_users: pollToEdit.target_all_users !== false,
+          target_usernames: pollToEdit.target_usernames || [],
+          options: pollToEdit.options?.map(opt => opt.text) || ['']
+        });
+        setShowEditModal(true);
+        // Clear the URL parameter after opening the modal
+        window.history.replaceState({}, '', '/admin/polls');
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [polls, showEditModal]);
 
   // ESC key handler
   useEffect(() => {
@@ -175,12 +213,14 @@ const PollManagement = () => {
         title: formData.title,
         description: formData.description || null,
         poll_type: formData.poll_type,
-        event_date: formData.event_date ? toUTCISOString(formData.event_date) : null,
+        event_date: formData.event_date ? `${formData.event_date}T00:00:00` : null,
         event_time: formData.event_time || null,
+        event_timezone: formData.event_timezone || 'America/Los_Angeles',
         event_location: formData.event_location || null,
         event_details: formData.event_details || null,
-        end_date: formData.end_date ? toUTCISOString(formData.end_date) : null,
+        end_date: formData.end_date ? `${formData.end_date}T00:00:00` : null,
         end_time: formData.end_time || null,
+        end_timezone: formData.end_timezone || 'America/Los_Angeles',
         collect_contact_info: formData.collect_contact_info,
         allow_comments: formData.allow_comments,
         anonymous: formData.anonymous || false,
@@ -212,10 +252,12 @@ const PollManagement = () => {
       poll_type: poll.poll_type || 'rsvp',
       event_date: '',
       event_time: poll.event_time || '',
+      event_timezone: poll.event_timezone || 'America/Los_Angeles',
       event_location: poll.event_location || '',
       event_details: poll.event_details || '',
-      end_date: poll.end_date ? new Date(poll.end_date).toISOString().split('T')[0] : '',
+      end_date: '',
       end_time: poll.end_time || '',
+      end_timezone: poll.end_timezone || 'America/Los_Angeles',
       collect_contact_info: poll.collect_contact_info !== false,
       allow_comments: poll.allow_comments !== false,
       anonymous: poll.anonymous || false,
@@ -234,10 +276,12 @@ const PollManagement = () => {
       poll_type: poll.poll_type || 'rsvp',
       event_date: poll.event_date ? getDateInputValue(poll.event_date) : '',
       event_time: poll.event_time || '',
+      event_timezone: poll.event_timezone || 'America/Los_Angeles',
       event_location: poll.event_location || '',
       event_details: poll.event_details || '',
       end_date: poll.end_date ? getDateInputValue(poll.end_date) : '',
       end_time: poll.end_time || '',
+      end_timezone: poll.end_timezone || 'America/Los_Angeles',
       collect_contact_info: poll.collect_contact_info !== false,
       allow_comments: poll.allow_comments !== false,
       anonymous: poll.anonymous || false,
@@ -262,12 +306,14 @@ const PollManagement = () => {
       const payload = {
         title: formData.title,
         description: formData.description || null,
-        event_date: formData.event_date ? toUTCISOString(formData.event_date) : undefined,
+        event_date: formData.event_date ? `${formData.event_date}T00:00:00` : undefined,
         event_time: formData.event_time || null,
+        event_timezone: formData.event_timezone || 'America/Los_Angeles',
         event_location: formData.event_location || null,
         event_details: formData.event_details || null,
-        end_date: formData.end_date ? toUTCISOString(formData.end_date) : undefined,
+        end_date: formData.end_date ? `${formData.end_date}T00:00:00` : undefined,
         end_time: formData.end_time || null,
+        end_timezone: formData.end_timezone || 'America/Los_Angeles',
         collect_contact_info: formData.collect_contact_info,
         allow_comments: formData.allow_comments,
         anonymous: formData.anonymous || false,
@@ -395,10 +441,12 @@ const PollManagement = () => {
       poll_type: 'rsvp',
       event_date: '',
       event_time: '',
+      event_timezone: 'America/Los_Angeles',
       event_location: '',
       event_details: '',
       end_date: '',
       end_time: '',
+      end_timezone: 'America/Los_Angeles',
       collect_contact_info: true,
       allow_comments: true,
       options: ['']
@@ -681,11 +729,27 @@ const PollManagement = () => {
                   <div className="poll-form-group">
                     <label>Event Time</label>
                     <input
-                      type="text"
+                      type="time"
                       value={formData.event_time}
                       onChange={(e) => setFormData(prev => ({ ...prev, event_time: e.target.value }))}
-                      placeholder="e.g., 7:00 PM PST"
                     />
+                  </div>
+                  
+                  <div className="poll-form-group">
+                    <label>Timezone</label>
+                    <select
+                      value={formData.event_timezone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, event_timezone: e.target.value }))}
+                    >
+                      <option value="America/Los_Angeles">PST/PDT (Pacific)</option>
+                      <option value="America/Denver">MST/MDT (Mountain)</option>
+                      <option value="America/Chicago">CST/CDT (Central)</option>
+                      <option value="America/New_York">EST/EDT (Eastern)</option>
+                      <option value="America/Phoenix">MST (Arizona)</option>
+                      <option value="Pacific/Honolulu">HST (Hawaii)</option>
+                      <option value="America/Anchorage">AKST/AKDT (Alaska)</option>
+                      <option value="UTC">UTC</option>
+                    </select>
                   </div>
                 </div>
                 
@@ -702,11 +766,27 @@ const PollManagement = () => {
                   <div className="poll-form-group">
                     <label>End Time</label>
                     <input
-                      type="text"
+                      type="time"
                       value={formData.end_time}
                       onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
-                      placeholder="e.g., 11:59 PM PST"
                     />
+                  </div>
+                  
+                  <div className="poll-form-group">
+                    <label>Timezone</label>
+                    <select
+                      value={formData.end_timezone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, end_timezone: e.target.value }))}
+                    >
+                      <option value="America/Los_Angeles">PST/PDT (Pacific)</option>
+                      <option value="America/Denver">MST/MDT (Mountain)</option>
+                      <option value="America/Chicago">CST/CDT (Central)</option>
+                      <option value="America/New_York">EST/EDT (Eastern)</option>
+                      <option value="America/Phoenix">MST (Arizona)</option>
+                      <option value="Pacific/Honolulu">HST (Hawaii)</option>
+                      <option value="America/Anchorage">AKST/AKDT (Alaska)</option>
+                      <option value="UTC">UTC</option>
+                    </select>
                   </div>
                 </div>
                 
@@ -808,7 +888,20 @@ const PollManagement = () => {
                   </div>
                   <div className="poll-form-group">
                     <label>Event Time</label>
-                    <input type="text" value={formData.event_time} onChange={(e) => setFormData(prev => ({ ...prev, event_time: e.target.value }))} placeholder="e.g., 7:00 PM PST" />
+                    <input type="time" value={formData.event_time} onChange={(e) => setFormData(prev => ({ ...prev, event_time: e.target.value }))} />
+                  </div>
+                  <div className="poll-form-group">
+                    <label>Timezone</label>
+                    <select value={formData.event_timezone} onChange={(e) => setFormData(prev => ({ ...prev, event_timezone: e.target.value }))}>
+                      <option value="America/Los_Angeles">PST/PDT (Pacific)</option>
+                      <option value="America/Denver">MST/MDT (Mountain)</option>
+                      <option value="America/Chicago">CST/CDT (Central)</option>
+                      <option value="America/New_York">EST/EDT (Eastern)</option>
+                      <option value="America/Phoenix">MST (Arizona)</option>
+                      <option value="Pacific/Honolulu">HST (Hawaii)</option>
+                      <option value="America/Anchorage">AKST/AKDT (Alaska)</option>
+                      <option value="UTC">UTC</option>
+                    </select>
                   </div>
                 </div>
                 <div className="poll-form-row">
@@ -818,7 +911,20 @@ const PollManagement = () => {
                   </div>
                   <div className="poll-form-group">
                     <label>End Time</label>
-                    <input type="text" value={formData.end_time} onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))} placeholder="e.g., 11:59 PM PST" />
+                    <input type="time" value={formData.end_time} onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))} />
+                  </div>
+                  <div className="poll-form-group">
+                    <label>Timezone</label>
+                    <select value={formData.end_timezone} onChange={(e) => setFormData(prev => ({ ...prev, end_timezone: e.target.value }))}>
+                      <option value="America/Los_Angeles">PST/PDT (Pacific)</option>
+                      <option value="America/Denver">MST/MDT (Mountain)</option>
+                      <option value="America/Chicago">CST/CDT (Central)</option>
+                      <option value="America/New_York">EST/EDT (Eastern)</option>
+                      <option value="America/Phoenix">MST (Arizona)</option>
+                      <option value="Pacific/Honolulu">HST (Hawaii)</option>
+                      <option value="America/Anchorage">AKST/AKDT (Alaska)</option>
+                      <option value="UTC">UTC</option>
+                    </select>
                   </div>
                 </div>
                 <div className="poll-form-group">
