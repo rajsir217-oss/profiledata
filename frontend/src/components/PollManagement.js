@@ -95,7 +95,7 @@ const PollManagement = () => {
         });
         setShowEditModal(true);
         // Clear the URL parameter after opening the modal
-        window.history.replaceState({}, '', '/admin/polls');
+        window.history.replaceState({}, '', '/poll-management');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

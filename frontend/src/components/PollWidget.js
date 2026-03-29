@@ -454,7 +454,7 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
                 {isAdmin && (
                   <button 
                     className="poll-edit-btn"
-                    onClick={() => window.open(`/admin/polls?edit=${selectedPoll._id}`, '_blank')}
+                    onClick={() => window.open(`/poll-management?edit=${selectedPoll._id}`, '_blank')}
                     title="Edit poll in admin panel"
                   >
                     ✏️
@@ -510,7 +510,7 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
               {isAdmin && (
                 <button 
                   className="poll-edit-btn"
-                  onClick={() => window.open(`/admin/polls?edit=${poll._id}`, '_blank')}
+                  onClick={() => window.open(`/poll-management?edit=${poll._id}`, '_blank')}
                   title="Edit poll in admin panel"
                 >
                   ✏️
