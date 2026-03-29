@@ -202,6 +202,13 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         action: () => navigate('/invite-friends'),
         disabled: !isActive
       },
+      { 
+        icon: '🎥', 
+        label: 'Virtual Meets', 
+        subLabel: 'Match & connect',
+        action: () => navigate('/virtual-meets'),
+        disabled: !isActive
+      },
     ];
 
     // Add Admin section for admin user (check role, not username)
