@@ -316,11 +316,13 @@ const PollManagement = () => {
       const payload = {
         title: formData.title,
         description: formData.description || null,
+        event_type: formData.event_type || null,
         event_date: formData.event_date ? `${formData.event_date}T00:00:00` : undefined,
         event_time: formData.event_time || null,
         event_timezone: formData.event_timezone || 'America/Los_Angeles',
         event_location: formData.event_location || null,
         event_details: formData.event_details || null,
+        virtual_meet_payment_amount: formData.event_type === 'zoom-call' ? (parseFloat(formData.virtual_meet_payment_amount) || 5.00) : null,
         end_date: formData.end_date ? `${formData.end_date}T00:00:00` : undefined,
         end_time: formData.end_time || null,
         end_timezone: formData.end_timezone || 'America/Los_Angeles',
@@ -449,11 +451,13 @@ const PollManagement = () => {
       title: '',
       description: '',
       poll_type: 'rsvp',
+      event_type: '',
       event_date: '',
       event_time: '',
       event_timezone: 'America/Los_Angeles',
       event_location: '',
       event_details: '',
+      virtual_meet_payment_amount: 5.00,
       end_date: '',
       end_time: '',
       end_timezone: 'America/Los_Angeles',
@@ -725,6 +729,36 @@ const PollManagement = () => {
               
               <div className="poll-form-section">
                 <h4>Event Details (Optional)</h4>
+
+                <div className="poll-form-row">
+                  <div className="poll-form-group">
+                    <label>Event Type</label>
+                    <select
+                      value={formData.event_type}
+                      onChange={(e) => setFormData(prev => ({ ...prev, event_type: e.target.value }))}
+                    >
+                      <option value="">— Select —</option>
+                      <option value="in-person">In Person</option>
+                      <option value="virtual">Virtual</option>
+                      <option value="zoom-call">Zoom Call</option>
+                      <option value="hybrid">Hybrid</option>
+                    </select>
+                  </div>
+                  {formData.event_type === 'zoom-call' && (
+                    <div className="poll-form-group">
+                      <label>Virtual Meet Fee ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.virtual_meet_payment_amount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, virtual_meet_payment_amount: e.target.value }))}
+                        placeholder="5.00"
+                      />
+                      <small className="poll-form-hint">Users pay this to access Virtual Meets match list</small>
+                    </div>
+                  )}
+                </div>
                 
                 <div className="poll-form-row">
                   <div className="poll-form-group">
@@ -891,6 +925,32 @@ const PollManagement = () => {
               </div>
               <div className="poll-form-section">
                 <h4>Event Details</h4>
+                <div className="poll-form-row">
+                  <div className="poll-form-group">
+                    <label>Event Type</label>
+                    <select value={formData.event_type} onChange={(e) => setFormData(prev => ({ ...prev, event_type: e.target.value }))}>
+                      <option value="">— Select —</option>
+                      <option value="in-person">In Person</option>
+                      <option value="virtual">Virtual</option>
+                      <option value="zoom-call">Zoom Call</option>
+                      <option value="hybrid">Hybrid</option>
+                    </select>
+                  </div>
+                  {formData.event_type === 'zoom-call' && (
+                    <div className="poll-form-group">
+                      <label>Virtual Meet Fee ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.virtual_meet_payment_amount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, virtual_meet_payment_amount: e.target.value }))}
+                        placeholder="5.00"
+                      />
+                      <small className="poll-form-hint">Users pay this to access Virtual Meets match list</small>
+                    </div>
+                  )}
+                </div>
                 <div className="poll-form-row">
                   <div className="poll-form-group">
                     <label>Event Date</label>
