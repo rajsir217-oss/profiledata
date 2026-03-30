@@ -6184,6 +6184,21 @@ async def reset_password(
         logger.warning(f"❌ Invalid or expired reset code for: {identifier}")
         raise HTTPException(status_code=400, detail="Invalid or expired code")
     
+    # Check password history before allowing reset
+    existing_security = user.get("security", {})
+    password_history = existing_security.get("password_history", [])
+    
+    # Also check against current password
+    current_password_hash = existing_security.get("password_hash") or user.get("password")
+    if current_password_hash and PasswordManager.verify_password(new_password, current_password_hash):
+        raise HTTPException(status_code=400, detail="New password cannot be the same as current password")
+    
+    if PasswordManager.check_password_in_history(new_password, password_history):
+        raise HTTPException(
+            status_code=400,
+            detail="Password was used recently. Please choose a different password"
+        )
+    
     # Hash new password
     hashed_password = PasswordManager.hash_password(new_password)
     
@@ -6192,8 +6207,6 @@ async def reset_password(
     password_expires_at = PasswordManager.calculate_password_expiry(password_changed_at)
     
     # Build password history
-    existing_security = user.get("security", {})
-    password_history = existing_security.get("password_history", [])
     updated_history = PasswordManager.update_password_history(password_history, hashed_password)
     
     await db.users.update_one(
