@@ -176,7 +176,7 @@ class VirtualMeetService:
                 "poll_id": poll_id,
                 "title": poll.get("title"),
                 "event_type": poll.get("event_type"),
-                "event_date": poll.get("event_date").isoformat() if poll.get("event_date") else None,
+                "event_date": poll.get("event_date") if isinstance(poll.get("event_date"), str) else (poll.get("event_date").isoformat() if poll.get("event_date") else None),
                 "event_time": poll.get("event_time"),
                 "event_timezone": poll.get("event_timezone"),
                 "event_location": poll.get("event_location"),
@@ -266,6 +266,24 @@ class VirtualMeetService:
         for req in my_sent_requests:
             sent_lookup[req["target_username"]] = req
 
+        # Batch-fetch room numbers for accepted requests
+        accepted_room_ids = []
+        for req in my_sent_requests:
+            if req.get("status") == "accepted" and req.get("room_id"):
+                try:
+                    accepted_room_ids.append(ObjectId(req["room_id"]))
+                except Exception:
+                    pass
+
+        room_number_lookup = {}
+        if accepted_room_ids:
+            rooms_cursor = db.virtual_rooms.find(
+                {"_id": {"$in": accepted_room_ids}},
+                {"room_number": 1}
+            )
+            async for room in rooms_cursor:
+                room_number_lookup[str(room["_id"])] = room.get("room_number")
+
         # Build match list
         matches = []
         for uname in opposite_usernames:
@@ -274,9 +292,12 @@ class VirtualMeetService:
 
             request_status = None
             request_id = None
+            room_number = None
             if sent_req:
                 request_status = sent_req.get("status")
                 request_id = str(sent_req["_id"])
+                if request_status == "accepted" and sent_req.get("room_id"):
+                    room_number = room_number_lookup.get(sent_req["room_id"])
 
             matches.append({
                 "username": uname,
@@ -286,7 +307,8 @@ class VirtualMeetService:
                 "profession": profile.get("profession") or profile.get("occupation") or "",
                 "profile_pic_url": f"/api/profile-pic/{uname}",
                 "request_status": request_status,
-                "request_id": request_id
+                "request_id": request_id,
+                "room_number": room_number
             })
 
         # Build incoming requests with full profile info
@@ -1059,6 +1081,36 @@ class VirtualMeetService:
         except Exception as e:
             logger.error(f"Error checking event lock: {e}")
             return False
+
+    # ─── Admin: Delete Event ─────────────────────────────────────────────
+
+    @staticmethod
+    async def delete_event(db: AsyncIOMotorDatabase, poll_id: str) -> Dict[str, Any]:
+        """
+        Delete all virtual meet data for a poll: sessions, room requests, rooms.
+        Does NOT delete the poll itself (that's managed via PollManagement).
+        """
+        try:
+            sessions_result = await db.virtual_meet_sessions.delete_many({"poll_id": poll_id})
+            requests_result = await db.virtual_room_requests.delete_many({"poll_id": poll_id})
+            rooms_result = await db.virtual_rooms.delete_many({"poll_id": poll_id})
+
+            logger.info(
+                f"Deleted VM data for poll {poll_id}: "
+                f"{sessions_result.deleted_count} sessions, "
+                f"{requests_result.deleted_count} requests, "
+                f"{rooms_result.deleted_count} rooms"
+            )
+
+            return {
+                "success": True,
+                "deleted_sessions": sessions_result.deleted_count,
+                "deleted_requests": requests_result.deleted_count,
+                "deleted_rooms": rooms_result.deleted_count
+            }
+        except Exception as e:
+            logger.error(f"Error deleting VM event data for poll {poll_id}: {e}")
+            return {"success": False, "error": str(e)}
 
     @staticmethod
     def _get_full_name(profile: Dict[str, Any]) -> str:

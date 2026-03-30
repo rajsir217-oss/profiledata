@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import Toast from './Toast';
+import VirtualMeetPaymentModal from './VirtualMeetPaymentModal';
 import './VirtualMeets.css';
 
 // Use backend URL directly — the router is at /api/virtual-meets, not /api/users/virtual-meets
@@ -18,6 +19,7 @@ const VirtualMeets = () => {
   const [matchData, setMatchData] = useState(null);
   const [matchLoading, setMatchLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentModalEvent, setPaymentModalEvent] = useState(null);
 
   // Admin state
   const isAdmin = localStorage.getItem('userRole') === 'admin';
@@ -26,6 +28,7 @@ const VirtualMeets = () => {
   const [adminLoading, setAdminLoading] = useState(false);
   const [pairUserA, setPairUserA] = useState('');
   const [pairUserB, setPairUserB] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // ─── Load Events ─────────────────────────────────────────────────────
 
@@ -113,25 +116,14 @@ const VirtualMeets = () => {
 
   // ─── Payment ─────────────────────────────────────────────────────────
 
-  const handlePayment = async (event, method = 'paypal') => {
-    try {
-      setPaymentLoading(true);
-      const response = await vmApi.post(`/api/virtual-meets/${event.poll_id}/pay`, {
-        payment_method: method
-      });
+  const handlePayment = (event) => {
+    setPaymentModalEvent(event);
+  };
 
-      if (method === 'paypal' && response.data.approval_url) {
-        window.location.href = response.data.approval_url;
-      } else if (method === 'clover' && response.data.checkout_url) {
-        window.location.href = response.data.checkout_url;
-      } else {
-        setToast({ message: 'Payment initiated. Please complete the checkout.', type: 'info' });
-      }
-    } catch (err) {
-      setToast({ message: err.response?.data?.detail || 'Payment failed', type: 'error' });
-    } finally {
-      setPaymentLoading(false);
-    }
+  const handlePaymentSuccess = () => {
+    setPaymentModalEvent(null);
+    setToast({ message: 'Payment successful! Access unlocked.', type: 'success' });
+    loadEvents();
   };
 
   // ─── Admin Functions ──────────────────────────────────────────────────
@@ -178,6 +170,103 @@ const VirtualMeets = () => {
     } catch (err) {
       setToast({ message: err.response?.data?.detail || 'Failed to expire rooms', type: 'error' });
     }
+  };
+
+  // ─── Delete Event (Admin) ──────────────────────────────────────────
+
+  const handleDeleteEvent = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 5000);
+      return;
+    }
+    try {
+      await vmApi.delete(`/api/virtual-meets/${selectedEvent.poll_id}/admin/delete`);
+      setToast({ message: 'Virtual meet data deleted successfully', type: 'success' });
+      setAdminView(false);
+      setSelectedEvent(null);
+      setAdminOverview(null);
+      setConfirmDelete(false);
+      loadEvents();
+    } catch (err) {
+      setToast({ message: err.response?.data?.detail || 'Failed to delete', type: 'error' });
+      setConfirmDelete(false);
+    }
+  };
+
+  // ─── Export ─────────────────────────────────────────────────────────
+
+  const exportMatchListCSV = () => {
+    if (!matchData || !selectedEvent) return;
+
+    const rows = [];
+    const headers = ['Section', 'Name', 'Username', 'Age', 'Location', 'Profession', 'Status', 'Room #'];
+    rows.push(headers.join(','));
+
+    const esc = (val) => {
+      if (val == null || val === '') return '';
+      const s = String(val).replace(/"/g, '""');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
+    };
+
+    // My Rooms
+    if (matchData.my_rooms) {
+      matchData.my_rooms.forEach(room => {
+        rows.push([
+          'My Rooms',
+          esc(room.partner_name),
+          esc(room.partner_username),
+          '',
+          '',
+          '',
+          esc(room.status),
+          esc(room.room_number)
+        ].join(','));
+      });
+    }
+
+    // Incoming Requests
+    if (matchData.my_requests_received) {
+      matchData.my_requests_received.forEach(req => {
+        rows.push([
+          'Incoming Request',
+          esc(req.full_name),
+          esc(req.from_username),
+          esc(req.age),
+          esc(req.location),
+          esc(req.profession),
+          'pending',
+          ''
+        ].join(','));
+      });
+    }
+
+    // Matches
+    if (matchData.matches) {
+      matchData.matches.forEach(match => {
+        rows.push([
+          'Match',
+          esc(match.full_name),
+          esc(match.username),
+          esc(match.age),
+          esc(match.location),
+          esc(match.profession),
+          esc(match.request_status || 'no request'),
+          esc(match.room_number)
+        ].join(','));
+      });
+    }
+
+    const csv = rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const eventSlug = selectedEvent.title?.replace(/[^a-zA-Z0-9]+/g, '_') || 'virtual_meet';
+    a.href = url;
+    a.download = `${eventSlug}_matches.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setToast({ message: 'Match list exported!', type: 'success' });
   };
 
   // ─── Format Helpers ──────────────────────────────────────────────────
@@ -319,18 +408,10 @@ const VirtualMeets = () => {
                   </div>
                   <div className="vm-payment-buttons">
                     <button
-                      className="vm-btn vm-btn-paypal"
-                      onClick={() => handlePayment(event, 'paypal')}
-                      disabled={paymentLoading}
+                      className="vm-btn vm-btn-primary"
+                      onClick={() => handlePayment(event)}
                     >
-                      {paymentLoading ? 'Processing...' : 'Pay with PayPal'}
-                    </button>
-                    <button
-                      className="vm-btn vm-btn-clover"
-                      onClick={() => handlePayment(event, 'clover')}
-                      disabled={paymentLoading}
-                    >
-                      {paymentLoading ? 'Processing...' : 'Pay with Card'}
+                      💳 Pay to Unlock
                     </button>
                   </div>
                 </div>
@@ -381,6 +462,9 @@ const VirtualMeets = () => {
           {matchData.is_locked && (
             <span className="vm-locked-badge">🔒 Locked</span>
           )}
+          <button className="vm-btn vm-btn-export" onClick={exportMatchListCSV} title="Export match list as CSV">
+            📥 Export
+          </button>
         </div>
 
         {/* Incoming Requests */}
@@ -512,7 +596,7 @@ const VirtualMeets = () => {
                     )}
                     {match.request_status === 'accepted' && (
                       <span className={`vm-status-badge ${getStatusBadgeClass('accepted')}`}>
-                        ✅ Room Confirmed
+                        ✅ Room #{match.room_number || '—'}
                       </span>
                     )}
                     {match.request_status === 'declined' && (
@@ -556,6 +640,13 @@ const VirtualMeets = () => {
             ← Back
           </button>
           <h2 className="vm-match-title">🔧 Admin: {ov.title}</h2>
+          <button
+            className={`vm-btn ${confirmDelete ? 'vm-btn-danger-confirm' : 'vm-btn-danger'}`}
+            onClick={handleDeleteEvent}
+            title={confirmDelete ? 'Click again to confirm deletion' : 'Delete all virtual meet data for this event'}
+          >
+            {confirmDelete ? '⚠️ Confirm Delete?' : '🗑️ Delete'}
+          </button>
         </div>
 
         {/* Stats Grid */}
@@ -712,8 +803,10 @@ const VirtualMeets = () => {
   return (
     <div className="vm-container">
       <div className="vm-page-header">
-        <h1 className="vm-page-title">🎥 Virtual Meets</h1>
-        <p className="vm-page-subtitle">Match with participants and connect in 1:1 virtual rooms</p>
+        <div className="vm-header-left">
+          <h1 className="vm-page-title">🎥 Virtual Meets</h1>
+          <p className="vm-page-subtitle">Match with participants and connect in 1:1 virtual rooms</p>
+        </div>
       </div>
 
       {adminView ? renderAdminOverview() : selectedEvent ? renderMatchList() : renderEventsList()}
@@ -725,6 +818,13 @@ const VirtualMeets = () => {
           onClose={() => setToast(null)}
         />
       )}
+
+      <VirtualMeetPaymentModal
+        isOpen={!!paymentModalEvent}
+        onClose={() => setPaymentModalEvent(null)}
+        onSuccess={handlePaymentSuccess}
+        event={paymentModalEvent}
+      />
     </div>
   );
 };
