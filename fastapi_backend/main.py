@@ -214,13 +214,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️ Virtual Meets index creation failed (non-critical): {e}")
 
-    # Eagerly initialize face detector so OpenCV loads before requests arrive.
-    # Lazy-loading inside a request handler can deadlock gunicorn workers under
-    # concurrent load (OpenCV CascadeClassifier init blocks the GIL).
+    # Eagerly initialize face detection backends so they're ready before requests arrive.
+    # Strategy: Vision API (primary) → OpenCV (fallback) → reject if both unavailable.
     if settings.face_detection_enabled:
         try:
-            from services.face_detection import _get_detectors
-            _get_detectors()
+            from services.face_detection import _init_vision, _get_detectors
+            if _init_vision():
+                logger.info("✅ Face detection: Google Cloud Vision API ready (primary)")
+            else:
+                logger.warning("⚠️ Face detection: Vision API unavailable, trying OpenCV...")
+            _get_detectors()  # Pre-load OpenCV as fallback
             logger.info("✅ Face detection pre-initialized")
         except Exception as e:
             logger.warning(f"⚠️ Face detection pre-init failed (will retry on first use): {e}")
