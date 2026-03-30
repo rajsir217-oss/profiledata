@@ -3,15 +3,30 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 .vm-container {
-  max-width: 900px;
+  padding: 2rem;
+  width: 100%;
   margin: 0 auto;
-  padding: var(--spacing-lg);
+}
+
+/* Override Bootstrap container max-width for virtual meets page parent */
+.container:has(.vm-container) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* ─── Page Header ─────────────────────────────────────────────────────── */
 
 .vm-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: var(--spacing-xl);
+}
+
+.vm-header-left {
+  display: flex;
+  flex-direction: column;
 }
 
 .vm-page-title {
@@ -275,6 +290,50 @@
 
 .vm-btn-back:hover {
   background: var(--hover-background);
+}
+
+.vm-btn-export {
+  background: transparent;
+  color: var(--text-secondary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  margin-left: auto;
+  font-size: 0.85rem;
+}
+
+.vm-btn-export:hover {
+  background: var(--hover-background);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.vm-btn-danger {
+  background: transparent;
+  color: var(--danger-color);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--danger-color);
+  margin-left: auto;
+  font-size: 0.85rem;
+}
+
+.vm-btn-danger:hover {
+  background: var(--danger-color);
+  color: white;
+}
+
+.vm-btn-danger-confirm {
+  background: var(--danger-color);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 2px solid var(--danger-color);
+  margin-left: auto;
+  font-size: 0.85rem;
+  animation: pulse-danger 1s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .vm-btn-paypal {

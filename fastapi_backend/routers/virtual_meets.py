@@ -235,3 +235,22 @@ async def admin_expire_rooms(
 
     result = await VirtualMeetService.expire_unused_rooms(db, poll_id)
     return {"success": True, **result}
+
+
+@router.delete("/{poll_id}/admin/delete")
+async def admin_delete_event(
+    poll_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Admin deletes all virtual meet data (sessions, requests, rooms) for a poll."""
+    user_role = current_user.get("role") or current_user.get("role_name") or "free_user"
+    if user_role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    result = await VirtualMeetService.delete_event(db, poll_id)
+
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+
+    return result
