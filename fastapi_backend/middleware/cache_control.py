@@ -89,12 +89,13 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
         
         # Only set Pragma for HTTP/1.0 compatibility (PCI requirement)
         # Check if client is HTTP/1.0 by looking at the request
-        http_version = getattr(request.scope.get('http_version', '1.1'), '1.1')
+        http_version = request.scope.get('http_version', '1.1')
         if http_version == '1.0' and ("no-store" in cache_control or "no-cache" in cache_control):
             response.headers["Pragma"] = "no-cache"
         elif http_version != '1.0':
             # For HTTP/1.1+, remove Pragma header if it exists (PCI compliance)
-            response.headers.pop("Pragma", None)
+            if "Pragma" in response.headers:
+                del response.headers["Pragma"]
         
         return response
     
