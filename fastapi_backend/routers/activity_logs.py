@@ -382,7 +382,8 @@ async def get_activity_chart_data(
         pipeline = [
             {
                 "$match": {
-                    "timestamp": {"$gte": start_date, "$lte": end_date}
+                    "timestamp": {"$gte": start_date, "$lte": end_date},
+                    "action_type": {"$exists": True, "$ne": None}
                 }
             },
             {
@@ -410,9 +411,13 @@ async def get_activity_chart_data(
         action_data = {}
         
         for doc in results:
-            date = doc["_id"]["date"]
-            action_type = doc["_id"]["action_type"]
-            count = doc["count"]
+            doc_id = doc.get("_id", {})
+            date = doc_id.get("date")
+            action_type = doc_id.get("action_type")
+            count = doc.get("count", 0)
+            
+            if not date or not action_type:
+                continue
             
             dates_set.add(date)
             if action_type not in action_data:
