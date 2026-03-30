@@ -64,6 +64,7 @@ from websocket_manager import sio
 from sse_manager import sse_manager
 from middleware.session_validation import validate_session_middleware
 from middleware.rate_limiter import limiter, rate_limit_exceeded_handler
+from middleware.cache_control import add_cache_control_middleware
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 from unified_scheduler import initialize_unified_scheduler, shutdown_unified_scheduler
@@ -344,6 +345,10 @@ else:
         allow_headers=["*"],
         expose_headers=["*"],
     )
+
+# Cache Control middleware for PCI compliance
+# Must be added BEFORE other middleware to ensure headers are set
+add_cache_control_middleware(app)
 
 # Session validation middleware (must be added BEFORE request logging)
 # This validates session on every authenticated API call

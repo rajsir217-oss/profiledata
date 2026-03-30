@@ -1,4 +1,4 @@
-runtime: custom
+runtime: nodejs20
 env: flex
 
 env_variables:
@@ -6,3 +6,25 @@ env_variables:
   REACT_APP_SOCKET_URL: https://matrimonial-backend-458052696267.us-central1.run.app
   REACT_APP_API_URL: https://matrimonial-backend-458052696267.us-central1.run.app/api/users
   REACT_APP_WS_URL: wss://matrimonial-backend-458052696267.us-central1.run.app
+
+# Manual scaling for better control
+manual_scaling:
+  instances: 1
+  
+# Health check
+health_check:
+  enable_health_check: True
+  check_interval_sec: 5
+  timeout_sec: 4
+  unhealthy_threshold: 2
+  healthy_threshold: 2
+  
+# Network settings
+network:
+  forwarded_ports: 8080
+  
+# Resources
+resources:
+  cpu: 1
+  memory_gb: 0.5
+  disk_size_gb: 10

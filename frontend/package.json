@@ -20,7 +20,9 @@
     "axios": "^1.11.0",
     "bootstrap": "^5.3.8",
     "d3": "^7.9.0",
+    "express": "^4.22.1",
     "firebase": "^12.4.0",
+    "helmet": "^7.2.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-helmet-async": "^2.0.5",
@@ -42,7 +44,8 @@
     "build:stage": "node generate-build-info.js && env-cmd -f .env.stage react-scripts build",
     "build:pod": "node generate-build-info.js && env-cmd -f .env.pod react-scripts build",
     "start:docker": "env-cmd -f .env.docker react-scripts start",
-    "start:dev": "env-cmd -f .env.dev react-scripts start"
+    "start:dev": "env-cmd -f .env.dev react-scripts start",
+    "server": "node server.js"
   },
   "eslintConfig": {
     "extends": [
