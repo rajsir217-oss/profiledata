@@ -7,21 +7,42 @@ env_variables:
   REACT_APP_API_URL: https://matrimonial-backend-458052696267.us-central1.run.app/api/users
   REACT_APP_WS_URL: wss://matrimonial-backend-458052696267.us-central1.run.app
 
+# Use custom server for cache control headers
+entrypoint: node server.js
+
+# Skip static file serving by App Engine (handled by custom server)
+skip_files:
+  - ^(.*/)?#.*#$
+  - ^(.*/)?.*~$
+  - ^(.*/)?.*\.py[co]$
+  - ^(.*/)?.*\.d\.ts$
+  - ^(.*/)?.*\.d\.map$
+  - ^(.*/)?__pycache__/$
+  - ^(.*/)?node_modules/$
+
 # Manual scaling for better control
 manual_scaling:
   instances: 1
   
-# Health check
-health_check:
-  enable_health_check: True
+# Modern health checks (readiness and liveness)
+readiness_check:
+  path: /_ah/health
   check_interval_sec: 5
   timeout_sec: 4
-  unhealthy_threshold: 2
-  healthy_threshold: 2
+  failure_threshold: 2
+  success_threshold: 2
+
+liveness_check:
+  path: /_ah/health
+  check_interval_sec: 30
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
   
 # Network settings
 network:
-  forwarded_ports: 8080
+  forwarded_ports:
+    - 8080
   
 # Resources
 resources:
