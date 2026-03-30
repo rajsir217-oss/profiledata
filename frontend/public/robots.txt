@@ -1,9 +1,8 @@
-# L3V3L Matrimony - Robots.txt
-# Privacy-First: Profile pages and user data are NOT indexed
+# L3V3L Matches - Robots.txt
 
 User-agent: *
 
-# Allow public pages
+# Allow only public pages, disallow everything else
 Allow: /$
 Allow: /login
 Allow: /register
@@ -15,23 +14,7 @@ Allow: /terms-of-service
 Allow: /community-guidelines
 Allow: /cookie-policy
 Allow: /l3v3l-info
+Disallow: /
 
-# Disallow private/user pages (PRIVACY)
-Disallow: /dashboard
-Disallow: /profile/*
-Disallow: /messages
-Disallow: /favorites
-Disallow: /shortlist
-Disallow: /not-interested
-Disallow: /search
-Disallow: /matches
-Disallow: /preferences
-Disallow: /admin
-Disallow: /pii-management
-Disallow: /edit-profile
-
-# Disallow API endpoints
-Disallow: /api/
-
-# Sitemap location
-Sitemap: https://l3v3l.matrimony.com/sitemap.xml
+# Sitemap
+Sitemap: https://l3v3lmatches.com/sitemap.xml
