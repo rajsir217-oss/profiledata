@@ -26,6 +26,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
   const amountRef = useRef(25);
   const paypalInitialized = useRef(false);
   const paypalRetryCount = useRef(0);
+  const paypalRenderedRef = useRef(false);
   const [paymentMethod, setPaymentMethod] = useState('paypal');
 
   // Clover card state
@@ -38,13 +39,21 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
 
   const amounts = [10, 15, 25, 50];
 
+  // Check if this is a Virtual Meet event with fixed amount
+  const isFixedAmountEvent = pollData?.paymentAmount && pollData.paymentAmount > 0;
+  
   // Get current amount
   const getAmount = useCallback(() => {
+    // For Virtual Meet events, use the admin-set amount
+    if (isFixedAmountEvent) {
+      return pollData.paymentAmount;
+    }
+    // Otherwise use user selection
     if (selectedAmount === 'custom') {
       return parseFloat(customAmount) || 0;
     }
     return parseFloat(selectedAmount) || 0;
-  }, [selectedAmount, customAmount]);
+  }, [selectedAmount, customAmount, isFixedAmountEvent, pollData?.paymentAmount]);
 
   // Load PayPal SDK script (reused from ContributionPopup)
   const loadPayPalScript = useCallback(async () => {
@@ -86,8 +95,11 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
   }, []);
 
   // Render PayPal buttons (reused from ContributionPopup)
-  const renderPayPalButtons = useCallback(() => {
+  const renderPayPalButtons = useCallback((force = false) => {
     if (!window.paypal || !paypalContainerRef.current) return;
+    
+    // Skip if already rendered and not forced
+    if (paypalRenderedRef.current && !force) return;
     
     // Clear container to prevent duplicate buttons
     paypalContainerRef.current.innerHTML = '';
@@ -183,6 +195,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
       }).render(paypalContainerRef.current)
         .then(() => {
           paypalRetryCount.current = 0;
+          paypalRenderedRef.current = true;
           setPaypalReady(true);
         })
         .catch((renderErr) => {
@@ -214,35 +227,21 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
     amountRef.current = getAmount();
   }, [getAmount]);
 
-  // Re-render PayPal buttons when amount changes
+  // Re-render PayPal buttons when amount changes (only for non-fixed-amount events)
   useEffect(() => {
-    if (!paypalInitialized.current) return;
-    if (paymentMethod !== 'paypal') return;
+    if (!paypalInitialized.current || !paypalRenderedRef.current) return;
+    if (isFixedAmountEvent) return;
 
     const delay = selectedAmount === 'custom' ? 800 : 50;
     const timer = setTimeout(() => {
       if (paypalContainerRef.current && window.paypal) {
-        renderPayPalButtons();
+        renderPayPalButtons(true);
       }
     }, delay);
     return () => clearTimeout(timer);
-  }, [selectedAmount, customAmount, paymentMethod, renderPayPalButtons]);
+  }, [selectedAmount, customAmount, isFixedAmountEvent, renderPayPalButtons]);
 
-  // Render PayPal buttons when switching to PayPal tab
-  useEffect(() => {
-    if (!isVisible || paymentMethod !== 'paypal') return;
-    if (!paypalInitialized.current || !window.paypal) return;
-    if (paypalReady) return;
-
-    const timer = setTimeout(() => {
-      if (paypalContainerRef.current) {
-        renderPayPalButtons();
-      }
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [isVisible, paymentMethod, paypalReady, renderPayPalButtons]);
-
-  // Load PayPal SDK on first open
+  // Load PayPal SDK and render buttons once on first open
   useEffect(() => {
     if (!isVisible || paypalInitialized.current || paypalFailed) return;
 
@@ -250,21 +249,19 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
       const loaded = await loadPayPalScript();
       if (loaded) {
         paypalInitialized.current = true;
-        // Render after a short delay to ensure DOM is ready
         setTimeout(() => {
-          if (paypalContainerRef.current && paymentMethod === 'paypal') {
+          if (paypalContainerRef.current) {
             renderPayPalButtons();
           }
         }, 200);
       }
     };
     initPayPal();
-  }, [isVisible, paypalFailed, paymentMethod, loadPayPalScript, renderPayPalButtons]);
+  }, [isVisible, paypalFailed, loadPayPalScript, renderPayPalButtons]);
 
-  // Initialize Clover SDK when Card tab is selected
+  // Initialize Clover SDK once when component becomes visible
   useEffect(() => {
-    if (!isVisible || paymentMethod !== 'clover') return;
-    if (cloverMountedRef.current) return;
+    if (!isVisible || cloverMountedRef.current) return;
 
     const initClover = async () => {
       try {
@@ -305,29 +302,63 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
         const cardCvv = elements.create('CARD_CVV', styles);
         const cardPostalCode = elements.create('CARD_POSTAL_CODE', styles);
 
-        setTimeout(() => {
-          try {
-            cardNumber.mount('#poll-clover-card-number');
-            cardDate.mount('#poll-clover-card-date');
-            cardCvv.mount('#poll-clover-card-cvv');
-            cardPostalCode.mount('#poll-clover-card-zip');
-            cloverMountedRef.current = true;
-            setCloverReady(true);
-          } catch (mountErr) {
-            setError('Failed to mount card form. Please try again.');
-          }
-        }, 300);
+        // Store elements in refs for later mounting
+        cloverInstanceRef.current.elements = {
+          cardNumber, cardDate, cardCvv, cardPostalCode
+        };
+
+        cloverMountedRef.current = true;
       } catch (err) {
         setError('Failed to initialize card payment form.');
       }
     };
     initClover();
 
+    // Only cleanup when component unmounts
     return () => {
-      cloverMountedRef.current = false;
-      setCloverReady(false);
+      if (!isVisible) {
+        cloverMountedRef.current = false;
+        setCloverReady(false);
+      }
     };
-  }, [isVisible, paymentMethod]);
+  }, [isVisible]);
+
+  // Mount/unmount Clover card elements when switching to/from Card tab
+  useEffect(() => {
+    if (!cloverMountedRef.current) return;
+
+    if (paymentMethod === 'clover' && !cloverReady) {
+      // Mount the elements
+      const elements = cloverInstanceRef.current.elements;
+      if (elements) {
+        setTimeout(() => {
+          try {
+            elements.cardNumber.mount('#poll-clover-card-number');
+            elements.cardDate.mount('#poll-clover-card-date');
+            elements.cardCvv.mount('#poll-clover-card-cvv');
+            elements.cardPostalCode.mount('#poll-clover-card-zip');
+            setCloverReady(true);
+          } catch (mountErr) {
+            setError('Failed to mount card form. Please try again.');
+          }
+        }, 100);
+      }
+    } else if (paymentMethod !== 'clover' && cloverReady) {
+      // Unmount the elements (but keep SDK loaded)
+      const elements = cloverInstanceRef.current.elements;
+      if (elements) {
+        try {
+          elements.cardNumber.unmount();
+          elements.cardDate.unmount();
+          elements.cardCvv.unmount();
+          elements.cardPostalCode.unmount();
+        } catch (e) {
+          // Ignore unmount errors
+        }
+        setCloverReady(false);
+      }
+    }
+  }, [paymentMethod, cloverMountedRef, cloverReady]);
 
   // Handle Clover card payment submission
   const handleCloverPay = useCallback(async () => {
@@ -403,59 +434,71 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
     <div className="poll-payment-inline" style={{ display: isVisible ? 'block' : 'none' }}>
       {error && <div className="contribution-error">{error}</div>}
 
-      {/* Amount Selection - same as ContributionPopup */}
-      <div className="contribution-amounts">
-        {amounts.map((amt) => (
+      {/* Amount Display - fixed for Virtual Meet events, selectable for regular contributions */}
+      {isFixedAmountEvent ? (
+        <div className="contribution-fixed-amount">
+          <div className="fixed-amount-display">
+            <span className="fixed-amount-label">Event Fee:</span>
+            <span className="fixed-amount-value">${getAmount().toFixed(2)}</span>
+          </div>
+          <div className="fixed-amount-description">
+            Complete payment to confirm your RSVP for {pollData.pollTitle}
+          </div>
+        </div>
+      ) : (
+        <div className="contribution-amounts">
+          {amounts.map((amt) => (
+            <label
+              key={amt}
+              className={`contribution-amount-option ${selectedAmount === amt ? 'selected' : ''}`}
+            >
+              <input
+                type="radio"
+                name="pollContributionAmount"
+                value={amt}
+                checked={selectedAmount === amt}
+                onChange={() => {
+                  setSelectedAmount(amt);
+                  setCustomAmount('');
+                  setError('');
+                }}
+                disabled={loading}
+              />
+              <span className="contribution-amount-label">${amt}</span>
+              {amt === 25 && <span className="popular-badge">Popular</span>}
+            </label>
+          ))}
+
           <label
-            key={amt}
-            className={`contribution-amount-option ${selectedAmount === amt ? 'selected' : ''}`}
+            className={`contribution-amount-option custom-option ${selectedAmount === 'custom' ? 'selected' : ''}`}
           >
             <input
               type="radio"
               name="pollContributionAmount"
-              value={amt}
-              checked={selectedAmount === amt}
-              onChange={() => {
-                setSelectedAmount(amt);
-                setCustomAmount('');
-                setError('');
-              }}
+              value="custom"
+              checked={selectedAmount === 'custom'}
+              onChange={() => setSelectedAmount('custom')}
               disabled={loading}
             />
-            <span className="contribution-amount-label">${amt}</span>
-            {amt === 25 && <span className="popular-badge">Popular</span>}
+            <span className="contribution-amount-label">
+              Custom: $
+              <input
+                type="number"
+                className="custom-amount-input"
+                value={customAmount}
+                onChange={(e) => {
+                  setCustomAmount(e.target.value);
+                  setSelectedAmount('custom');
+                  setError('');
+                }}
+                placeholder="Enter"
+                min="1"
+                disabled={loading}
+              />
+            </span>
           </label>
-        ))}
-
-        <label
-          className={`contribution-amount-option custom-option ${selectedAmount === 'custom' ? 'selected' : ''}`}
-        >
-          <input
-            type="radio"
-            name="pollContributionAmount"
-            value="custom"
-            checked={selectedAmount === 'custom'}
-            onChange={() => setSelectedAmount('custom')}
-            disabled={loading}
-          />
-          <span className="contribution-amount-label">
-            Custom: $
-            <input
-              type="number"
-              className="custom-amount-input"
-              value={customAmount}
-              onChange={(e) => {
-                setCustomAmount(e.target.value);
-                setSelectedAmount('custom');
-                setError('');
-              }}
-              placeholder="Enter"
-              min="1"
-              disabled={loading}
-            />
-          </span>
-        </label>
-      </div>
+        </div>
+      )}
 
       {/* Payment Method Tabs - same as ContributionPopup */}
       <div className="payment-method-section">
@@ -465,7 +508,6 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
             className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
             onClick={() => {
               setPaymentMethod('paypal');
-              setPaypalReady(false);
             }}
             disabled={loading}
           >
