@@ -72,6 +72,7 @@ async def get_all_users(
     gender: Optional[str] = Query(None, description="Filter by gender (Male/Female)"),
     search: Optional[str] = None,
     email_search: Optional[str] = Query(None, description="Search by email (searches both encrypted and plaintext)"),
+    phone_search: Optional[str] = Query(None, description="Search by phone number (searches decrypted contactNumber)"),
     promo_code: Optional[str] = Query(None, description="Filter by promo code (has_promo/no_promo)"),
     contribution_popup: Optional[str] = Query(None, description="Filter by contribution popup status (enabled/disabled)"),
     db = Depends(get_database)
@@ -84,6 +85,7 @@ async def get_all_users(
     - gender: Filter by gender (Male/Female)
     - search: General search across username, firstName, lastName, contactEmail
     - email_search: Dedicated email search that tries both encrypted and plaintext formats
+    - phone_search: Dedicated phone number search (decrypts contactNumber for matching)
     - promo_code: Filter by promo code (has_promo/no_promo)
     - contribution_popup: Filter by contribution popup status (enabled/disabled)
     
@@ -159,15 +161,16 @@ async def get_all_users(
             else:
                 query.update(gender_query)
         
-        # Handle dedicated email search
-        # NOTE: Since emails are encrypted, we can't do regex search on encrypted data.
-        # We'll fetch users and filter after decryption for email search.
+        # Handle dedicated email/phone search
+        # NOTE: Since emails and phone numbers are encrypted, we can't do regex search on encrypted data.
+        # We'll fetch users and filter after decryption for email/phone search.
         email_search_term = email_search.lower().strip() if email_search else None
+        phone_search_term = re.sub(r'[^0-9]', '', phone_search.strip()) if phone_search else None
         search_term = search.strip() if search else None
         
-        # Username/name search (case-insensitive) - only if no email search
-        # When email search is active, we filter by username AFTER decryption
-        if not email_search_term and search_term:
+        # Username/name search (case-insensitive) - only if no encrypted field search
+        # When email/phone search is active, we filter by username AFTER decryption
+        if not email_search_term and not phone_search_term and search_term:
             query["$or"] = [
                 {"username": {"$regex": search_term, "$options": "i"}},
                 {"contactEmail": {"$regex": search_term, "$options": "i"}},  # Primary email field
@@ -179,9 +182,9 @@ async def get_all_users(
         from crypto_utils import get_encryptor
         encryptor = get_encryptor()
         
-        # For email search, we need to fetch ALL matching users first, decrypt, then filter
-        # because encrypted emails can't be searched with regex
-        if email_search_term:
+        # For email/phone search, we need to fetch ALL matching users first, decrypt, then filter
+        # because encrypted emails/phones can't be searched with regex
+        if email_search_term or phone_search_term:
             # Fetch all users matching other filters (status, role) - use projection for performance
             users_cursor = db.users.find(query, ADMIN_USER_LIST_PROJECTION).sort("created_at", -1)
             all_users = await users_cursor.to_list(length=10000)  # Reasonable max
@@ -192,11 +195,17 @@ async def get_all_users(
                 user["_id"] = str(user["_id"])
                 try:
                     decrypted_user = encryptor.decrypt_user_pii(user)
-                    dec_email = (decrypted_user.get('contactEmail') or '').lower()
+                    # Check email filter
+                    if email_search_term:
+                        dec_email = (decrypted_user.get('contactEmail') or '').lower()
+                        if email_search_term not in dec_email:
+                            continue
                     
-                    # Check if email contains search term (partial match, case-insensitive)
-                    if email_search_term not in dec_email:
-                        continue
+                    # Check phone filter (strip non-digits for comparison)
+                    if phone_search_term:
+                        dec_phone = re.sub(r'[^0-9]', '', decrypted_user.get('contactNumber') or '')
+                        if phone_search_term not in dec_phone:
+                            continue
                     
                     # If username/name search is also provided, filter by that too (case-insensitive)
                     if search_term:
@@ -224,7 +233,12 @@ async def get_all_users(
             skip = (page - 1) * limit
             users = filtered_users[skip:skip + limit]
             
-            logger.info(f"🔍 Email search '{email_search_term}': found {total} matches")
+            search_desc = []
+            if email_search_term:
+                search_desc.append(f"email='{email_search_term}'")
+            if phone_search_term:
+                search_desc.append(f"phone='{phone_search_term}'")
+            logger.info(f"\U0001f50d Encrypted field search ({', '.join(search_desc)}): found {total} matches")
         else:
             # Standard query without email search - use projection for performance
             logger.info(f"📊 Final query: {query}")
