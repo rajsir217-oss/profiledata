@@ -120,39 +120,45 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
     const selectedOption = poll?.options?.find(opt => opt.id === optionId);
     const optionText = selectedOption?.text?.toLowerCase() || '';
     
-    setSelectedOptions(prev => {
-      const current = prev[pollId] || [];
-      
-      if (pollType === 'multiple_choice') {
-        // Toggle option for multiple choice
+    if (pollType === 'multiple_choice') {
+      setSelectedOptions(prev => {
+        const current = prev[pollId] || [];
         if (current.includes(optionId)) {
           return { ...prev, [pollId]: current.filter(id => id !== optionId) };
         } else {
           return { ...prev, [pollId]: [...current, optionId] };
         }
+      });
+    } else {
+      // Single selection for RSVP and single choice
+      setSelectedOptions(prev => ({ ...prev, [pollId]: [optionId] }));
+      
+      // Check if this is a "Yes" selection for a Virtual Meet poll
+      // Show payment unless user already paid (allows No→Yes switch)
+      const alreadyPaid = poll?.payment_status === 'completed' ||
+                          poll?.user_response?.payment_status === 'completed';
+      
+      if (poll?.event_type && 
+          ['in-person', 'virtual', 'zoom-call', 'hybrid'].includes(poll.event_type) && 
+          optionText.includes('yes') &&
+          !alreadyPaid) {
+        
+        // Show inline payment for Virtual Meet "Yes" selection
+        setPaymentPendingPoll({
+          pollId: pollId,
+          optionId: optionId,
+          paymentAmount: poll.virtual_meet_payment_amount || 5.00,
+          pollTitle: poll.title
+        });
+        setPaymentModalOpen(true);
       } else {
-        // Single selection for RSVP and single choice
-        const newSelection = [optionId];
-        
-        // Check if this is a "Yes" selection for a Virtual Meet poll
-        if (poll?.event_type && 
-            ['in-person', 'virtual', 'zoom-call', 'hybrid'].includes(poll.event_type) && 
-            optionText.includes('yes') &&
-            !poll?.user_has_responded) {
-          
-          // Show inline payment for Virtual Meet "Yes" selection
-          setPaymentPendingPoll({
-            pollId: pollId,
-            optionId: optionId,
-            paymentAmount: poll.virtual_meet_payment_amount || 5.00,
-            pollTitle: poll.title
-          });
-          setPaymentModalOpen(true);
+        // Clear payment state if switching away from "Yes"
+        if (paymentPendingPoll?.pollId === pollId && !optionText.includes('yes')) {
+          setPaymentPendingPoll(null);
+          setPaymentModalOpen(false);
         }
-        
-        return { ...prev, [pollId]: newSelection };
       }
-    });
+    }
   };
 
   const handlePaymentComplete = async () => {
@@ -198,10 +204,11 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
     const selectedOption = poll?.options?.find(opt => opt.id === selected[0]);
     const optionText = selectedOption?.text?.toLowerCase() || '';
     
+    const alreadyPaidForYes = poll?.payment_status === 'completed';
     if (poll?.event_type && 
         ['in-person', 'virtual', 'zoom-call', 'hybrid'].includes(poll.event_type) && 
         optionText.includes('yes') &&
-        !poll?.user_has_responded) {
+        !alreadyPaidForYes) {
       
       // Don't submit directly - payment is required
       showToast('Payment required to confirm "Yes" response', 'warning');
@@ -211,7 +218,6 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
     try {
       setSubmitting(prev => ({ ...prev, [pollId]: true }));
       
-      const poll = polls.find(p => p._id === pollId);
       const isUpdate = poll?.user_has_responded;
       
       const payload = {

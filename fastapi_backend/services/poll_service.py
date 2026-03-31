@@ -459,6 +459,8 @@ class PollService:
                 poll["user_has_responded"] = existing_response is not None
                 if existing_response:
                     poll["user_response"] = existing_response
+                    # Promote payment_status to poll level for frontend convenience
+                    poll["payment_status"] = existing_response.get("payment_status")
 
                 result.append(poll)
 
