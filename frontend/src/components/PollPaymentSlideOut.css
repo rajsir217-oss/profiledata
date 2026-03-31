@@ -1,0 +1,282 @@
+/* Poll Payment Slide-out Panel - Theme-aware */
+
+.poll-payment-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.poll-payment-backdrop.show {
+  opacity: 1;
+}
+
+.poll-payment-slideout {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 420px;
+  max-width: 90vw;
+  background: var(--card-background);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.poll-payment-slideout.open {
+  transform: translateX(0);
+}
+
+/* Header */
+.poll-payment-slide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-color);
+}
+
+.poll-payment-slide-title h3 {
+  margin: 0 0 0.25rem 0;
+  color: var(--text-color);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.poll-payment-slide-title p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.poll-payment-slide-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.poll-payment-slide-close:hover {
+  background: var(--hover-background);
+  color: var(--text-color);
+}
+
+/* Body */
+.poll-payment-slide-body {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+/* Event Info */
+.poll-payment-event-info {
+  margin-bottom: 2rem;
+}
+
+.poll-payment-event-info h4 {
+  margin: 0 0 1rem 0;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.poll-payment-amount-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--surface-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.poll-payment-amount-row span:first-child {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.poll-payment-amount {
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Payment Methods */
+.poll-payment-methods h5 {
+  margin: 0 0 1rem 0;
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.poll-payment-method {
+  margin-bottom: 1.5rem;
+}
+
+.poll-payment-method-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-background);
+  margin-bottom: 1rem;
+}
+
+.poll-payment-method-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.poll-payment-method-info input[type="radio"] {
+  margin-top: 2px;
+  accent-color: var(--primary-color);
+}
+
+.poll-payment-method-info label {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  margin: 0;
+}
+
+.poll-payment-method-info label strong {
+  color: var(--text-color);
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.poll-payment-method-info label span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.paypal-logo img {
+  height: 24px;
+  opacity: 0.7;
+}
+
+.paypal-button-container {
+  min-height: 45px;
+  margin-top: 0.5rem;
+}
+
+/* Error State */
+.poll-payment-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--danger-color);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.error-icon {
+  font-size: 1rem;
+}
+
+/* Loading State */
+.poll-payment-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Footer */
+.poll-payment-slide-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-color);
+}
+
+.poll-payment-cancel-btn {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.poll-payment-cancel-btn:hover:not(:disabled) {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+}
+
+.poll-payment-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .poll-payment-slideout {
+    width: 100vw;
+    max-width: 100vw;
+  }
+  
+  .poll-payment-slide-header,
+  .poll-payment-slide-body,
+  .poll-payment-slide-footer {
+    padding: 1rem;
+  }
+  
+  .poll-payment-amount {
+    font-size: 1.25rem;
+  }
+  
+  .poll-payment-method-header {
+    padding: 0.75rem;
+  }
+}
+
+/* Animation for backdrop */
+.poll-payment-backdrop.show {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

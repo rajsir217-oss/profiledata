@@ -152,9 +152,16 @@ class PollResponseCreate(BaseModel):
     """Request model for submitting a poll response"""
     poll_id: str
     selected_options: List[str] = []  # Option IDs for choice-based polls
-    rsvp_response: Optional[str] = None  # "yes", "no", "maybe" for RSVP
+    rsvp_response: Optional[str] = None  # "yes", "no" for RSVP (maybe removed)
     text_response: Optional[str] = None  # For open text polls
     comment: Optional[str] = Field(None, max_length=1000)
+    
+    # Payment fields for Virtual Meet RSVPs
+    payment_required: bool = False
+    payment_status: Optional[str] = None  # "pending", "completed", "not_required"
+    payment_amount: Optional[float] = None
+    payment_id: Optional[str] = None
+    payment_method: Optional[str] = None  # "paypal", "clover"
 
 
 class PollResponse(BaseModel):
@@ -173,6 +180,13 @@ class PollResponse(BaseModel):
     rsvp_response: Optional[str] = None
     text_response: Optional[str] = None
     comment: Optional[str] = None
+    
+    # Payment data for Virtual Meet RSVPs
+    payment_required: bool = False
+    payment_status: Optional[str] = None  # "pending", "completed", "not_required"
+    payment_amount: Optional[float] = None
+    payment_id: Optional[str] = None
+    payment_method: Optional[str] = None  # "paypal", "clover"
     
     responded_at: datetime
     updated_at: Optional[datetime] = None

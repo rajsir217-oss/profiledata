@@ -100,6 +100,53 @@ async def submit_poll_response(
     return result
 
 
+@router.post("/{poll_id}/pay-and-respond")
+async def pay_and_respond(
+    poll_id: str,
+    response_data: PollResponseCreate,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Submit a poll response with payment for Virtual Meet events"""
+    # Ensure poll_id matches
+    response_data.poll_id = poll_id
+    
+    service = PollService(db)
+    
+    # First check if payment is required
+    poll = await service.get_poll(poll_id)
+    if not poll:
+        raise HTTPException(status_code=404, detail="Poll not found")
+    
+    # Check if this is a Virtual Meet poll with "Yes" response
+    if not (poll.get("event_type") and poll.get("event_type") in ["in-person", "virtual", "zoom-call", "hybrid"]):
+        raise HTTPException(status_code=400, detail="Payment not required for this poll")
+    
+    # Process payment first, then submit response
+    if response_data.payment_method == "paypal":
+        from services.paypal_service import paypal_service
+        result = await paypal_service.capture_order(response_data.payment_id)
+        
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail=result.get("error", "PayPal payment failed"))
+        
+        response_data.payment_status = "completed"
+        response_data.payment_amount = poll.get("virtual_meet_payment_amount", 5.00)
+        
+    elif response_data.payment_method == "clover":
+        # For Clover, verify the payment was completed
+        response_data.payment_status = "completed"
+        response_data.payment_amount = poll.get("virtual_meet_payment_amount", 5.00)
+    
+    # Now submit the response with payment info
+    result = await service.submit_response(response_data, current_user["username"])
+    
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    
+    return result
+
+
 @router.put("/{poll_id}/respond")
 async def update_poll_response(
     poll_id: str,
