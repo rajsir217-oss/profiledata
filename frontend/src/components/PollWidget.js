@@ -32,9 +32,6 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
   const [paymentPendingPoll, setPaymentPendingPoll] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   
-  // Debug payment state
-  console.log('🔍 Payment state:', { paymentModalOpen, paymentPendingPoll });
-  
   // Check if user is admin
   const userRole = localStorage.getItem('userRole');
   const isAdmin = userRole === 'admin';
@@ -123,15 +120,6 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
     const selectedOption = poll?.options?.find(opt => opt.id === optionId);
     const optionText = selectedOption?.text?.toLowerCase() || '';
     
-    console.log('🔍 Poll Debug:', {
-      pollId,
-      optionId,
-      pollType,
-      optionText,
-      eventType: poll?.event_type,
-      userResponded: poll?.user_has_responded
-    });
-    
     setSelectedOptions(prev => {
       const current = prev[pollId] || [];
       
@@ -151,8 +139,6 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
             ['in-person', 'virtual', 'zoom-call', 'hybrid'].includes(poll.event_type) && 
             optionText.includes('yes') &&
             !poll?.user_has_responded) {
-          
-          console.log('💳 Showing inline payment for:', poll?.event_type);
           
           // Show inline payment for Virtual Meet "Yes" selection
           setPaymentPendingPoll({
