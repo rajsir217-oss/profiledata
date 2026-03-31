@@ -18,6 +18,7 @@ const AdminPage = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [emailSearch, setEmailSearch] = useState(''); // Dedicated email search
+  const [phoneSearch, setPhoneSearch] = useState(''); // Dedicated phone search
   const [genderFilter, setGenderFilter] = useState(''); // Gender filter
   const [statusFilter, setStatusFilter] = useState('pending_admin_approval'); // Default to Pending Admin Approval
   const [sortField, setSortField] = useState('username');
@@ -96,6 +97,11 @@ const AdminPage = () => {
       if (filters.emailSearch) {
         params.append('email_search', filters.emailSearch);
       }
+      
+      // Apply phone search filter (server-side)
+      if (filters.phoneSearch) {
+        params.append('phone_search', filters.phoneSearch);
+      }
 
       // Fetch users with server-side filtering
       const response = await adminApi.get(`/api/admin/users?${params.toString()}`);
@@ -129,7 +135,8 @@ const AdminPage = () => {
       status: statusFilter,
       gender: genderFilter,
       search: searchTerm,
-      emailSearch: emailSearch
+      emailSearch: emailSearch,
+      phoneSearch: phoneSearch
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, genderFilter, loadUsers]);
@@ -140,7 +147,8 @@ const AdminPage = () => {
       status: statusFilter,
       gender: genderFilter,
       search: searchTerm.trim(),
-      emailSearch: emailSearch.trim()
+      emailSearch: emailSearch.trim(),
+      phoneSearch: phoneSearch.trim()
     });
   };
 
@@ -380,6 +388,15 @@ const AdminPage = () => {
             placeholder="📧 Email (partial)..."
             value={emailSearch}
             onChange={(e) => setEmailSearch(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          />
+          
+          <input
+            type="text"
+            className="form-control admin-filter-input admin-phone-input"
+            placeholder="📞 Phone..."
+            value={phoneSearch}
+            onChange={(e) => setPhoneSearch(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           />
           

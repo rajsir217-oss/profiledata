@@ -18,6 +18,8 @@ const UserManagement = () => {
   const [roleFilter, setRoleFilter] = useState(''); // Show all roles by default
   const [promoCodeFilter, setPromoCodeFilter] = useState(''); // Promo code filter
   const [contributionPopupFilter, setContributionPopupFilter] = useState(''); // Contribution popup filter
+  const [phoneSearch, setPhoneSearch] = useState(''); // Phone number search
+  const [debouncedPhoneSearch, setDebouncedPhoneSearch] = useState(''); // Debounced phone search
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -78,6 +80,7 @@ const UserManagement = () => {
       if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
       if (promoCodeFilter) params.append('promo_code', promoCodeFilter);
       if (contributionPopupFilter) params.append('contribution_popup', contributionPopupFilter);
+      if (debouncedPhoneSearch) params.append('phone_search', debouncedPhoneSearch);
 
       console.log('🔍 UserManagement API call:', `/api/admin/users?${params.toString()}`);
       const response = await adminApi.get(`/api/admin/users?${params.toString()}`);
@@ -130,7 +133,7 @@ const UserManagement = () => {
       setLoadingMore(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, roleFilter, promoCodeFilter, contributionPopupFilter, searchTerm, navigate, loadImageValidationStatus]);
+  }, [statusFilter, roleFilter, promoCodeFilter, contributionPopupFilter, searchTerm, debouncedPhoneSearch, navigate, loadImageValidationStatus]);
 
   // Keep ref updated with latest loadUsers
   useEffect(() => {
@@ -153,6 +156,15 @@ const UserManagement = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // Debounce phone search - wait 500ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedPhoneSearch(phoneSearch);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [phoneSearch]);
+
   // Initial load and reload when filters change (uses debounced search)
   useEffect(() => {
     if (userRole === 'admin') {
@@ -161,7 +173,7 @@ const UserManagement = () => {
       loadUsers(1, false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userRole, statusFilter, roleFilter, promoCodeFilter, contributionPopupFilter, debouncedSearchTerm]);
+  }, [userRole, statusFilter, roleFilter, promoCodeFilter, contributionPopupFilter, debouncedSearchTerm, debouncedPhoneSearch]);
 
   // Ref for tracking if we can load more (debounce)
   // eslint-disable-next-line no-unused-vars
@@ -759,6 +771,14 @@ const UserManagement = () => {
           <option value="enabled">Enabled</option>
           <option value="disabled">Disabled by Admin</option>
         </select>
+
+        <input
+          type="text"
+          placeholder="📞 Phone number..."
+          value={phoneSearch}
+          onChange={(e) => setPhoneSearch(e.target.value)}
+          className="search-input phone-search-input"
+        />
 
         <button onClick={() => { setPage(1); setUsers([]); loadUsers(1, false); }} className="btn-refresh">
           🔄 Refresh
