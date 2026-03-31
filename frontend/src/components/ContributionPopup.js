@@ -174,9 +174,17 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         onError: (err) => {
           setError('PayPal encountered an error. Please try again.');
         }
-      }).render(paypalContainerRef.current);
-
-      setPaypalReady(true);
+      }).render(paypalContainerRef.current)
+        .then(() => {
+          setPaypalReady(true);
+        })
+        .catch((renderErr) => {
+          // Suppress 'container removed from DOM' errors when popup closes
+          const msg = renderErr?.message || String(renderErr);
+          if (!msg.includes('container') && !msg.includes('removed') && !msg.includes('DOM')) {
+            setPaypalFailed(true);
+          }
+        });
     } catch (err) {
       setPaypalFailed(true);
     }

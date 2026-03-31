@@ -411,21 +411,23 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
                     {isPaidYesResponse && <span className="paid-badge">✓ Paid</span>}
                   </button>
                   
-                  {/* Show payment component right after "Yes" option when selected */}
-                  {isSelected && 
-                   option.text.toLowerCase().includes('yes') && 
-                   paymentPendingPoll?.pollId === poll._id && (
-                    <PollPaymentInline
-                      isVisible={true}
-                      onCancel={handlePaymentCancel}
-                      onComplete={handlePaymentComplete}
-                      pollData={paymentPendingPoll}
-                    />
-                  )}
                 </div>
               );
             })}
           </div>
+        )}
+
+        {/* Payment inline - always mounted when pending, hidden via isVisible to prevent PayPal DOM removal error */}
+        {paymentPendingPoll?.pollId === poll._id && (
+          <PollPaymentInline
+            isVisible={paymentModalOpen && (selectedOptions[poll._id] || []).some(optId => {
+              const opt = poll.options?.find(o => o.id === optId);
+              return opt?.text?.toLowerCase().includes('yes');
+            })}
+            onCancel={handlePaymentCancel}
+            onComplete={handlePaymentComplete}
+            pollData={paymentPendingPoll}
+          />
         )}
         
         {/* Show user's response if already responded */}
