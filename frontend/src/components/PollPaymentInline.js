@@ -25,6 +25,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
   const paypalScriptLoaded = useRef(false);
   const amountRef = useRef(25);
   const paypalInitialized = useRef(false);
+  const paypalRetryCount = useRef(0);
   const [paymentMethod, setPaymentMethod] = useState('paypal');
 
   // Clover card state
@@ -179,9 +180,30 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
         onError: (err) => {
           setError('PayPal encountered an error. Please try again.');
         }
-      }).render(paypalContainerRef.current);
-
-      setPaypalReady(true);
+      }).render(paypalContainerRef.current)
+        .then(() => {
+          paypalRetryCount.current = 0;
+          setPaypalReady(true);
+        })
+        .catch((renderErr) => {
+          // Ignore 'container removed from DOM' errors — happens when
+          // ContributionPopup or other PayPal instances unmount concurrently
+          const msg = renderErr?.message || String(renderErr);
+          if (msg.includes('container') || msg.includes('removed') || msg.includes('DOM')) {
+            // Re-try render (max 2 retries) after a delay
+            if (paypalRetryCount.current < 2) {
+              paypalRetryCount.current += 1;
+              setTimeout(() => {
+                if (paypalContainerRef.current && window.paypal) {
+                  paypalContainerRef.current.innerHTML = '';
+                  renderPayPalButtons();
+                }
+              }, 500);
+            }
+          } else {
+            setPaypalFailed(true);
+          }
+        });
     } catch (err) {
       setPaypalFailed(true);
     }
@@ -377,10 +399,8 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
     }
   }, [getAmount, pollData, onComplete]);
 
-  if (!isVisible) return null;
-
   return (
-    <div className="poll-payment-inline">
+    <div className="poll-payment-inline" style={{ display: isVisible ? 'block' : 'none' }}>
       {error && <div className="contribution-error">{error}</div>}
 
       {/* Amount Selection - same as ContributionPopup */}
@@ -479,48 +499,46 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
         </div>
       </div>
 
-      {/* PayPal Buttons - same as ContributionPopup */}
-      {paymentMethod === 'paypal' && (
-        <div className="contribution-paypal-section">
-          {loading && (
-            <div className="paypal-processing">
-              <span className="spinner"></span>
-              Processing payment...
-            </div>
-          )}
+      {/* PayPal Buttons - always mounted to avoid 'container removed from DOM' error */}
+      <div className="contribution-paypal-section" style={{ display: paymentMethod === 'paypal' ? 'block' : 'none' }}>
+        {loading && paymentMethod === 'paypal' && (
+          <div className="paypal-processing">
+            <span className="spinner"></span>
+            Processing payment...
+          </div>
+        )}
 
-          {!paypalReady && !paypalFailed && (
-            <div className="paypal-loading">
-              <span className="spinner"></span>
-              Loading PayPal...
-            </div>
-          )}
+        {!paypalReady && !paypalFailed && paymentMethod === 'paypal' && (
+          <div className="paypal-loading">
+            <span className="spinner"></span>
+            Loading PayPal...
+          </div>
+        )}
 
-          <div
-            ref={paypalContainerRef}
-            id="poll-paypal-buttons"
-            style={{ display: paypalFailed ? 'none' : 'block' }}
-          />
+        <div
+          ref={paypalContainerRef}
+          id="poll-paypal-buttons"
+          style={{ display: paypalFailed ? 'none' : 'block' }}
+        />
 
-          {paypalFailed && (
-            <div className="paypal-fallback">
-              <p>PayPal is currently unavailable.</p>
-              <button
-                className="contribution-proceed-btn"
-                onClick={() => {
-                  setPaypalFailed(false);
-                  setError('');
-                  loadPayPalScript().then((loaded) => {
-                    if (loaded) renderPayPalButtons();
-                  });
-                }}
-              >
-                Retry PayPal
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+        {paypalFailed && paymentMethod === 'paypal' && (
+          <div className="paypal-fallback">
+            <p>PayPal is currently unavailable.</p>
+            <button
+              className="contribution-proceed-btn"
+              onClick={() => {
+                setPaypalFailed(false);
+                setError('');
+                loadPayPalScript().then((loaded) => {
+                  if (loaded) renderPayPalButtons();
+                });
+              }}
+            >
+              Retry PayPal
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Venmo QR Code - same as ContributionPopup */}
       {paymentMethod === 'venmo-qr' && (
