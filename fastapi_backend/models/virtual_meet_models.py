@@ -87,6 +87,11 @@ class RoomRequestRespond(BaseModel):
     note: Optional[str] = None
 
 
+class CancelRoomRequest(BaseModel):
+    """Request body for cancelling a confirmed room"""
+    room_id: str
+
+
 class VirtualRoomRequest(BaseModel):
     """Full room request model (from database)"""
     id: Optional[str] = Field(None, alias="_id")

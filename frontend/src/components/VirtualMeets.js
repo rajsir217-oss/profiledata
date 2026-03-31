@@ -29,6 +29,7 @@ const VirtualMeets = () => {
   const [pairUserA, setPairUserA] = useState('');
   const [pairUserB, setPairUserB] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmCancelRoom, setConfirmCancelRoom] = useState(null);
 
   // ─── Load Events ─────────────────────────────────────────────────────
 
@@ -124,6 +125,27 @@ const VirtualMeets = () => {
     setPaymentModalEvent(null);
     setToast({ message: 'Payment successful! Access unlocked.', type: 'success' });
     loadEvents();
+  };
+
+  // ─── Cancel Room ───────────────────────────────────────────────────
+
+  const handleCancelRoom = async (roomId) => {
+    if (confirmCancelRoom !== roomId) {
+      setConfirmCancelRoom(roomId);
+      setTimeout(() => setConfirmCancelRoom(null), 5000);
+      return;
+    }
+    try {
+      const response = await vmApi.post(`/api/virtual-meets/${selectedEvent.poll_id}/cancel-room`, {
+        room_id: roomId
+      });
+      setToast({ message: response.data.message || 'Room cancelled', type: 'success' });
+      setConfirmCancelRoom(null);
+      loadMatchList(selectedEvent.poll_id);
+    } catch (err) {
+      setToast({ message: err.response?.data?.detail || 'Failed to cancel room', type: 'error' });
+      setConfirmCancelRoom(null);
+    }
   };
 
   // ─── Admin Functions ──────────────────────────────────────────────────
@@ -350,16 +372,18 @@ const VirtualMeets = () => {
     return (
       <div className="vm-events-list">
         {events.map(event => (
-          <div key={event.poll_id} className={`vm-event-card ${event.is_locked ? 'vm-locked' : ''}`}>
+          <div key={event.poll_id} className={`vm-event-card ${event.is_locked ? 'vm-locked' : ''} ${event.is_closed ? 'vm-closed' : ''}`}>
             <div className="vm-event-header">
               <h3 className="vm-event-title">{event.title}</h3>
-              {event.event_type && (
+              {event.is_closed ? (
+                <span className="vm-event-type-badge vm-type-closed">Closed</span>
+              ) : event.event_type ? (
                 <span className={`vm-event-type-badge vm-type-${event.event_type}`}>
                   {event.event_type === 'zoom-call' ? 'Zoom Call' : 
                    event.event_type === 'in-person' ? 'In Person' :
                    event.event_type === 'virtual' ? 'Virtual' : 'Hybrid'}
                 </span>
-              )}
+              ) : null}
             </div>
 
             <div className="vm-event-details">
@@ -393,14 +417,21 @@ const VirtualMeets = () => {
               )}
             </div>
 
-            {event.is_locked && (
+            {event.is_closed && (
+              <div className="vm-closed-banner">
+                This event has ended. Your matches and rooms are available for reference.
+              </div>
+            )}
+            {event.is_locked && !event.is_closed && (
               <div className="vm-locked-banner">
                 🔒 Event is in progress. Room requests are locked.
               </div>
             )}
 
             <div className="vm-event-actions">
-              {event.payment_required && !event.access_unlocked ? (
+              {event.is_closed && !event.access_unlocked ? (
+                <span className="vm-closed-no-access">Event ended — no access</span>
+              ) : event.payment_required && !event.access_unlocked ? (
                 <div className="vm-payment-section">
                   <div className="vm-payment-info">
                     <span className="vm-payment-icon">💳</span>
@@ -410,6 +441,7 @@ const VirtualMeets = () => {
                     <button
                       className="vm-btn vm-btn-primary"
                       onClick={() => handlePayment(event)}
+                      disabled={event.is_closed}
                     >
                       💳 Pay to Unlock
                     </button>
@@ -420,7 +452,7 @@ const VirtualMeets = () => {
                   className="vm-btn vm-btn-primary"
                   onClick={() => handleViewMatches(event)}
                 >
-                  View Matches →
+                  {event.is_closed ? 'View Matches (Read-only)' : 'View Matches →'}
                 </button>
               )}
               {isAdmin && (
@@ -459,7 +491,10 @@ const VirtualMeets = () => {
             ← Back
           </button>
           <h2 className="vm-match-title">{selectedEvent.title}</h2>
-          {matchData.is_locked && (
+          {matchData.is_closed && (
+            <span className="vm-closed-badge">Closed</span>
+          )}
+          {matchData.is_locked && !matchData.is_closed && (
             <span className="vm-locked-badge">🔒 Locked</span>
           )}
           <button className="vm-btn vm-btn-export" onClick={exportMatchListCSV} title="Export match list as CSV">
@@ -543,6 +578,15 @@ const VirtualMeets = () => {
                     <a href={room.zoom_link} target="_blank" rel="noopener noreferrer" className="vm-btn vm-btn-zoom">
                       Join Zoom
                     </a>
+                  )}
+                  {!matchData.is_locked && !matchData.is_closed && (
+                    <button
+                      className={`vm-btn vm-btn-cancel-room ${confirmCancelRoom === room.room_id ? 'vm-btn-danger-confirm' : ''}`}
+                      onClick={() => handleCancelRoom(room.room_id)}
+                      title={confirmCancelRoom === room.room_id ? 'Click again to confirm' : 'Cancel this room'}
+                    >
+                      {confirmCancelRoom === room.room_id ? 'Confirm Cancel?' : '✕ Cancel Room'}
+                    </button>
                   )}
                 </div>
               ))}

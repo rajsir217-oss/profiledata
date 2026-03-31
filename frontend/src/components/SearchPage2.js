@@ -1940,7 +1940,7 @@ const SearchPage2 = () => {
                     >
                       {excludedProfileId}
                     </a>
-                    ) is in your exclusions list
+                    ) is in your exclusions list or might be in their exclusion list
                   </p>
                   <p style={{ marginTop: '12px' }}>
                     <a href="/dashboard#search-exclude" style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 500 }}>

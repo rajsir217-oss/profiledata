@@ -100,11 +100,12 @@ class VirtualMeetService:
         user_role: str
     ) -> List[Dict[str, Any]]:
         """
-        Get all active polls the user RSVPed "Yes" to that qualify for Virtual Meets.
+        Get all active and closed polls the user RSVPed "Yes" to that qualify for Virtual Meets.
+        Closed events remain visible so paid users can still view matches and rooms.
         """
-        # Get active polls
+        # Get active + closed polls (paid users keep access after close)
         polls = await db.polls.find(
-            {"status": "active"},
+            {"status": {"$in": ["active", "closed"]}},
             {
                 "title": 1, "event_type": 1, "event_date": 1,
                 "event_time": 1, "event_timezone": 1, "event_location": 1,
@@ -169,8 +170,9 @@ class VirtualMeetService:
                 "status": "pending"
             })
 
-            # Check if event is locked (past start time)
-            is_locked = VirtualMeetService._is_event_locked(poll)
+            # Check if event is locked (past start time or closed by admin)
+            is_closed = poll.get("status") == "closed"
+            is_locked = is_closed or VirtualMeetService._is_event_locked(poll)
 
             events.append({
                 "poll_id": poll_id,
@@ -181,6 +183,7 @@ class VirtualMeetService:
                 "event_timezone": poll.get("event_timezone"),
                 "event_location": poll.get("event_location"),
                 "status": poll.get("status"),
+                "is_closed": is_closed,
                 "payment_required": session.get("payment_status") != "not_required",
                 "payment_status": session.get("payment_status"),
                 "payment_amount": session.get("payment_amount", 5.00),
@@ -217,9 +220,10 @@ class VirtualMeetService:
         if not session.get("access_unlocked"):
             return {"success": False, "error": "Payment required to access match list.", "payment_required": True}
 
-        # Get poll for lock status
+        # Get poll for lock status (closed events are also locked)
         poll = await db.polls.find_one({"_id": ObjectId(poll_id)})
-        is_locked = VirtualMeetService._is_event_locked(poll) if poll else False
+        is_closed = poll.get("status") == "closed" if poll else False
+        is_locked = is_closed or (VirtualMeetService._is_event_locked(poll) if poll else False)
 
         user_gender = session.get("gender")
         opposite_gender = "Female" if user_gender == "Male" else "Male"
@@ -342,6 +346,7 @@ class VirtualMeetService:
             "success": True,
             "poll_id": poll_id,
             "is_locked": is_locked,
+            "is_closed": is_closed,
             "matches": matches,
             "my_requests_sent": [uname for uname in sent_lookup.keys()],
             "my_requests_received": incoming_requests,
@@ -359,9 +364,11 @@ class VirtualMeetService:
         user_role: str
     ) -> Dict[str, Any]:
         """Send a 1:1 virtual room request to another participant."""
+        logger.info(f"Room request: {requester_username} -> {target_username} for poll {poll_id}")
 
         # Validate not self-request
         if requester_username == target_username:
+            logger.warning(f"Room request blocked: self-request by {requester_username}")
             return {"success": False, "error": "Cannot request a room with yourself."}
 
         # Check requester session
@@ -369,11 +376,16 @@ class VirtualMeetService:
             "poll_id": poll_id, "username": requester_username
         })
         if not session or not session.get("access_unlocked"):
+            logger.warning(f"Room request blocked: access not unlocked for {requester_username} (session={bool(session)}, unlocked={session.get('access_unlocked') if session else None})")
             return {"success": False, "error": "Access not unlocked. Payment may be required."}
 
-        # Check event not locked
+        # Check event not locked or closed
         poll = await db.polls.find_one({"_id": ObjectId(poll_id)})
+        if poll and poll.get("status") == "closed":
+            logger.warning(f"Room request blocked: event {poll_id} is closed")
+            return {"success": False, "error": "This event has ended. Room requests are no longer accepted."}
         if VirtualMeetService._is_event_locked(poll):
+            logger.warning(f"Room request blocked: event {poll_id} is locked (in progress)")
             return {"success": False, "error": "Event is in progress. Room requests are locked."}
 
         # Check target has a session (opposite gender, RSVPed Yes)
@@ -381,10 +393,12 @@ class VirtualMeetService:
             "poll_id": poll_id, "username": target_username
         })
         if not target_session:
+            logger.warning(f"Room request blocked: target {target_username} has no session for poll {poll_id}")
             return {"success": False, "error": "Target user is not a participant in this event."}
 
         # Validate opposite gender
         if session.get("gender") == target_session.get("gender"):
+            logger.warning(f"Room request blocked: same gender ({session.get('gender')}) for {requester_username} -> {target_username}")
             return {"success": False, "error": "Room requests can only be sent to opposite-gender participants."}
 
         # Check for duplicate request (in either direction)
@@ -397,6 +411,7 @@ class VirtualMeetService:
             "status": {"$in": ["pending", "accepted"]}
         })
         if existing:
+            logger.warning(f"Room request blocked: duplicate request between {requester_username} and {target_username}")
             return {"success": False, "error": "A request already exists between you and this user."}
 
         # Create request
@@ -626,6 +641,100 @@ class VirtualMeetService:
             })
 
         return room_list
+
+    # ─── Cancel Room ───────────────────────────────────────────────────────
+
+    @staticmethod
+    async def cancel_room(
+        db: AsyncIOMotorDatabase,
+        poll_id: str,
+        room_id: str,
+        username: str
+    ) -> Dict[str, Any]:
+        """Cancel a confirmed room. Both users are freed to make new requests."""
+        try:
+            room = await db.virtual_rooms.find_one({
+                "_id": ObjectId(room_id),
+                "poll_id": poll_id,
+                "status": {"$in": ["confirmed", "active"]}
+            })
+        except Exception:
+            return {"success": False, "error": "Invalid room ID."}
+
+        if not room:
+            return {"success": False, "error": "Room not found or already cancelled."}
+
+        # Verify user is part of this room
+        if username not in (room.get("user_a"), room.get("user_b")):
+            return {"success": False, "error": "You are not a participant in this room."}
+
+        # Check event not locked
+        poll = await db.polls.find_one({"_id": ObjectId(poll_id)})
+        if poll and poll.get("status") == "closed":
+            return {"success": False, "error": "This event has ended. Rooms cannot be cancelled."}
+        if VirtualMeetService._is_event_locked(poll):
+            return {"success": False, "error": "Event is in progress. Rooms cannot be cancelled."}
+
+        now = datetime.now(timezone.utc)
+        partner = room["user_b"] if room["user_a"] == username else room["user_a"]
+
+        # Update room status to cancelled
+        await db.virtual_rooms.update_one(
+            {"_id": ObjectId(room_id)},
+            {"$set": {
+                "status": "cancelled",
+                "cancelled_by": username,
+                "cancelled_at": now
+            }}
+        )
+
+        # Update the associated request to 'cancelled' so both users can re-request
+        await db.virtual_room_requests.update_many(
+            {
+                "poll_id": poll_id,
+                "room_id": room_id,
+                "status": "accepted"
+            },
+            {"$set": {
+                "status": "cancelled",
+                "cancelled_by": username,
+                "cancelled_at": now
+            }}
+        )
+
+        # Notify the partner
+        try:
+            canceller_profile = await db.users.find_one(
+                {"username": username}, {"firstName": 1, "lastName": 1}
+            )
+            canceller_name = VirtualMeetService._get_full_name(canceller_profile or {})
+
+            await db.notification_queue.insert_one({
+                "username": partner,
+                "type": "virtual_meet_room_cancelled",
+                "title": "Room Cancelled",
+                "message": f"{canceller_name} cancelled Room #{room.get('room_number')}. You can now send new room requests.",
+                "data": {
+                    "poll_id": poll_id,
+                    "room_id": room_id,
+                    "room_number": room.get("room_number"),
+                    "cancelled_by": username
+                },
+                "status": "pending",
+                "createdAt": now,
+                "updatedAt": now
+            })
+        except Exception as e:
+            logger.error(f"Failed to queue room cancellation notification: {e}")
+
+        logger.info(f"🎥 Room #{room.get('room_number')} cancelled by {username} (partner: {partner}, poll: {poll_id})")
+
+        return {
+            "success": True,
+            "message": f"Room #{room.get('room_number')} has been cancelled.",
+            "room_number": room.get("room_number"),
+            "partner": partner
+        }
 
     # ─── Payment ──────────────────────────────────────────────────────────
 

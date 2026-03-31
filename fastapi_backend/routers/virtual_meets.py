@@ -12,6 +12,7 @@ from services.virtual_meet_service import VirtualMeetService
 from models.virtual_meet_models import (
     RoomRequestCreate,
     RoomRequestRespond,
+    CancelRoomRequest,
     VirtualMeetPaymentRequest,
     VirtualMeetPaymentConfirm,
     AdminPairRequest,
@@ -127,6 +128,28 @@ async def get_my_rooms(
 
     rooms = await VirtualMeetService.get_user_rooms(db, poll_id, username)
     return {"success": True, "rooms": rooms}
+
+
+# ─── Cancel Room ─────────────────────────────────────────────────────────────
+
+@router.post("/{poll_id}/cancel-room")
+async def cancel_room(
+    poll_id: str,
+    request: CancelRoomRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Cancel a confirmed room. Both users are freed to make new requests."""
+    username = current_user.get("username")
+
+    result = await VirtualMeetService.cancel_room(
+        db, poll_id, request.room_id, username
+    )
+
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+
+    return result
 
 
 # ─── Payment ──────────────────────────────────────────────────────────────────
