@@ -50,12 +50,20 @@ class PollService:
             # Build options list
             options = []
             if poll_data.poll_type == PollType.RSVP:
-                # Default RSVP options
-                options = [
-                    PollOption(id=str(ObjectId()), text="Yes, I can join!", order=0),
-                    PollOption(id=str(ObjectId()), text="No, I cannot make it", order=1),
-                    PollOption(id=str(ObjectId()), text="Maybe, I'll try", order=2),
-                ]
+                # Check if this is a Virtual Meet poll (has event_type)
+                if poll_data.event_type and poll_data.event_type in ["in-person", "virtual", "zoom-call", "hybrid"]:
+                    # Virtual Meet polls only have Yes/No (no Maybe)
+                    options = [
+                        PollOption(id=str(ObjectId()), text="Yes, I can join!", order=0),
+                        PollOption(id=str(ObjectId()), text="No, I cannot make it", order=1),
+                    ]
+                else:
+                    # Regular RSVP polls have Maybe option
+                    options = [
+                        PollOption(id=str(ObjectId()), text="Yes, I can join!", order=0),
+                        PollOption(id=str(ObjectId()), text="No, I cannot make it", order=1),
+                        PollOption(id=str(ObjectId()), text="Maybe, I'll try", order=2),
+                    ]
             elif poll_data.options:
                 # Custom options
                 options = [
@@ -556,6 +564,33 @@ class PollService:
                             rsvp_response = "maybe"
                         break
             
+            # Check payment requirement for Virtual Meet polls
+            payment_required = False
+            payment_status = "not_required"
+            payment_amount = None
+            
+            if (poll.get("event_type") and 
+                poll.get("event_type") in ["in-person", "virtual", "zoom-call", "hybrid"] and 
+                rsvp_response == "yes"):
+                
+                # Get user role to check exemption
+                user = await self.users_collection.find_one({"username": username})
+                user_role = user.get("role", "free_user") if user else "free_user"
+                
+                if user_role not in ["admin", "moderator"]:
+                    payment_required = True
+                    payment_status = "pending" if response_data.payment_status != "completed" else "completed"
+                    payment_amount = poll.get("virtual_meet_payment_amount", 5.00)
+                    
+                    # For initial submission, payment must be completed for "Yes" responses
+                    if response_data.payment_status != "completed":
+                        return {
+                            "success": False,
+                            "message": "Payment required to confirm 'Yes' response for Virtual Meet events",
+                            "payment_required": True,
+                            "payment_amount": payment_amount
+                        }
+            
             # Create response document
             response_doc = {
                 "poll_id": poll_id,
@@ -569,6 +604,13 @@ class PollService:
                 "rsvp_response": rsvp_response,
                 "text_response": response_data.text_response,
                 "comment": response_data.comment,
+                
+                # Payment fields
+                "payment_required": payment_required,
+                "payment_status": payment_status,
+                "payment_amount": payment_amount,
+                "payment_id": response_data.payment_id,
+                "payment_method": response_data.payment_method,
                 
                 "responded_at": datetime.now(timezone.utc),
                 "updated_at": None,

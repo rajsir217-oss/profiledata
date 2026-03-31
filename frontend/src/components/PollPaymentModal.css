@@ -1,0 +1,161 @@
+/* Poll Payment Modal Styles - Theme-aware */
+
+.poll-payment-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.poll-payment-modal {
+  background: var(--card-background);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.poll-payment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.poll-payment-header h3 {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.25rem;
+}
+
+.poll-payment-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.poll-payment-close:hover {
+  background: var(--hover-background);
+  color: var(--text-color);
+}
+
+.poll-payment-body {
+  padding: 1.5rem;
+}
+
+.poll-payment-event h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-color);
+  font-size: 1.1rem;
+}
+
+.poll-payment-event p {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.poll-payment-amount {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--surface-color);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.amount-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.amount-value {
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.poll-payment-error {
+  background: var(--danger-color);
+  color: white;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.poll-payment-paypal {
+  margin-bottom: 1.5rem;
+}
+
+.paypal-button-container {
+  min-height: 45px;
+}
+
+.poll-payment-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.poll-payment-cancel {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.poll-payment-cancel:hover:not(:disabled) {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+}
+
+.poll-payment-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .poll-payment-modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .poll-payment-modal {
+    max-width: 100%;
+  }
+  
+  .poll-payment-header,
+  .poll-payment-body {
+    padding: 1rem;
+  }
+  
+  .poll-payment-amount {
+    padding: 0.75rem;
+  }
+  
+  .amount-value {
+    font-size: 1.25rem;
+  }
+}

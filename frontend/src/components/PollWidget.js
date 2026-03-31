@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createApiInstance } from '../api';
 import { formatDate, getTimeRemaining, formatTimeRemaining } from '../utils/timezoneHelper';
+import Toast from './Toast';
+import PollPaymentInline from './PollPaymentInline';
 import './PollWidget.css';
 
 // Use global API factory for session handling
@@ -24,6 +26,14 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
   const [selectedPollId, setSelectedPollId] = useState(null); // Which poll to show in modal
   const [autoPopupShown, setAutoPopupShown] = useState(false); // Track if auto-popup was shown this session
   const [timers, setTimers] = useState({}); // Store countdown timers for each poll
+  
+  // Payment state for Virtual Meet polls
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentPendingPoll, setPaymentPendingPoll] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  
+  // Debug payment state
+  console.log('🔍 Payment state:', { paymentModalOpen, paymentPendingPoll });
   
   // Check if user is admin
   const userRole = localStorage.getItem('userRole');
@@ -109,6 +119,19 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
   };
 
   const handleOptionSelect = (pollId, optionId, pollType) => {
+    const poll = polls.find(p => p._id === pollId);
+    const selectedOption = poll?.options?.find(opt => opt.id === optionId);
+    const optionText = selectedOption?.text?.toLowerCase() || '';
+    
+    console.log('🔍 Poll Debug:', {
+      pollId,
+      optionId,
+      pollType,
+      optionText,
+      eventType: poll?.event_type,
+      userResponded: poll?.user_has_responded
+    });
+    
     setSelectedOptions(prev => {
       const current = prev[pollId] || [];
       
@@ -121,9 +144,59 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
         }
       } else {
         // Single selection for RSVP and single choice
-        return { ...prev, [pollId]: [optionId] };
+        const newSelection = [optionId];
+        
+        // Check if this is a "Yes" selection for a Virtual Meet poll
+        if (poll?.event_type && 
+            ['in-person', 'virtual', 'zoom-call', 'hybrid'].includes(poll.event_type) && 
+            optionText.includes('yes') &&
+            !poll?.user_has_responded) {
+          
+          console.log('💳 Showing inline payment for:', poll?.event_type);
+          
+          // Show inline payment for Virtual Meet "Yes" selection
+          setPaymentPendingPoll({
+            pollId: pollId,
+            optionId: optionId,
+            paymentAmount: poll.virtual_meet_payment_amount || 5.00,
+            pollTitle: poll.title
+          });
+          setPaymentModalOpen(true);
+        }
+        
+        return { ...prev, [pollId]: newSelection };
       }
     });
+  };
+
+  const handlePaymentComplete = async () => {
+    // VirtualMeetPaymentModal handles payment confirmation with backend
+    // We just need to update the UI and refresh polls
+    showToast('RSVP confirmed with payment!', 'success');
+    
+    // Close payment modal
+    setPaymentModalOpen(false);
+    setPaymentPendingPoll(null);
+    
+    // Refresh polls to show updated response
+    fetchActivePolls();
+    
+    if (onPollResponded) {
+      onPollResponded(paymentPendingPoll?.pollId);
+    }
+  };
+
+  const handlePaymentCancel = () => {
+    setPaymentModalOpen(false);
+    setPaymentPendingPoll(null);
+    // Clear the selection since payment was cancelled
+    if (paymentPendingPoll) {
+      setSelectedOptions(prev => {
+        const newPrev = { ...prev };
+        delete newPrev[paymentPendingPoll.pollId];
+        return newPrev;
+      });
+    }
   };
 
   const handleSubmitResponse = async (pollId) => {
@@ -131,6 +204,21 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
     
     if (selected.length === 0) {
       showToast('Please select an option', 'error');
+      return;
+    }
+
+    // Check if this is a Virtual Meet poll with "Yes" selection
+    const poll = polls.find(p => p._id === pollId);
+    const selectedOption = poll?.options?.find(opt => opt.id === selected[0]);
+    const optionText = selectedOption?.text?.toLowerCase() || '';
+    
+    if (poll?.event_type && 
+        ['in-person', 'virtual', 'zoom-call', 'hybrid'].includes(poll.event_type) && 
+        optionText.includes('yes') &&
+        !poll?.user_has_responded) {
+      
+      // Don't submit directly - payment is required
+      showToast('Payment required to confirm "Yes" response', 'warning');
       return;
     }
 
@@ -306,6 +394,72 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
           </div>
         )}
         
+        {/* Poll Options */}
+        {poll.options && (
+          <div className="poll-options">
+            {poll.options.map(option => {
+              const isSelected = (selectedOptions[poll._id] || []).includes(option.id);
+              const wasSelected = poll.user_response?.selected_options?.includes(option.id);
+              const rsvpResponse = poll.user_response?.rsvp_response || '';
+              const isPaidYesResponse = rsvpResponse.toLowerCase() === 'yes' && 
+                                       option.text.toLowerCase().includes('yes') && 
+                                       poll.payment_status === 'completed';
+              
+              return (
+                <div key={option.id}>
+                  <button
+                    className={`poll-option ${isSelected ? 'poll-option-selected' : ''} ${wasSelected ? 'poll-option-was-selected' : ''} ${isPaidYesResponse ? 'poll-option-paid' : ''}`}
+                    onClick={() => handleOptionSelect(poll._id, option.id, poll.poll_type)}
+                    disabled={submitting[poll._id] || isPaidYesResponse}
+                  >
+                    <span className="poll-option-indicator">
+                      {isSelected ? '●' : '○'}
+                    </span>
+                    <span className="poll-option-text">{option.text}</span>
+                    {isPaidYesResponse && <span className="paid-badge">✓ Paid</span>}
+                  </button>
+                  
+                  {/* Show payment component right after "Yes" option when selected */}
+                  {isSelected && 
+                   option.text.toLowerCase().includes('yes') && 
+                   paymentPendingPoll?.pollId === poll._id && (
+                    <PollPaymentInline
+                      isVisible={true}
+                      onCancel={handlePaymentCancel}
+                      onComplete={handlePaymentComplete}
+                      pollData={paymentPendingPoll}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        
+        {/* Show user's response if already responded */}
+        {isResponded && poll.user_response && (
+          <div className="poll-user-response">
+            <strong>Your response:</strong> {poll.user_response.rsvp_response || poll.user_response.selected_options?.map(optId => poll.options?.find(o => o.id === optId)?.text).filter(Boolean).join(', ') || 'Submitted'}
+            {poll.payment_status === 'completed' && (
+              <span className="paid-badge">✓ Paid</span>
+            )}
+          </div>
+        )}
+        
+        {/* Comment field if allowed */}
+        {poll.allow_comments && (
+          <div className="poll-comment-section">
+            <textarea
+              className="poll-comment-input"
+              placeholder="Add a comment (optional)..."
+              value={comments[poll._id] || ''}
+              onChange={(e) => setComments(prev => ({ ...prev, [poll._id]: e.target.value }))}
+              disabled={submitting[poll._id]}
+              rows={2}
+            />
+          </div>
+        )}
+        
         {/* Countdown Timer */}
         {timers[poll._id] && (
           <div className="poll-timer">
@@ -333,42 +487,6 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
         {poll.event_details && (
           <div className="poll-event-extra">
             {poll.event_details}
-          </div>
-        )}
-        
-        {/* Poll Options */}
-        <div className="poll-options">
-          {poll.options.map(option => {
-            const isSelected = (selectedOptions[poll._id] || []).includes(option.id);
-            const wasSelected = poll.user_response?.selected_options?.includes(option.id);
-            
-            return (
-              <button
-                key={option.id}
-                className={`poll-option ${isSelected ? 'poll-option-selected' : ''} ${wasSelected ? 'poll-option-was-selected' : ''}`}
-                onClick={() => handleOptionSelect(poll._id, option.id, poll.poll_type)}
-                disabled={submitting[poll._id]}
-              >
-                <span className="poll-option-indicator">
-                  {isSelected ? '●' : '○'}
-                </span>
-                <span className="poll-option-text">{option.text}</span>
-              </button>
-            );
-          })}
-        </div>
-        
-        {/* Comment field if allowed */}
-        {poll.allow_comments && (
-          <div className="poll-comment-section">
-            <textarea
-              className="poll-comment-input"
-              placeholder="Add a comment (optional)..."
-              value={comments[poll._id] || ''}
-              onChange={(e) => setComments(prev => ({ ...prev, [poll._id]: e.target.value }))}
-              disabled={submitting[poll._id]}
-              rows={2}
-            />
           </div>
         )}
         
