@@ -21,12 +21,19 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
   const [error, setError] = useState('');
   const [paypalReady, setPaypalReady] = useState(false);
   const [paypalFailed, setPaypalFailed] = useState(false);
-  const [paypalKey, setPaypalKey] = useState(0);
   const paypalContainerRef = useRef(null);
   const paypalScriptLoaded = useRef(false);
   const amountRef = useRef(25);
   const paypalInitialized = useRef(false);
   const [paymentMethod, setPaymentMethod] = useState('paypal');
+
+  // Clover card state
+  const [cloverConfig, setCloverConfig] = useState(null);
+  const [cloverReady, setCloverReady] = useState(false);
+  const [cloverLoading, setCloverLoading] = useState(false);
+  const [cloverSuccess, setCloverSuccess] = useState(false);
+  const cloverInstanceRef = useRef(null);
+  const cloverMountedRef = useRef(false);
 
   const amounts = [10, 15, 25, 50];
 
@@ -80,6 +87,9 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
   // Render PayPal buttons (reused from ContributionPopup)
   const renderPayPalButtons = useCallback(() => {
     if (!window.paypal || !paypalContainerRef.current) return;
+    
+    // Clear container to prevent duplicate buttons
+    paypalContainerRef.current.innerHTML = '';
 
     const token = localStorage.getItem('token');
 
@@ -177,42 +187,195 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
     }
   }, [pollData, onComplete]);
 
-  // Keep amountRef in sync and re-render PayPal buttons when amount changes
+  // Keep amountRef in sync
   useEffect(() => {
-    const newAmount = getAmount();
-    amountRef.current = newAmount;
+    amountRef.current = getAmount();
+  }, [getAmount]);
 
+  // Re-render PayPal buttons when amount changes
+  useEffect(() => {
     if (!paypalInitialized.current) return;
+    if (paymentMethod !== 'paypal') return;
 
     const delay = selectedAmount === 'custom' ? 800 : 50;
     const timer = setTimeout(() => {
-      setPaypalKey(k => k + 1);
-      setPaypalReady(false);
+      if (paypalContainerRef.current && window.paypal) {
+        renderPayPalButtons();
+      }
     }, delay);
-
     return () => clearTimeout(timer);
-  }, [getAmount, selectedAmount]);
+  }, [selectedAmount, customAmount, paymentMethod, renderPayPalButtons]);
 
-  // Re-render PayPal buttons when container remounts
+  // Render PayPal buttons when switching to PayPal tab
   useEffect(() => {
-    if (isVisible && paypalScriptLoaded.current && window.paypal && paypalContainerRef.current && !paypalReady) {
-      renderPayPalButtons();
-    }
-  }, [paypalKey, isVisible, paypalReady, renderPayPalButtons]);
+    if (!isVisible || paymentMethod !== 'paypal') return;
+    if (!paypalInitialized.current || !window.paypal) return;
+    if (paypalReady) return;
+
+    const timer = setTimeout(() => {
+      if (paypalContainerRef.current) {
+        renderPayPalButtons();
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [isVisible, paymentMethod, paypalReady, renderPayPalButtons]);
 
   // Load PayPal SDK on first open
   useEffect(() => {
-    if (isVisible && !paypalInitialized.current && !paypalFailed) {
-      const initPayPal = async () => {
-        const loaded = await loadPayPalScript();
-        if (loaded) {
-          paypalInitialized.current = true;
-          setTimeout(() => renderPayPalButtons(), 200);
+    if (!isVisible || paypalInitialized.current || paypalFailed) return;
+
+    const initPayPal = async () => {
+      const loaded = await loadPayPalScript();
+      if (loaded) {
+        paypalInitialized.current = true;
+        // Render after a short delay to ensure DOM is ready
+        setTimeout(() => {
+          if (paypalContainerRef.current && paymentMethod === 'paypal') {
+            renderPayPalButtons();
+          }
+        }, 200);
+      }
+    };
+    initPayPal();
+  }, [isVisible, paypalFailed, paymentMethod, loadPayPalScript, renderPayPalButtons]);
+
+  // Initialize Clover SDK when Card tab is selected
+  useEffect(() => {
+    if (!isVisible || paymentMethod !== 'clover') return;
+    if (cloverMountedRef.current) return;
+
+    const initClover = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${getBackendUrl()}/api/clover/sdk-config`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const config = await res.json();
+        if (!config.public_key) {
+          setError('Clover card payments not available.');
+          return;
         }
-      };
-      initPayPal();
+        setCloverConfig(config);
+
+        if (!window.Clover) {
+          await new Promise((resolve, reject) => {
+            const existing = document.querySelector(`script[src="${config.sdk_url}"]`);
+            if (existing) { resolve(); return; }
+            const script = document.createElement('script');
+            script.src = config.sdk_url;
+            script.async = true;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Failed to load Clover SDK'));
+            document.head.appendChild(script);
+          });
+        }
+
+        const clover = new window.Clover(config.public_key, { merchantId: config.merchant_id });
+        cloverInstanceRef.current = clover;
+        const elements = clover.elements();
+
+        const styles = {
+          body: { fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontSize: '14px' },
+          input: { fontSize: '15px', padding: '10px 8px' }
+        };
+        const cardNumber = elements.create('CARD_NUMBER', styles);
+        const cardDate = elements.create('CARD_DATE', styles);
+        const cardCvv = elements.create('CARD_CVV', styles);
+        const cardPostalCode = elements.create('CARD_POSTAL_CODE', styles);
+
+        setTimeout(() => {
+          try {
+            cardNumber.mount('#poll-clover-card-number');
+            cardDate.mount('#poll-clover-card-date');
+            cardCvv.mount('#poll-clover-card-cvv');
+            cardPostalCode.mount('#poll-clover-card-zip');
+            cloverMountedRef.current = true;
+            setCloverReady(true);
+          } catch (mountErr) {
+            setError('Failed to mount card form. Please try again.');
+          }
+        }, 300);
+      } catch (err) {
+        setError('Failed to initialize card payment form.');
+      }
+    };
+    initClover();
+
+    return () => {
+      cloverMountedRef.current = false;
+      setCloverReady(false);
+    };
+  }, [isVisible, paymentMethod]);
+
+  // Handle Clover card payment submission
+  const handleCloverPay = useCallback(async () => {
+    if (!cloverInstanceRef.current) return;
+    const amount = getAmount();
+    if (!amount || amount < 1) {
+      setError('Please select a valid amount (minimum $1)');
+      return;
     }
-  }, [isVisible, paypalFailed, loadPayPalScript, renderPayPalButtons]);
+    setCloverLoading(true);
+    setError('');
+    try {
+      const result = await cloverInstanceRef.current.createToken();
+      if (result.errors) {
+        const errMsgs = Object.values(result.errors).map(e => typeof e === 'string' ? e : (e?.message || JSON.stringify(e)));
+        setError(errMsgs.join(', '));
+        setCloverLoading(false);
+        return;
+      }
+      const sourceToken = result.token;
+
+      const authToken = localStorage.getItem('token');
+      const chargeRes = await fetch(`${getBackendUrl()}/api/clover/charge`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          source: sourceToken,
+          amount: amount.toFixed(2),
+          description: `RSVP Payment - $${amount.toFixed(2)}`
+        })
+      });
+      const chargeData = await chargeRes.json();
+      if (chargeData.success) {
+        setCloverSuccess(true);
+
+        // Submit poll response after successful card payment
+        const payload = {
+          poll_id: pollData.pollId,
+          selected_options: [pollData.optionId],
+          payment_required: true,
+          payment_status: 'completed',
+          payment_amount: amount,
+          payment_id: chargeData.charge_id || 'clover',
+          payment_method: 'card'
+        };
+        const pollResponse = await pollsApi.post(
+          `/api/polls/${pollData.pollId}/pay-and-respond`,
+          payload
+        );
+        if (pollResponse.data.success) {
+          onComplete();
+        } else {
+          setError(pollResponse.data.detail || 'Failed to submit RSVP');
+        }
+      } else {
+        const detail = chargeData.detail;
+        const msg = typeof detail === 'string' ? detail
+          : Array.isArray(detail) ? detail.map(d => d.msg || JSON.stringify(d)).join(', ')
+          : (detail?.msg || 'Card charge failed. Please try again.');
+        setError(msg);
+      }
+    } catch (err) {
+      setError('Failed to process card payment. Please try again.');
+    } finally {
+      setCloverLoading(false);
+    }
+  }, [getAmount, pollData, onComplete]);
 
   if (!isVisible) return null;
 
@@ -280,7 +443,10 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
         <div className="payment-method-toggle">
           <button
             className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
-            onClick={() => setPaymentMethod('paypal')}
+            onClick={() => {
+              setPaymentMethod('paypal');
+              setPaypalReady(false);
+            }}
             disabled={loading}
           >
             <span className="paypal-p">P</span>
@@ -331,7 +497,6 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
           )}
 
           <div
-            key={paypalKey}
             ref={paypalContainerRef}
             id="poll-paypal-buttons"
             style={{ display: paypalFailed ? 'none' : 'block' }}
@@ -419,12 +584,55 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
         </div>
       )}
 
-      {/* Card placeholder */}
+      {/* Card / Clover - same as ContributionPopup */}
       {paymentMethod === 'clover' && (
-        <div className="qr-code-section">
-          <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-secondary)' }}>
-            Card payment coming soon. Please use PayPal or QR code methods.
-          </div>
+        <div className="clover-card-section poll-clover-compact">
+          {cloverSuccess ? (
+            <div className="clover-success-msg">
+              <div className="clover-success-icon">✓</div>
+              <p>Payment successful! RSVP confirmed.</p>
+            </div>
+          ) : (
+            <>
+              <div className="clover-card-form">
+                <div className="clover-field">
+                  <span className="clover-label">CARD NUMBER</span>
+                  <div id="poll-clover-card-number" className="clover-input-container"></div>
+                </div>
+                <div className="clover-field-row">
+                  <div className="clover-field clover-field-half">
+                    <span className="clover-label">EXPIRY</span>
+                    <div id="poll-clover-card-date" className="clover-input-container"></div>
+                  </div>
+                  <div className="clover-field clover-field-half">
+                    <span className="clover-label">CVV</span>
+                    <div id="poll-clover-card-cvv" className="clover-input-container"></div>
+                  </div>
+                  <div className="clover-field clover-field-half">
+                    <span className="clover-label">ZIP</span>
+                    <div id="poll-clover-card-zip" className="clover-input-container"></div>
+                  </div>
+                </div>
+              </div>
+              <button
+                className="contribution-proceed-btn"
+                onClick={handleCloverPay}
+                disabled={cloverLoading || !cloverReady}
+              >
+                {cloverLoading ? (
+                  <><span className="spinner"></span> Processing...</>
+                ) : (
+                  `Pay $${getAmount().toFixed(2)} with Card`
+                )}
+              </button>
+              {!cloverReady && (
+                <div className="paypal-loading">
+                  <span className="spinner"></span>
+                  Loading card form...
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

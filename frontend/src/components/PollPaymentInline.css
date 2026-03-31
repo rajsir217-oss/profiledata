@@ -23,6 +23,107 @@
   }
 }
 
+/* Compact Clover card form for inline poll payment */
+.poll-clover-compact .clover-card-form {
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.poll-clover-compact .clover-field {
+  gap: 2px;
+}
+
+.poll-clover-compact .clover-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.poll-clover-compact .clover-input-container {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0 4px;
+  background: var(--input-bg, var(--card-background));
+  min-height: 40px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.poll-clover-compact .clover-input-container iframe {
+  height: 40px !important;
+  min-height: unset !important;
+}
+
+.poll-clover-compact .clover-input-container:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.poll-clover-compact .clover-field-row {
+  display: flex;
+  gap: 8px;
+}
+
+.poll-clover-compact .clover-field-half {
+  flex: 1;
+  min-width: 0;
+}
+
+.poll-clover-compact .contribution-proceed-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.poll-clover-compact .contribution-proceed-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.poll-clover-compact .contribution-proceed-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.poll-clover-compact .clover-success-msg {
+  text-align: center;
+  padding: 16px;
+}
+
+.poll-clover-compact .clover-success-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--success-color, #10b981);
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.poll-clover-compact .clover-success-msg p {
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .poll-payment-inline {
