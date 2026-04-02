@@ -736,6 +736,127 @@ class VirtualMeetService:
             "partner": partner
         }
 
+    # ─── Admin Bulk Pairing ───────────────────────────────────────────────────
+
+    @staticmethod
+    async def admin_bulk_pair(
+        db: AsyncIOMotorDatabase,
+        poll_id: str,
+        user_a: str,
+        user_b: str
+    ) -> Dict[str, Any]:
+        """Admin manually pairs two users in a room."""
+        try:
+            # Validate both users exist and are participants
+            session_a = await db.virtual_meet_sessions.find_one({
+                "poll_id": poll_id, "username": user_a
+            })
+            session_b = await db.virtual_meet_sessions.find_one({
+                "poll_id": poll_id, "username": user_b
+            })
+
+            if not session_a:
+                return {"success": False, "error": f"User {user_a} is not a participant in this event."}
+            if not session_b:
+                return {"success": False, "error": f"User {user_b} is not a participant in this event."}
+
+            # Check if either user already has a room
+            existing_room = await db.virtual_rooms.find_one({
+                "poll_id": poll_id,
+                "$or": [
+                    {"user_a": user_a},
+                    {"user_b": user_a},
+                    {"user_a": user_b},
+                    {"user_b": user_b}
+                ],
+                "status": {"$in": ["confirmed", "active"]}
+            })
+
+            if existing_room:
+                occupied_user = user_a if user_a in (existing_room.get("user_a"), existing_room.get("user_b")) else user_b
+                return {"success": False, "error": f"User {occupied_user} already has a room."}
+
+            # Check if they're opposite gender (optional validation)
+            if session_a.get("gender") == session_b.get("gender"):
+                logger.warning(f"⚠️ Admin pairing same-gender users: {user_a} and {user_b}")
+
+            # Get next room number
+            last_room = await db.virtual_rooms.find_one(
+                {"poll_id": poll_id},
+                sort=[("room_number", -1)]
+            )
+            next_room_number = (last_room.get("room_number", 0) + 1) if last_room else 1
+
+            # Create the room
+            room_doc = {
+                "poll_id": poll_id,
+                "user_a": user_a,
+                "user_b": user_b,
+                "room_number": next_room_number,
+                "status": "confirmed",
+                "created_at": datetime.utcnow(),
+                "created_by": "admin_bulk_pair",
+                "paired_at": datetime.utcnow()
+            }
+
+            result = await db.virtual_rooms.insert_one(room_doc)
+            room_id = str(result.inserted_id)
+
+            # Cancel any pending requests between these users
+            await db.virtual_room_requests.update_many(
+                {
+                    "poll_id": poll_id,
+                    "$or": [
+                        {"requester_username": user_a, "target_username": user_b},
+                        {"requester_username": user_b, "target_username": user_a}
+                    ],
+                    "status": "pending"
+                },
+                {"$set": {
+                    "status": "cancelled",
+                    "responded_at": datetime.utcnow(),
+                    "response_note": "Cancelled by admin bulk pairing"
+                }}
+            )
+
+            # Notify both users
+            for username in [user_a, user_b]:
+                partner = user_b if username == user_a else user_a
+                partner_session = session_a if username == user_b else session_b
+                partner_name = f"{partner_session.get('firstName', '')} {partner_session.get('lastName', '')}".strip()
+
+                await db.notification_queue.insert_one({
+                    "username": username,
+                    "type": "virtual_meet_room_created",
+                    "title": "Room Assigned",
+                    "message": f"You've been paired with {partner_name} in Room #{next_room_number}.",
+                    "data": {
+                        "poll_id": poll_id,
+                        "room_id": room_id,
+                        "room_number": next_room_number,
+                        "partner_username": partner,
+                        "partner_name": partner_name
+                    },
+                    "status": "pending",
+                    "createdAt": datetime.utcnow(),
+                    "updatedAt": datetime.utcnow()
+                })
+
+            logger.info(f"🔧 Admin bulk paired {user_a} + {user_b} in Room #{next_room_number} (poll: {poll_id})")
+
+            return {
+                "success": True,
+                "message": f"Successfully paired {user_a} and {user_b} in Room #{next_room_number}.",
+                "room_id": room_id,
+                "room_number": next_room_number,
+                "user_a": user_a,
+                "user_b": user_b
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Admin bulk pairing failed: {e}")
+            return {"success": False, "error": "Failed to create room."}
+
     # ─── Payment ──────────────────────────────────────────────────────────
 
     @staticmethod

@@ -30,6 +30,9 @@ const VirtualMeets = () => {
   const [pairUserB, setPairUserB] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancelRoom, setConfirmCancelRoom] = useState(null);
+  const [showBulkPairModal, setShowBulkPairModal] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState(null);
 
   // ─── Load Events ─────────────────────────────────────────────────────
 
@@ -155,6 +158,24 @@ const VirtualMeets = () => {
       setAdminLoading(true);
       const response = await vmApi.get(`/api/virtual-meets/${pollId}/admin/overview`);
       setAdminOverview(response.data);
+      
+      // Prepare analytics data
+      const ov = response.data;
+      const roomedUsers = new Set();
+      ov.rooms?.forEach(room => {
+        roomedUsers.add(room.user_a);
+        roomedUsers.add(room.user_b);
+      });
+      
+      const unroomedPaid = ov.participants?.filter(p => 
+        p.payment_status === 'completed' && !roomedUsers.has(p.username)
+      ) || [];
+      
+      setAnalyticsData({
+        ...ov,
+        unroomedPaid,
+        roomedUsers: Array.from(roomedUsers)
+      });
     } catch (err) {
       setToast({ message: err.response?.data?.detail || 'Failed to load admin overview', type: 'error' });
     } finally {
@@ -162,25 +183,43 @@ const VirtualMeets = () => {
     }
   };
 
-  const handleAdminPair = async () => {
-    if (!selectedEvent || !pairUserA.trim() || !pairUserB.trim()) {
-      setToast({ message: 'Enter both usernames to pair', type: 'error' });
+  const handleBulkPair = async () => {
+    if (!pairUserA || !pairUserB) {
+      setToast({ message: 'Please enter both usernames', type: 'error' });
       return;
     }
+    
+    if (pairUserA === pairUserB) {
+      setToast({ message: 'Cannot pair a user with themselves', type: 'error' });
+      return;
+    }
+    
+    if (!selectedEvent) {
+      setToast({ message: 'No event selected', type: 'error' });
+      return;
+    }
+    
     try {
-      const response = await vmApi.post(`/api/virtual-meets/${selectedEvent.poll_id}/admin/pair`, {
+      const response = await vmApi.post(`/api/virtual-meets/${selectedEvent.poll_id}/admin/bulk-pair`, {
         user_a: pairUserA.trim(),
         user_b: pairUserB.trim()
       });
-      setToast({ message: response.data.message || 'Users paired!', type: 'success' });
+      
+      setToast({ message: response.data.message || 'Users paired successfully', type: 'success' });
+      setShowBulkPairModal(false);
       setPairUserA('');
       setPairUserB('');
-      loadAdminOverview(selectedEvent.poll_id);
+      
+      // Reload admin overview to show new room
+      if (adminView) {
+        loadAdminOverview(selectedEvent.poll_id);
+      }
     } catch (err) {
       setToast({ message: err.response?.data?.detail || 'Failed to pair users', type: 'error' });
     }
   };
 
+  
   const handleExpireRooms = async (pollId) => {
     try {
       const response = await vmApi.post(`/api/virtual-meets/${pollId}/admin/expire-rooms`);
@@ -217,6 +256,104 @@ const VirtualMeets = () => {
   };
 
   // ─── Export ─────────────────────────────────────────────────────────
+
+  const exportAdminCSV = () => {
+    if (!adminOverview || !selectedEvent) return;
+
+    const rows = [];
+    const headers = ['Section', 'Username', 'Name', 'Age', 'Location', 'Gender', 'Payment Status', 'Room #', 'Partner', 'Room Status', 'Request Status'];
+    rows.push(headers.join(','));
+
+    const esc = (val) => {
+      if (val == null || val === '') return '';
+      const s = String(val).replace(/"/g, '""');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
+    };
+
+    // Participants
+    if (adminOverview.participants) {
+      adminOverview.participants.forEach(p => {
+        rows.push([
+          'Participant',
+          esc(p.username),
+          esc(p.firstName + ' ' + p.lastName),
+          esc(p.age),
+          esc(p.location),
+          esc(p.gender),
+          esc(p.payment_status),
+          '',
+          '',
+          '',
+          ''
+        ].join(','));
+      });
+    }
+
+    // Rooms with partner details
+    if (adminOverview.rooms) {
+      adminOverview.rooms.forEach(room => {
+        const partnerA = adminOverview.participants?.find(p => p.username === room.user_a);
+        const partnerB = adminOverview.participants?.find(p => p.username === room.user_b);
+        
+        // Add room entry for both participants
+        [partnerA, partnerB].forEach((partner, idx) => {
+          const otherPartner = idx === 0 ? partnerB : partnerA;
+          rows.push([
+            'Room',
+            esc(partner?.username || ''),
+            esc(partner ? `${partner.firstName} ${partner.lastName}` : ''),
+            esc(partner?.age || ''),
+            esc(partner?.location || ''),
+            esc(partner?.gender || ''),
+            esc(partner?.payment_status || ''),
+            esc(room.room_number || ''),
+            esc(otherPartner ? `${otherPartner.firstName} ${otherPartner.lastName}` : ''),
+            esc(room.status || ''),
+            'accepted'
+          ].join(','));
+        });
+      });
+    }
+
+    // Pending Requests
+    if (adminOverview.participants) {
+      // Find pending requests by checking participants who don't have rooms
+      const roomedUsers = new Set();
+      adminOverview.rooms?.forEach(room => {
+        roomedUsers.add(room.user_a);
+        roomedUsers.add(room.user_b);
+      });
+      
+      adminOverview.participants.forEach(p => {
+        if (!roomedUsers.has(p.username) && p.payment_status === 'completed') {
+          rows.push([
+            'Pending',
+            esc(p.username),
+            esc(p.firstName + ' ' + p.lastName),
+            esc(p.age),
+            esc(p.location),
+            esc(p.gender),
+            esc(p.payment_status),
+            '',
+            '',
+            '',
+            'pending'
+          ].join(','));
+        }
+      });
+    }
+
+    const csv = rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `virtual-meet-${selectedEvent.poll_id}-admin-export.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const exportMatchListCSV = () => {
     if (!matchData || !selectedEvent) return;
@@ -684,13 +821,18 @@ const VirtualMeets = () => {
             ← Back
           </button>
           <h2 className="vm-match-title">🔧 Admin: {ov.title}</h2>
-          <button
-            className={`vm-btn ${confirmDelete ? 'vm-btn-danger-confirm' : 'vm-btn-danger'}`}
-            onClick={handleDeleteEvent}
-            title={confirmDelete ? 'Click again to confirm deletion' : 'Delete all virtual meet data for this event'}
-          >
-            {confirmDelete ? '⚠️ Confirm Delete?' : '🗑️ Delete'}
-          </button>
+          <div className="vm-admin-actions">
+            <button className="vm-btn vm-btn-export" onClick={exportAdminCSV} title="Export full admin data (participants, rooms, requests) as CSV">
+              📥 Export
+            </button>
+            <button
+              className={`vm-btn ${confirmDelete ? 'vm-btn-danger-confirm' : 'vm-btn-danger'}`}
+              onClick={handleDeleteEvent}
+              title={confirmDelete ? 'Click again to confirm deletion' : 'Delete all virtual meet data for this event'}
+            >
+              {confirmDelete ? '⚠️ Confirm Delete?' : '🗑️ Delete'}
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -762,14 +904,26 @@ const VirtualMeets = () => {
                 onChange={(e) => setPairUserB(e.target.value)}
                 className="vm-input"
               />
-              <button className="vm-btn vm-btn-primary" onClick={handleAdminPair}>
+              <button className="vm-btn vm-btn-primary" onClick={handleBulkPair}>
                 Pair
               </button>
             </div>
           </div>
 
-          {/* Expire Rooms */}
+          {/* Admin Actions */}
           <div className="vm-admin-action-row">
+            <button
+              className="vm-btn vm-btn-primary"
+              onClick={() => setShowBulkPairModal(true)}
+            >
+              🔧 Bulk Pair Users
+            </button>
+            <button
+              className="vm-btn vm-btn-primary"
+              onClick={() => setShowAnalytics(!showAnalytics)}
+            >
+              📊 {showAnalytics ? 'Hide' : 'Show'} Analytics
+            </button>
             <button
               className="vm-btn vm-btn-decline"
               onClick={() => handleExpireRooms(selectedEvent.poll_id)}
@@ -842,6 +996,123 @@ const VirtualMeets = () => {
     );
   };
 
+  // ─── Render: Analytics Section ───────────────────────────────────────────
+
+  const renderAnalytics = () => {
+    if (!analyticsData) return null;
+
+    const { unroomedPaid, roomedUsers } = analyticsData;
+
+    return (
+      <div className="vm-section vm-analytics-section">
+        <h3 className="vm-section-title">📊 Analytics Report</h3>
+        
+        <div className="vm-analytics-grid">
+          <div className="vm-analytics-card">
+            <h4>Room Summary</h4>
+            <div className="vm-analytics-stats">
+              <div className="vm-stat">
+                <span className="vm-stat-label">Total Rooms:</span>
+                <span className="vm-stat-value">{analyticsData.total_rooms}</span>
+              </div>
+              <div className="vm-stat">
+                <span className="vm-stat-label">Users in Rooms:</span>
+                <span className="vm-stat-value">{roomedUsers.length}</span>
+              </div>
+              <div className="vm-stat">
+                <span className="vm-stat-label">Paid Users Waiting:</span>
+                <span className="vm-stat-value">{unroomedPaid.length}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="vm-analytics-card">
+            <h4>Users by Room Count</h4>
+            <div className="vm-room-user-list">
+              {analyticsData.rooms?.map(room => (
+                <div key={room._id} className="vm-room-user-item">
+                  <span className="vm-room-number">Room #{room.room_number}</span>
+                  <div className="vm-room-users">
+                    <span className="vm-room-user">{room.user_a}</span>
+                    <span className="vm-room-user">{room.user_b}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="vm-analytics-card">
+            <h4>Unpaired Paid Users</h4>
+            <div className="vm-unroomed-list">
+              {unroomedPaid.length > 0 ? (
+                unroomedPaid.map(p => (
+                  <div key={p._id} className="vm-unroomed-user">
+                    <span className="vm-username">{p.username}</span>
+                    <span className="vm-gender">{p.gender}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="vm-empty-message">All paid users are paired!</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── Render: Bulk Pair Modal ─────────────────────────────────────────────
+
+  const renderBulkPairModal = () => {
+    if (!showBulkPairModal) return null;
+
+    return (
+      <div className="modal-overlay" onClick={() => setShowBulkPairModal(false)}>
+        <div className="modal vm-bulk-pair-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>🔧 Bulk Pair Users</h2>
+            <button className="modal-close" onClick={() => setShowBulkPairModal(false)}>✕</button>
+          </div>
+          <div className="modal-body">
+            <p className="vm-modal-description">
+              Manually pair two users in a room. Both users must be participants in this event.
+            </p>
+            <div className="vm-pair-form">
+              <div className="vm-pair-input-group">
+                <label>User A Username:</label>
+                <input
+                  type="text"
+                  value={pairUserA}
+                  onChange={(e) => setPairUserA(e.target.value)}
+                  placeholder="Enter first username..."
+                  className="vm-input"
+                />
+              </div>
+              <div className="vm-pair-input-group">
+                <label>User B Username:</label>
+                <input
+                  type="text"
+                  value={pairUserB}
+                  onChange={(e) => setPairUserB(e.target.value)}
+                  placeholder="Enter second username..."
+                  className="vm-input"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button className="vm-btn vm-btn-secondary" onClick={() => setShowBulkPairModal(false)}>
+              Cancel
+            </button>
+            <button className="vm-btn vm-btn-primary" onClick={handleBulkPair}>
+              Pair Users
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ─── Main Render ─────────────────────────────────────────────────────
 
   return (
@@ -854,6 +1125,12 @@ const VirtualMeets = () => {
       </div>
 
       {adminView ? renderAdminOverview() : selectedEvent ? renderMatchList() : renderEventsList()}
+
+      {/* Analytics Section (shown when admin view and analytics toggle is on) */}
+      {adminView && showAnalytics && renderAnalytics()}
+
+      {/* Bulk Pair Modal */}
+      {renderBulkPairModal()}
 
       {toast && (
         <Toast

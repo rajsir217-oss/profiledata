@@ -92,6 +92,12 @@ class CancelRoomRequest(BaseModel):
     room_id: str
 
 
+class AdminPairRequest(BaseModel):
+    """Request body for admin bulk pairing"""
+    user_a: str
+    user_b: str
+
+
 class VirtualRoomRequest(BaseModel):
     """Full room request model (from database)"""
     id: Optional[str] = Field(None, alias="_id")
