@@ -1,3 +1,9 @@
+/* Hide Clover SDK injected footer globally */
+.clover-footer,
+.clover-secure-payments {
+  display: none !important;
+}
+
 /* App Wrapper */
 .app-wrapper {
   width: 100%;
