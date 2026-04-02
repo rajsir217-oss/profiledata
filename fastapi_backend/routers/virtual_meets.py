@@ -176,6 +176,26 @@ async def admin_bulk_pair(
     return result
 
 
+@router.post("/{poll_id}/admin/unpair")
+async def admin_unpair(
+    poll_id: str,
+    request: CancelRoomRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Admin cancels/unpairs a room."""
+    user_role = current_user.get("role") or current_user.get("role_name") or "free_user"
+    if user_role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    result = await VirtualMeetService.admin_unpair(db, poll_id, request.room_id)
+
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+
+    return result
+
+
 # ─── Payment ──────────────────────────────────────────────────────────────────
 
 @router.post("/{poll_id}/pay")
