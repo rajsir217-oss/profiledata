@@ -152,6 +152,30 @@ async def cancel_room(
     return result
 
 
+# ─── Admin Bulk Pairing ───────────────────────────────────────────────────────
+
+@router.post("/{poll_id}/admin/bulk-pair")
+async def admin_bulk_pair(
+    poll_id: str,
+    request: AdminPairRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Admin manually pairs two users in a room."""
+    user_role = current_user.get("role") or current_user.get("role_name") or "free_user"
+    if user_role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    result = await VirtualMeetService.admin_bulk_pair(
+        db, poll_id, request.user_a, request.user_b
+    )
+
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+
+    return result
+
+
 # ─── Payment ──────────────────────────────────────────────────────────────────
 
 @router.post("/{poll_id}/pay")
