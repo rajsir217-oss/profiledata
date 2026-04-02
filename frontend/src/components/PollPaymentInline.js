@@ -41,7 +41,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
 
   // Check if this is a Virtual Meet event with fixed amount
   const isFixedAmountEvent = pollData?.paymentAmount && pollData.paymentAmount > 0;
-  
+
   // Get current amount
   const getAmount = useCallback(() => {
     // For Virtual Meet events, use the admin-set amount
@@ -243,7 +243,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
 
   // Load PayPal SDK and render buttons once on first open
   useEffect(() => {
-    if (!isVisible || paypalInitialized.current || paypalFailed) return;
+    if (!isVisible || paypalInitialized.current || paypalFailed || parseFloat(pollData?.paymentAmount) === 0) return;
 
     const initPayPal = async () => {
       const loaded = await loadPayPalScript();
@@ -261,7 +261,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
 
   // Initialize Clover SDK once when component becomes visible
   useEffect(() => {
-    if (!isVisible || cloverMountedRef.current) return;
+    if (!isVisible || cloverMountedRef.current || parseFloat(pollData?.paymentAmount) === 0) return;
 
     const initClover = async () => {
       try {
@@ -429,6 +429,11 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
       setCloverLoading(false);
     }
   }, [getAmount, pollData, onComplete]);
+
+  // Don't render payment UI for free events
+  if (parseFloat(pollData?.paymentAmount) === 0) {
+    return null;
+  }
 
   return (
     <div className="poll-payment-inline" style={{ display: isVisible ? 'block' : 'none' }}>

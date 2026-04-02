@@ -760,21 +760,18 @@ class VirtualMeetService:
             if not session_b:
                 return {"success": False, "error": f"User {user_b} is not a participant in this event."}
 
-            # Check if either user already has a room
-            existing_room = await db.virtual_rooms.find_one({
+            # Check if these two users are already paired together
+            existing_pair = await db.virtual_rooms.find_one({
                 "poll_id": poll_id,
                 "$or": [
-                    {"user_a": user_a},
-                    {"user_b": user_a},
-                    {"user_a": user_b},
-                    {"user_b": user_b}
+                    {"user_a": user_a, "user_b": user_b},
+                    {"user_a": user_b, "user_b": user_a}
                 ],
                 "status": {"$in": ["confirmed", "active"]}
             })
 
-            if existing_room:
-                occupied_user = user_a if user_a in (existing_room.get("user_a"), existing_room.get("user_b")) else user_b
-                return {"success": False, "error": f"User {occupied_user} already has a room."}
+            if existing_pair:
+                return {"success": False, "error": f"{user_a} and {user_b} are already paired together."}
 
             # Check if they're opposite gender (optional validation)
             if session_a.get("gender") == session_b.get("gender"):
@@ -856,6 +853,70 @@ class VirtualMeetService:
         except Exception as e:
             logger.error(f"❌ Admin bulk pairing failed: {e}")
             return {"success": False, "error": "Failed to create room."}
+
+    # ─── Admin Unpair ─────────────────────────────────────────────────────
+
+    @staticmethod
+    async def admin_unpair(
+        db: AsyncIOMotorDatabase,
+        poll_id: str,
+        room_id: str
+    ) -> Dict[str, Any]:
+        """Admin cancels/unpairs a room."""
+        try:
+            room = await db.virtual_rooms.find_one({
+                "_id": ObjectId(room_id),
+                "poll_id": poll_id,
+                "status": {"$in": ["confirmed", "active"]}
+            })
+
+            if not room:
+                return {"success": False, "error": "Room not found or already cancelled."}
+
+            user_a = room.get("user_a")
+            user_b = room.get("user_b")
+            room_number = room.get("room_number")
+
+            # Cancel the room
+            await db.virtual_rooms.update_one(
+                {"_id": ObjectId(room_id)},
+                {"$set": {
+                    "status": "cancelled",
+                    "cancelled_at": datetime.utcnow(),
+                    "cancelled_by": "admin"
+                }}
+            )
+
+            # Cancel related requests
+            await db.virtual_room_requests.update_many(
+                {
+                    "poll_id": poll_id,
+                    "$or": [
+                        {"requester_username": user_a, "target_username": user_b},
+                        {"requester_username": user_b, "target_username": user_a}
+                    ],
+                    "status": {"$in": ["pending", "accepted"]}
+                },
+                {"$set": {
+                    "status": "cancelled",
+                    "responded_at": datetime.utcnow(),
+                    "response_note": "Unpaired by admin"
+                }}
+            )
+
+            logger.info(f"🔧 Admin unpaired Room-{room_number}: {user_a} + {user_b} (poll: {poll_id})")
+
+            return {
+                "success": True,
+                "message": f"Room-{room_number} unpaired: {user_a} and {user_b}",
+                "room_number": room_number,
+                "user_a": user_a,
+                "user_b": user_b
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Admin unpair failed: {e}")
+            return {"success": False, "error": "Failed to unpair room."}
 
     # ─── Payment ──────────────────────────────────────────────────────────
 

@@ -533,6 +533,19 @@
   cursor: pointer;
 }
 
+.poll-free-event-toggle {
+  background: var(--surface-color);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 2px solid var(--border-color);
+  margin-bottom: 0.75rem;
+}
+
+.poll-free-event-toggle input:checked + span {
+  color: var(--success-color, #10b981);
+  font-weight: 600;
+}
+
 /* Custom Options */
 .poll-option-input-row {
   display: flex;

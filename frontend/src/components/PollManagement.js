@@ -223,7 +223,7 @@ const PollManagement = () => {
         event_timezone: formData.event_timezone || 'America/Los_Angeles',
         event_location: formData.event_location || null,
         event_details: formData.event_details || null,
-        virtual_meet_payment_amount: formData.event_type === 'zoom-call' ? (parseFloat(formData.virtual_meet_payment_amount) || 5.00) : null,
+        virtual_meet_payment_amount: formData.event_type === 'zoom-call' ? (parseFloat(formData.virtual_meet_payment_amount) ?? 5.00) : null,
         end_date: formData.end_date ? `${formData.end_date}T00:00:00` : null,
         end_time: formData.end_time || null,
         end_timezone: formData.end_timezone || 'America/Los_Angeles',
@@ -322,7 +322,7 @@ const PollManagement = () => {
         event_timezone: formData.event_timezone || 'America/Los_Angeles',
         event_location: formData.event_location || null,
         event_details: formData.event_details || null,
-        virtual_meet_payment_amount: formData.event_type === 'zoom-call' ? (parseFloat(formData.virtual_meet_payment_amount) || 5.00) : null,
+        virtual_meet_payment_amount: formData.event_type === 'zoom-call' ? (parseFloat(formData.virtual_meet_payment_amount) ?? 5.00) : null,
         end_date: formData.end_date ? `${formData.end_date}T00:00:00` : undefined,
         end_time: formData.end_time || null,
         end_timezone: formData.end_timezone || 'America/Los_Angeles',
@@ -746,16 +746,28 @@ const PollManagement = () => {
                   </div>
                   {formData.event_type === 'zoom-call' && (
                     <div className="poll-form-group">
-                      <label>Virtual Meet Fee ($)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.virtual_meet_payment_amount}
-                        onChange={(e) => setFormData(prev => ({ ...prev, virtual_meet_payment_amount: e.target.value }))}
-                        placeholder="5.00"
-                      />
-                      <small className="poll-form-hint">Users pay this to access Virtual Meets match list</small>
+                      <label className="poll-checkbox-label poll-free-event-toggle">
+                        <input
+                          type="checkbox"
+                          checked={parseFloat(formData.virtual_meet_payment_amount) === 0}
+                          onChange={(e) => setFormData(prev => ({ ...prev, virtual_meet_payment_amount: e.target.checked ? 0 : 5.00 }))}
+                        />
+                        <span>Free Event (no payment required)</span>
+                      </label>
+                      {parseFloat(formData.virtual_meet_payment_amount) !== 0 && (
+                        <>
+                          <label>Virtual Meet Fee ($)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            value={formData.virtual_meet_payment_amount}
+                            onChange={(e) => setFormData(prev => ({ ...prev, virtual_meet_payment_amount: e.target.value }))}
+                            placeholder="5.00"
+                          />
+                          <small className="poll-form-hint">Users pay this to access Virtual Meets match list</small>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -938,16 +950,28 @@ const PollManagement = () => {
                   </div>
                   {formData.event_type === 'zoom-call' && (
                     <div className="poll-form-group">
-                      <label>Virtual Meet Fee ($)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.virtual_meet_payment_amount}
-                        onChange={(e) => setFormData(prev => ({ ...prev, virtual_meet_payment_amount: e.target.value }))}
-                        placeholder="5.00"
-                      />
-                      <small className="poll-form-hint">Users pay this to access Virtual Meets match list</small>
+                      <label className="poll-checkbox-label poll-free-event-toggle">
+                        <input
+                          type="checkbox"
+                          checked={parseFloat(formData.virtual_meet_payment_amount) === 0}
+                          onChange={(e) => setFormData(prev => ({ ...prev, virtual_meet_payment_amount: e.target.checked ? 0 : 5.00 }))}
+                        />
+                        <span>Free Event (no payment required)</span>
+                      </label>
+                      {parseFloat(formData.virtual_meet_payment_amount) !== 0 && (
+                        <>
+                          <label>Virtual Meet Fee ($)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            value={formData.virtual_meet_payment_amount}
+                            onChange={(e) => setFormData(prev => ({ ...prev, virtual_meet_payment_amount: e.target.value }))}
+                            placeholder="5.00"
+                          />
+                          <small className="poll-form-hint">Users pay this to access Virtual Meets match list</small>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

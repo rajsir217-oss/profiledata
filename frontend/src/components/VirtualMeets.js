@@ -30,9 +30,10 @@ const VirtualMeets = () => {
   const [pairUserB, setPairUserB] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancelRoom, setConfirmCancelRoom] = useState(null);
-  const [showBulkPairModal, setShowBulkPairModal] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [analyticsData, setAnalyticsData] = useState(null);
+  const [selectedMale, setSelectedMale] = useState(null);
+  const [selectedFemale, setSelectedFemale] = useState(null);
 
   // ─── Load Events ─────────────────────────────────────────────────────
 
@@ -206,7 +207,6 @@ const VirtualMeets = () => {
       });
       
       setToast({ message: response.data.message || 'Users paired successfully', type: 'success' });
-      setShowBulkPairModal(false);
       setPairUserA('');
       setPairUserB('');
       
@@ -219,7 +219,63 @@ const VirtualMeets = () => {
     }
   };
 
+  const handlePairSelected = async () => {
+    if (!selectedMale || !selectedFemale) {
+      setToast({ message: 'Please select one male and one female participant', type: 'error' });
+      return;
+    }
+    
+    if (!selectedEvent) {
+      setToast({ message: 'No event selected', type: 'error' });
+      return;
+    }
+
+    // Check if this pair already exists
+    if (adminOverview?.rooms) {
+      const alreadyPaired = adminOverview.rooms.some(room =>
+        (room.status === 'confirmed' || room.status === 'active') &&
+        ((room.user_a === selectedMale && room.user_b === selectedFemale) ||
+         (room.user_a === selectedFemale && room.user_b === selectedMale))
+      );
+      if (alreadyPaired) {
+        setToast({ message: `${selectedMale} and ${selectedFemale} are already paired together`, type: 'error' });
+        return;
+      }
+    }
+    
+    try {
+      const response = await vmApi.post(`/api/virtual-meets/${selectedEvent.poll_id}/admin/bulk-pair`, {
+        user_a: selectedMale,
+        user_b: selectedFemale
+      });
+      
+      setToast({ message: response.data.message || 'Users paired successfully', type: 'success' });
+      setSelectedMale(null);
+      setSelectedFemale(null);
+      
+      // Reload admin overview to show new room
+      if (adminView) {
+        loadAdminOverview(selectedEvent.poll_id);
+      }
+    } catch (err) {
+      setToast({ message: err.response?.data?.detail || 'Failed to pair users', type: 'error' });
+    }
+  };
+
   
+  const handleAdminUnpair = async (roomId) => {
+    if (!selectedEvent) return;
+    try {
+      const response = await vmApi.post(`/api/virtual-meets/${selectedEvent.poll_id}/admin/unpair`, {
+        room_id: roomId
+      });
+      setToast({ message: response.data.message || 'Room unpaired successfully', type: 'success' });
+      loadAdminOverview(selectedEvent.poll_id);
+    } catch (err) {
+      setToast({ message: err.response?.data?.detail || 'Failed to unpair room', type: 'error' });
+    }
+  };
+
   const handleExpireRooms = async (pollId) => {
     try {
       const response = await vmApi.post(`/api/virtual-meets/${pollId}/admin/expire-rooms`);
@@ -884,40 +940,7 @@ const VirtualMeets = () => {
         {/* Admin Actions */}
         <div className="vm-section">
           <h3 className="vm-section-title">Admin Actions</h3>
-
-          {/* Manual Pair */}
-          <div className="vm-admin-pair">
-            <h4>Force Pair Users</h4>
-            <div className="vm-admin-pair-inputs">
-              <input
-                type="text"
-                placeholder="Username A"
-                value={pairUserA}
-                onChange={(e) => setPairUserA(e.target.value)}
-                className="vm-input"
-              />
-              <span className="vm-pair-arrow">↔</span>
-              <input
-                type="text"
-                placeholder="Username B"
-                value={pairUserB}
-                onChange={(e) => setPairUserB(e.target.value)}
-                className="vm-input"
-              />
-              <button className="vm-btn vm-btn-primary" onClick={handleBulkPair}>
-                Pair
-              </button>
-            </div>
-          </div>
-
-          {/* Admin Actions */}
           <div className="vm-admin-action-row">
-            <button
-              className="vm-btn vm-btn-primary"
-              onClick={() => setShowBulkPairModal(true)}
-            >
-              🔧 Bulk Pair Users
-            </button>
             <button
               className="vm-btn vm-btn-primary"
               onClick={() => setShowAnalytics(!showAnalytics)}
@@ -941,21 +964,30 @@ const VirtualMeets = () => {
               <table className="vm-admin-table">
                 <thead>
                   <tr>
-                    <th>#</th>
+                    <th>Room</th>
                     <th>User A</th>
                     <th>User B</th>
                     <th>Status</th>
-                    <th>Notes</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ov.rooms.map(room => (
                     <tr key={room._id}>
-                      <td>{room.room_number}</td>
+                      <td><span className="vm-room-label">Room-{room.room_number}</span></td>
                       <td>{room.user_a}</td>
                       <td>{room.user_b}</td>
                       <td><span className={`vm-status-badge vm-badge-${room.status === 'confirmed' ? 'accepted' : room.status === 'active' ? 'accepted' : 'declined'}`}>{room.status}</span></td>
-                      <td>{room.notes || '—'}</td>
+                      <td>
+                        {(room.status === 'confirmed' || room.status === 'active') && (
+                          <button
+                            className="vm-btn vm-btn-unpair"
+                            onClick={() => handleAdminUnpair(room._id)}
+                          >
+                            Unpair
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -964,32 +996,117 @@ const VirtualMeets = () => {
           </div>
         )}
 
-        {/* Participants List */}
+        {/* Participants List - Split by Gender */}
         {ov.participants && ov.participants.length > 0 && (
           <div className="vm-section">
-            <h3 className="vm-section-title">👥 Participants ({ov.participants.length})</h3>
-            <div className="vm-admin-table-wrapper">
-              <table className="vm-admin-table">
-                <thead>
-                  <tr>
-                    <th>Username</th>
-                    <th>Gender</th>
-                    <th>Payment</th>
-                    <th>Access</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ov.participants.map(p => (
-                    <tr key={p._id}>
-                      <td>{p.username}</td>
-                      <td>{p.gender}</td>
-                      <td><span className={`vm-status-badge vm-badge-${p.payment_status === 'completed' ? 'accepted' : p.payment_status === 'not_required' ? 'accepted' : 'pending'}`}>{p.payment_status}</span></td>
-                      <td>{p.access_unlocked ? '✅' : '🔒'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="vm-participants-header">
+              <h3 className="vm-section-title">👥 Participants ({ov.participants.length})</h3>
+              {(selectedMale || selectedFemale) && (
+                <button 
+                  className="vm-btn vm-btn-primary vm-btn-pair-selected"
+                  onClick={handlePairSelected}
+                  disabled={!selectedMale || !selectedFemale}
+                >
+                  🔗 Pair Selected Match
+                </button>
+              )}
             </div>
+            
+            {(() => {
+              const roomCounts = {};
+              ov.rooms?.forEach(room => {
+                if (room.status === 'confirmed' || room.status === 'active') {
+                  roomCounts[room.user_a] = (roomCounts[room.user_a] || 0) + 1;
+                  roomCounts[room.user_b] = (roomCounts[room.user_b] || 0) + 1;
+                }
+              });
+              const males = ov.participants.filter(p => p.gender === 'Male');
+              const females = ov.participants.filter(p => p.gender === 'Female');
+
+              return (
+                <div className="vm-participants-grid">
+                  {/* Male Participants */}
+                  <div className="vm-gender-section">
+                    <h4 className="vm-gender-title">Male ({males.length})</h4>
+                    <div className="vm-admin-table-wrapper">
+                      <table className="vm-admin-table">
+                        <thead>
+                          <tr>
+                            <th></th>
+                            <th>Username</th>
+                            <th>Payment</th>
+                            <th>Access</th>
+                            <th>Rooms</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {males.map(p => {
+                            const count = roomCounts[p.username] || 0;
+                            return (
+                              <tr key={p._id} className={selectedMale === p.username ? 'vm-selected-row' : ''}>
+                                <td>
+                                  <input
+                                    type="radio"
+                                    name="selectedMale"
+                                    checked={selectedMale === p.username}
+                                    onChange={() => setSelectedMale(p.username)}
+                                    className="vm-select-checkbox"
+                                  />
+                                </td>
+                                <td>{p.username}</td>
+                                <td><span className={`vm-status-badge vm-badge-${p.payment_status === 'completed' ? 'accepted' : p.payment_status === 'not_required' ? 'accepted' : 'pending'}`}>{p.payment_status}</span></td>
+                                <td>{p.access_unlocked ? '✅' : '🔒'}</td>
+                                <td>{count > 0 ? <span className="vm-room-count">{count}</span> : '—'}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Female Participants */}
+                  <div className="vm-gender-section">
+                    <h4 className="vm-gender-title">Female ({females.length})</h4>
+                    <div className="vm-admin-table-wrapper">
+                      <table className="vm-admin-table">
+                        <thead>
+                          <tr>
+                            <th></th>
+                            <th>Username</th>
+                            <th>Payment</th>
+                            <th>Access</th>
+                            <th>Rooms</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {females.map(p => {
+                            const count = roomCounts[p.username] || 0;
+                            return (
+                              <tr key={p._id} className={selectedFemale === p.username ? 'vm-selected-row' : ''}>
+                                <td>
+                                  <input
+                                    type="radio"
+                                    name="selectedFemale"
+                                    checked={selectedFemale === p.username}
+                                    onChange={() => setSelectedFemale(p.username)}
+                                    className="vm-select-checkbox"
+                                  />
+                                </td>
+                                <td>{p.username}</td>
+                                <td><span className={`vm-status-badge vm-badge-${p.payment_status === 'completed' ? 'accepted' : p.payment_status === 'not_required' ? 'accepted' : 'pending'}`}>{p.payment_status}</span></td>
+                                <td>{p.access_unlocked ? '✅' : '🔒'}</td>
+                                <td>{count > 0 ? <span className="vm-room-count">{count}</span> : '—'}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
@@ -1061,91 +1178,36 @@ const VirtualMeets = () => {
     );
   };
 
-  // ─── Render: Bulk Pair Modal ─────────────────────────────────────────────
-
-  const renderBulkPairModal = () => {
-    if (!showBulkPairModal) return null;
-
-    return (
-      <div className="modal-overlay" onClick={() => setShowBulkPairModal(false)}>
-        <div className="modal vm-bulk-pair-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2>🔧 Bulk Pair Users</h2>
-            <button className="modal-close" onClick={() => setShowBulkPairModal(false)}>✕</button>
-          </div>
-          <div className="modal-body">
-            <p className="vm-modal-description">
-              Manually pair two users in a room. Both users must be participants in this event.
-            </p>
-            <div className="vm-pair-form">
-              <div className="vm-pair-input-group">
-                <label>User A Username:</label>
-                <input
-                  type="text"
-                  value={pairUserA}
-                  onChange={(e) => setPairUserA(e.target.value)}
-                  placeholder="Enter first username..."
-                  className="vm-input"
-                />
-              </div>
-              <div className="vm-pair-input-group">
-                <label>User B Username:</label>
-                <input
-                  type="text"
-                  value={pairUserB}
-                  onChange={(e) => setPairUserB(e.target.value)}
-                  placeholder="Enter second username..."
-                  className="vm-input"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="modal-footer">
-            <button className="vm-btn vm-btn-secondary" onClick={() => setShowBulkPairModal(false)}>
-              Cancel
-            </button>
-            <button className="vm-btn vm-btn-primary" onClick={handleBulkPair}>
-              Pair Users
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // ─── Main Render ─────────────────────────────────────────────────────
 
   return (
     <div className="vm-container">
-      <div className="vm-page-header">
-        <div className="vm-header-left">
-          <h1 className="vm-page-title">🎥 Virtual Meets</h1>
-          <p className="vm-page-subtitle">Match with participants and connect in 1:1 virtual rooms</p>
+        <div className="vm-page-header">
+          <div className="vm-header-left">
+            <h1 className="vm-page-title">🎥 Virtual Meets</h1>
+            <p className="vm-page-subtitle">Match with participants and connect in 1:1 virtual rooms</p>
+          </div>
         </div>
-      </div>
 
-      {adminView ? renderAdminOverview() : selectedEvent ? renderMatchList() : renderEventsList()}
+        {adminView ? renderAdminOverview() : selectedEvent ? renderMatchList() : renderEventsList()}
 
-      {/* Analytics Section (shown when admin view and analytics toggle is on) */}
-      {adminView && showAnalytics && renderAnalytics()}
+        {/* Analytics Section (shown when admin view and analytics toggle is on) */}
+        {adminView && showAnalytics && renderAnalytics()}
 
-      {/* Bulk Pair Modal */}
-      {renderBulkPairModal()}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
+        <VirtualMeetPaymentModal
+          isOpen={!!paymentModalEvent}
+          onClose={() => setPaymentModalEvent(null)}
+          onSuccess={handlePaymentSuccess}
+          event={paymentModalEvent}
         />
-      )}
-
-      <VirtualMeetPaymentModal
-        isOpen={!!paymentModalEvent}
-        onClose={() => setPaymentModalEvent(null)}
-        onSuccess={handlePaymentSuccess}
-        event={paymentModalEvent}
-      />
     </div>
   );
 };

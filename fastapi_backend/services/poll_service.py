@@ -571,9 +571,12 @@ class PollService:
             payment_status = "not_required"
             payment_amount = None
             
+            event_fee = float(poll.get("virtual_meet_payment_amount", 5.00) or 0)
+            
             if (poll.get("event_type") and 
                 poll.get("event_type") in ["in-person", "virtual", "zoom-call", "hybrid"] and 
-                rsvp_response == "yes"):
+                rsvp_response == "yes" and
+                event_fee > 0):
                 
                 # Get user role to check exemption
                 user = await self.users_collection.find_one({"username": username})
@@ -582,7 +585,7 @@ class PollService:
                 if user_role not in ["admin", "moderator"]:
                     payment_required = True
                     payment_status = "pending" if response_data.payment_status != "completed" else "completed"
-                    payment_amount = poll.get("virtual_meet_payment_amount", 5.00)
+                    payment_amount = event_fee
                     
                     # For initial submission, payment must be completed for "Yes" responses
                     if response_data.payment_status != "completed":
