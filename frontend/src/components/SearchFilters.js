@@ -400,12 +400,15 @@ const SearchFilters = ({
                 type="number"
                 className="form-control"
                 name="daysBack"
-                value={searchCriteria.daysBack || ''}
+                value={searchCriteria.daysBack ?? ''}
                 onChange={handleInputChange}
-                min="1"
+                min="0"
                 max="365"
                 placeholder="30"
               />
+              <small className="form-text text-muted">
+                Set to 0 for all-time results, or use the quick time window buttons on the search page.
+              </small>
             </div>
           </div>
           <div className="col-has-photo">
