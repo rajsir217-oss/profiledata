@@ -127,6 +127,22 @@ const buildDefaultCriteria = (profile) => {
   };
 };
 
+const DAYS_BACK_PRESETS = [30, 60, 90, 120, 180, 0];
+
+const getDaysBackLabel = (daysBack) => {
+  const value = Number(daysBack);
+  return value === 0 ? 'All' : `${value}d`;
+};
+
+const normalizeDaysBackValue = (daysBack, fallback = 30) => {
+  if (daysBack === '' || daysBack === null || daysBack === undefined) {
+    return fallback;
+  }
+
+  const parsed = Number(daysBack);
+  return Number.isNaN(parsed) ? fallback : parsed;
+};
+
 const SearchPage2 = () => {
   // Activity logger hook
   const { logPageVisit, logSearchResultsViewed } = useActivityLogger();
@@ -1071,7 +1087,7 @@ const SearchPage2 = () => {
     logger.info(`🔧 Input changed: ${name} = ${value}`);
     setSearchCriteria(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : (name === 'daysBack' ? normalizeDaysBackValue(value, prev.daysBack ?? 30) : value)
     }));
   };
 
@@ -1098,6 +1114,18 @@ const SearchPage2 = () => {
     // Don't trigger server search - client-side sorting handles it
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const handleQuickDaysBackChange = useCallback((nextDaysBack) => {
+    const normalizedDaysBack = normalizeDaysBackValue(nextDaysBack, 30);
+    const nextCriteria = {
+      ...searchCriteria,
+      daysBack: normalizedDaysBack
+    };
+
+    setSearchCriteria(nextCriteria);
+    handleSearchHook(1, 0, nextCriteria);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [searchCriteria, setSearchCriteria, handleSearchHook]);
 
   // Toggle sort order - CLIENT-SIDE ONLY (no server re-fetch needed)
   const toggleSortOrder = () => {
@@ -1301,8 +1329,12 @@ const SearchPage2 = () => {
     }
     
     // Days Back (new profiles)
-    if (criteria.daysBack && criteria.daysBack > 0) {
-      parts.push(`joined in last ${criteria.daysBack} days`);
+    const normalizedDaysBack = normalizeDaysBackValue(criteria.daysBack, 30);
+
+    if (normalizedDaysBack === 0) {
+      parts.push('across all time');
+    } else if (normalizedDaysBack > 0) {
+      parts.push(`joined in last ${normalizedDaysBack} days`);
     }
     
     // Join all parts with commas and "and" before the last item
@@ -1354,7 +1386,7 @@ const SearchPage2 = () => {
     // Apply default daysBack if not set in saved search (for backward compatibility)
     const criteriaWithDefaults = {
       ...criteria,
-      daysBack: criteria.daysBack || 30,
+      daysBack: normalizeDaysBackValue(criteria.daysBack, 30),
       hasPhoto: criteria.hasPhoto !== undefined ? criteria.hasPhoto : true
     };
     
@@ -1788,8 +1820,12 @@ const SearchPage2 = () => {
     if (searchCriteria.hasPhoto) summary.push('📸 Photos Only');
     
     // Days back filter
-    if (searchCriteria.daysBack && searchCriteria.daysBack > 0) {
-      summary.push(`📅 Last ${searchCriteria.daysBack}d`);
+    const normalizedDaysBack = normalizeDaysBackValue(searchCriteria.daysBack, 30);
+
+    if (normalizedDaysBack === 0) {
+      summary.push('📅 All time');
+    } else if (normalizedDaysBack > 0) {
+      summary.push(`📅 Last ${normalizedDaysBack}d`);
     }
     
     return summary.length > 0 ? summary.join(' • ') : 'Showing all matches';
@@ -1885,6 +1921,31 @@ const SearchPage2 = () => {
         </div>
       </div>
 
+      <div className="days-back-quick-bar">
+        <div className="days-back-quick-label">
+          <span className="days-back-quick-title">Quick time window</span>
+          <span className="days-back-quick-subtitle">Broaden results without opening filters</span>
+        </div>
+        <div className="days-back-quick-selector" role="tablist" aria-label="Quick time window selector">
+          {DAYS_BACK_PRESETS.map((option) => {
+            const isActive = Number(searchCriteria.daysBack ?? 30) === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                className={`days-back-quick-btn ${isActive ? 'active' : ''}`}
+                onClick={() => handleQuickDaysBackChange(option)}
+                aria-pressed={isActive}
+                title={option === 0 ? 'Show profiles from all time' : `Show profiles from the last ${option} days`}
+              >
+                {getDaysBackLabel(option)}
+              </button>
+            );
+          })}
+        </div>
+
+      </div>
+
       <div className="search-container">
         <div className="search-results" ref={searchResultsRef}>
           {loading && (
@@ -1951,7 +2012,19 @@ const SearchPage2 = () => {
               ) : (
                 <>
                   <h5>No profiles found</h5>
-                  <p>Try adjusting your search criteria or use broader filters or reload the page.</p>
+                  <p>Try widening the time window, clearing one or two filters, or reloading the page.</p>
+                  <div className="no-results-actions">
+                    {DAYS_BACK_PRESETS.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        className={`no-results-chip ${Number(searchCriteria.daysBack ?? 30) === option ? 'active' : ''}`}
+                        onClick={() => handleQuickDaysBackChange(option)}
+                      >
+                        {option === 0 ? 'All time' : `${option}d`}
+                      </button>
+                    ))}
+                  </div>
                 </>
               )}
             </div>
