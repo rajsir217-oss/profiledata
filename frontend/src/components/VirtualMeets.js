@@ -411,6 +411,45 @@ const VirtualMeets = () => {
     document.body.removeChild(link);
   };
 
+  const exportRoomsCSV = () => {
+    if (!adminOverview || !selectedEvent) return;
+    const rooms = adminOverview.rooms || [];
+    if (rooms.length === 0) {
+      setToast({ message: 'No rooms to export', type: 'warning' });
+      return;
+    }
+
+    const esc = (val) => {
+      if (val == null || val === '') return '';
+      const s = String(val).replace(/"/g, '""');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
+    };
+
+    const rows = [];
+    rows.push(['Room', 'User A', 'User B', 'Status'].join(','));
+
+    rooms.forEach(room => {
+      rows.push([
+        esc(`Room-${room.room_number}`),
+        esc(room.user_a),
+        esc(room.user_b),
+        esc(room.status)
+      ].join(','));
+    });
+
+    const csv = rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `virtual-meet-${selectedEvent.poll_id}-rooms.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setToast({ message: `Exported ${rooms.length} rooms`, type: 'success' });
+  };
+
   const exportMatchListCSV = () => {
     if (!matchData || !selectedEvent) return;
 
@@ -880,6 +919,9 @@ const VirtualMeets = () => {
           <div className="vm-admin-actions">
             <button className="vm-btn vm-btn-export" onClick={exportAdminCSV} title="Export full admin data (participants, rooms, requests) as CSV">
               📥 Export
+            </button>
+            <button className="vm-btn vm-btn-export" onClick={exportRoomsCSV} title="Export rooms only (Room, User A, User B, Status) as CSV">
+              🏠 Rooms
             </button>
             <button
               className={`vm-btn ${confirmDelete ? 'vm-btn-danger-confirm' : 'vm-btn-danger'}`}
