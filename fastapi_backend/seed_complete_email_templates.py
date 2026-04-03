@@ -209,7 +209,9 @@ EMAIL_TEMPLATES = [
             
             <div class="message-box">
                 <div class="sender">From: {match.firstName}, {match.age}</div>
+                {% if message.preview %}
                 <div class="message-preview">"{message.preview}"</div>
+                {% endif %}
             </div>
             
             <p><strong>Don't keep them waiting!</strong> Reply now to keep the conversation going.</p>

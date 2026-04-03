@@ -7818,7 +7818,10 @@ async def send_message(
                 event_type=UserEventType.MESSAGE_SENT,
                 actor_username=from_username,
                 target_username=to_username,
-                metadata={"message_id": message_id}
+                metadata={
+                    "message_id": message_id,
+                    "preview": content.strip()[:100]
+                }
             )
         except Exception as dispatch_err:
             logger.warning(f"⚠️ Failed to dispatch message event: {dispatch_err}")
@@ -8382,7 +8385,7 @@ async def send_message_enhanced(
                 actor_username=username,
                 target_username=message_data.toUsername,
                 metadata={
-                    "message_preview": message_data.content[:50] + "..." if len(message_data.content) > 50 else message_data.content,
+                    "preview": message_data.content[:100],
                     "message_id": str(result.inserted_id),
                     "is_visible": is_visible
                 }
