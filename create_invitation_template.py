@@ -99,6 +99,27 @@ async def create_template():
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
         }
+        .invitation-link-box {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin: 18px 0 10px;
+        }
+        .invitation-link-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+        .invitation-link {
+            font-size: 13px;
+            line-height: 1.6;
+            word-break: break-all;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
         .features {
             background: #f8f9fa;
             padding: 20px;
@@ -187,6 +208,11 @@ async def create_template():
                     Create Your Profile →
                 </a>
             </center>
+
+            <div class="invitation-link-box">
+                <span class="invitation-link-label">Copy this invitation link:</span>
+                <div class="invitation-link">{invitation.link}</div>
+            </div>
             
             <div class="features">
                 <h3>Why Join L3V3LMATCH?</h3>
@@ -234,6 +260,8 @@ Personal Message:
 {% endif %}
 
 Create your profile now: {invitation.link}
+
+Copy this invitation link if needed: {invitation.link}
 
 Why Join L3V3LMATCH?
 • Advanced L3V3L matching algorithm for compatibility
