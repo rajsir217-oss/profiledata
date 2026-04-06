@@ -2101,6 +2101,12 @@
 }
 
 /* Share Profile Button */
+.share-profile-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .share-profile-btn {
   display: inline-flex;
   align-items: center;
@@ -2126,6 +2132,75 @@
 
 .share-profile-btn:active {
   transform: scale(0.96);
+}
+
+.share-profile-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  min-width: 180px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: var(--card-background);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.share-profile-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--surface-color);
+  color: var(--text-color);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.share-profile-option:hover {
+  background: var(--hover-background);
+  border-color: var(--border-color);
+  transform: translateY(-1px);
+}
+
+.share-profile-option:active {
+  transform: scale(0.98);
+}
+
+.share-profile-option:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.share-profile-option-whatsapp {
+  color: var(--text-color);
+}
+
+.share-profile-option-sms {
+  color: var(--text-color);
+}
+
+.share-profile-option-copy {
+  color: var(--text-color);
+}
+
+@media (max-width: 768px) {
+  .share-profile-menu {
+    right: auto;
+    left: 0;
+    min-width: 200px;
+  }
 }
 
 @keyframes modalSlideIn {

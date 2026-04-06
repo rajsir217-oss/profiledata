@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 // eslint-disable-next-line no-unused-vars
 import axios from "axios";
@@ -23,6 +23,13 @@ import ActivitySummaryPanel from "./ActivitySummaryPanel";
 import "./Profile.css";
 import { ACTION_ICONS } from "../constants/icons";
 import { createApiInstance } from "../api";
+import {
+  buildProfileShareMessage,
+  buildSmsShareUrl,
+  buildWhatsAppShareUrl,
+  copyTextToClipboard,
+  getProfileShareFallbackUrl
+} from "../utils/profileShare";
 
 // Use global API factory for session handling
 const verificationApi = createApiInstance();
@@ -96,6 +103,22 @@ const Profile = ({
       setTimeout(() => setStatusMessage(""), 10000);
     }
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target)) {
+        setShowShareMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
   
   // Extract search carousel context from navigation state
   useEffect(() => {
@@ -147,6 +170,8 @@ const Profile = ({
   // Image lightbox state
   const [lightboxImage, setLightboxImage] = useState(null);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const shareMenuRef = useRef(null);
   
   // Collapsed sections state (all collapsed by default)
   const [collapsedSections, setCollapsedSections] = useState({
@@ -862,6 +887,73 @@ const Profile = ({
     }, 5000);
   };
 
+  const resolveShareUrl = async () => {
+    if (!user?.profileId) {
+      return '';
+    }
+
+    const fallbackUrl = getProfileShareFallbackUrl(user.profileId, window.location.origin);
+
+    try {
+      const res = await api.get(`/share-profile/${user.profileId}`);
+      return res.data?.tinyUrl || fallbackUrl;
+    } catch (err) {
+      logger.warn('⚠️ Falling back to local profile share URL:', err);
+      return fallbackUrl;
+    }
+  };
+
+  const handleShareButtonClick = (e) => {
+    e.stopPropagation();
+    if (!user?.profileId) {
+      showToast('Profile link is unavailable', 'warning');
+      return;
+    }
+
+    setShowShareMenu((prev) => !prev);
+  };
+
+  const handleShareOption = async (option) => {
+    if (!user?.profileId) {
+      showToast('Profile link is unavailable', 'warning');
+      return;
+    }
+
+    setShowShareMenu(false);
+
+    try {
+      const shareUrl = await resolveShareUrl();
+      const shareMessage = buildProfileShareMessage(
+        {
+          name: user.name || user.fullName || user.displayName,
+          username: user.username,
+          profileId: user.profileId
+        },
+        shareUrl
+      );
+
+      if (option === 'copy') {
+        await copyTextToClipboard(shareUrl);
+        showToast('🔗 Profile link copied!', 'success');
+        return;
+      }
+
+      if (option === 'whatsapp') {
+        window.open(buildWhatsAppShareUrl(shareMessage), '_blank', 'noopener,noreferrer');
+        showToast('💬 WhatsApp share opened', 'success');
+        return;
+      }
+
+      if (option === 'sms') {
+        window.location.href = buildSmsShareUrl(shareMessage);
+        showToast('📩 SMS share opened', 'success');
+      }
+    } catch (err) {
+      logger.error('❌ Failed to share profile:', err);
+      showToast('Unable to share profile right now', 'error');
+    }
+  };
+
   // Carousel navigation handlers
   const handlePreviousProfile = () => {
     if (searchResults && currentIndex !== null && currentIndex > 0) {
@@ -1572,40 +1664,57 @@ const Profile = ({
                     }}>{user.profileId}</span>
                   </span>
                 )}
-                <button
-                  className="share-profile-btn"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    const btn = e.currentTarget;
-                    const origText = btn.textContent;
-                    btn.textContent = '⏳ ...';
-                    btn.disabled = true;
-                    try {
-                      const res = await api.get(`/share-profile/${user.profileId}`);
-                      const url = res.data?.tinyUrl || `${window.location.origin}/p/${user.profileId}`;
-                      await navigator.clipboard.writeText(url);
-                      showToast('🔗 Profile link copied!', 'success');
-                    } catch {
-                      // Fallback: copy the app's own short URL
-                      const fallback = `${window.location.origin}/p/${user.profileId}`;
-                      try { await navigator.clipboard.writeText(fallback); } catch {
-                        const input = document.createElement('input');
-                        input.value = fallback;
-                        document.body.appendChild(input);
-                        input.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(input);
-                      }
-                      showToast('🔗 Profile link copied!', 'success');
-                    } finally {
-                      btn.textContent = origText;
-                      btn.disabled = false;
-                    }
-                  }}
-                  title="Copy shareable profile link"
-                >
-                  🔗 Share
-                </button>
+                {user.profileId && (
+                  <div className="share-profile-wrapper" ref={shareMenuRef}>
+                    <button
+                      className="share-profile-btn"
+                      onClick={handleShareButtonClick}
+                      aria-haspopup="menu"
+                      aria-expanded={showShareMenu}
+                      title="Share profile"
+                      type="button"
+                    >
+                      🔗 Share ▾
+                    </button>
+
+                    {showShareMenu && (
+                      <div
+                        className="share-profile-menu"
+                        role="menu"
+                        aria-label="Share profile options"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          className="share-profile-option share-profile-option-whatsapp"
+                          onClick={() => handleShareOption('whatsapp')}
+                          disabled={false}
+                          role="menuitem"
+                        >
+                          💬 WhatsApp
+                        </button>
+                        <button
+                          type="button"
+                          className="share-profile-option share-profile-option-sms"
+                          onClick={() => handleShareOption('sms')}
+                          disabled={false}
+                          role="menuitem"
+                        >
+                          📩 SMS Text
+                        </button>
+                        <button
+                          type="button"
+                          className="share-profile-option share-profile-option-copy"
+                          onClick={() => handleShareOption('copy')}
+                          disabled={false}
+                          role="menuitem"
+                        >
+                          🔗 Copy Link
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {isAdmin && (
                   <button
                     className="activity-summary-btn"

@@ -1431,8 +1431,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         data.append('existingImages', JSON.stringify(existingImages));
         
         logger.debug('Updating profile for:', username);
-        console.log('📚 educationHistory being sent:', formData.educationHistory);
-        console.log('💼 workExperience being sent:', formData.workExperience);
+        logger.debug('📚 educationHistory being sent:', formData.educationHistory);
+        logger.debug('💼 workExperience being sent:', formData.workExperience);
         
         await api.put(`/profile/${username}`, data);
         
@@ -3619,6 +3619,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             "profileCreatedBy",  // Rendered explicitly above
             "creatorInfo",  // Creator information object (rendered explicitly in creator section)
             "religion", "languagesSpoken",  // NEW: rendered explicitly
+            "contactNumbers",  // Rendered explicitly in the contact numbers section
             "castePreference", "eatingPreference", "location",
             // Exclude country/regional fields (rendered explicitly above)
             "countryOfOrigin", "countryOfResidence", "state", "caste", "motherTongue", 
