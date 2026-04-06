@@ -186,6 +186,12 @@ const PhotoVisibilityManager = ({
   const handleVisibilityChange = async (index, newVisibility) => {
     const newPhotos = [...photos];
     const oldVisibility = newPhotos[index].visibility;
+
+    // Keep at least one designated profile picture at all times
+    if (newPhotos.length === 1 && oldVisibility === 'profilePic' && newVisibility !== 'profilePic') {
+      showStatus('error', '❌ At least one profile picture is required');
+      return;
+    }
     
     // If changing TO profilePic, remove profilePic from any other photo
     if (newVisibility === 'profilePic') {
@@ -277,6 +283,11 @@ const PhotoVisibilityManager = ({
 
   // Handle delete photo
   const handleDeletePhoto = async (index) => {
+    if (photos.length === 1) {
+      showStatus('error', '❌ At least one profile picture is required');
+      return;
+    }
+
     // 2-click delete pattern
     if (deleteConfirmIndex !== index) {
       setDeleteConfirmIndex(index);
@@ -682,6 +693,7 @@ const PhotoVisibilityManager = ({
                       type="button"
                       className="btn-delete"
                       onClick={() => handleDeletePhoto(index)}
+                      disabled={photos.length === 1}
                       title="Delete this photo"
                     >
                       🗑️

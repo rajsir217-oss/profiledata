@@ -1315,8 +1315,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       return;
     }
 
-    // Validate photos - require at least 1 photo for new registrations
-    if (!isEditMode && newImages.length === 0 && existingImages.length === 0) {
+    // Validate photos - require at least 1 profile photo in all modes
+    if (newImages.length === 0 && existingImages.length === 0) {
       setErrorMsg("📸 Please upload at least one profile photo. Profiles without photos will not appear in search results.");
       setActiveTab('photos');
       window.scrollTo({ top: 0, behavior: 'auto' });
@@ -1639,8 +1639,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       }
       
     } else if (tabId === 'photos') {
-      // Require at least 1 photo for new registrations
-      if (!isEditMode && newImages.length === 0 && existingImages.length === 0) {
+      // Require at least 1 profile photo in all modes
+      if (newImages.length === 0 && existingImages.length === 0) {
         errors.photos = 'At least one profile photo is required';
       }
       
