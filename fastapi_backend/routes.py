@@ -1195,31 +1195,45 @@ async def register_user(
     logger.info(f"📸 Images received: {len(images) if images else 0}")
     for i, img in enumerate(images):
         logger.info(f"  Image {i+1}: filename={img.filename}, content_type={img.content_type}, size={img.size if hasattr(img, 'size') else 'unknown'}")
+
+    if not images or len(images) == 0:
+        logger.warning(f"⚠️ Registration failed for user '{username}': no profile photos uploaded")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one profile photo is required to create a profile"
+        )
     
-    if images and len(images) > 0:
-        logger.info(f"📸 Processing {len(images)} image(s) for user '{username}'")
-        if len(images) > 6:
-            logger.warning(f"⚠️ User '{username}' attempted to upload {len(images)} images (max 6)")
+    logger.info(f"📸 Processing {len(images)} image(s) for user '{username}'")
+    if len(images) > 6:
+        logger.warning(f"⚠️ User '{username}' attempted to upload {len(images)} images (max 6)")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum 6 images allowed"
+        )
+    try:
+        image_paths = await save_multiple_files(images)
+        if len(image_paths) == 0:
+            logger.warning(f"⚠️ Registration failed for user '{username}': no valid profile photos after processing")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Maximum 6 images allowed"
+                detail="At least one valid profile photo is required to create a profile"
             )
-        try:
-            image_paths = await save_multiple_files(images)
-            logger.info(f"✅ Successfully saved {len(image_paths)} image(s) for user '{username}'")
-            logger.info(f"📂 Image paths: {image_paths}")
-        except ValueError as ve:
-            logger.warning(f"🚫 Image validation failed for user '{username}': {ve}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(ve)
-            )
-        except Exception as e:
-            logger.error(f"❌ Error saving images for user '{username}': {e}", exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to save images: {str(e)}"
-            )
+        logger.info(f"✅ Successfully saved {len(image_paths)} image(s) for user '{username}'")
+        logger.info(f"📂 Image paths: {image_paths}")
+    except ValueError as ve:
+        logger.warning(f"🚫 Image validation failed for user '{username}': {ve}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error saving images for user '{username}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save images: {str(e)}"
+        )
     
     # Hash password
     logger.debug(f"Hashing password for user '{username}'")
