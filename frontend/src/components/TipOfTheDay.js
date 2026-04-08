@@ -28,6 +28,10 @@ const TipOfTheDay = () => {
       // Check if already dismissed this session
       if (sessionStorage.getItem('tip_of_day_dismissed')) return;
 
+      // Check if user snoozed — respect localStorage snooze until expiry
+      const snoozeUntil = localStorage.getItem('tip_of_day_snooze_until');
+      if (snoozeUntil && Date.now() < parseInt(snoozeUntil, 10)) return;
+
       const res = await fetch(`${getBackendUrl()}/api/tips/by-category?help_only=false`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -67,6 +71,12 @@ const TipOfTheDay = () => {
   const handleDismiss = () => {
     setIsOpen(false);
     sessionStorage.setItem('tip_of_day_dismissed', 'true');
+  };
+
+  const handleRemind = (days) => {
+    const until = Date.now() + days * 24 * 60 * 60 * 1000;
+    localStorage.setItem('tip_of_day_snooze_until', String(until));
+    setIsOpen(false);
   };
 
   const handlePrev = () => {
@@ -121,6 +131,16 @@ const TipOfTheDay = () => {
           <button className="totd-nav-btn" onClick={handlePrev} title="Previous tip">◀</button>
           <span className="totd-counter">{currentIndex + 1} / {tips.length}</span>
           <button className="totd-nav-btn" onClick={handleNext} title="Next tip">▶</button>
+        </div>
+
+        {/* Remind me row */}
+        <div className="totd-remind-row">
+          <span className="totd-remind-label">Remind me in</span>
+          {[1, 3, 5, 7].map(d => (
+            <button key={d} className="totd-remind-btn" onClick={() => handleRemind(d)}>
+              {d}d
+            </button>
+          ))}
         </div>
       </div>
     </div>
