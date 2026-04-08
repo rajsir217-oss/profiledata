@@ -170,6 +170,15 @@ const Profile = ({
   // Image lightbox state
   const [lightboxImage, setLightboxImage] = useState(null);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
+  const [lightboxPan, setLightboxPan] = useState({ x: 0, y: 0 });
+  const [lightboxDragging, setLightboxDragging] = useState(false);
+  const lightboxDragStart = useRef({ x: 0, y: 0 });
+  const lightboxPanStart = useRef({ x: 0, y: 0 });
+  const lightboxIndexRef = useRef(0);
+  const lightboxImagesRef = useRef([]);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef(null);
   
@@ -903,6 +912,57 @@ const Profile = ({
     }
   };
 
+  const openLightbox = (imageUrl, imageSet) => {
+    const images = imageSet && imageSet.length > 0 ? imageSet : [imageUrl];
+    const idx = images.indexOf(imageUrl);
+    const safeIdx = idx >= 0 ? idx : 0;
+    lightboxImagesRef.current = images;
+    lightboxIndexRef.current = safeIdx;
+    setLightboxImages(images);
+    setLightboxIndex(safeIdx);
+    setLightboxImage(imageUrl);
+    setLightboxZoom(1);
+    setLightboxPan({ x: 0, y: 0 });
+    setShowLightbox(true);
+  };
+
+  const closeLightbox = () => {
+    setShowLightbox(false);
+    setLightboxImage(null);
+    setLightboxImages([]);
+    setLightboxIndex(0);
+    lightboxIndexRef.current = 0;
+    lightboxImagesRef.current = [];
+    setLightboxZoom(1);
+    setLightboxPan({ x: 0, y: 0 });
+    setLightboxDragging(false);
+  };
+
+  const lightboxNavigate = (dir) => {
+    const imgs = lightboxImagesRef.current;
+    if (!imgs || imgs.length <= 1) return;
+    const next = (lightboxIndexRef.current + dir + imgs.length) % imgs.length;
+    lightboxIndexRef.current = next;
+    setLightboxIndex(next);
+    setLightboxImage(imgs[next]);
+    setLightboxZoom(1);
+    setLightboxPan({ x: 0, y: 0 });
+  };
+
+  const lightboxZoomIn = (e) => {
+    e && e.stopPropagation();
+    setLightboxZoom(z => Math.min(z + 0.5, 5));
+  };
+
+  const lightboxZoomOut = (e) => {
+    e && e.stopPropagation();
+    setLightboxZoom(z => {
+      const next = Math.max(z - 0.5, 1);
+      if (next === 1) setLightboxPan({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
   const handleShareButtonClick = (e) => {
     e.stopPropagation();
     if (!user?.profileId) {
@@ -1520,8 +1580,7 @@ const Profile = ({
             }}
             onClick={() => {
               if (canOpenAvatar) {
-                setLightboxImage(avatarSrc);
-                setShowLightbox(true);
+                openLightbox(avatarSrc, user?.images?.filter(Boolean) || []);
               }
             }}
             title={canOpenAvatar ? 'Click to enlarge' : ''}
@@ -1883,9 +1942,7 @@ const Profile = ({
                     alt="Profile"
                     className="gallery-image"
                     onClick={() => {
-                      // Profile pic is always clickable (it's in the profilePic bucket)
-                      setLightboxImage(user.images[0]);
-                      setShowLightbox(true);
+                      openLightbox(user.images[0], user.images.filter(Boolean));
                     }}
                   />
                 ) : (
@@ -1911,8 +1968,7 @@ const Profile = ({
                         alt={`Gallery item ${index + 1}`}
                         className="gallery-image"
                         onClick={() => {
-                          setLightboxImage(image);
-                          setShowLightbox(true);
+                          openLightbox(image, user.images.filter(Boolean));
                         }}
                       />
                     ) : hasAccess && !image ? (
@@ -2726,14 +2782,12 @@ const Profile = ({
                   role="button"
                   tabIndex={0}
                   onClick={() => {
-                    setLightboxImage(img);
-                    setShowLightbox(true);
+                    openLightbox(img, user.images.filter(Boolean));
                   }}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
-                      setLightboxImage(img);
-                      setShowLightbox(true);
+                      openLightbox(img, user.images.filter(Boolean));
                     }
                   }}
                   aria-label={`View photo ${idx + 1} in full size`}
@@ -2796,8 +2850,8 @@ const Profile = ({
                   onClick={(imageData) => {
                     const imageUrl = imageData?.url || imageData?.imageUrl || imageData;
                     if (imageUrl && typeof imageUrl === 'string') {
-                      setLightboxImage(imageUrl);
-                      setShowLightbox(true);
+                      const allUrls = accessibleImages.filter(i => i.hasAccess).map(i => i.url || i.imageUrl).filter(Boolean);
+                      openLightbox(imageUrl, allUrls);
                     }
                   }}
                 />
@@ -2849,8 +2903,8 @@ const Profile = ({
                     onClick={(imageData) => {
                       const imageUrl = imageData?.url || imageData?.imageUrl || imageData;
                       if (imageUrl && typeof imageUrl === 'string') {
-                        setLightboxImage(imageUrl);
-                        setShowLightbox(true);
+                        const allUrls = publicImageObjects.map(i => i.url || i.imageUrl).filter(Boolean);
+                        openLightbox(imageUrl, allUrls);
                       }
                     }}
                   />
@@ -3149,66 +3203,136 @@ const Profile = ({
         }}
       />
 
-      {/* Image Lightbox Modal */}
+      {/* Image Lightbox Modal — Facebook-style with zoom/pan/navigation */}
       {showLightbox && lightboxImage && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer'
+        <div
+          className="lb-overlay"
+          onClick={closeLightbox}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowRight' && lightboxImages.length > 1) lightboxNavigate(1);
+            if (e.key === 'ArrowLeft'  && lightboxImages.length > 1) lightboxNavigate(-1);
+            if (e.key === '+' || e.key === '=') lightboxZoomIn();
+            if (e.key === '-') lightboxZoomOut();
           }}
-          onClick={() => {
-            setShowLightbox(false);
-            setLightboxImage(null);
-          }}
+          tabIndex={0}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo viewer"
         >
+          {/* Top-left: close */}
           <button
-            style={{
-              position: 'absolute',
-              top: '20px',
-              right: '20px',
-              background: 'rgba(255, 255, 255, 0.9)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              fontSize: '24px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-              zIndex: 10000
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowLightbox(false);
-              setLightboxImage(null);
-            }}
-            title="Close"
+            className="lb-btn lb-close"
+            onClick={(e) => { e.stopPropagation(); closeLightbox(); }}
+            title="Close (Esc)"
           >
             ✕
           </button>
-          <img 
-            src={getAuthenticatedImageUrl(lightboxImage)} 
-            alt="Enlarged view"
-            style={{
-              maxWidth: '90%',
-              maxHeight: '90%',
-              objectFit: 'contain',
-              borderRadius: '8px',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
-            }}
+
+          {/* Top-right: zoom controls */}
+          <div className="lb-zoom-controls" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="lb-btn lb-zoom-in"
+              onClick={lightboxZoomIn}
+              disabled={lightboxZoom >= 5}
+              title="Zoom in (+)"
+            >
+              +
+            </button>
+            <span className="lb-zoom-level">{Math.round(lightboxZoom * 100)}%</span>
+            <button
+              className="lb-btn lb-zoom-out"
+              onClick={lightboxZoomOut}
+              disabled={lightboxZoom <= 1}
+              title="Zoom out (−)"
+            >
+              −
+            </button>
+          </div>
+
+          {/* Photo counter */}
+          {lightboxImages.length > 1 && (
+            <div className="lb-counter" onClick={(e) => e.stopPropagation()}>
+              {lightboxIndex + 1} / {lightboxImages.length}
+            </div>
+          )}
+
+          {/* Left nav */}
+          {lightboxImages.length > 1 && (
+            <button
+              className="lb-btn lb-nav lb-prev"
+              onClick={(e) => { e.stopPropagation(); lightboxNavigate(-1); }}
+              title="Previous (←)"
+            >
+              ‹
+            </button>
+          )}
+
+          {/* Image */}
+          <div
+            className="lb-image-wrap"
             onClick={(e) => e.stopPropagation()}
-          />
+            onMouseDown={(e) => {
+              if (lightboxZoom <= 1) return;
+              setLightboxDragging(true);
+              lightboxDragStart.current = { x: e.clientX, y: e.clientY };
+              lightboxPanStart.current = { ...lightboxPan };
+            }}
+            onMouseMove={(e) => {
+              if (!lightboxDragging) return;
+              const dx = e.clientX - lightboxDragStart.current.x;
+              const dy = e.clientY - lightboxDragStart.current.y;
+              setLightboxPan({ x: lightboxPanStart.current.x + dx, y: lightboxPanStart.current.y + dy });
+            }}
+            onMouseUp={() => setLightboxDragging(false)}
+            onMouseLeave={() => setLightboxDragging(false)}
+            style={{ cursor: lightboxZoom > 1 ? (lightboxDragging ? 'grabbing' : 'grab') : 'default' }}
+          >
+            <img
+              src={getAuthenticatedImageUrl(lightboxImage)}
+              alt={`Photo ${lightboxIndex + 1}`}
+              className="lb-image"
+              style={{
+                transform: `scale(${lightboxZoom}) translate(${lightboxPan.x / lightboxZoom}px, ${lightboxPan.y / lightboxZoom}px)`,
+                transition: lightboxDragging ? 'none' : 'transform 0.2s ease',
+                userSelect: 'none',
+                pointerEvents: 'none'
+              }}
+              draggable={false}
+            />
+          </div>
+
+          {/* Right nav */}
+          {lightboxImages.length > 1 && (
+            <button
+              className="lb-btn lb-nav lb-next"
+              onClick={(e) => { e.stopPropagation(); lightboxNavigate(1); }}
+              title="Next (→)"
+            >
+              ›
+            </button>
+          )}
+
+          {/* Thumbnail strip */}
+          {lightboxImages.length > 1 && (
+            <div className="lb-thumbnails" onClick={(e) => e.stopPropagation()}>
+              {lightboxImages.map((img, i) => (
+                <img
+                  key={i}
+                  src={getAuthenticatedImageUrl(img)}
+                  alt={`Thumbnail ${i + 1}`}
+                  className={`lb-thumb ${i === lightboxIndex ? 'active' : ''}`}
+                  onClick={() => {
+                    lightboxIndexRef.current = i;
+                    setLightboxIndex(i);
+                    setLightboxImage(img);
+                    setLightboxZoom(1);
+                    setLightboxPan({ x: 0, y: 0 });
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
