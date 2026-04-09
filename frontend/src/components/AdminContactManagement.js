@@ -170,10 +170,16 @@ const AdminContactManagement = () => {
         adminName: localStorage.getItem('username')
       });
       
-      // Update local state
+      // Update local state — append to adminReplies array
+      const newReply = {
+        message: replyText,
+        adminName: localStorage.getItem('username'),
+        timestamp: new Date().toISOString()
+      };
       const updatedTicket = {
         ...selectedTicket,
         adminReply: replyText,
+        adminReplies: [...(selectedTicket.adminReplies || []), newReply],
         repliedAt: new Date().toISOString(),
         status: 'in_progress'
       };
@@ -488,14 +494,25 @@ const AdminContactManagement = () => {
                     key: 'original'
                   });
                   
-                  // Admin reply
-                  if (selectedTicket.adminReply) {
+                  // Admin replies (array — supports multiple replies)
+                  if (selectedTicket.adminReplies && selectedTicket.adminReplies.length > 0) {
+                    selectedTicket.adminReplies.forEach((reply, idx) => {
+                      messages.push({
+                        type: 'admin',
+                        sender: `Admin Response${reply.adminName ? ` (${reply.adminName})` : ''}`,
+                        message: reply.message,
+                        timestamp: new Date(reply.timestamp),
+                        key: `admin-reply-${idx}`
+                      });
+                    });
+                  } else if (selectedTicket.adminReply) {
+                    // Fallback for legacy tickets that only have the scalar field
                     messages.push({
                       type: 'admin',
                       sender: 'Admin Response',
                       message: selectedTicket.adminReply,
                       timestamp: new Date(selectedTicket.repliedAt),
-                      key: 'admin-reply'
+                      key: 'admin-reply-legacy'
                     });
                   }
                   

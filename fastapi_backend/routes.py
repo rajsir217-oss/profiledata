@@ -12089,6 +12089,12 @@ async def get_single_ticket(
             for reply in ticket["userReplies"]:
                 if reply.get("timestamp"):
                     reply["timestamp"] = reply["timestamp"].isoformat()
+
+        # Convert adminReplies timestamps
+        if ticket.get("adminReplies"):
+            for reply in ticket["adminReplies"]:
+                if reply.get("timestamp"):
+                    reply["timestamp"] = reply["timestamp"].isoformat()
         
         logger.info(f"✅ Retrieved ticket {ticket_id}")
         return ticket
@@ -12167,10 +12173,17 @@ async def reply_to_ticket(
     
     try:
         from bson import ObjectId
-        
+
+        reply_obj = {
+            "message": adminReply,
+            "adminName": adminName,
+            "timestamp": datetime.utcnow()
+        }
+
         result = await db.contact_tickets.update_one(
             {"_id": ObjectId(ticket_id)},
             {
+                "$push": {"adminReplies": reply_obj},
                 "$set": {
                     "adminReply": adminReply,
                     "repliedAt": datetime.utcnow(),

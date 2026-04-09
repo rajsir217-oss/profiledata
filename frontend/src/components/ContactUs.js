@@ -565,14 +565,25 @@ const ContactUs = () => {
                       key: 'original'
                     });
                     
-                    // Admin reply
-                    if (selectedTicket.adminReply) {
+                    // Admin replies (array — supports multiple replies)
+                    if (selectedTicket.adminReplies && selectedTicket.adminReplies.length > 0) {
+                      selectedTicket.adminReplies.forEach((reply, idx) => {
+                        messages.push({
+                          type: 'admin',
+                          sender: '🛡️ Admin',
+                          message: reply.message,
+                          timestamp: new Date(reply.timestamp),
+                          key: `admin-reply-${idx}`
+                        });
+                      });
+                    } else if (selectedTicket.adminReply) {
+                      // Fallback for legacy tickets
                       messages.push({
                         type: 'admin',
                         sender: '🛡️ Admin',
                         message: selectedTicket.adminReply,
                         timestamp: new Date(selectedTicket.repliedAt),
-                        key: 'admin-reply'
+                        key: 'admin-reply-legacy'
                       });
                     }
                     
