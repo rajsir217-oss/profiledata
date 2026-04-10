@@ -2304,8 +2304,8 @@ const Profile = ({
               <p>
                 <strong>Profile Created By:</strong>{' '}
                 {user.profileCreatedBy === 'me' && <span>👤 Self</span>}
-                {user.profileCreatedBy === 'parent' && <span>👨‍👩‍👧 Parent/Guardian</span>}
-                {user.profileCreatedBy === 'other' && <span>👥 Other (Relative/Friend)</span>}
+                {user.profileCreatedBy === 'parent' && <span>👪 Parent/Guardian</span>}
+                {user.profileCreatedBy === 'other' && <span>🤝 Other (Relative/Friend)</span>}
               </p>
             )}
             {user.location && <p><strong>Location:</strong> {user.location}</p>}

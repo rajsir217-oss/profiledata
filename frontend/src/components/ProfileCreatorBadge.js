@@ -9,20 +9,20 @@ import './ProfileCreatorBadge.css';
 
 const CREATOR_TYPES = {
   me: {
-    label: 'Myself',
-    icon: '✋',
+    label: 'Self',
+    icon: '👤',
     tooltip: 'Profile created by the person themselves',
     color: '#22c55e' // Green
   },
   parent: {
     label: 'Parent',
-    icon: '👨‍👩‍👦',
+    icon: '�',
     tooltip: 'Profile created by parent or guardian',
     color: '#3b82f6' // Blue
   },
   other: {
     label: 'Relative/Friend',
-    icon: '👥',
+    icon: '🤝',
     tooltip: 'Profile created by sibling, friend, or relative',
     color: '#8b5cf6' // Purple
   }
