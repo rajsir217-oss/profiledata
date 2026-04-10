@@ -49,6 +49,7 @@ from routers.site_settings import router as site_settings_router
 from routers.notes import router as notes_router
 from routers.contribution_routes import router as contribution_routes_router
 from routers.whatsapp_verification import router as whatsapp_verification_router
+from routers.registration_interest import router as registration_interest_router
 from routers.braintree_payments import router as braintree_payments_router
 from routers.paypal_payments import router as paypal_payments_router
 from routers.recurring_contributions import router as recurring_contributions_router
@@ -442,6 +443,7 @@ app.include_router(queue_management_router)  # Queue management routes (already 
 app.include_router(clover_payments_router)  # Clover Hosted Checkout routes
 app.include_router(admin_backups_router)  # Admin backups routes (already has /api/admin/backups prefix)
 app.include_router(whatsapp_verification_router)  # WhatsApp verification routes
+app.include_router(registration_interest_router)  # Registration interest routes (already has /api/registration-interest prefix)
 app.include_router(virtual_meets_router)  # Virtual Meets routes (already has /api/virtual-meets prefix)
 
 # Health check endpoint — used by Cloud Run liveness probe.

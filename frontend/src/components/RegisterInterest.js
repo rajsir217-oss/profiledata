@@ -1,0 +1,301 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { getBackendUrl } from '../config/apiConfig';
+import logger from '../utils/logger';
+import './RegisterInterest.css';
+
+const RegisterInterest = () => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    refFirstName: '',
+    refLastName: '',
+    refPhone: '',
+    refEmail: '',
+    residencyStatus: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  // ESC key to go back
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') navigate('/');
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [navigate]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (error) setError('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Basic validation
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      setError('First name and last name are required.');
+      return;
+    }
+    if (!formData.email.trim()) {
+      setError('Email is required.');
+      return;
+    }
+    if (!formData.phone.trim()) {
+      setError('Phone number is required.');
+      return;
+    }
+    if (!formData.residencyStatus) {
+      setError('Please select your residency status.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        residencyStatus: formData.residencyStatus,
+        referredBy: (formData.refFirstName || formData.refLastName || formData.refPhone || formData.refEmail) ? {
+          firstName: formData.refFirstName.trim(),
+          lastName: formData.refLastName.trim(),
+          phone: formData.refPhone.trim(),
+          email: formData.refEmail.trim()
+        } : null
+      };
+
+      await axios.post(`${getBackendUrl()}/api/registration-interest`, payload);
+      setSubmitted(true);
+      logger.info('Registration interest submitted successfully');
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Something went wrong. Please try again.';
+      setError(detail);
+      logger.error('Registration interest submission failed:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Success state
+  if (submitted) {
+    return (
+      <div className="ri-page">
+        <div className="ri-container">
+          <div className="ri-success">
+            <div className="ri-success-icon">✅</div>
+            <h2>Thank You!</h2>
+            <p>Your interest has been submitted. Our team will review your information and get back to you soon.</p>
+            <p className="ri-success-note">You'll receive an email invitation once your submission is approved.</p>
+            <button className="ri-btn ri-btn-secondary" onClick={() => navigate('/')}>
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ri-page">
+      <div className="ri-container">
+        {/* Header */}
+        <div className="ri-header">
+          <button className="ri-back-btn" onClick={() => navigate('/')} title="Back to Home">
+            ← Back
+          </button>
+          <div className="ri-header-text">
+            <h1>📋 Register Your Interest</h1>
+            <p>Tell us about yourself. We'll review your submission and send you an invitation to create your profile.</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="ri-form">
+          {/* Eligibility Notice */}
+          <div className="ri-notice">
+            🇺🇸 This platform is exclusively for <strong>US Citizens</strong> and <strong>Green Card (Permanent Resident) holders</strong>. By submitting this form, you confirm that you meet this requirement.
+          </div>
+
+          {/* Residency Status */}
+          <div className="ri-section">
+            <h3 className="ri-section-title">Residency Status *</h3>
+            <div className="ri-radio-group">
+              <label className={`ri-radio-option ${formData.residencyStatus === 'us_citizen' ? 'ri-radio-selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="residencyStatus"
+                  value="us_citizen"
+                  checked={formData.residencyStatus === 'us_citizen'}
+                  onChange={handleChange}
+                />
+                <span className="ri-radio-label">🇺🇸 US Citizen</span>
+              </label>
+              <label className={`ri-radio-option ${formData.residencyStatus === 'green_card' ? 'ri-radio-selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="residencyStatus"
+                  value="green_card"
+                  checked={formData.residencyStatus === 'green_card'}
+                  onChange={handleChange}
+                />
+                <span className="ri-radio-label">🪪 Green Card Holder</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Your Information */}
+          <div className="ri-section">
+            <h3 className="ri-section-title">Your Information</h3>
+            <div className="ri-field-row">
+              <div className="ri-field">
+                <label htmlFor="firstName">First Name *</label>
+                <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  placeholder="First name"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="ri-field">
+                <label htmlFor="lastName">Last Name *</label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  placeholder="Last name"
+                  required
+                />
+              </div>
+            </div>
+            <div className="ri-field-row">
+              <div className="ri-field">
+                <label htmlFor="email">Email *</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
+              <div className="ri-field">
+                <label htmlFor="phone">Phone *</label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="(555) 123-4567"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Referred By */}
+          <div className="ri-section">
+            <h3 className="ri-section-title">
+              Referred By
+              <span className="ri-optional">Optional but recommended</span>
+            </h3>
+            <p className="ri-section-desc">
+              If someone referred you, provide their details. This helps speed up your verification.
+            </p>
+            <div className="ri-field-row">
+              <div className="ri-field">
+                <label htmlFor="refFirstName">Referrer First Name</label>
+                <input
+                  id="refFirstName"
+                  name="refFirstName"
+                  type="text"
+                  value={formData.refFirstName}
+                  onChange={handleChange}
+                  placeholder="First name"
+                />
+              </div>
+              <div className="ri-field">
+                <label htmlFor="refLastName">Referrer Last Name</label>
+                <input
+                  id="refLastName"
+                  name="refLastName"
+                  type="text"
+                  value={formData.refLastName}
+                  onChange={handleChange}
+                  placeholder="Last name"
+                />
+              </div>
+            </div>
+            <div className="ri-field-row">
+              <div className="ri-field">
+                <label htmlFor="refPhone">Referrer Phone</label>
+                <input
+                  id="refPhone"
+                  name="refPhone"
+                  type="tel"
+                  value={formData.refPhone}
+                  onChange={handleChange}
+                  placeholder="(555) 123-4567"
+                />
+              </div>
+              <div className="ri-field">
+                <label htmlFor="refEmail">Referrer Email</label>
+                <input
+                  id="refEmail"
+                  name="refEmail"
+                  type="email"
+                  value={formData.refEmail}
+                  onChange={handleChange}
+                  placeholder="referrer@email.com"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="ri-error">
+              {error}
+            </div>
+          )}
+
+          {/* Submit */}
+          <div className="ri-actions">
+            <button
+              type="submit"
+              className="ri-btn ri-btn-primary"
+              disabled={submitting}
+            >
+              {submitting ? 'Submitting...' : 'Submit Interest'}
+            </button>
+          </div>
+
+          {/* Security note */}
+          <div className="ri-security-note">
+            🔒 Your data is secure and encrypted. We never share your information with third parties.
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default RegisterInterest;

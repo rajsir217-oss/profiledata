@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createApiInstance } from '../api';
+import { getBackendUrl } from '../config/apiConfig';
 import './AdminPage.css';
 import './LoadMore.css'; // Import LoadMore styles
 import MetaFieldsModal from './MetaFieldsModal';
 import { startImpersonation } from '../utils/impersonation';
+import UniversalTabContainer from './UniversalTabContainer';
+import AdminRegistrationInterests from './AdminRegistrationInterests';
 
 // Use global API factory for session handling
 const adminApi = createApiInstance();
 
 const AdminPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'users');
+  const [pendingInterestCount, setPendingInterestCount] = useState(0);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,6 +38,32 @@ const AdminPage = () => {
   const [selectedUserForMeta, setSelectedUserForMeta] = useState(null);
   const [showDeletionSummary, setShowDeletionSummary] = useState(false);
   const [deletionSummary, setDeletionSummary] = useState(null);
+
+  // Fetch pending interest count for badge
+  const backendApi = createApiInstance(getBackendUrl());
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const res = await backendApi.get('/api/registration-interest/admin/pending-count');
+        setPendingInterestCount(res.data.count || 0);
+      } catch (err) {
+        // Silently fail — badge just won't show
+      }
+    };
+    fetchPendingCount();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  // Sync tab to URL
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === 'users') {
+      searchParams.delete('tab');
+    } else {
+      searchParams.set('tab', tabId);
+    }
+    setSearchParams(searchParams, { replace: true });
+  };
 
   // Multi-layer security check
   useEffect(() => {
@@ -344,21 +376,49 @@ const AdminPage = () => {
   };
 
 
-  if (loading) {
-    return (
-      <div className="admin-page">
+  // Tab configuration
+  const tabs = [
+    {
+      id: 'users',
+      label: 'User Management',
+      icon: '👥',
+      badge: users.length || null,
+      content: renderUserManagement()
+    },
+    {
+      id: 'interests',
+      label: 'Registration Interests',
+      icon: '📋',
+      badge: pendingInterestCount || null,
+      content: <AdminRegistrationInterests />
+    }
+  ];
+
+  return (
+    <div className="admin-page">
+      <UniversalTabContainer
+        tabs={tabs}
+        variant="pills"
+        defaultTab={activeTab}
+        onTabChange={handleTabChange}
+      />
+    </div>
+  );
+
+  function renderUserManagement() {
+    if (loading) {
+      return (
         <div className="text-center mt-5">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Loading...</span>
           </div>
           <p className="mt-3">Loading users...</p>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  return (
-    <div className="admin-page">
+    return (
+      <div>
       <div className="admin-header">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div className="admin-stats">
@@ -867,14 +927,14 @@ const AdminPage = () => {
                 ✕
               </button>
             </div>
-            
+
             {/* Modal Body */}
             <div className="status-modal-body">
               <h3>🗑️ Deletion Summary</h3>
               <p className="current-status">
                 All data for user <strong>{deletionSummary.username}</strong> has been permanently removed from the system.
               </p>
-              
+
               {/* Deletion Stats Grid */}
               <div className="deletion-stats-grid">
                 {deletionSummary.deleted_items.images > 0 && (
@@ -1003,6 +1063,7 @@ const AdminPage = () => {
       )}
     </div>
   );
+  } // end renderUserManagement
 };
 
 export default AdminPage;
