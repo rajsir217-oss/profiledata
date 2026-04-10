@@ -1728,9 +1728,9 @@ const Profile = ({
                 <span className="profile-trust-row">
                   <span 
                     className={`trust-badge ${user.profileCreatedBy ? 'trust-active' : 'trust-inactive'}`} 
-                    title={user.profileCreatedBy ? `Profile created by ${user.profileCreatedBy}` : 'Self or Parent — not specified'}
+                    title={user.profileCreatedBy ? `Profile created by ${user.profileCreatedBy === 'me' ? 'self' : user.profileCreatedBy}` : 'Self or Parent — not specified'}
                   >
-                    👤
+                    {user.profileCreatedBy === 'parent' ? '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}' : user.profileCreatedBy === 'other' ? '\u{1F91D}' : '\u{1F464}'}
                   </span>
                   <span 
                     className={`trust-badge ${user.badges?.communityVerified ? 'trust-active' : 'trust-inactive'}`} 
@@ -2303,9 +2303,9 @@ const Profile = ({
             {user.profileCreatedBy && (
               <p>
                 <strong>Profile Created By:</strong>{' '}
-                {user.profileCreatedBy === 'me' && <span>👤 Self</span>}
-                {user.profileCreatedBy === 'parent' && <span>👪 Parent/Guardian</span>}
-                {user.profileCreatedBy === 'other' && <span>🤝 Other (Relative/Friend)</span>}
+                {user.profileCreatedBy === 'me' && <span>{'\u{1F464}'} Self</span>}
+                {user.profileCreatedBy === 'parent' && <span>{'\u{1F468}\u200D\u{1F469}\u200D\u{1F467}'} Parent/Guardian</span>}
+                {user.profileCreatedBy === 'other' && <span>{'\u{1F91D}'} Other (Relative/Friend)</span>}
               </p>
             )}
             {user.location && <p><strong>Location:</strong> {user.location}</p>}
