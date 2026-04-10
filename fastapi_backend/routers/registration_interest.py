@@ -1,0 +1,338 @@
+"""
+Registration Interest Router
+Handles pre-registration interest form submissions.
+Users submit basic info + optional referral data before any verification or invitation.
+Admin endpoints for review queue management.
+"""
+
+import logging
+from datetime import datetime
+from typing import Optional, List
+from pydantic import BaseModel, EmailStr, Field
+from bson import ObjectId
+from fastapi import APIRouter, HTTPException, status, Depends, Request, Query
+from auth.jwt_auth import get_current_user_dependency as get_current_user
+from database import get_database
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    prefix="/api/registration-interest",
+    tags=["registration-interest"]
+)
+
+
+# --- Models ---
+
+class ReferredByInfo(BaseModel):
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+
+
+class RegistrationInterestCreate(BaseModel):
+    firstName: str = Field(..., min_length=1, max_length=100)
+    lastName: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr
+    phone: str = Field(..., min_length=5, max_length=20)
+    residencyStatus: str = Field(..., pattern="^(us_citizen|green_card)$")
+    referredBy: Optional[ReferredByInfo] = None
+
+
+class RegistrationInterestResponse(BaseModel):
+    success: bool
+    message: str
+
+
+# --- Public Endpoint ---
+
+@router.post("", response_model=RegistrationInterestResponse)
+async def submit_registration_interest(
+    data: RegistrationInterestCreate,
+    request: Request,
+    db=Depends(get_database)
+):
+    """
+    Submit a registration interest form.
+    No auth required — this is a public endpoint for prospective users.
+    """
+    # Check for duplicate email
+    existing = await db.registration_interests.find_one({
+        "email": data.email.lower(),
+        "status": {"$nin": ["rejected"]}
+    })
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An interest form with this email has already been submitted. We'll be in touch soon!"
+        )
+
+    # Check if email is already registered
+    existing_user = await db.users.find_one({"contactEmail": data.email.lower()})
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This email is already associated with an existing account. Please log in instead."
+        )
+
+    # Build referredBy subdoc (only if at least one field provided)
+    referred_by = None
+    if data.referredBy:
+        has_referral = any([
+            data.referredBy.firstName,
+            data.referredBy.lastName,
+            data.referredBy.phone,
+            data.referredBy.email
+        ])
+        if has_referral:
+            referred_by = {
+                "firstName": data.referredBy.firstName or "",
+                "lastName": data.referredBy.lastName or "",
+                "phone": data.referredBy.phone or "",
+                "email": data.referredBy.email or ""
+            }
+
+    now = datetime.utcnow()
+    doc = {
+        "firstName": data.firstName.strip(),
+        "lastName": data.lastName.strip(),
+        "email": data.email.lower().strip(),
+        "phone": data.phone.strip(),
+        "residencyStatus": data.residencyStatus,
+        "referredBy": referred_by,
+        "status": "pending_review",
+        "verificationPath": None,
+        "idmeVerified": False,
+        "idmeUuid": None,
+        "idmeVerifiedAt": None,
+        "invitationId": None,
+        "reviewedBy": None,
+        "reviewedAt": None,
+        "reviewNotes": None,
+        "ipAddress": request.client.host if request else None,
+        "userAgent": request.headers.get("user-agent") if request else None,
+        "createdAt": now,
+        "updatedAt": now
+    }
+
+    result = await db.registration_interests.insert_one(doc)
+    logger.info(f"✅ Registration interest submitted: {data.firstName} {data.lastName} ({data.email}) — ID: {result.inserted_id}")
+
+    return RegistrationInterestResponse(
+        success=True,
+        message="Thank you for your interest! We'll review your submission and get back to you soon."
+    )
+
+
+# --- Admin Helper ---
+
+def check_admin(current_user: dict):
+    """Check if user is admin or moderator"""
+    role = current_user.get("role") or current_user.get("role_name")
+    if role not in ["admin", "moderator"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can manage registration interests"
+        )
+
+
+def serialize_interest(doc: dict) -> dict:
+    """Convert MongoDB doc to JSON-safe dict"""
+    doc["_id"] = str(doc["_id"])
+    if doc.get("invitationId"):
+        doc["invitationId"] = str(doc["invitationId"])
+    return doc
+
+
+# --- Admin Endpoints ---
+
+VALID_STATUSES = [
+    "pending_review", "reference_validated", "idme_sent",
+    "idme_verified", "idme_failed", "invited", "rejected"
+]
+
+
+@router.get("/admin/pending-count")
+async def get_pending_count(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get count of pending interest requests (for sidebar badge)"""
+    check_admin(current_user)
+    count = await db.registration_interests.count_documents({"status": "pending_review"})
+    return {"count": count}
+
+
+@router.get("/admin/all")
+async def list_all_interests(
+    status_filter: Optional[str] = Query(None, alias="status"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """List all registration interests with optional status filter"""
+    check_admin(current_user)
+
+    query = {}
+    if status_filter and status_filter in VALID_STATUSES:
+        query["status"] = status_filter
+
+    cursor = db.registration_interests.find(query).sort("createdAt", -1).skip(skip).limit(limit)
+    interests = []
+    async for doc in cursor:
+        interests.append(serialize_interest(doc))
+
+    total = await db.registration_interests.count_documents(query)
+
+    # Get counts per status for filters
+    pipeline = [
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+    ]
+    status_counts = {}
+    async for s in db.registration_interests.aggregate(pipeline):
+        status_counts[s["_id"]] = s["count"]
+
+    return {
+        "interests": interests,
+        "total": total,
+        "statusCounts": status_counts
+    }
+
+
+@router.put("/{interest_id}/validate")
+async def validate_reference(
+    interest_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Admin validates the reference → marks as reference_validated"""
+    check_admin(current_user)
+
+    if not ObjectId.is_valid(interest_id):
+        raise HTTPException(status_code=400, detail="Invalid interest ID")
+
+    interest = await db.registration_interests.find_one({"_id": ObjectId(interest_id)})
+    if not interest:
+        raise HTTPException(status_code=404, detail="Interest not found")
+
+    if interest["status"] not in ["pending_review"]:
+        raise HTTPException(status_code=400, detail=f"Cannot validate — current status is '{interest['status']}'")
+
+    now = datetime.utcnow()
+    await db.registration_interests.update_one(
+        {"_id": ObjectId(interest_id)},
+        {"$set": {
+            "status": "reference_validated",
+            "verificationPath": "referral",
+            "reviewedBy": current_user.get("username"),
+            "reviewedAt": now,
+            "updatedAt": now
+        }}
+    )
+
+    logger.info(f"✅ Interest {interest_id} reference validated by {current_user.get('username')}")
+    return {"success": True, "message": "Reference validated successfully", "status": "reference_validated"}
+
+
+@router.put("/{interest_id}/send-idme")
+async def send_idme_verification(
+    interest_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Admin triggers ID.me verification email to the user"""
+    check_admin(current_user)
+
+    if not ObjectId.is_valid(interest_id):
+        raise HTTPException(status_code=400, detail="Invalid interest ID")
+
+    interest = await db.registration_interests.find_one({"_id": ObjectId(interest_id)})
+    if not interest:
+        raise HTTPException(status_code=404, detail="Interest not found")
+
+    if interest["status"] not in ["pending_review"]:
+        raise HTTPException(status_code=400, detail=f"Cannot send ID.me — current status is '{interest['status']}'")
+
+    now = datetime.utcnow()
+    await db.registration_interests.update_one(
+        {"_id": ObjectId(interest_id)},
+        {"$set": {
+            "status": "idme_sent",
+            "verificationPath": "idme",
+            "reviewedBy": current_user.get("username"),
+            "reviewedAt": now,
+            "updatedAt": now
+        }}
+    )
+
+    # TODO: Send actual ID.me verification email once OAuth integration is built
+    logger.info(f"🛡️ ID.me verification triggered for interest {interest_id} by {current_user.get('username')}")
+    return {"success": True, "message": "ID.me verification request sent", "status": "idme_sent"}
+
+
+@router.put("/{interest_id}/reject")
+async def reject_interest(
+    interest_id: str,
+    body: dict = None,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Admin rejects the interest request"""
+    check_admin(current_user)
+
+    if not ObjectId.is_valid(interest_id):
+        raise HTTPException(status_code=400, detail="Invalid interest ID")
+
+    interest = await db.registration_interests.find_one({"_id": ObjectId(interest_id)})
+    if not interest:
+        raise HTTPException(status_code=404, detail="Interest not found")
+
+    if interest["status"] == "invited":
+        raise HTTPException(status_code=400, detail="Cannot reject — invitation already sent")
+
+    reason = (body or {}).get("reason", "")
+    now = datetime.utcnow()
+    await db.registration_interests.update_one(
+        {"_id": ObjectId(interest_id)},
+        {"$set": {
+            "status": "rejected",
+            "reviewedBy": current_user.get("username"),
+            "reviewedAt": now,
+            "reviewNotes": reason if reason else interest.get("reviewNotes"),
+            "updatedAt": now
+        }}
+    )
+
+    logger.info(f"❌ Interest {interest_id} rejected by {current_user.get('username')}")
+    return {"success": True, "message": "Interest rejected", "status": "rejected"}
+
+
+@router.put("/{interest_id}/notes")
+async def update_notes(
+    interest_id: str,
+    body: dict,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Admin adds/updates notes on an interest"""
+    check_admin(current_user)
+
+    if not ObjectId.is_valid(interest_id):
+        raise HTTPException(status_code=400, detail="Invalid interest ID")
+
+    interest = await db.registration_interests.find_one({"_id": ObjectId(interest_id)})
+    if not interest:
+        raise HTTPException(status_code=404, detail="Interest not found")
+
+    notes = body.get("notes", "")
+    await db.registration_interests.update_one(
+        {"_id": ObjectId(interest_id)},
+        {"$set": {
+            "reviewNotes": notes,
+            "updatedAt": datetime.utcnow()
+        }}
+    )
+
+    return {"success": True, "message": "Notes updated"}

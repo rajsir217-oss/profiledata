@@ -1,0 +1,413 @@
+/* AdminRegistrationInterests — Review queue for registration interests */
+
+.ari-page {
+  width: 100%;
+  padding: 1rem 0;
+}
+
+/* Header */
+.ari-header {
+  margin-bottom: 1.5rem;
+}
+
+.ari-header h1 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.ari-header p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Filter Tabs */
+.ari-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ari-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  background: var(--surface-color);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.ari-filter-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.ari-filter-btn.ari-filter-active {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  border-color: transparent;
+}
+
+.ari-filter-count {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ari-filter-btn:not(.ari-filter-active) .ari-filter-count {
+  background: var(--hover-background);
+}
+
+/* Loading / Empty */
+.ari-loading,
+.ari-empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* Card List */
+.ari-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Card */
+.ari-card {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.ari-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.ari-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  gap: 16px;
+}
+
+.ari-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ari-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ari-residency {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--info-color, #3b82f6);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.ari-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ari-card-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ari-expand-icon {
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+/* Status Badge */
+.ari-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1.5px solid;
+  background: transparent;
+  white-space: nowrap;
+}
+
+/* Expanded body */
+.ari-card-body {
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.ari-detail-section {
+  margin-top: 16px;
+}
+
+.ari-detail-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ari-detail-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.ari-detail-grid strong {
+  color: var(--text-secondary);
+}
+
+.ari-no-data {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.ari-notes-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-color);
+  background: var(--surface-color);
+  padding: 10px 14px;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+/* Action Buttons */
+.ari-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.ari-action-btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ari-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ari-btn-validate {
+  background: var(--success-color, #10b981);
+  color: white;
+}
+
+.ari-btn-validate:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.ari-btn-idme {
+  background: var(--info-color, #3b82f6);
+  color: white;
+}
+
+.ari-btn-idme:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.ari-btn-reject {
+  background: var(--danger-color, #ef4444);
+  color: white;
+}
+
+.ari-btn-reject:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.ari-btn-secondary {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+}
+
+.ari-btn-secondary:hover {
+  border-color: var(--primary-color);
+}
+
+/* Reject Modal */
+.ari-reject-modal {
+  max-width: 480px;
+  width: 90%;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.ari-reject-modal-header {
+  background: linear-gradient(135deg, var(--danger-color, #ef4444) 0%, #dc2626 100%);
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  border-radius: 16px 16px 0 0;
+}
+
+.ari-reject-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ari-reject-modal-close {
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.ari-reject-modal-close:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.05);
+}
+
+.ari-reject-modal-body {
+  padding: 24px;
+  background: var(--card-background);
+}
+
+.ari-reject-modal-body label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.ari-reject-modal-body textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text-color);
+  background: var(--input-bg);
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.ari-reject-modal-body textarea:focus {
+  outline: none;
+  border-color: var(--danger-color, #ef4444);
+}
+
+.ari-reject-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: var(--card-background);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ari-page {
+    padding: 1rem;
+  }
+
+  .ari-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .ari-card-right {
+    align-self: flex-end;
+  }
+
+  .ari-card-meta {
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .ari-filters {
+    gap: 6px;
+  }
+
+  .ari-filter-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .ari-actions {
+    flex-direction: column;
+  }
+
+  .ari-action-btn {
+    width: 100%;
+    text-align: center;
+  }
+}

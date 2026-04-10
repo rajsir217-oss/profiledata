@@ -62,7 +62,7 @@ const LandingPage = () => {
             <button className="btn-get-started" onClick={() => navigate('/login')}>
               Member Login
             </button>
-            <button className="btn-register-profile" onClick={() => navigate('/verification')}>
+            <button className="btn-register-profile" onClick={() => navigate('/register-interest')}>
               Register Profile
             </button>
             <button className="btn-learn-more" onClick={() => document.querySelector('.how-it-works').scrollIntoView({ behavior: 'smooth' })}>

@@ -1,0 +1,329 @@
+/* RegisterInterest — Pre-registration interest form */
+
+.ri-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background-color, #f5f7fa);
+  padding: 2rem 1rem;
+}
+
+.ri-container {
+  width: 100%;
+  max-width: 640px;
+  background: var(--card-background, #fff);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+/* Header */
+.ri-header {
+  background: linear-gradient(135deg, var(--primary-color, #6366f1) 0%, var(--secondary-color, #a78bfa) 100%);
+  padding: 24px 32px;
+  color: white;
+  position: relative;
+}
+
+.ri-back-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: background 0.2s ease;
+}
+
+.ri-back-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.ri-header-text h1 {
+  margin: 0 0 6px 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.ri-header-text p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+
+/* Form */
+.ri-form {
+  padding: 28px 32px;
+}
+
+/* Eligibility Notice */
+.ri-notice {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.1));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-left: 4px solid var(--primary-color, #6366f1);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-color, #1a1a2e);
+  margin-bottom: 24px;
+}
+
+.ri-notice strong {
+  color: var(--primary-color, #6366f1);
+}
+
+/* Radio Group */
+.ri-radio-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.ri-radio-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--input-bg, #fff);
+}
+
+.ri-radio-option:hover {
+  border-color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.ri-radio-option.ri-radio-selected {
+  border-color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.ri-radio-option input[type="radio"] {
+  accent-color: var(--primary-color, #6366f1);
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ri-radio-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color, #1a1a2e);
+}
+
+/* Sections */
+.ri-section {
+  margin-bottom: 24px;
+}
+
+.ri-section-title {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-color, #1a1a2e);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ri-optional {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted, #999);
+  background: var(--surface-color, #f0f0f0);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.ri-section-desc {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+  line-height: 1.4;
+}
+
+/* Field rows */
+.ri-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.ri-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #555);
+  margin-bottom: 4px;
+}
+
+.ri-field input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text-color, #1a1a2e);
+  background: var(--input-bg, #fff);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.ri-field input:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.ri-field input::placeholder {
+  color: var(--text-muted, #aaa);
+}
+
+/* Error */
+.ri-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--danger-color, #ef4444);
+  color: var(--danger-color, #ef4444);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+/* Actions */
+.ri-actions {
+  margin-top: 8px;
+}
+
+.ri-btn {
+  padding: 12px 28px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ri-btn-primary {
+  width: 100%;
+  background: linear-gradient(135deg, var(--primary-color, #6366f1) 0%, var(--secondary-color, #a78bfa) 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.ri-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+}
+
+.ri-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ri-btn-secondary {
+  background: var(--surface-color, #f0f0f0);
+  color: var(--text-color, #333);
+  border: 2px solid var(--border-color, #ddd);
+}
+
+.ri-btn-secondary:hover {
+  background: var(--hover-background, #e5e5e5);
+  border-color: var(--primary-color, #6366f1);
+}
+
+/* Security note */
+.ri-security-note {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted, #999);
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color, #eee);
+}
+
+/* Success state */
+.ri-success {
+  padding: 48px 32px;
+  text-align: center;
+}
+
+.ri-success-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.ri-success h2 {
+  margin: 0 0 12px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-color, #1a1a2e);
+}
+
+.ri-success p {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  color: var(--text-secondary, #666);
+  line-height: 1.5;
+}
+
+.ri-success-note {
+  font-size: 13px;
+  color: var(--text-muted, #999);
+  margin-bottom: 24px;
+}
+
+.ri-success .ri-btn {
+  display: inline-block;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .ri-page {
+    padding: 1rem 0.5rem;
+  }
+
+  .ri-container {
+    border-radius: 12px;
+  }
+
+  .ri-header {
+    padding: 20px;
+  }
+
+  .ri-header-text h1 {
+    font-size: 18px;
+  }
+
+  .ri-form {
+    padding: 20px;
+  }
+
+  .ri-field-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .ri-radio-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ri-radio-option {
+    padding: 12px 14px;
+  }
+}

@@ -293,6 +293,13 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       });
       
       items.push({
+        icon: '📋',
+        label: 'Registration Interests',
+        subLabel: 'Review interest forms',
+        action: () => navigate('/admin?tab=interests')
+      });
+      
+      items.push({
         icon: '🎫',
         label: 'Promo Code Manager',
         subLabel: 'Codes, discounts & QR',
@@ -463,6 +470,13 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         label: 'Invitations Manager',
         subLabel: 'Manage user invitations',
         action: () => navigate('/invitations')
+      });
+      
+      items.push({
+        icon: '📋',
+        label: 'Registration Interests',
+        subLabel: 'Review interest forms',
+        action: () => navigate('/admin?tab=interests')
       });
       
       items.push({ isHeader: true, label: 'CONFIGURATION' });
