@@ -469,8 +469,9 @@ const AdminContactManagement = () => {
                       onClick={() => handleDeleteClick(selectedTicket._id)}
                       className={`btn btn-sm ${pendingDeleteId === selectedTicket._id ? 'btn-danger-confirm' : 'btn-danger'}`}
                       title={pendingDeleteId === selectedTicket._id ? 'Click again to confirm delete' : 'Delete Ticket'}
-                    >
-                      {pendingDeleteId === selectedTicket._id ? '⚠️ Confirm Delete' : '🗑️ Delete'}
+                      data-emoji={pendingDeleteId === selectedTicket._id ? '⚠️' : '🗑️'}
+                    >🗑️
+                      {pendingDeleteId === selectedTicket._id ? 'Confirm Delete' : ''}
                     </button>
                   </div>
                 </div>
@@ -571,7 +572,7 @@ const AdminContactManagement = () => {
                 <div className="reply-controls">
                   <button
                     onClick={() => setReplyText('')}
-                    className="btn btn-outline-secondary"
+                    className="btn btn-outline-secondary clear-btn-hidden"
                   >
                     Clear
                   </button>
@@ -579,13 +580,13 @@ const AdminContactManagement = () => {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Type your response here... (User will receive this via email)"
-                    rows="1"
+                    rows="3"
                     className="reply-textarea"
                   />
                   <button
                     onClick={sendReply}
                     disabled={sending || !replyText.trim()}
-                    className="btn btn-primary"
+                    className="btn btn-primary send-reply-btn"
                   >
                     {sending ? (
                       <>
@@ -593,7 +594,7 @@ const AdminContactManagement = () => {
                         Sending...
                       </>
                     ) : (
-                      <>📤 Send Reply</>
+                      <>📤 Send</>
                     )}
                   </button>
                 </div>
