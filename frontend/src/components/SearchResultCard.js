@@ -5,6 +5,7 @@ import OnlineStatusBadge from './OnlineStatusBadge';
 import DefaultAvatar from './DefaultAvatar';
 import { getDisplayName, getShortName } from '../utils/userDisplay';
 import SimpleKebabMenu from './SimpleKebabMenu';
+import VerificationBadges from './VerificationBadges';
 import './SearchPage2.css';
 import { ACTION_ICONS } from '../constants/icons';
 import { generateLookingForSummary } from '../utils/profileDescriptionGenerator';
@@ -506,8 +507,9 @@ const SearchResultCard = ({
         </div>
         
         {/* Col 3: Name */}
-        <span style={{ fontWeight: 600, color: 'var(--text-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', display: 'flex', alignItems: 'center' }}>
+        <span style={{ fontWeight: 600, color: 'var(--text-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', display: 'flex', alignItems: 'center', gap: '4px' }}>
           {getDisplayName(user)}
+          <VerificationBadges badges={user.badges} size="small" />
         </span>
         
         {/* Col 4: L3V3L Score */}
@@ -653,6 +655,7 @@ const SearchResultCard = ({
           <h6 className="card-title">
             {debugIndex && <span style={{ color: 'var(--primary-color)', fontWeight: 700, marginRight: '6px' }}>#{debugIndex}</span>}
             {getShortName(user)}
+            <VerificationBadges badges={user.badges} size="small" />
           </h6>
           <div className="card-title-badges">
             {hasKebabMenu && (

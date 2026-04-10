@@ -1,0 +1,115 @@
+/* Verification Badges */
+.verification-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+
+/* Individual badge */
+.vbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 999px);
+  font-weight: 600;
+  cursor: default;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.vbadge:hover {
+  transform: scale(1.05);
+}
+
+/* ID Verified badge */
+.vbadge-id {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--text-color);
+}
+
+.vbadge-id:hover {
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+/* Community Verified badge */
+.vbadge-community {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--text-color);
+}
+
+.vbadge-community:hover {
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+/* Icon */
+.vbadge-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Label */
+.vbadge-label {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+/* Size: small (search result cards, inline) */
+.verification-badges-small .vbadge {
+  padding: 1px 5px;
+  gap: 2px;
+}
+
+.verification-badges-small .vbadge-icon {
+  font-size: 12px;
+}
+
+.verification-badges-small .vbadge-label {
+  font-size: 10px;
+}
+
+/* Size: medium (profile page, near name) */
+.verification-badges-medium .vbadge {
+  padding: 3px 10px;
+  gap: 5px;
+}
+
+.verification-badges-medium .vbadge-icon {
+  font-size: 16px;
+}
+
+.verification-badges-medium .vbadge-label {
+  font-size: 12px;
+}
+
+/* Size: large (expanded view) */
+.verification-badges-large .vbadge {
+  padding: 6px 14px;
+  gap: 6px;
+}
+
+.verification-badges-large .vbadge-icon {
+  font-size: 20px;
+}
+
+.verification-badges-large .vbadge-label {
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .verification-badges-medium .vbadge {
+    padding: 2px 6px;
+  }
+
+  .verification-badges-medium .vbadge-icon {
+    font-size: 14px;
+  }
+
+  .verification-badges-medium .vbadge-label {
+    font-size: 11px;
+  }
+}

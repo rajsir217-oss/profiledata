@@ -196,23 +196,44 @@ html {
   margin-bottom: 1rem;
 }
 
+.login-button-group {
+  display: flex;
+  gap: 0.75rem; /* 12px */
+  margin-top: 1rem; /* 16px */
+  width: 100%;
+}
+
 .login-button {
   width: auto;
-  padding: 0.625rem 2rem; /* 10px 32px - Added horizontal padding */
+  padding: 0.75rem 2rem; /* 12px 32px */
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 50px !important;
-  font-size: 0.9375rem; /* 15px - Reduced from 16px */
+  font-size: 0.9375rem; /* 15px */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  margin-top: 1rem; /* 16px - Reduced from 24px */
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: auto;
-  margin-right: auto;
+  text-decoration: none;
+  text-align: center;
+  min-height: 44px; /* Touch-friendly size */
+  margin: 1rem auto 0; /* Center horizontally with top margin */
+}
+
+.login-signin-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.login-register-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.login-register-btn:hover {
+  transform: translateY(-0.125rem); /* -2px */
+  box-shadow: 0 0.5rem 1rem rgba(16, 185, 129, 0.3);
 }
 
 .login-button:hover:not(:disabled) {

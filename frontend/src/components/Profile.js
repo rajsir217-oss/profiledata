@@ -15,6 +15,7 @@ import { onPIIAccessChange } from "../utils/piiAccessEvents";
 import { getActivityBadgeProps, getRelativeActivityTime } from "../utils/activityFormatter";
 import { generateAboutMe, generatePartnerPreference, generateLookingForSummary } from "../utils/profileDescriptionGenerator";
 import ProfileCreatorBadge from "./ProfileCreatorBadge";
+import VerificationBadges from "./VerificationBadges";
 import { getWorkingStatus } from "../utils/workStatusHelper";
 import RichTextEditor from "./shared/RichTextEditor";
 import { getAuthenticatedImageUrl } from "../utils/imageUtils";
@@ -1723,6 +1724,27 @@ const Profile = ({
                     }}>{user.profileId}</span>
                   </span>
                 )}
+                {/* Verification Trust Badges */}
+                <span className="profile-trust-row">
+                  <span 
+                    className={`trust-badge ${user.profileCreatedBy ? 'trust-active' : 'trust-inactive'}`} 
+                    title={user.profileCreatedBy ? `Profile created by ${user.profileCreatedBy}` : 'Self or Parent — not specified'}
+                  >
+                    👤
+                  </span>
+                  <span 
+                    className={`trust-badge ${user.badges?.communityVerified ? 'trust-active' : 'trust-inactive'}`} 
+                    title={user.badges?.communityVerified ? 'Community Verified' : 'Community Verified — pending'}
+                  >
+                    🤝
+                  </span>
+                  <span 
+                    className={`trust-badge ${user.badges?.idVerified ? 'trust-active' : 'trust-inactive'}`} 
+                    title={user.badges?.idVerified ? 'ID.me Verified' : 'ID.me Verified — pending'}
+                  >
+                    🛡️
+                  </span>
+                </span>
                 {user.profileId && (
                   <div className="share-profile-wrapper" ref={shareMenuRef}>
                     <button
