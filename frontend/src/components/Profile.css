@@ -94,6 +94,47 @@
   white-space: nowrap;
 }
 
+/* Profile Trust Pill — wraps emoji badges in a single pill */
+.profile-trust-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 14px;
+  background: linear-gradient(135deg, var(--primary-color, #6366f1), var(--secondary-color, #a78bfa));
+  line-height: 1.4;
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.25);
+  transition: all 0.2s ease;
+}
+
+.profile-trust-row:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.trust-badge {
+  cursor: default;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.trust-badge.trust-active {
+  opacity: 1;
+}
+
+.trust-badge.trust-active:hover {
+  transform: scale(1.15);
+}
+
+.trust-badge.trust-inactive {
+  opacity: 0.35;
+  filter: grayscale(100%);
+}
+
+.trust-badge.trust-inactive:hover {
+  opacity: 0.5;
+}
+
 /* Reduce header spacing */
 .profile-header {
   margin-bottom: 1rem !important;

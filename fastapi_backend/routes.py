@@ -165,6 +165,7 @@ SEARCH_RESULT_PROJECTION = {
     "createdAt": 1,
     "adminApprovedAt": 1,
     "contributionPopupDisabledByAdmin": 1,
+    "badges": 1,
 }
 
 # Full projection for detailed profile view
@@ -213,6 +214,7 @@ DASHBOARD_USER_PROJECTION = {
     # Date fields for sorting
     "createdAt": 1,
     "adminApprovedAt": 1,
+    "badges": 1,
     # All other fields automatically excluded (MongoDB inclusion projection)
 }
 
@@ -1368,7 +1370,16 @@ async def register_user(
         "pendingReplies": 0,
         # Invitation tracking
         "invitedBy": invitedBy if invitedBy else "system",  # Default to "system" if not invited
-        "invitationToken": invitationToken  # Token used during registration (for audit)
+        "invitationToken": invitationToken,  # Token used during registration (for audit)
+        # Verification Badges (Gamification)
+        "badges": {
+            "idVerified": False,
+            "idVerifiedAt": None,
+            "communityVerified": True if invitationToken else False,
+            "communityVerifiedAt": now if invitationToken else None,
+            "referredBy": invitedBy if invitedBy else None,
+            "verificationPath": "invitation" if invitationToken else None
+        }
     }
     
     # 🔒 ENCRYPT PII fields before saving
