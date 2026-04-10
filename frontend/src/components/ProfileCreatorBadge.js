@@ -16,7 +16,7 @@ const CREATOR_TYPES = {
   },
   parent: {
     label: 'Parent',
-    icon: '�',
+    icon: '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}',
     tooltip: 'Profile created by parent or guardian',
     color: '#3b82f6' // Blue
   },
