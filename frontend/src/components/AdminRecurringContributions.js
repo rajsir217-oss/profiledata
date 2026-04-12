@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
+import toastService from '../services/toastService';
 import './AdminRecurringContributions.css';
 
 const AdminRecurringContributions = () => {
@@ -101,13 +102,13 @@ const AdminRecurringContributions = () => {
         setShowChargeModal(false);
         fetchContributions();
         fetchStats();
-        alert('Charge successful!');
+        toastService.success('Charge successful!');
       } else {
         const data = await response.json();
-        alert(data.detail || 'Charge failed');
+        toastService.error(data.detail || 'Charge failed');
       }
     } catch (err) {
-      alert('Error processing charge');
+      toastService.error('Error processing charge');
     } finally {
       setActionLoading(false);
     }
@@ -132,7 +133,7 @@ const AdminRecurringContributions = () => {
         fetchStats();
       }
     } catch (err) {
-      alert('Error pausing contribution');
+      toastService.error('Error pausing contribution');
     } finally {
       setActionLoading(false);
     }
@@ -157,7 +158,7 @@ const AdminRecurringContributions = () => {
         fetchStats();
       }
     } catch (err) {
-      alert('Error resuming contribution');
+      toastService.error('Error resuming contribution');
     } finally {
       setActionLoading(false);
     }
@@ -191,7 +192,7 @@ const AdminRecurringContributions = () => {
         fetchStats();
       }
     } catch (err) {
-      alert('Error cancelling contribution');
+      toastService.error('Error cancelling contribution');
     } finally {
       setActionLoading(false);
     }

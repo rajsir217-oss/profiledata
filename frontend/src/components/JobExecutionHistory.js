@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getBackendApiUrl } from '../utils/urlHelper';
+import toastService from '../services/toastService';
 import './JobExecutionHistory.css';
 import DeleteButton from './DeleteButton';
 
@@ -143,7 +144,7 @@ const JobExecutionHistory = ({ job, onClose }) => {
       loadExecutions();
     } catch (err) {
       console.error('Error bulk deleting executions:', err);
-      alert(`Failed to delete executions: ${err.message}`);
+      toastService.error(`Failed to delete executions: ${err.message}`);
       // Still reload to show current state
       loadExecutions();
     }
@@ -168,7 +169,7 @@ const JobExecutionHistory = ({ job, onClose }) => {
       loadExecutions();
     } catch (err) {
       console.error('Error deleting execution:', err);
-      alert(`Failed to delete execution: ${err.message}`);
+      toastService.error(`Failed to delete execution: ${err.message}`);
     }
   };
 

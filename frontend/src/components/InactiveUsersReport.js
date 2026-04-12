@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import logger from '../utils/logger';
+import toastService from '../services/toastService';
 import './InactiveUsersReport.css';
 
 const InactiveUsersReport = () => {
@@ -204,63 +205,9 @@ const InactiveUsersReport = () => {
     }
   };
 
-  // Simple toast notification function
   const showToast = (message, type = 'info') => {
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 12px 20px;
-      border-radius: 8px;
-      color: white;
-      font-weight: 500;
-      z-index: 10000;
-      animation: slideIn 0.3s ease;
-      max-width: 300px;
-      word-wrap: break-word;
-    `;
-    
-    // Set background color based on type
-    if (type === 'success') {
-      toast.style.backgroundColor = '#28a745';
-    } else if (type === 'error') {
-      toast.style.backgroundColor = '#dc3545';
-    } else {
-      toast.style.backgroundColor = '#007bff';
-    }
-    
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-      toast.style.animation = 'slideOut 0.3s ease';
-      setTimeout(() => {
-        if (document.body.contains(toast)) {
-          document.body.removeChild(toast);
-        }
-      }, 300);
-    }, 3000);
+    toastService[type] ? toastService[type](message) : toastService.info(message);
   };
-  
-  // Add CSS animations for toast notifications only
-  if (!document.querySelector('#toast-animations')) {
-    const style = document.createElement('style');
-    style.id = 'toast-animations';
-    style.textContent = `
-      @keyframes slideIn {
-        from { transform: translateX(400px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-      @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(400px); opacity: 0; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
 
   return (
     <div className="inactive-users-report">
