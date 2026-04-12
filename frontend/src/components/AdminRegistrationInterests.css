@@ -219,6 +219,72 @@
   line-height: 1.5;
 }
 
+/* Invitation Pill (collapsed header) */
+.ari-inv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ari-inv-pill-sent {
+  background: var(--success-light, rgba(16, 185, 129, 0.1));
+  color: var(--success-color, #10b981);
+  border: 1px solid var(--success-color, #10b981);
+}
+
+.ari-inv-pill-registered {
+  background: var(--info-light, rgba(59, 130, 246, 0.1));
+  color: var(--info-color, #3b82f6);
+  border: 1px solid var(--info-color, #3b82f6);
+}
+
+/* Invitation Status Banner */
+.ari-invitation-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--success-light, rgba(16, 185, 129, 0.08));
+  border: 1px solid var(--success-color, #10b981);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.ari-invitation-banner-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.ari-invitation-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ari-invitation-banner-text strong {
+  font-size: 14px;
+  color: var(--success-color, #10b981);
+}
+
+.ari-invitation-banner-text span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ari-invitation-registered {
+  background: var(--info-light, rgba(59, 130, 246, 0.08));
+  border-color: var(--info-color, #3b82f6);
+}
+
+.ari-invitation-registered .ari-invitation-banner-text strong {
+  color: var(--info-color, #3b82f6);
+}
+
 /* Action Buttons */
 .ari-actions {
   display: flex;
@@ -282,6 +348,60 @@
 
 .ari-btn-secondary:hover {
   border-color: var(--primary-color);
+}
+
+.ari-btn-invite {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+}
+
+.ari-btn-invite:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.ari-btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* Notes Editor */
+.ari-notes-edit-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.ari-notes-edit-btn:hover {
+  text-decoration: underline;
+}
+
+.ari-notes-editor textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-color);
+  background: var(--input-bg);
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.ari-notes-editor textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.ari-notes-editor-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 /* Reject Modal */

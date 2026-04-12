@@ -475,12 +475,14 @@
 .toast-container {
   position: fixed;
   top: calc(var(--topbar-height) + var(--spacing-lg));
-  right: var(--spacing-xl);
+  left: 50%;
+  transform: translateX(-50%);
   z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--spacing-sm);
-  max-width: 400px;
+  max-width: 500px;
 }
 
 .toast {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import logger from '../utils/logger';
+import toastService from '../services/toastService';
 import './AdminRegistrationInterests.css';
 
 const STATUS_CONFIG = {
@@ -29,6 +30,8 @@ const AdminRegistrationInterests = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(null);
+  const [editingNotes, setEditingNotes] = useState(null);
+  const [notesText, setNotesText] = useState('');
 
   const adminApi = createApiInstance(getBackendUrl());
 
@@ -54,7 +57,9 @@ const AdminRegistrationInterests = () => {
   const handleAction = async (id, action, body = null) => {
     setActionLoading(prev => ({ ...prev, [id]: action }));
     try {
-      await adminApi.put(`/api/registration-interest/${id}/${action}`, body);
+      const res = await adminApi.put(`/api/registration-interest/${id}/${action}`, body);
+      const msg = res.data?.message || `${action} completed`;
+      toastService.success(msg);
       await fetchInterests();
       if (action === 'reject') {
         setShowRejectModal(null);
@@ -62,10 +67,116 @@ const AdminRegistrationInterests = () => {
       }
     } catch (err) {
       const detail = err.response?.data?.detail || 'Action failed';
+      const status = err.response?.status;
+      if (status === 409) {
+        toastService.warning(detail);
+        await fetchInterests();
+      } else {
+        toastService.error(detail);
+      }
       logger.error(`Action ${action} failed:`, detail);
     } finally {
       setActionLoading(prev => ({ ...prev, [id]: null }));
     }
+  };
+
+  const handleSaveNotes = async (id) => {
+    try {
+      await adminApi.put(`/api/registration-interest/${id}/notes`, { notes: notesText });
+      toastService.success('Notes saved');
+      setEditingNotes(null);
+      await fetchInterests();
+    } catch (err) {
+      toastService.error('Failed to save notes');
+    }
+  };
+
+  const EMOJI = {
+    validate: '\u2705',
+    shield: '\u{1F6E1}\uFE0F',
+    reject: '\u{1F6AB}',
+    email: '\u{1F4E7}',
+    refresh: '\u{1F504}'
+  };
+
+  const getActionsForStatus = (interest) => {
+    const s = interest.status;
+    const id = interest._id;
+    const isLoading = !!actionLoading[id];
+    const loadingAction = actionLoading[id];
+    const actions = [];
+
+    if (s === 'pending_review') {
+      actions.push(
+        <button key="validate" className="ari-action-btn ari-btn-validate" onClick={() => handleAction(id, 'validate')} disabled={isLoading}>
+          {loadingAction === 'validate' ? 'Validating...' : `${EMOJI.validate} Validate Reference`}
+        </button>,
+        <button key="idme" className="ari-action-btn ari-btn-idme" onClick={() => handleAction(id, 'send-idme')} disabled={isLoading}>
+          {loadingAction === 'send-idme' ? 'Sending...' : `${EMOJI.shield} Send ID.me`}
+        </button>,
+        <button key="reject" className="ari-action-btn ari-btn-reject" onClick={() => setShowRejectModal(id)} disabled={isLoading}>
+          {`${EMOJI.reject} Reject`}
+        </button>
+      );
+    }
+
+    if (s === 'reference_validated') {
+      actions.push(
+        <button key="send-inv" className="ari-action-btn ari-btn-invite" onClick={() => handleAction(id, 'send-invitation')} disabled={isLoading}>
+          {loadingAction === 'send-invitation' ? 'Sending...' : `${EMOJI.email} Send Invitation`}
+        </button>,
+        <button key="switch-idme" className="ari-action-btn ari-btn-idme ari-btn-sm" onClick={() => handleAction(id, 'send-idme')} disabled={isLoading}>
+          {loadingAction === 'send-idme' ? 'Switching...' : `${EMOJI.refresh} Switch to ID.me`}
+        </button>,
+        <button key="reject" className="ari-action-btn ari-btn-reject ari-btn-sm" onClick={() => setShowRejectModal(id)} disabled={isLoading}>
+          {`${EMOJI.reject} Reject`}
+        </button>
+      );
+    }
+
+    if (s === 'idme_sent') {
+      actions.push(
+        <button key="switch-ref" className="ari-action-btn ari-btn-validate ari-btn-sm" onClick={() => handleAction(id, 'validate')} disabled={isLoading}>
+          {loadingAction === 'validate' ? 'Switching...' : `${EMOJI.refresh} Switch to Validate Reference`}
+        </button>,
+        <button key="reject" className="ari-action-btn ari-btn-reject ari-btn-sm" onClick={() => setShowRejectModal(id)} disabled={isLoading}>
+          {`${EMOJI.reject} Reject`}
+        </button>
+      );
+    }
+
+    if (s === 'idme_verified') {
+      actions.push(
+        <button key="send-inv" className="ari-action-btn ari-btn-invite" onClick={() => handleAction(id, 'send-invitation')} disabled={isLoading}>
+          {loadingAction === 'send-invitation' ? 'Sending...' : `${EMOJI.email} Send Invitation`}
+        </button>
+      );
+    }
+
+    if (s === 'idme_failed') {
+      actions.push(
+        <button key="switch-ref" className="ari-action-btn ari-btn-validate" onClick={() => handleAction(id, 'validate')} disabled={isLoading}>
+          {loadingAction === 'validate' ? 'Validating...' : `${EMOJI.validate} Validate Reference Instead`}
+        </button>,
+        <button key="reopen" className="ari-action-btn ari-btn-secondary" onClick={() => handleAction(id, 'reopen')} disabled={isLoading}>
+          {loadingAction === 'reopen' ? 'Reopening...' : `${EMOJI.refresh} Reopen`}
+        </button>,
+        <button key="reject" className="ari-action-btn ari-btn-reject ari-btn-sm" onClick={() => setShowRejectModal(id)} disabled={isLoading}>
+          {`${EMOJI.reject} Reject`}
+        </button>
+      );
+    }
+
+    if (s === 'rejected') {
+      actions.push(
+        <button key="reopen" className="ari-action-btn ari-btn-secondary" onClick={() => handleAction(id, 'reopen')} disabled={isLoading}>
+          {loadingAction === 'reopen' ? 'Reopening...' : `${EMOJI.refresh} Reopen for Review`}
+        </button>
+      );
+    }
+
+    // invited = terminal, no actions
+    return actions;
   };
 
   const formatDate = (dateStr) => {
@@ -134,6 +245,11 @@ const AdminRegistrationInterests = () => {
                   </div>
                 </div>
                 <div className="ari-card-right">
+                  {interest.invitationInfo && (
+                    <span className={`ari-inv-pill ${interest.invitationInfo.registeredUsername ? 'ari-inv-pill-registered' : 'ari-inv-pill-sent'}`}>
+                      {interest.invitationInfo.registeredUsername ? '\u{2705} Registered' : '\u{1F4E7} Invited'}
+                    </span>
+                  )}
                   {getStatusBadge(interest.status)}
                   <span className="ari-expand-icon">{expandedId === interest._id ? '▲' : '▼'}</span>
                 </div>
@@ -141,6 +257,32 @@ const AdminRegistrationInterests = () => {
 
               {expandedId === interest._id && (
                 <div className="ari-card-body">
+                  {/* Invitation Status Banner — shows if invitation exists for this email */}
+                  {interest.invitationInfo && (
+                    <div className={`ari-invitation-banner ${interest.invitationInfo.registeredUsername ? 'ari-invitation-registered' : ''}`}>
+                      <span className="ari-invitation-banner-icon">
+                        {interest.invitationInfo.registeredUsername ? '\u{2705}' : '\u{1F4E7}'}
+                      </span>
+                      <div className="ari-invitation-banner-text">
+                        <strong>
+                          {interest.invitationInfo.registeredUsername
+                            ? `Registered as "${interest.invitationInfo.registeredUsername}"`
+                            : interest.invitationInfo.emailStatus === 'sent' || interest.invitationInfo.emailStatus === 'delivered'
+                              ? 'Invitation Sent'
+                              : interest.invitationInfo.emailStatus === 'accepted'
+                                ? 'Invitation Accepted'
+                                : 'Invitation Pending'}
+                        </strong>
+                        <span>
+                          {interest.invitationInfo.sentAt
+                            ? `Sent on ${formatDate(interest.invitationInfo.sentAt)}`
+                            : `Created on ${formatDate(interest.invitationInfo.createdAt)}`}
+                          {' \u2022 '}Email status: {interest.invitationInfo.emailStatus}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Referrer Info */}
                   <div className="ari-detail-section">
                     <h4>Referred By</h4>
@@ -167,38 +309,41 @@ const AdminRegistrationInterests = () => {
                     </div>
                   )}
 
-                  {/* Notes */}
-                  {interest.reviewNotes && (
-                    <div className="ari-detail-section">
-                      <h4>Notes</h4>
-                      <p className="ari-notes-text">{interest.reviewNotes}</p>
-                    </div>
-                  )}
+                  {/* Notes Section — always visible with edit capability */}
+                  <div className="ari-detail-section">
+                    <h4>
+                      Notes
+                      {interest.status !== 'invited' && editingNotes !== interest._id && (
+                        <button
+                          className="ari-notes-edit-btn"
+                          onClick={() => { setEditingNotes(interest._id); setNotesText(interest.reviewNotes || ''); }}
+                        >
+                          {interest.reviewNotes ? 'Edit' : '+ Add'}
+                        </button>
+                      )}
+                    </h4>
+                    {editingNotes === interest._id ? (
+                      <div className="ari-notes-editor">
+                        <textarea
+                          value={notesText}
+                          onChange={e => setNotesText(e.target.value)}
+                          placeholder="Admin notes..."
+                          rows={3}
+                        />
+                        <div className="ari-notes-editor-actions">
+                          <button className="ari-action-btn ari-btn-validate ari-btn-sm" onClick={() => handleSaveNotes(interest._id)}>Save</button>
+                          <button className="ari-action-btn ari-btn-secondary ari-btn-sm" onClick={() => setEditingNotes(null)}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="ari-notes-text">{interest.reviewNotes || 'No notes yet'}</p>
+                    )}
+                  </div>
 
-                  {/* Actions — only for pending_review */}
-                  {interest.status === 'pending_review' && (
+                  {/* Contextual Actions */}
+                  {getActionsForStatus(interest).length > 0 && (
                     <div className="ari-actions">
-                      <button
-                        className="ari-action-btn ari-btn-validate"
-                        onClick={() => handleAction(interest._id, 'validate')}
-                        disabled={!!actionLoading[interest._id]}
-                      >
-                        {actionLoading[interest._id] === 'validate' ? 'Validating...' : '✅ Validate Reference'}
-                      </button>
-                      <button
-                        className="ari-action-btn ari-btn-idme"
-                        onClick={() => handleAction(interest._id, 'send-idme')}
-                        disabled={!!actionLoading[interest._id]}
-                      >
-                        {actionLoading[interest._id] === 'send-idme' ? 'Sending...' : '🛡️ Send ID.me'}
-                      </button>
-                      <button
-                        className="ari-action-btn ari-btn-reject"
-                        onClick={() => setShowRejectModal(interest._id)}
-                        disabled={!!actionLoading[interest._id]}
-                      >
-                        🚫 Reject
-                      </button>
+                      {getActionsForStatus(interest)}
                     </div>
                   )}
                 </div>
