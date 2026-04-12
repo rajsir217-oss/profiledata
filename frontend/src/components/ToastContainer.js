@@ -14,10 +14,12 @@ const TOAST_COLORS = {
 const containerStyle = {
   position: 'fixed',
   top: '20px',
-  right: '20px',
+  left: '50%',
+  transform: 'translateX(-50%)',
   zIndex: 999999,
   display: 'flex',
   flexDirection: 'column',
+  alignItems: 'center',
   gap: '10px',
   pointerEvents: 'none',
 };
@@ -99,8 +101,8 @@ const ToastContainer = () => {
     <>
       <style>{`
         @keyframes toast-slide-in {
-          from { transform: translateX(400px); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
+          from { transform: translateY(-40px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
       `}</style>
       <div style={containerStyle}>

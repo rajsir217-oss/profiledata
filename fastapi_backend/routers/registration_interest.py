@@ -181,8 +181,32 @@ async def list_all_interests(
 
     cursor = db.registration_interests.find(query).sort("createdAt", -1).skip(skip).limit(limit)
     interests = []
+    emails = []
     async for doc in cursor:
         interests.append(serialize_interest(doc))
+        emails.append(doc.get("email", "").lower())
+
+    # Batch lookup invitation status for all interest emails
+    invitation_map = {}
+    if emails:
+        inv_cursor = db.invitations.find(
+            {"email": {"$in": emails}, "archived": False},
+            {"email": 1, "emailStatus": 1, "emailSentAt": 1, "registeredUsername": 1, "createdAt": 1}
+        )
+        async for inv in inv_cursor:
+            inv_email = inv.get("email", "").lower()
+            invitation_map[inv_email] = {
+                "invitationId": str(inv["_id"]),
+                "emailStatus": str(inv.get("emailStatus", "unknown")).lower(),
+                "sentAt": inv.get("emailSentAt"),
+                "registeredUsername": inv.get("registeredUsername"),
+                "createdAt": inv.get("createdAt")
+            }
+
+    # Attach invitation info to each interest
+    for interest in interests:
+        email = interest.get("email", "").lower()
+        interest["invitationInfo"] = invitation_map.get(email)
 
     total = await db.registration_interests.count_documents(query)
 
@@ -207,7 +231,7 @@ async def validate_reference(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Admin validates the reference → marks as reference_validated"""
+    """Admin validates the reference → marks as reference_validated. Also allows switching from ID.me path."""
     check_admin(current_user)
 
     if not ObjectId.is_valid(interest_id):
@@ -217,7 +241,9 @@ async def validate_reference(
     if not interest:
         raise HTTPException(status_code=404, detail="Interest not found")
 
-    if interest["status"] not in ["pending_review"]:
+    # Allow from pending_review OR switching from ID.me path statuses
+    allowed = ["pending_review", "idme_sent", "idme_failed"]
+    if interest["status"] not in allowed:
         raise HTTPException(status_code=400, detail=f"Cannot validate — current status is '{interest['status']}'")
 
     now = datetime.utcnow()
@@ -242,7 +268,7 @@ async def send_idme_verification(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Admin triggers ID.me verification email to the user"""
+    """Admin triggers ID.me verification email to the user. Also allows switching from referral path."""
     check_admin(current_user)
 
     if not ObjectId.is_valid(interest_id):
@@ -252,7 +278,9 @@ async def send_idme_verification(
     if not interest:
         raise HTTPException(status_code=404, detail="Interest not found")
 
-    if interest["status"] not in ["pending_review"]:
+    # Allow from pending_review OR switching from referral path
+    allowed = ["pending_review", "reference_validated"]
+    if interest["status"] not in allowed:
         raise HTTPException(status_code=400, detail=f"Cannot send ID.me — current status is '{interest['status']}'")
 
     now = datetime.utcnow()
@@ -307,6 +335,177 @@ async def reject_interest(
 
     logger.info(f"❌ Interest {interest_id} rejected by {current_user.get('username')}")
     return {"success": True, "message": "Interest rejected", "status": "rejected"}
+
+
+@router.put("/{interest_id}/reopen")
+async def reopen_interest(
+    interest_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Admin re-opens a rejected or failed interest back to pending_review"""
+    check_admin(current_user)
+
+    if not ObjectId.is_valid(interest_id):
+        raise HTTPException(status_code=400, detail="Invalid interest ID")
+
+    interest = await db.registration_interests.find_one({"_id": ObjectId(interest_id)})
+    if not interest:
+        raise HTTPException(status_code=404, detail="Interest not found")
+
+    if interest["status"] == "invited":
+        raise HTTPException(status_code=400, detail="Cannot reopen — invitation already sent")
+
+    now = datetime.utcnow()
+    await db.registration_interests.update_one(
+        {"_id": ObjectId(interest_id)},
+        {"$set": {
+            "status": "pending_review",
+            "verificationPath": None,
+            "updatedAt": now
+        }}
+    )
+
+    logger.info(f"🔄 Interest {interest_id} reopened by {current_user.get('username')}")
+    return {"success": True, "message": "Interest reopened for review", "status": "pending_review"}
+
+
+@router.put("/{interest_id}/send-invitation")
+async def send_invitation_from_interest(
+    interest_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """
+    Create and send an invitation email from a validated/verified interest.
+    Uses existing InvitationService + email sender.
+    """
+    check_admin(current_user)
+
+    if not ObjectId.is_valid(interest_id):
+        raise HTTPException(status_code=400, detail="Invalid interest ID")
+
+    interest = await db.registration_interests.find_one({"_id": ObjectId(interest_id)})
+    if not interest:
+        raise HTTPException(status_code=404, detail="Interest not found")
+
+    # Only allow sending invitation from validated/verified statuses
+    allowed = ["reference_validated", "idme_verified"]
+    if interest["status"] not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot send invitation — status must be reference_validated or idme_verified, got '{interest['status']}'"
+        )
+
+    import os
+    from services.invitation_service import InvitationService
+    from models.invitation_models import InvitationCreate, InvitationChannel, InvitationStatus
+    from services.email_sender import send_invitation_email
+    from config import settings
+    from urllib.parse import quote
+
+    inv_service = InvitationService(db)
+
+    # Check if active invitation already exists for this email (raw query to avoid Pydantic parsing issues)
+    existing_inv = await db.invitations.find_one({
+        "email": interest["email"],
+        "archived": False
+    })
+    if existing_inv:
+        # Link the interest to the existing invitation if not already linked
+        now = datetime.utcnow()
+        update_fields = {"updatedAt": now}
+        if not interest.get("invitationId"):
+            update_fields["invitationId"] = existing_inv["_id"]
+        if interest["status"] in ["reference_validated", "idme_verified"]:
+            update_fields["status"] = "invited"
+        await db.registration_interests.update_one(
+            {"_id": ObjectId(interest_id)},
+            {"$set": update_fields}
+        )
+
+        # Build a friendly detail message
+        email_status = str(existing_inv.get("emailStatus", "unknown")).lower()
+        sent_at = existing_inv.get("emailSentAt")
+        registered = existing_inv.get("registeredUsername")
+        if registered:
+            detail_msg = f"Invitation already sent and user '{registered}' has registered."
+        elif email_status in ["sent", "delivered"]:
+            sent_info = f" on {sent_at.strftime('%b %d, %Y')}" if sent_at else ""
+            detail_msg = f"Invitation already sent to {interest['email']}{sent_info}. Status: {email_status}."
+        else:
+            detail_msg = f"An invitation already exists for {interest['email']}. Email status: {email_status}."
+
+        raise HTTPException(
+            status_code=409,
+            detail=detail_msg
+        )
+
+    # Create invitation via InvitationService
+    inv_name = f"{interest['firstName']} {interest['lastName']}"
+    try:
+        inv_data = InvitationCreate(
+            name=inv_name,
+            email=interest["email"],
+            phone=interest.get("phone"),
+            channel=InvitationChannel.EMAIL,
+            sendImmediately=True
+        )
+        new_invitation = await inv_service.create_invitation(
+            invitation_data=inv_data,
+            invited_by=current_user["username"]
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    # Add interestId + verificationPath to the invitation doc for tracing
+    await db.invitations.update_one(
+        {"_id": ObjectId(new_invitation.id)},
+        {"$set": {
+            "interestId": ObjectId(interest_id),
+            "verificationPath": interest.get("verificationPath")
+        }}
+    )
+
+    # Build invitation link and send email
+    base_url = settings.app_url or settings.frontend_url or "https://l3v3lmatches.com"
+    if 'localhost' in base_url and os.environ.get('K_SERVICE'):
+        base_url = os.environ.get('APP_URL') or os.environ.get('FRONTEND_URL') or "https://l3v3lmatches.com"
+    invitation_link = f"{base_url}/register2?invitation={new_invitation.invitationToken}&email={quote(interest['email'])}"
+
+    try:
+        await send_invitation_email(
+            to_email=interest["email"],
+            to_name=inv_name,
+            invitation_link=invitation_link
+        )
+        # Update invitation email status to sent
+        await inv_service.update_invitation_status(
+            new_invitation.id,
+            InvitationChannel.EMAIL,
+            InvitationStatus.SENT
+        )
+    except Exception as e:
+        logger.error(f"⚠️ Invitation created but email failed: {e}")
+
+    # Update interest status to invited
+    now = datetime.utcnow()
+    await db.registration_interests.update_one(
+        {"_id": ObjectId(interest_id)},
+        {"$set": {
+            "status": "invited",
+            "invitationId": ObjectId(new_invitation.id),
+            "updatedAt": now
+        }}
+    )
+
+    logger.info(f"📧 Invitation sent for interest {interest_id} → invitation {new_invitation.id}")
+    return {
+        "success": True,
+        "message": f"Invitation sent to {interest['email']}",
+        "status": "invited",
+        "invitationId": new_invitation.id
+    }
 
 
 @router.put("/{interest_id}/notes")

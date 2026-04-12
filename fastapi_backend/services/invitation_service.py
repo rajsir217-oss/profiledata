@@ -119,12 +119,20 @@ class InvitationService:
         
         return InvitationDB(**invitation_doc)
     
+    def _normalize_status_fields(self, doc: dict) -> dict:
+        """Normalize emailStatus/smsStatus to lowercase (old docs may have uppercase values)"""
+        for field in ["emailStatus", "smsStatus"]:
+            if isinstance(doc.get(field), str):
+                doc[field] = doc[field].lower()
+        return doc
+
     async def get_invitation(self, invitation_id: str) -> Optional[InvitationDB]:
         """Get invitation by ID"""
         try:
             doc = await self.collection.find_one({"_id": ObjectId(invitation_id)})
             if doc:
                 doc["_id"] = str(doc["_id"])
+                self._normalize_status_fields(doc)
                 return InvitationDB(**doc)
             return None
         except Exception:
@@ -138,6 +146,7 @@ class InvitationService:
         })
         if doc:
             doc["_id"] = str(doc["_id"])
+            self._normalize_status_fields(doc)
             return InvitationDB(**doc)
         return None
     
@@ -149,6 +158,7 @@ class InvitationService:
         })
         if doc:
             doc["_id"] = str(doc["_id"])
+            self._normalize_status_fields(doc)
             return InvitationDB(**doc)
         return None
     
@@ -177,6 +187,7 @@ class InvitationService:
         async for doc in cursor:
             try:
                 doc["_id"] = str(doc["_id"])
+                self._normalize_status_fields(doc)
                 invitation = InvitationDB(**doc)
                 
                 # Calculate time lapse
