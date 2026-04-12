@@ -567,15 +567,15 @@ const InvitationManager = () => {
 
   // ========== BULK CREATE HANDLERS ==========
   const parseBulkEmails = (text) => {
-    // Split by pipe, comma, semicolon, newline, or space
-    const parts = text.split(/[|,;\n\r]+/).map(e => e.trim().toLowerCase()).filter(Boolean);
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    // Extract all email addresses from free-form text (handles chat logs, paragraphs, etc.)
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const matches = text.match(emailRegex) || [];
     const seen = new Set();
-    return parts.map(email => {
-      const valid = emailRegex.test(email);
+    return matches.map(raw => {
+      const email = raw.toLowerCase();
       const duplicate = seen.has(email);
-      if (valid) seen.add(email);
-      return { email, valid, duplicate };
+      seen.add(email);
+      return { email, valid: true, duplicate };
     });
   };
 
@@ -1447,13 +1447,13 @@ const InvitationManager = () => {
                 <>
                   <div className="form-group">
                     <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>
-                      Paste Emails (separated by | , ; or newline):
+                      Paste emails or text containing emails:
                     </label>
                     <textarea
                       value={bulkCreateEmails}
                       onChange={(e) => setBulkCreateEmails(e.target.value)}
                       rows="6"
-                      placeholder="email1@example.com | email2@example.com&#10;email3@example.com, email4@example.com&#10;email5@example.com"
+                      placeholder="Paste emails, chat messages, or any text — emails will be auto-extracted.&#10;&#10;Example: [4/11/26] ~ Jane: Please add jane@example.com to the group&#10;email2@example.com, email3@example.com"
                       style={{
                         width: '100%',
                         padding: '12px',
@@ -1467,7 +1467,7 @@ const InvitationManager = () => {
                       }}
                     />
                     <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-                      Accepts pipe (|), comma (,), semicolon (;), or newline as delimiters
+                      Smart parser — extracts valid email addresses from any text (chat logs, messages, lists, etc.)
                     </p>
                   </div>
 
