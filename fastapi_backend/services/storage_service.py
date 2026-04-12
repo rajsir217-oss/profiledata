@@ -340,6 +340,7 @@ class StorageService:
         
         rotated = self._rotate_image_bytes(content, degrees)
         
+        blob.cache_control = "no-cache, no-store, must-revalidate"
         blob.upload_from_string(rotated, content_type="image/jpeg")
         logger.info(f"✅ Rotated {blob_path} by {degrees}° and re-uploaded")
         return True

@@ -642,16 +642,16 @@ async def get_protected_media(
         member_visible = image_visibility.get("memberVisible", [])
         on_request = image_visibility.get("onRequest", [])
         
-        if profile_pic and profile_pic.split('/')[-1] == filename:
+        if profile_pic and profile_pic.split('/')[-1].split('?')[0] == filename:
             is_profile_pic_bucket = True
-        elif any((img or "").split('/')[-1] == filename for img in member_visible):
+        elif any((img or "").split('/')[-1].split('?')[0] == filename for img in member_visible):
             is_member_visible_bucket = True
-        elif any((img or "").split('/')[-1] == filename for img in on_request):
+        elif any((img or "").split('/')[-1].split('?')[0] == filename for img in on_request):
             is_on_request_bucket = True
     
     # Legacy fallback: determine if this image is public
     public_list = owner.get("publicImages", [])
-    is_public = any((p or "").split('/')[-1] == filename for p in public_list)
+    is_public = any((p or "").split('/')[-1].split('?')[0] == filename for p in public_list)
     
     # =================================================================
     # PROFILE PICTURE ALWAYS VISIBLE
@@ -684,7 +684,7 @@ async def get_protected_media(
         elif not image_visibility and owner_images:
             # Legacy fallback: first image is profile picture
             first_image = owner_images[0] if owner_images else None
-            if first_image and first_image.split('/')[-1] == filename:
+            if first_image and first_image.split('/')[-1].split('?')[0] == filename:
                 is_profile_picture = True
 
     is_one_time_view = False
@@ -762,7 +762,10 @@ async def get_protected_media(
                     
                     logger.info(f"🔗 Redirecting {requester_username} to Signed URL for {filename}")
                     from fastapi.responses import RedirectResponse
-                    return RedirectResponse(url=signed_url)
+                    return RedirectResponse(
+                        url=signed_url,
+                        headers={"Cache-Control": "no-store, no-cache, must-revalidate"}
+                    )
             
             # Proxy through backend: for blurred images, non-browser formats, or signed URL failure
             from google.cloud import storage as gcs_storage
@@ -3341,15 +3344,17 @@ async def rotate_photo(
     if not success:
         raise HTTPException(status_code=500, detail="Failed to rotate image")
     
-    # Return the URL with cache-bust timestamp
-    import time
-    cache_bust = int(time.time())
+    # Return the URL with unique cache-bust (ms + random to avoid collisions)
+    import time, random
+    cache_bust = f"{int(time.time() * 1000)}{random.randint(100, 999)}"
     
-    # Build the response URL using the same format as existing images
-    rotated_url = get_full_image_url(clean_path) + f"?v={cache_bust}"
+    # Build response URL with cache-bust for the frontend/browser
+    base_url = get_full_image_url(clean_path)
+    rotated_url = f"{base_url}?v={cache_bust}"
     
-    # Update the images array in MongoDB with cache-busted URL
-    # so browser re-fetches the rotated version on reload
+    # Store CLEAN URLs (no ?v=) in imageVisibility so the media endpoint's
+    # filename matching (split('/')[-1] == filename) keeps working.
+    # Only the images[] array gets cache-busted URLs for browser re-fetch.
     updated_images = []
     for img in user_images:
         img_filename = img.split('/')[-1].split('?')[0]
@@ -3360,18 +3365,18 @@ async def rotate_photo(
     
     update_fields = {"images": updated_images}
     
-    # Also update imageVisibility if it exists
+    # Update imageVisibility with CLEAN (no cache-bust) URLs
     visibility = user.get("imageVisibility", {})
     if visibility:
         if visibility.get("profilePic"):
             pp_filename = visibility["profilePic"].split('/')[-1].split('?')[0]
             if pp_filename == target_filename:
-                visibility["profilePic"] = rotated_url
+                visibility["profilePic"] = base_url
         
         for key in ("memberVisible", "onRequest"):
             if visibility.get(key):
                 visibility[key] = [
-                    rotated_url if (v.split('/')[-1].split('?')[0] == target_filename) else v
+                    base_url if (v.split('/')[-1].split('?')[0] == target_filename) else v
                     for v in visibility[key]
                 ]
         update_fields["imageVisibility"] = visibility
