@@ -35,11 +35,15 @@
 # Environment variables loaded from: fastapi_backend/.env.production
 #
 # Usage:
-#   ./deploy-production.sh [--show-logs=true|false]
+#   ./deploy-production.sh [--frontend] [--backend] [--all] [--show-logs=true|false]
 #
 # Options:
+#   --frontend         Deploy frontend only
+#   --backend          Deploy backend only
+#   --all              Deploy both frontend and backend
 #   --show-logs=true   (default) Display all logs (LOG_LEVEL=INFO)
 #   --show-logs=false  Show only critical errors (LOG_LEVEL=ERROR)
+#   (no target flag)   Interactive prompt to choose what to deploy
 #
 # Environment variable:
 #   SHOW_LOGS=true|false
@@ -56,19 +60,29 @@ REGION="us-central1"
 
 # Parse command-line arguments
 SHOW_LOGS="${SHOW_LOGS:-true}"  # Default to true
+DEPLOY_TARGET=""  # Empty = interactive prompt
 
 for arg in "$@"; do
   case $arg in
+    --frontend)
+      DEPLOY_TARGET="frontend"
+      ;;
+    --backend)
+      DEPLOY_TARGET="backend"
+      ;;
+    --all)
+      DEPLOY_TARGET="all"
+      ;;
     --show-logs=*)
       SHOW_LOGS="${arg#*=}"
-      shift
       ;;
     --no-logs)
       SHOW_LOGS="false"
-      shift
       ;;
     *)
-      # Unknown option
+      echo "Unknown option: $arg"
+      echo "Usage: ./deploy-production.sh [--frontend] [--backend] [--all] [--show-logs=true|false]"
+      exit 1
       ;;
   esac
 done
@@ -173,15 +187,27 @@ check_project_access "$PROJECT"
 # Verify DNS configuration
 verify_dns
 
-# Ask what to deploy
-echo ""
-echo "What would you like to deploy?"
-echo ""
-echo "  1) Backend only"
-echo "  2) Frontend only"
-echo "  3) Both (recommended)"
-echo ""
-read -p "Enter choice (1-3): " choice
+# Determine deploy choice from flag or interactive prompt
+if [[ -z "$DEPLOY_TARGET" ]]; then
+    # No flag supplied — interactive prompt (existing behaviour)
+    echo ""
+    echo "What would you like to deploy?"
+    echo ""
+    echo "  1) Backend only"
+    echo "  2) Frontend only"
+    echo "  3) Both (recommended)"
+    echo ""
+    read -p "Enter choice (1-3): " choice
+else
+    # Map flag to choice number
+    case $DEPLOY_TARGET in
+        backend)  choice=1 ;;
+        frontend) choice=2 ;;
+        all)      choice=3 ;;
+    esac
+    echo ""
+    echo "Deploy target: $DEPLOY_TARGET (via --$DEPLOY_TARGET flag)"
+fi
 
 case $choice in
     1)
