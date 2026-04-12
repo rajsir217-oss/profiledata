@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
+import toastService from '../services/toastService';
 import './ProfileNotes.css';
 
 // Create a dedicated API instance for notes (uses /api/notes prefix, not /api/users)
@@ -177,7 +178,7 @@ const ProfileNotes = () => {
       setDeleteConfirm(null);
     } catch (err) {
       console.error('Error deleting note:', err);
-      alert('Failed to delete note');
+      toastService.error('Failed to delete note');
     }
   };
 

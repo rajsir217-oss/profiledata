@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import logger from '../utils/logger';
+import toastService from '../services/toastService';
 
 const InactivityAnalytics = () => {
   const [analytics, setAnalytics] = useState({
@@ -65,14 +66,14 @@ const InactivityAnalytics = () => {
       const response = await api.post('/api/admin/engagement/inactivity-test', testModal);
       
       if (response.data.success) {
-        alert(`Test reminder sent to ${testModal.username} via ${response.data.sent.join(', ')}`);
+        toastService.success(`Test reminder sent to ${testModal.username} via ${response.data.sent.join(', ')}`);
         setTestModal({ show: false, username: '', escalationDays: 15, channels: ['email'] });
       } else {
-        alert('Failed to send test reminder');
+        toastService.error('Failed to send test reminder');
       }
     } catch (error) {
       logger.error('Error sending test reminder:', error);
-      alert('Error sending test reminder');
+      toastService.error('Error sending test reminder');
     }
   };
 

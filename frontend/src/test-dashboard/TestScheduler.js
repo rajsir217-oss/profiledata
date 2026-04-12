@@ -48,7 +48,7 @@ const TestScheduler = ({ testSuites, isAdmin = false }) => {
       await loadSchedules();
     } catch (error) {
       console.error('Failed to save schedule:', error);
-      alert('Failed to save schedule');
+      toastService.error('Failed to save schedule');
     } finally {
       setLoading(false);
     }
