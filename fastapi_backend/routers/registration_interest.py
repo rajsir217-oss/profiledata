@@ -6,6 +6,7 @@ Admin endpoints for review queue management.
 """
 
 import logging
+import re
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field
@@ -13,6 +14,7 @@ from bson import ObjectId
 from fastapi import APIRouter, HTTPException, status, Depends, Request, Query
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from database import get_database
+from crypto_utils import PIIEncryption
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,7 @@ class RegistrationInterestCreate(BaseModel):
     phone: str = Field(..., min_length=5, max_length=20)
     residencyStatus: str = Field(..., pattern="^(us_citizen|green_card)$")
     referredBy: Optional[ReferredByInfo] = None
+    howDidYouHear: Optional[str] = Field(None, max_length=200)
 
 
 class RegistrationInterestResponse(BaseModel):
@@ -101,6 +104,7 @@ async def submit_registration_interest(
         "phone": data.phone.strip(),
         "residencyStatus": data.residencyStatus,
         "referredBy": referred_by,
+        "howDidYouHear": data.howDidYouHear.strip() if data.howDidYouHear else None,
         "status": "pending_review",
         "verificationPath": None,
         "idmeVerified": False,
@@ -207,6 +211,63 @@ async def list_all_interests(
     for interest in interests:
         email = interest.get("email", "").lower()
         interest["invitationInfo"] = invitation_map.get(email)
+
+    # Verify referrers against existing users
+    for interest in interests:
+        ref = interest.get("referredBy")
+        if not ref:
+            interest["referrerVerification"] = None
+            continue
+
+        ref_first = (ref.get("firstName") or "").strip()
+        ref_last = (ref.get("lastName") or "").strip()
+        ref_phone = re.sub(r"\D", "", ref.get("phone") or "")  # digits only
+        ref_email = (ref.get("email") or "").strip().lower()
+
+        if not ref_first and not ref_last:
+            interest["referrerVerification"] = None
+            continue
+
+        # Build query: match name (case-insensitive) AND (phone hash OR email hash)
+        # contactEmail/contactNumber are Fernet-encrypted — use hash fields for lookup
+        name_conditions = []
+        if ref_first:
+            name_conditions.append({"firstName": {"$regex": f"^{re.escape(ref_first)}$", "$options": "i"}})
+        if ref_last:
+            name_conditions.append({"lastName": {"$regex": f"^{re.escape(ref_last)}$", "$options": "i"}})
+
+        contact_conditions = []
+        if ref_phone:
+            # Try multiple phone formats since hash depends on how user registered
+            raw_ref_phone = (ref.get("phone") or "").strip()
+            phone_hashes = set()
+            for variant in [ref_phone[-10:], ref_phone, raw_ref_phone]:
+                h = PIIEncryption.hash_for_lookup(variant)
+                if h:
+                    phone_hashes.add(h)
+            if phone_hashes:
+                contact_conditions.append({"contactNumberHash": {"$in": list(phone_hashes)}})
+        if ref_email:
+            email_hash = PIIEncryption.hash_for_lookup(ref_email)
+            if email_hash:
+                contact_conditions.append({"contactEmailHash": email_hash})
+
+        if not name_conditions or not contact_conditions:
+            # Need at least name + one contact to verify
+            interest["referrerVerification"] = {"verified": False, "reason": "insufficient_info"}
+            continue
+
+        user_query = {"$and": name_conditions + [{"$or": contact_conditions}]}
+        matched_user = await db.users.find_one(user_query, {"username": 1, "firstName": 1, "lastName": 1})
+
+        if matched_user:
+            interest["referrerVerification"] = {
+                "verified": True,
+                "matchedUsername": matched_user.get("username"),
+                "matchedName": f"{matched_user.get('firstName', '')} {matched_user.get('lastName', '')}".strip()
+            }
+        else:
+            interest["referrerVerification"] = {"verified": False, "reason": "no_match"}
 
     total = await db.registration_interests.count_documents(query)
 

@@ -1,0 +1,203 @@
+/* Platform Activity Bar — fixed bottom footer, single row */
+.pab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 48px; /* Default: collapsed sidebar width */
+  right: 0;
+  z-index: 900;
+  background: var(--card-background);
+  border-top: 1px solid var(--border-color);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.12);
+  padding: 6px 16px;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Shift when sidebar is pinned open — match app-layout behavior */
+.sidebar-pinned .pab-bar {
+  left: 280px;
+}
+
+/* Single row layout */
+.pab-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+}
+
+/* Collapsed state */
+.pab-collapsed {
+  padding: 3px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pab-collapsed:hover {
+  background: var(--hover-background);
+}
+
+.pab-collapsed-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Period tabs — fixed width, no shrink */
+.pab-period-tabs {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.pab-period-btn {
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.pab-period-btn:hover {
+  background: var(--hover-background);
+  color: var(--text-color);
+}
+
+.pab-period-active {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+
+.pab-period-active:hover {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+/* Stats — fill remaining space, centered */
+.pab-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pab-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.3s ease;
+  flex-shrink: 0;
+}
+
+.pab-stat-loading {
+  opacity: 0.5;
+}
+
+.pab-stat-icon {
+  font-size: 12px;
+}
+
+.pab-stat-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.pab-stat-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Updated time — right side */
+.pab-update-time {
+  font-size: 9px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Toggle (collapse) button */
+.pab-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.pab-toggle:hover {
+  color: var(--text-color);
+  background: var(--hover-background);
+}
+
+/* Responsive — tablet */
+@media (max-width: 768px) {
+  .pab-bar {
+    left: 0; /* Sidebar overlays on mobile */
+    padding: 5px 10px;
+  }
+
+  .pab-row {
+    gap: 8px;
+  }
+
+  .pab-period-btn {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  .pab-stats {
+    gap: 8px;
+  }
+
+  .pab-stat-value {
+    font-size: 12px;
+  }
+
+  .pab-stat-label {
+    display: none; /* Hide labels on tablet to save space */
+  }
+
+  .pab-update-time {
+    display: none; /* Hide timestamp on small screens */
+  }
+}
+
+/* Responsive — mobile */
+@media (max-width: 480px) {
+  .pab-period-tabs {
+    gap: 2px;
+  }
+
+  .pab-period-btn {
+    font-size: 8px;
+    padding: 1px 5px;
+  }
+
+  .pab-stats {
+    gap: 6px;
+  }
+
+  .pab-stat-icon {
+    font-size: 10px;
+  }
+
+  .pab-stat-value {
+    font-size: 11px;
+  }
+}

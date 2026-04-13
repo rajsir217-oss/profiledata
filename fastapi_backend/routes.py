@@ -4901,15 +4901,18 @@ async def search_users(
     is_privileged = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
     
     if profileId:
-        logger.info(f"🔍 Direct Profile ID lookup: '{profileId}'")
-        query["profileId"] = {"$regex": profileId, "$options": "i"}
-        # If not admin/moderator, still restrict profileId lookup to active users
+        logger.info(f"🔍 Direct Profile ID / Username lookup: '{profileId}'")
+        # Search both profileId and username fields
+        id_or_username = {"$regex": profileId, "$options": "i"}
         if not is_privileged:
-            query["$or"] = [
-                {"accountStatus": "active"},
-                {"status.status": "active"}
+            # Non-privileged: match (profileId OR username) AND active status
+            query["$and"] = [
+                {"$or": [{"profileId": id_or_username}, {"username": id_or_username}]},
+                {"$or": [{"accountStatus": "active"}, {"status.status": "active"}]}
             ]
-        logger.info(f"🔍 Profile ID query: {query}")
+        else:
+            query["$or"] = [{"profileId": id_or_username}, {"username": id_or_username}]
+        logger.info(f"🔍 Profile ID / Username query: {query}")
     else:
         if status_filter and is_privileged:
             # Only privileged users can use status_filter
@@ -5494,10 +5497,11 @@ async def search_users(
         excluded_profile_id = None
         excluded_profile_username = None
         if profileId and len(users) == 0:
-            # Check if this profileId exists in user's exclusions
+            # Check if this profileId/username exists in user's exclusions
             # Use case-insensitive regex to match the search query behavior
+            id_regex = {"$regex": f"^{profileId}$", "$options": "i"}
             excluded_user = await db.users.find_one(
-                {"profileId": {"$regex": f"^{profileId}$", "$options": "i"}},
+                {"$or": [{"profileId": id_regex}, {"username": id_regex}]},
                 {"username": 1, "profileId": 1}
             )
             logger.info(f"🔍 Exclusion check: profileId={profileId}, excluded_user={excluded_user}, excluded_usernames={excluded_usernames}")

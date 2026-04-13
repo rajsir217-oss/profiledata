@@ -16,7 +16,9 @@ const RegisterInterest = () => {
     refLastName: '',
     refPhone: '',
     refEmail: '',
-    residencyStatus: ''
+    residencyStatus: '',
+    howDidYouHear: '',
+    howDidYouHearOther: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -72,7 +74,10 @@ const RegisterInterest = () => {
           lastName: formData.refLastName.trim(),
           phone: formData.refPhone.trim(),
           email: formData.refEmail.trim()
-        } : null
+        } : null,
+        howDidYouHear: formData.howDidYouHear === 'other'
+          ? (formData.howDidYouHearOther.trim() || 'Other')
+          : (formData.howDidYouHear || null)
       };
 
       await axios.post(`${getBackendUrl()}/api/registration-interest`, payload);
@@ -123,7 +128,7 @@ const RegisterInterest = () => {
         <form onSubmit={handleSubmit} className="ri-form">
           {/* Eligibility Notice */}
           <div className="ri-notice">
-            🇺🇸 This platform is exclusively for <strong>US Citizens</strong> and <strong>Green Card (Permanent Resident) holders</strong>. By submitting this form, you confirm that you meet this requirement.
+            🇺🇸🇮🇳 This platform is exclusively for individuals of <strong>Indian origin</strong> who are <strong>US Citizens</strong> or <strong>Green Card (Permanent Resident) holders</strong>. By submitting this form, you confirm that you meet this requirement.
           </div>
 
           {/* Residency Status */}
@@ -211,14 +216,48 @@ const RegisterInterest = () => {
             </div>
           </div>
 
+          {/* How Did You Hear About Us */}
+          <div className="ri-section">
+            <h3 className="ri-section-title">How did you hear about us?</h3>
+            <div className="ri-field">
+              <select
+                name="howDidYouHear"
+                value={formData.howDidYouHear}
+                onChange={handleChange}
+                className="ri-select"
+              >
+                <option value="">Select an option</option>
+                <option value="friend_family">Friend or Family Member</option>
+                <option value="community_event">Community Event / Gathering</option>
+                <option value="social_media">Social Media (Facebook, Instagram, etc.)</option>
+                <option value="temple_organization">Temple / Cultural Organization</option>
+                <option value="online_search">Online Search (Google, etc.)</option>
+                <option value="word_of_mouth">Word of Mouth</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            {formData.howDidYouHear === 'other' && (
+              <div className="ri-field" style={{ marginTop: '10px' }}>
+                <input
+                  name="howDidYouHearOther"
+                  type="text"
+                  value={formData.howDidYouHearOther}
+                  onChange={handleChange}
+                  placeholder="Please specify..."
+                  maxLength={200}
+                />
+              </div>
+            )}
+          </div>
+
           {/* Referred By */}
           <div className="ri-section">
             <h3 className="ri-section-title">
               Referred By
-              <span className="ri-optional">Optional but recommended</span>
+              <span className="ri-highly-recommended">Highly Recommended</span>
             </h3>
             <p className="ri-section-desc">
-              If someone referred you, provide their details. This helps speed up your verification.
+              This is a <strong>community-based platform</strong> built on trust. Providing referral information significantly speeds up your verification and helps maintain the quality of our community.
             </p>
             <div className="ri-field-row">
               <div className="ri-field">

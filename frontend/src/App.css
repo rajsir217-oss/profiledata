@@ -61,7 +61,7 @@
 
 .main-content .container {
   padding-top: 20px;
-  padding-bottom: 40px;
+  padding-bottom: 80px; /* Extra space for PlatformActivityBar fixed footer */
   /* max-width removed - let individual page components control their own width */
 }
 

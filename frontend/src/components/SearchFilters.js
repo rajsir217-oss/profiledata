@@ -127,9 +127,9 @@ const SearchFilters = ({
       <div className="profile-id-search-section">
         <div className="form-group">
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            Profile ID
+            Profile ID / Username
             <Tooltip 
-              text="Enter an exact Profile ID to find a specific user directly. This bypasses all other filters."
+              text="Enter a Profile ID or Username to find a specific user directly. This bypasses all other filters."
               position="top"
               icon 
             />
@@ -142,7 +142,7 @@ const SearchFilters = ({
               id="profileId-input"
               value={searchCriteria.profileId || ''}
               onChange={handleInputChange}
-              placeholder="e.g., STHa9Lor"
+              placeholder="e.g., STHa9Lor or john_doe"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   handleProfileIdSearch();

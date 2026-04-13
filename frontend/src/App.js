@@ -82,6 +82,7 @@ import PrivacyPolicy from './components/PrivacyPolicy';
 import RefundPolicy from './components/RefundPolicy';
 import CommunityGuidelines from './components/CommunityGuidelines';
 import CookiePolicy from './components/CookiePolicy';
+import PlatformActivityBar from './components/PlatformActivityBar';
 import './styles/index.css'; // Consolidated styles (includes themes)
 import './App.css'; // App-specific layout only
 import { getUserPreferences, getUserProfile } from './api';
@@ -456,6 +457,7 @@ function AppContent() {
             </Routes>
           </div>
         </div>
+        {!hideNavigation && <PlatformActivityBar />}
       </div>
     </div>
   );

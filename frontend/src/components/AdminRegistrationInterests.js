@@ -20,6 +20,15 @@ const RESIDENCY_LABELS = {
   green_card: '🪪 Green Card'
 };
 
+const HOW_DID_YOU_HEAR_LABELS = {
+  friend_family: 'Friend or Family Member',
+  community_event: 'Community Event / Gathering',
+  social_media: 'Social Media',
+  temple_organization: 'Temple / Cultural Organization',
+  online_search: 'Online Search (Google, etc.)',
+  word_of_mouth: 'Word of Mouth'
+};
+
 const AdminRegistrationInterests = () => {
   const [interests, setInterests] = useState([]);
   const [total, setTotal] = useState(0);
@@ -285,17 +294,53 @@ const AdminRegistrationInterests = () => {
 
                   {/* Referrer Info */}
                   <div className="ari-detail-section">
-                    <h4>Referred By</h4>
+                    <h4>
+                      Referred By
+                      {interest.referrerVerification?.verified && (
+                        <span className="ari-ref-verified">✅ System Verified</span>
+                      )}
+                      {interest.referredBy && interest.referrerVerification && !interest.referrerVerification.verified && (
+                        <span className="ari-ref-unverified">⚠️ Not Verified</span>
+                      )}
+                    </h4>
                     {interest.referredBy ? (
-                      <div className="ari-detail-grid">
-                        <span><strong>Name:</strong> {interest.referredBy.firstName} {interest.referredBy.lastName}</span>
-                        {interest.referredBy.phone && <span><strong>Phone:</strong> {interest.referredBy.phone}</span>}
-                        {interest.referredBy.email && <span><strong>Email:</strong> {interest.referredBy.email}</span>}
-                      </div>
+                      <>
+                        <div className="ari-detail-grid">
+                          <span><strong>Name:</strong> {interest.referredBy.firstName} {interest.referredBy.lastName}</span>
+                          {interest.referredBy.phone && <span><strong>Phone:</strong> {interest.referredBy.phone}</span>}
+                          {interest.referredBy.email && <span><strong>Email:</strong> {interest.referredBy.email}</span>}
+                        </div>
+                        {interest.referrerVerification?.verified && (
+                          <div className="ari-ref-match-info">
+                            Matched to member: <strong>{interest.referrerVerification.matchedName}</strong>
+                            {interest.referrerVerification.matchedUsername && (
+                              <span> (@{interest.referrerVerification.matchedUsername})</span>
+                            )}
+                          </div>
+                        )}
+                        {interest.referredBy && interest.referrerVerification && !interest.referrerVerification.verified && interest.referrerVerification.reason === 'no_match' && (
+                          <div className="ari-ref-no-match">
+                            No matching member found in the system
+                          </div>
+                        )}
+                        {interest.referredBy && interest.referrerVerification && !interest.referrerVerification.verified && interest.referrerVerification.reason === 'insufficient_info' && (
+                          <div className="ari-ref-no-match">
+                            Insufficient referrer info to verify (need name + phone or email)
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <p className="ari-no-data">No referrer provided</p>
                     )}
                   </div>
+
+                  {/* How Did You Hear */}
+                  {interest.howDidYouHear && (
+                    <div className="ari-detail-section">
+                      <h4>How Did You Hear About Us</h4>
+                      <p className="ari-detail-value">{HOW_DID_YOU_HEAR_LABELS[interest.howDidYouHear] || interest.howDidYouHear}</p>
+                    </div>
+                  )}
 
                   {/* Review Info */}
                   {interest.reviewedBy && (

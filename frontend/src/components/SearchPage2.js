@@ -1738,7 +1738,7 @@ const SearchPage2 = () => {
     }
     
     if (searchCriteria.profileId) {
-      summary.push(`Profile ID: ${searchCriteria.profileId}`);
+      summary.push(`ID/Username: ${searchCriteria.profileId}`);
       return summary.join(' • ');
     }
     

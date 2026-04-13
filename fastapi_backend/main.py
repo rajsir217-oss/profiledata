@@ -60,6 +60,7 @@ from routers.queue_management import router as queue_management_router
 from routers.clover_payments import router as clover_payments_router
 from routers.admin_backups import router as admin_backups_router
 from routers.virtual_meets import router as virtual_meets_router
+from routers.platform_stats import router as platform_stats_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -445,6 +446,7 @@ app.include_router(admin_backups_router)  # Admin backups routes (already has /a
 app.include_router(whatsapp_verification_router)  # WhatsApp verification routes
 app.include_router(registration_interest_router)  # Registration interest routes (already has /api/registration-interest prefix)
 app.include_router(virtual_meets_router)  # Virtual Meets routes (already has /api/virtual-meets prefix)
+app.include_router(platform_stats_router)  # Platform stats routes (already has /api/platform-stats prefix)
 
 # Health check endpoint — used by Cloud Run liveness probe.
 # Tests MongoDB connectivity so probe fails (503) if workers are deadlocked
