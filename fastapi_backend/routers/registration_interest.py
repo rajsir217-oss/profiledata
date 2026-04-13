@@ -257,8 +257,16 @@ async def list_all_interests(
             interest["referrerVerification"] = {"verified": False, "reason": "insufficient_info"}
             continue
 
-        user_query = {"$and": name_conditions + [{"$or": contact_conditions}]}
-        matched_user = await db.users.find_one(user_query, {"username": 1, "firstName": 1, "lastName": 1})
+        # Strategy 1: Strict match — name AND (phone OR email)
+        matched_user = None
+        if name_conditions and contact_conditions:
+            user_query = {"$and": name_conditions + [{"$or": contact_conditions}]}
+            matched_user = await db.users.find_one(user_query, {"username": 1, "firstName": 1, "lastName": 1})
+
+        # Strategy 2: Fallback — contact-only match (email hash is reliable, phone format varies)
+        if not matched_user and contact_conditions:
+            contact_query = {"$or": contact_conditions} if len(contact_conditions) > 1 else contact_conditions[0]
+            matched_user = await db.users.find_one(contact_query, {"username": 1, "firstName": 1, "lastName": 1})
 
         if matched_user:
             interest["referrerVerification"] = {
