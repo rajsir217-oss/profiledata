@@ -6,15 +6,18 @@ Admin endpoints for review queue management.
 """
 
 import logging
+import os
 import re
 from datetime import datetime
 from typing import Optional, List
+from urllib.parse import quote
 from pydantic import BaseModel, EmailStr, Field
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, status, Depends, Request, Query
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from database import get_database
 from crypto_utils import PIIEncryption
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +152,111 @@ def serialize_interest(doc: dict) -> dict:
     return doc
 
 
+async def _auto_send_invitation(interest: dict, db, verified_by: str = "system") -> Optional[str]:
+    """
+    Auto-create and send an invitation for a verified interest.
+    Returns invitation ID on success, None on failure.
+    Stores referredBy info on the invitation for transfer to user profile.
+    """
+    from services.invitation_service import InvitationService
+    from models.invitation_models import InvitationCreate, InvitationChannel, InvitationStatus
+    from services.email_sender import send_invitation_email
+
+    interest_id = interest["_id"]
+
+    # Skip if already invited
+    if interest.get("status") == "invited":
+        return None
+
+    # Check for existing invitation
+    existing_inv = await db.invitations.find_one({
+        "email": interest["email"],
+        "archived": False
+    })
+    if existing_inv:
+        # Link interest to existing invitation
+        await db.registration_interests.update_one(
+            {"_id": interest_id},
+            {"$set": {
+                "status": "invited",
+                "invitationId": existing_inv["_id"],
+                "updatedAt": datetime.utcnow()
+            }}
+        )
+        logger.info(f"🔗 Interest {interest_id} linked to existing invitation {existing_inv['_id']}")
+        return str(existing_inv["_id"])
+
+    inv_service = InvitationService(db)
+    inv_name = f"{interest['firstName']} {interest['lastName']}"
+
+    try:
+        inv_data = InvitationCreate(
+            name=inv_name,
+            email=interest["email"],
+            phone=interest.get("phone"),
+            channel=InvitationChannel.EMAIL,
+            sendImmediately=True,
+            promoCode="PUBLIC"
+        )
+        new_invitation = await inv_service.create_invitation(
+            invitation_data=inv_data,
+            invited_by=verified_by
+        )
+    except Exception as e:
+        logger.error(f"❌ Failed to create invitation for interest {interest_id}: {e}")
+        return None
+
+    # Store interestId, verificationPath, and referredBy on the invitation
+    update_fields = {
+        "interestId": interest_id,
+        "verificationPath": "referral"
+    }
+    if interest.get("referredBy"):
+        update_fields["referredByInfo"] = interest["referredBy"]
+
+    await db.invitations.update_one(
+        {"_id": ObjectId(new_invitation.id)},
+        {"$set": update_fields}
+    )
+
+    # Build and send invitation email
+    base_url = settings.app_url or settings.frontend_url or "https://l3v3lmatches.com"
+    if 'localhost' in base_url and os.environ.get('K_SERVICE'):
+        base_url = os.environ.get('APP_URL') or os.environ.get('FRONTEND_URL') or "https://l3v3lmatches.com"
+    invitation_link = f"{base_url}/register2?invitation={new_invitation.invitationToken}&email={quote(interest['email'])}&promo=PUBLIC"
+
+    try:
+        await send_invitation_email(
+            to_email=interest["email"],
+            to_name=inv_name,
+            invitation_link=invitation_link
+        )
+        await inv_service.update_invitation_status(
+            new_invitation.id,
+            InvitationChannel.EMAIL,
+            InvitationStatus.SENT
+        )
+    except Exception as e:
+        logger.error(f"⚠️ Invitation created but email failed for interest {interest_id}: {e}")
+
+    # Update interest status to invited
+    now = datetime.utcnow()
+    await db.registration_interests.update_one(
+        {"_id": interest_id},
+        {"$set": {
+            "status": "invited",
+            "verificationPath": "referral",
+            "reviewedBy": verified_by,
+            "reviewedAt": now,
+            "invitationId": ObjectId(new_invitation.id),
+            "updatedAt": now
+        }}
+    )
+
+    logger.info(f"📧 Auto-invitation sent for interest {interest_id} → invitation {new_invitation.id}")
+    return new_invitation.id
+
+
 # --- Admin Endpoints ---
 
 VALID_STATUSES = [
@@ -274,6 +382,20 @@ async def list_all_interests(
                 "matchedUsername": matched_user.get("username"),
                 "matchedName": f"{matched_user.get('firstName', '')} {matched_user.get('lastName', '')}".strip()
             }
+
+            # Auto-send invitation if interest is still pending_review
+            if interest.get("status") == "pending_review":
+                try:
+                    # Re-fetch raw doc (with ObjectId) for the helper
+                    raw_doc = await db.registration_interests.find_one({"_id": ObjectId(interest["_id"])})
+                    if raw_doc:
+                        inv_id = await _auto_send_invitation(raw_doc, db, verified_by="system")
+                        if inv_id:
+                            interest["status"] = "invited"
+                            interest["invitationId"] = inv_id
+                            logger.info(f"🤖 Auto-invited interest {interest['_id']} — referrer verified as {matched_user.get('username')}")
+                except Exception as e:
+                    logger.error(f"⚠️ Auto-invitation failed for interest {interest['_id']}: {e}")
         else:
             interest["referrerVerification"] = {"verified": False, "reason": "no_match"}
 
@@ -466,12 +588,9 @@ async def send_invitation_from_interest(
             detail=f"Cannot send invitation — status must be reference_validated or idme_verified, got '{interest['status']}'"
         )
 
-    import os
     from services.invitation_service import InvitationService
     from models.invitation_models import InvitationCreate, InvitationChannel, InvitationStatus
     from services.email_sender import send_invitation_email
-    from config import settings
-    from urllib.parse import quote
 
     inv_service = InvitationService(db)
 
@@ -518,7 +637,8 @@ async def send_invitation_from_interest(
             email=interest["email"],
             phone=interest.get("phone"),
             channel=InvitationChannel.EMAIL,
-            sendImmediately=True
+            sendImmediately=True,
+            promoCode="PUBLIC"
         )
         new_invitation = await inv_service.create_invitation(
             invitation_data=inv_data,
@@ -527,20 +647,24 @@ async def send_invitation_from_interest(
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
-    # Add interestId + verificationPath to the invitation doc for tracing
+    # Add interestId, verificationPath, and referredBy info to the invitation doc
+    inv_update_fields = {
+        "interestId": ObjectId(interest_id),
+        "verificationPath": interest.get("verificationPath")
+    }
+    if interest.get("referredBy"):
+        inv_update_fields["referredByInfo"] = interest["referredBy"]
+
     await db.invitations.update_one(
         {"_id": ObjectId(new_invitation.id)},
-        {"$set": {
-            "interestId": ObjectId(interest_id),
-            "verificationPath": interest.get("verificationPath")
-        }}
+        {"$set": inv_update_fields}
     )
 
     # Build invitation link and send email
     base_url = settings.app_url or settings.frontend_url or "https://l3v3lmatches.com"
     if 'localhost' in base_url and os.environ.get('K_SERVICE'):
         base_url = os.environ.get('APP_URL') or os.environ.get('FRONTEND_URL') or "https://l3v3lmatches.com"
-    invitation_link = f"{base_url}/register2?invitation={new_invitation.invitationToken}&email={quote(interest['email'])}"
+    invitation_link = f"{base_url}/register2?invitation={new_invitation.invitationToken}&email={quote(interest['email'])}&promo=PUBLIC"
 
     try:
         await send_invitation_email(

@@ -166,6 +166,12 @@ SEARCH_RESULT_PROJECTION = {
     "adminApprovedAt": 1,
     "contributionPopupDisabledByAdmin": 1,
     "badges": 1,
+    "promoCode": 1,
+    "referredByInfo": 1,
+    "invitedBy": 1,
+    "accountStatus": 1,
+    "role_name": 1,
+    "role": 1,
 }
 
 # Full projection for detailed profile view
@@ -1018,6 +1024,7 @@ async def register_user(
     # Invitation tracking
     invitedBy: Optional[str] = Form(None),  # Username of the member who invited this user
     invitationToken: Optional[str] = Form(None),  # Invitation token used during registration
+    referredByInfo: Optional[str] = Form(None),  # JSON string of referrer info from interest form
     # Legal consent fields
     agreedToAge: bool = Form(False),
     agreedToTerms: bool = Form(False),
@@ -1374,6 +1381,8 @@ async def register_user(
         # Invitation tracking
         "invitedBy": invitedBy if invitedBy else "system",  # Default to "system" if not invited
         "invitationToken": invitationToken,  # Token used during registration (for audit)
+        # Referrer info from registration interest form
+        "referredByInfo": safe_json_loads(referredByInfo) if referredByInfo else None,
         # Verification Badges (Gamification)
         "badges": {
             "idVerified": False,
