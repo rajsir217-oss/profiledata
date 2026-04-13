@@ -237,5 +237,9 @@ def initialize_templates():
     # Register queue cleanup template
     registry.register(QueueCleanupTemplate())
     
+    # Register referrer auto-invite template
+    from .referrer_auto_invite import ReferrerAutoInviteTemplate
+    registry.register(ReferrerAutoInviteTemplate())
+    
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
