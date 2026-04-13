@@ -192,6 +192,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   // Invitation state
   const [invitationToken, setInvitationToken] = useState(null);
   const [invitedBy, setInvitedBy] = useState(null); // Username of member who sent invitation
+  const [referredByInfo, setReferredByInfo] = useState(null); // Referrer info from interest form
   const [, setInvitationData] = useState(null); // eslint-disable-line no-unused-vars
   const [, setLoadingInvitation] = useState(false); // eslint-disable-line no-unused-vars
   const [registrationOpen, setRegistrationOpen] = useState(true); // Assume open until checked
@@ -1414,6 +1415,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     if (promoCodeFromUrl && !isEditMode) {
       data.append('promoCode', promoCodeFromUrl);
     }
+    
+    // Add referredBy info from interest form (if registering via invitation)
+    if (referredByInfo && !isEditMode) {
+      data.append('referredByInfo', JSON.stringify(referredByInfo));
+    }
 
     try {
       setIsSubmitting(true);
@@ -1748,6 +1754,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             // Store who invited this user (for saving to profile)
             if (invitation.invitedBy) {
               setInvitedBy(invitation.invitedBy);
+            }
+            
+            // Store referrer info from interest form (for saving to profile)
+            if (invitation.referredByInfo) {
+              setReferredByInfo(invitation.referredByInfo);
             }
             
             // Pre-fill form with invitation data

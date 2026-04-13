@@ -1116,6 +1116,11 @@ const UserManagement = () => {
                   <span className="promo-code-badge">
                     🎫 {user.promoCode || 'USVEDIKA'}
                   </span>
+                  {user.referredByInfo && (
+                    <div style={{fontSize: '10px', color: 'var(--text-secondary)', marginTop: '3px'}}>
+                      👤 Ref: {user.referredByInfo.firstName} {user.referredByInfo.lastName}
+                    </div>
+                  )}
                 </td>
                 <td style={{textAlign: 'center'}}>
                   {(() => {

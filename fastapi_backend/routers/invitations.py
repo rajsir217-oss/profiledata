@@ -781,6 +781,11 @@ async def validate_invitation(
             detail=f"Invitation already accepted by {invitation.registeredUsername}"
         )
     
+    # Fetch raw doc for extra fields not on the Pydantic model
+    raw_inv = await db.invitations.find_one({"_id": ObjectId(invitation.id)})
+    referred_by_info = raw_inv.get("referredByInfo") if raw_inv else None
+    promo_code = raw_inv.get("promoCode") if raw_inv else None
+
     # Return invitation data (excluding sensitive fields)
     return {
         "id": invitation.id,
@@ -789,7 +794,9 @@ async def validate_invitation(
         "phone": invitation.phone,
         "invitedBy": invitation.invitedBy,
         "customMessage": invitation.customMessage,
-        "createdAt": invitation.createdAt
+        "createdAt": invitation.createdAt,
+        "promoCode": promo_code,
+        "referredByInfo": referred_by_info
     }
 
 
