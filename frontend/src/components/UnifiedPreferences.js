@@ -1629,7 +1629,7 @@ const UnifiedPreferences = () => {
                       </div>
                       <div className="last-contribution-row">
                         <span className="last-contribution-label">📅 Date:</span>
-                        <span className="last-contribution-value">{new Date(contributionHistory[0].createdAt).toLocaleDateString()}</span>
+                        <span className="last-contribution-value">{new Date(contributionHistory[0].date).toLocaleDateString()}</span>
                       </div>
                     </div>
                   ) : (
