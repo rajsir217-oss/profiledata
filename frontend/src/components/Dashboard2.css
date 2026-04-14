@@ -1084,7 +1084,7 @@
   font-size: 14px;
 }
 
-/* Hide My Activities and Admirers sections on mobile - use stat cards instead */
+/* Hide My Activities and My Profile Activity sections on mobile - use stat cards instead */
 @media (max-width: 640px) {
   .activity-group:has(.activity-group-header-my),
   .activity-group:has(.activity-group-header-others) {
