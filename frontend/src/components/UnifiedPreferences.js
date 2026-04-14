@@ -1606,111 +1606,39 @@ const UnifiedPreferences = () => {
               <div className="contributions-settings">
                 {/* Contribution Overview */}
                 <section className="settings-section">
-                  <h2>💝 Your Contribution Impact</h2>
-                  <p className="section-description">Manage your contributions and see how you're supporting the platform</p>
+                  <h2>💝 Contribution History</h2>
+                  <p className="section-description">Support the platform with a contribution</p>
                   
-                  <div className="contribution-stats-grid">
-                    <div className="stat-card">
-                      <div className="stat-icon">💰</div>
-                      <div className="stat-content">
-                        <h3>${contributionStats.totalContributed.toFixed(2)}</h3>
-                        <p>Total Contributed</p>
-                      </div>
-                    </div>
-                    <div className="stat-card">
-                      <div className="stat-icon">📊</div>
-                      <div className="stat-content">
-                        <h3>{contributionStats.contributionCount}</h3>
-                        <p>Contributions</p>
-                      </div>
-                    </div>
-                    <div className="stat-card">
-                      <div className="stat-icon">📈</div>
-                      <div className="stat-content">
-                        <h3>${contributionStats.averageAmount.toFixed(2)}</h3>
-                        <p>Average Amount</p>
-                      </div>
-                    </div>
-                    {contributionStats.isRecurringContributor && (
-                      <div className="stat-card recurring">
-                        <div className="stat-icon">🔄</div>
-                        <div className="stat-content">
-                          <h3>Monthly</h3>
-                          <p>Recurring Supporter</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {contributionStats.lastContribution && (
-                    <div className="last-contribution">
-                      <p>📅 Last contribution: {new Date(contributionStats.lastContribution).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                </section>
-
-                {/* Contribution History */}
-                <section className="settings-section">
-                  <h2>📜 Contribution History</h2>
-                  <p className="section-description">View your past contributions and download receipts</p>
-                  
-                  {loadingContributionHistory ? (
-                    <div className="loading-spinner">Loading contribution history...</div>
-                  ) : contributionHistory.length === 0 ? (
-                    <div className="empty-state">
-                      <p>No contributions yet. Your support helps keep the platform running!</p>
-                      <button className="btn-primary" onClick={() => window.location.href='/search'}>
-                        🎯 Make Your First Contribution
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="contribution-history-list">
-                      {contributionHistory.slice(0, 5).map((contribution) => (
-                        <div key={contribution.id} className="contribution-item">
-                          <div className="contribution-details">
-                            <div className="contribution-amount">
-                              <strong>${contribution.amount.toFixed(2)}</strong>
-                              {contribution.type === 'recurring' && (
-                                <span className="recurring-badge">🔄 Monthly</span>
-                              )}
-                            </div>
-                            <div className="contribution-date">
-                              {new Date(contribution.date).toLocaleDateString()}
-                            </div>
-                            <div className="contribution-method">
-                              {contribution.paymentMethod}
-                            </div>
-                          </div>
-                          <button className="btn-secondary btn-sm">
-                            📧 Receipt
-                          </button>
-                        </div>
-                      ))}
-                      {contributionHistory.length > 5 && (
-                        <button className="btn-secondary view-all-btn">
-                          View All {contributionHistory.length} Contributions
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </section>
-
-                {/* Quick Contribution */}
-                <section className="settings-section">
-                  <h2>💝 Make a Contribution</h2>
-                  <p className="section-description">Support the platform with a quick contribution</p>
-                  
-                  <div className="contribution-trigger">
+                  {/* Make a Contribution Button - Top Center */}
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
                     <button 
                       className="btn-primary contribution-btn"
                       onClick={() => setShowContributionPopup(true)}
+                      style={{ fontSize: '16px', padding: '12px 32px' }}
                     >
                       💝 Make a Contribution
                     </button>
-                    <p className="contribution-description">
-                      Support the platform and help us continue providing great service
-                    </p>
                   </div>
+
+                  {/* Last Contribution Info */}
+                  {contributionHistory.length > 0 ? (
+                    <div className="last-contribution-card">
+                      <div className="last-contribution-row">
+                        <span className="last-contribution-label">💰 Last Contribution:</span>
+                        <span className="last-contribution-value">${contributionHistory[0].amount.toFixed(2)}</span>
+                      </div>
+                      <div className="last-contribution-row">
+                        <span className="last-contribution-label">📅 Date:</span>
+                        <span className="last-contribution-value">{new Date(contributionHistory[0].createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="last-contribution-card">
+                      <p style={{ textAlign: 'center', color: 'var(--text-color)', opacity: 0.7 }}>
+                        No contributions yet. Your support helps keep the platform running!
+                      </p>
+                    </div>
+                  )}
                 </section>
 
                 {/* Admin-only Contribution Settings */}
