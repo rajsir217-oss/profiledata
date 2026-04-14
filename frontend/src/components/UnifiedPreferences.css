@@ -88,6 +88,39 @@
   font-size: 0.9rem;
 }
 
+.last-contribution-card {
+  background: var(--surface-color);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.last-contribution-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.last-contribution-row:last-child {
+  border-bottom: none;
+}
+
+.last-contribution-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.last-contribution-value {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 16px;
+}
+
 /* Contribution History */
 .contribution-history-list {
   display: flex;
