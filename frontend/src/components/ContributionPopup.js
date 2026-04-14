@@ -393,6 +393,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const handleDismiss = () => {
     if (!loading) {
       logActivity('popup_dismissed');
+      sessionStorage.setItem('contribution_dismissed', 'true');
       onClose();
     }
   };
