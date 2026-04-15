@@ -5,19 +5,19 @@ import logger from '../utils/logger';
 import './PlatformActivityBar.css';
 
 const PERIODS = [
-  { key: 'weekly', label: 'This Week' },
-  { key: 'monthly', label: 'This Month' },
-  { key: 'yearly', label: 'This Year' },
-  { key: 'all', label: 'All Time' }
+  { key: 'weekly', label: 'This Week', mobileLabel: 'W' },
+  { key: 'monthly', label: 'This Month', mobileLabel: 'M' },
+  { key: 'yearly', label: 'This Year', mobileLabel: 'Y' },
+  { key: 'all', label: 'All Time', mobileLabel: 'A' }
 ];
 
 const STAT_CONFIG = [
-  { key: 'searches', icon: '🔍', label: 'Searches' },
-  { key: 'profileViews', icon: '👀', label: 'Profile Views' },
-  { key: 'favorited', icon: '⭐', label: 'Favorited' },
-  { key: 'shortlisted', icon: '📋', label: 'Shortlisted' },
-  { key: 'messagesSent', icon: '💬', label: 'Messages' },
-  { key: 'activeMembers', icon: '👥', label: 'Active Members' }
+  { key: 'searches', icon: '🔍', label: 'Searches', mobileLabel: 'S' },
+  { key: 'profileViews', icon: '👀', label: 'Profile Views', mobileLabel: 'V' },
+  { key: 'favorited', icon: '⭐', label: 'Favorited', mobileLabel: 'F' },
+  { key: 'shortlisted', icon: '📋', label: 'Shortlisted', mobileLabel: 'L' },
+  { key: 'messagesSent', icon: '💬', label: 'Messages', mobileLabel: 'M' },
+  { key: 'activeMembers', icon: '👥', label: 'Active Members', mobileLabel: 'A' }
 ];
 
 const PlatformActivityBar = () => {
@@ -94,7 +94,8 @@ const PlatformActivityBar = () => {
               className={`pab-period-btn ${period === p.key ? 'pab-period-active' : ''}`}
               onClick={() => setPeriod(p.key)}
             >
-              {p.label}
+              <span className="pab-period-full-label">{p.label}</span>
+              <span className="pab-period-mobile-label">{p.mobileLabel}</span>
             </button>
           ))}
         </div>
@@ -103,7 +104,10 @@ const PlatformActivityBar = () => {
             <div key={stat.key} className={`pab-stat ${loading ? 'pab-stat-loading' : ''}`}>
               <span className="pab-stat-icon">{stat.icon}</span>
               <span className="pab-stat-value">{stats ? formatNumber(stats[stat.key]) : '—'}</span>
-              <span className="pab-stat-label">{stat.label}</span>
+              <span className="pab-stat-label">
+                <span className="pab-stat-full-label">{stat.label}</span>
+                <span className="pab-stat-mobile-label">{stat.mobileLabel}</span>
+              </span>
             </div>
           ))}
         </div>

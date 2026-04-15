@@ -538,6 +538,133 @@
   background: var(--card-background);
 }
 
+/* Details Request Modal */
+.ari-details-modal {
+  max-width: 500px;
+  width: 90%;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.ari-details-modal-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  border-radius: 16px 16px 0 0;
+}
+
+.ari-details-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ari-details-modal-close {
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.ari-details-modal-close:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.05);
+}
+
+.ari-details-modal-body {
+  padding: 24px;
+  background: var(--card-background);
+}
+
+.ari-details-channel-selector {
+  margin-bottom: 16px;
+}
+
+.ari-details-channel-selector label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.ari-details-channel-options {
+  display: flex;
+  gap: 10px;
+}
+
+.ari-details-channel-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--surface-color);
+  color: var(--text-color);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ari-details-channel-btn:hover {
+  border-color: var(--primary-color);
+}
+
+.ari-details-channel-btn.ari-details-channel-active {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border-color: transparent;
+}
+
+.ari-details-modal-body label:not(.ari-details-channel-selector label) {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.ari-details-modal-body textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text-color);
+  background: var(--input-bg);
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.ari-details-modal-body textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.ari-details-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: var(--card-background);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .ari-page {
