@@ -93,7 +93,7 @@ class SystemCleanupTemplate(JobTemplate):
                 collection = config.get("collection")
                 days_old = config.get("days_old", 30)
                 date_field = config.get("date_field", "createdAt")
-                filter_query = config.get("filter", {})
+                filter_query = config.get("filter") or config.get("custom_filter") or {}
                 
                 if not collection:
                     context.log("WARNING", f"   ⚠️ Skipping config with missing collection name")
@@ -102,12 +102,12 @@ class SystemCleanupTemplate(JobTemplate):
                 try:
                     cutoff = datetime.utcnow() - timedelta(days=days_old)
                     
-                    # Build query: date filter + custom filter
-                    query = {
-                        date_field: {"$lt": cutoff}
-                    }
+                    # Build query: date filter + custom filter using $and
+                    date_condition = {date_field: {"$lt": cutoff}}
                     if filter_query:
-                        query = {**query, **filter_query}
+                        query = {"$and": [date_condition, filter_query]}
+                    else:
+                        query = date_condition
                     
                     # Special handling for sessions (also check expires_at and last_activity)
                     if collection == "sessions":
