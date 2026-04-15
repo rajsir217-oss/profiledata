@@ -34,7 +34,7 @@ const AdminRegistrationInterests = () => {
   const [interests, setInterests] = useState([]);
   const [total, setTotal] = useState(0);
   const [statusCounts, setStatusCounts] = useState({});
-  const [activeFilter, setActiveFilter] = useState('');
+  const [activeFilter, setActiveFilter] = useState('pending_review');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState({});
   const [expandedId, setExpandedId] = useState(null);
