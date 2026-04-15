@@ -172,6 +172,8 @@ class DatabaseCleanupTemplate(JobTemplate):
                 context.log("INFO", f"   🗑️  Delete ALL with status: {status_filter}")
             elif custom_filter:
                 context.log("INFO", f"   🔍 Custom filter: {custom_filter}")
+                cutoff_preview = datetime.utcnow() - timedelta(days=days_old)
+                context.log("INFO", f"   ⏰ Retention: {days_old} days (cutoff: {cutoff_preview.isoformat()})")
             else:
                 context.log("INFO", f"   ⏰ Retention: {days_old} days")
             context.log("INFO", f"   📅 Date field: {date_field}")
@@ -285,6 +287,9 @@ class DatabaseCleanupTemplate(JobTemplate):
                 condition = {"$and": [condition, custom_filter]}
 
         collection = context.db[collection_name]
+
+        # Debug: log the final query
+        context.log("INFO", f"   🔎 Final query: {condition}")
 
         # Count matching records
         count = await collection.count_documents(condition)
