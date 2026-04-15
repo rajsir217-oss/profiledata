@@ -279,17 +279,24 @@ async def get_pending_count(
 @router.get("/admin/all")
 async def list_all_interests(
     status_filter: Optional[str] = Query(None, alias="status"),
+    archived_filter: Optional[bool] = Query(None, alias="archived"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """List all registration interests with optional status filter"""
+    """List all registration interests with optional status filter and archived filter"""
     check_admin(current_user)
 
     query = {}
     if status_filter and status_filter in VALID_STATUSES:
         query["status"] = status_filter
+    
+    # By default, exclude archived interests unless explicitly requested
+    if archived_filter is None:
+        query["archived"] = {"$ne": True}
+    elif archived_filter is True:
+        query["archived"] = True
 
     cursor = db.registration_interests.find(query).sort("createdAt", -1).skip(skip).limit(limit)
     interests = []
@@ -728,3 +735,154 @@ async def update_notes(
     )
 
     return {"success": True, "message": "Notes updated"}
+
+
+@router.put("/{interest_id}/archive")
+async def archive_interest(
+    interest_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Admin archives an interest (hides from main view but keeps in database)"""
+    check_admin(current_user)
+
+    if not ObjectId.is_valid(interest_id):
+        raise HTTPException(status_code=400, detail="Invalid interest ID")
+
+    interest = await db.registration_interests.find_one({"_id": ObjectId(interest_id)})
+    if not interest:
+        raise HTTPException(status_code=404, detail="Interest not found")
+
+    # Only allow archiving invited interests
+    if interest.get("status") != "invited":
+        raise HTTPException(
+            status_code=400,
+            detail="Can only archive interests with 'invited' status"
+        )
+
+    now = datetime.utcnow()
+    await db.registration_interests.update_one(
+        {"_id": ObjectId(interest_id)},
+        {"$set": {
+            "archived": True,
+            "archivedAt": now,
+            "archivedBy": current_user.get("username"),
+            "updatedAt": now
+        }}
+    )
+
+    logger.info(f"📦 Interest {interest_id} archived by {current_user.get('username')}")
+    return {"success": True, "message": "Interest archived"}
+
+
+@router.put("/{interest_id}/unarchive")
+async def unarchive_interest(
+    interest_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Admin un-archives an interest (restores to main view)"""
+    check_admin(current_user)
+
+    if not ObjectId.is_valid(interest_id):
+        raise HTTPException(status_code=400, detail="Invalid interest ID")
+
+    interest = await db.registration_interests.find_one({"_id": ObjectId(interest_id)})
+    if not interest:
+        raise HTTPException(status_code=404, detail="Interest not found")
+
+    now = datetime.utcnow()
+    await db.registration_interests.update_one(
+        {"_id": ObjectId(interest_id)},
+        {"$unset": {
+            "archived": "",
+            "archivedAt": "",
+            "archivedBy": ""
+        },
+        "$set": {
+            "updatedAt": now
+        }}
+    )
+
+    logger.info(f"📦 Interest {interest_id} un-archived by {current_user.get('username')}")
+    return {"success": True, "message": "Interest restored to main view"}
+
+
+@router.put("/{interest_id}/send-details-request")
+async def send_details_request(
+    interest_id: str,
+    body: dict,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Admin sends SMS or email to request more details from interest submitter"""
+    check_admin(current_user)
+
+    if not ObjectId.is_valid(interest_id):
+        raise HTTPException(status_code=400, detail="Invalid interest ID")
+
+    interest = await db.registration_interests.find_one({"_id": ObjectId(interest_id)})
+    if not interest:
+        raise HTTPException(status_code=404, detail="Interest not found")
+
+    channel = body.get("channel")  # "email" or "sms"
+    message = body.get("message", "")
+
+    if channel not in ["email", "sms"]:
+        raise HTTPException(status_code=400, detail="Channel must be 'email' or 'sms'")
+
+    to_email = interest.get("email")
+    to_phone = interest.get("phone")
+    to_name = f"{interest.get('firstName')} {interest.get('lastName')}"
+
+    sent = False
+    error_msg = None
+
+    if channel == "email" and to_email:
+        try:
+            from services.email_sender import send_custom_email
+            subject = "More Information Needed - Your Registration Interest"
+            await send_custom_email(
+                to_email=to_email,
+                to_name=to_name,
+                subject=subject,
+                message=message
+            )
+            sent = True
+            logger.info(f"📧 Details request email sent to {to_email} for interest {interest_id}")
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"Failed to send details request email: {e}")
+
+    elif channel == "sms" and to_phone:
+        try:
+            from services.sms_sender import send_sms
+            await send_sms(
+                to_phone=to_phone,
+                message=message
+            )
+            sent = True
+            logger.info(f"📱 Details request SMS sent to {to_phone} for interest {interest_id}")
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"Failed to send details request SMS: {e}")
+
+    if not sent:
+        raise HTTPException(
+            status_code=500,
+            detail=error_msg or f"Failed to send {channel} message"
+        )
+
+    # Log the action
+    now = datetime.utcnow()
+    await db.registration_interests.update_one(
+        {"_id": ObjectId(interest_id)},
+        {"$set": {
+            "detailsRequestedAt": now,
+            "detailsRequestedBy": current_user.get("username"),
+            "detailsRequestChannel": channel,
+            "updatedAt": now
+        }}
+    )
+
+    return {"success": True, "message": f"{channel.capitalize()} sent successfully"}

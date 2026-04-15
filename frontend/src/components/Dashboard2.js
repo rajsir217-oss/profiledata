@@ -147,7 +147,7 @@ const Dashboard2 = () => {
     };
   });
 
-  // Group expand/collapse states - default: Data Requests & My Activities expanded, My Profile Activity collapsed
+  // Group expand/collapse states - default: Data Requests & My Activities expanded, Prospects collapsed
   const [expandedGroups, setExpandedGroups] = useState(() => {
     const saved = localStorage.getItem('dashboard2Groups');
     return saved ? JSON.parse(saved) : {
@@ -731,7 +731,7 @@ const Dashboard2 = () => {
       refreshTheirShortlists(user, true)
     ]);
     setRefreshing(prev => ({ ...prev, admirersGroup: false }));
-    toast.success('My Profile Activity refreshed');
+    toast.success('Prospects refreshed');
   };
 
   const checkMfaStatus = async (username) => {
@@ -2356,7 +2356,7 @@ const Dashboard2 = () => {
         >
           <div className="activity-group-title">
             <span className="activity-group-icon">💕</span>
-            <h2>My Profile Activity</h2>
+            <h2>Prospects</h2>
             <span className="activity-group-count">{getGroupCount('othersActivities')}</span>
             <button 
               className={`section-refresh-btn ${refreshing.admirersGroup ? 'spinning' : ''}`}

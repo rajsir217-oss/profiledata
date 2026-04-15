@@ -12,7 +12,8 @@ const STATUS_CONFIG = {
   idme_verified: { label: 'ID.me Verified', color: 'var(--success-color, #10b981)', icon: '🛡️' },
   idme_failed: { label: 'ID.me Failed', color: 'var(--danger-color, #ef4444)', icon: '❌' },
   invited: { label: 'Invited', color: 'var(--success-color, #10b981)', icon: '📧' },
-  rejected: { label: 'Rejected', color: 'var(--danger-color, #ef4444)', icon: '🚫' }
+  rejected: { label: 'Rejected', color: 'var(--danger-color, #ef4444)', icon: '🚫' },
+  archived: { label: 'Archived', color: 'var(--text-muted, #6b7280)', icon: '📦' }
 };
 
 const RESIDENCY_LABELS = {
@@ -41,13 +42,22 @@ const AdminRegistrationInterests = () => {
   const [showRejectModal, setShowRejectModal] = useState(null);
   const [editingNotes, setEditingNotes] = useState(null);
   const [notesText, setNotesText] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(null);
+  const [detailsMessage, setDetailsMessage] = useState('');
+  const [detailsChannel, setDetailsChannel] = useState('email');
 
   const adminApi = createApiInstance(getBackendUrl());
 
   const fetchInterests = useCallback(async () => {
     setLoading(true);
     try {
-      const params = activeFilter ? `?status=${activeFilter}` : '';
+      let params = '';
+      if (activeFilter) {
+        params += `?status=${activeFilter}`;
+      } else if (showArchived) {
+        params += '?archived=true';
+      }
       const res = await adminApi.get(`/api/registration-interest/admin/all${params}`);
       setInterests(res.data.interests || []);
       setTotal(res.data.total || 0);
@@ -57,11 +67,18 @@ const AdminRegistrationInterests = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeFilter]);
+  }, [activeFilter, showArchived]);
 
   useEffect(() => {
     fetchInterests();
   }, [fetchInterests]);
+
+  useEffect(() => {
+    // Reset active filter when switching to archived view
+    if (showArchived) {
+      setActiveFilter('');
+    }
+  }, [showArchived]);
 
   const handleAction = async (id, action, body = null) => {
     setActionLoading(prev => ({ ...prev, [id]: action }));
@@ -97,6 +114,42 @@ const AdminRegistrationInterests = () => {
       await fetchInterests();
     } catch (err) {
       toastService.error('Failed to save notes');
+    }
+  };
+
+  const handleArchive = async (id) => {
+    try {
+      await adminApi.put(`/api/registration-interest/${id}/archive`);
+      toastService.success('Interest archived');
+      await fetchInterests();
+    } catch (err) {
+      toastService.error('Failed to archive interest');
+    }
+  };
+
+  const handleUnarchive = async (id) => {
+    try {
+      await adminApi.put(`/api/registration-interest/${id}/unarchive`);
+      toastService.success('Interest restored to main view');
+      await fetchInterests();
+    } catch (err) {
+      toastService.error('Failed to restore interest');
+    }
+  };
+
+  const handleSendDetails = async (id) => {
+    try {
+      await adminApi.put(`/api/registration-interest/${id}/send-details-request`, {
+        channel: detailsChannel,
+        message: detailsMessage
+      });
+      toastService.success(`${detailsChannel.toUpperCase()} sent successfully`);
+      setShowDetailsModal(null);
+      setDetailsMessage('');
+      setDetailsChannel('email');
+      await fetchInterests();
+    } catch (err) {
+      toastService.error('Failed to send message');
     }
   };
 
@@ -162,6 +215,14 @@ const AdminRegistrationInterests = () => {
       );
     }
 
+    if (s === 'invited') {
+      actions.push(
+        <button key="archive" className="ari-action-btn ari-btn-secondary ari-btn-sm" onClick={() => handleArchive(id)} disabled={isLoading}>
+          📦 Archive
+        </button>
+      );
+    }
+
     if (s === 'idme_failed') {
       actions.push(
         <button key="switch-ref" className="ari-action-btn ari-btn-validate" onClick={() => handleAction(id, 'validate')} disabled={isLoading}>
@@ -180,6 +241,23 @@ const AdminRegistrationInterests = () => {
       actions.push(
         <button key="reopen" className="ari-action-btn ari-btn-secondary" onClick={() => handleAction(id, 'reopen')} disabled={isLoading}>
           {loadingAction === 'reopen' ? 'Reopening...' : `${EMOJI.refresh} Reopen for Review`}
+        </button>
+      );
+    }
+
+    if (interest.archived) {
+      actions.push(
+        <button key="unarchive" className="ari-action-btn ari-btn-validate ari-btn-sm" onClick={() => handleUnarchive(id)} disabled={isLoading}>
+          📦 Restore
+        </button>
+      );
+    }
+
+    // Add send details button for all non-archived interests
+    if (!interest.archived && s !== 'invited') {
+      actions.push(
+        <button key="send-details" className="ari-action-btn ari-btn-secondary ari-btn-sm" onClick={() => setShowDetailsModal(id)} disabled={isLoading}>
+          📧 Request Details
         </button>
       );
     }
@@ -216,27 +294,38 @@ const AdminRegistrationInterests = () => {
       {/* Status Filter Tabs */}
       <div className="ari-filters">
         <button
-          className={`ari-filter-btn ${activeFilter === '' ? 'ari-filter-active' : ''}`}
-          onClick={() => setActiveFilter('')}
+          className={`ari-filter-btn ${activeFilter === '' && !showArchived ? 'ari-filter-active' : ''}`}
+          onClick={() => { setActiveFilter(''); setShowArchived(false); }}
         >
           All <span className="ari-filter-count">{totalAll}</span>
         </button>
         {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-          <button
-            key={key}
-            className={`ari-filter-btn ${activeFilter === key ? 'ari-filter-active' : ''}`}
-            onClick={() => setActiveFilter(key)}
-          >
-            {cfg.icon} {cfg.label} <span className="ari-filter-count">{statusCounts[key] || 0}</span>
-          </button>
+          key !== 'archived' && (
+            <button
+              key={key}
+              className={`ari-filter-btn ${activeFilter === key && !showArchived ? 'ari-filter-active' : ''}`}
+              onClick={() => { setActiveFilter(key); setShowArchived(false); }}
+            >
+              {cfg.icon} {cfg.label} <span className="ari-filter-count">{statusCounts[key] || 0}</span>
+            </button>
+          )
         ))}
+        <button
+          className={`ari-filter-btn ${showArchived ? 'ari-filter-active' : ''}`}
+          onClick={() => { setActiveFilter(''); setShowArchived(true); }}
+          style={{ marginLeft: 'auto' }}
+        >
+          📦 Archived
+        </button>
       </div>
 
       {/* Results */}
       {loading ? (
         <div className="ari-loading">Loading...</div>
       ) : interests.length === 0 ? (
-        <div className="ari-empty">No registration interests found{activeFilter ? ` with status "${STATUS_CONFIG[activeFilter]?.label}"` : ''}.</div>
+        <div className="ari-empty">
+          {showArchived ? 'No archived interests' : `No registration interests found${activeFilter ? ` with status "${STATUS_CONFIG[activeFilter]?.label}"` : ''}.`}
+        </div>
       ) : (
         <div className="ari-list">
           {interests.map(interest => (
@@ -423,6 +512,54 @@ const AdminRegistrationInterests = () => {
                 disabled={!!actionLoading[showRejectModal]}
               >
                 {actionLoading[showRejectModal] === 'reject' ? 'Rejecting...' : 'Confirm Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Details Request Modal */}
+      {showDetailsModal && (
+        <div className="modal-overlay" onClick={() => setShowDetailsModal(null)}>
+          <div className="ari-details-modal" onClick={e => e.stopPropagation()}>
+            <div className="ari-details-modal-header">
+              <h2>📧 Request More Details</h2>
+              <button className="ari-details-modal-close" onClick={() => setShowDetailsModal(null)}>✕</button>
+            </div>
+            <div className="ari-details-modal-body">
+              <div className="ari-details-channel-selector">
+                <label>Send via:</label>
+                <div className="ari-details-channel-options">
+                  <button
+                    className={`ari-details-channel-btn ${detailsChannel === 'email' ? 'ari-details-channel-active' : ''}`}
+                    onClick={() => setDetailsChannel('email')}
+                  >
+                    📧 Email
+                  </button>
+                  <button
+                    className={`ari-details-channel-btn ${detailsChannel === 'sms' ? 'ari-details-channel-active' : ''}`}
+                    onClick={() => setDetailsChannel('sms')}
+                  >
+                    📱 SMS
+                  </button>
+                </div>
+              </div>
+              <label>Message</label>
+              <textarea
+                value={detailsMessage}
+                onChange={e => setDetailsMessage(e.target.value)}
+                placeholder="Request additional information from the user..."
+                rows={5}
+              />
+            </div>
+            <div className="ari-details-modal-footer">
+              <button className="ari-action-btn ari-btn-secondary" onClick={() => setShowDetailsModal(null)}>Cancel</button>
+              <button
+                className="ari-action-btn ari-btn-invite"
+                onClick={() => handleSendDetails(showDetailsModal)}
+                disabled={!!actionLoading[showDetailsModal] || !detailsMessage.trim()}
+              >
+                Send {detailsChannel === 'email' ? 'Email' : 'SMS'}
               </button>
             </div>
           </div>
