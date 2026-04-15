@@ -628,3 +628,129 @@ The L3V3L MATCHES Team
     # Send email using Resend + SMTP fallback
     subject = f"🔐 Password Reset Code - L3V3L MATCHES"
     return await _send_email_with_fallback(to_email, subject, html_content, text_content)
+
+
+async def send_custom_email(
+    to_email: str,
+    to_name: str,
+    subject: str = "More Information Needed - Your Registration Interest",
+    message: str = "We would like to request additional information regarding your registration interest. Please provide your referred details so that we can process your request as soon as possible. If you have any questions, please contact admins. Thanks."
+):
+    """
+    Send a custom email message with simple text content.
+    Used for admin communications like requesting more details.
+    
+    Args:
+        to_email: Recipient email address
+        to_name: Recipient name
+        subject: Email subject (default provided)
+        message: Plain text message content (default provided)
+    """
+    
+    # Simple email template for custom messages
+    html_template = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }}
+        .header {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }}
+        .content {{
+            padding: 40px 30px;
+        }}
+        .greeting {{
+            font-size: 18px;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }}
+        .message {{
+            font-size: 15px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+        }}
+        .footer {{
+            background: #f8f9fa;
+            padding: 30px 20px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📬 Message from L3V3L MATCHES</h1>
+        </div>
+        
+        <div class="content">
+            <div class="greeting">
+                Hello {to_name}!
+            </div>
+            
+            <div class="message">{message_html}</div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>L3V3L MATCHES</strong> - Premium Matrimonial Platform</p>
+            <p style="margin-top: 20px; font-size: 12px; color: #999;">
+                This is an automated message. Please do not reply to this email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+    """
+    
+    # Escape HTML in message and convert newlines to <br>
+    import html
+    message_escaped = html.escape(message)
+    message_html = message_escaped.replace('\n', '<br>\n')
+    
+    # Render template
+    html_content = html_template.format(
+        to_name=to_name,
+        message_html=message_html
+    )
+    
+    # Plain text version
+    text_content = f"""
+Hello {to_name}!
+
+{message}
+
+Best regards,
+The L3V3L MATCHES Team
+    """
+    
+    # Send email using Resend + SMTP fallback
+    return await _send_email_with_fallback(to_email, subject, html_content, text_content)
