@@ -29,41 +29,25 @@ class SystemCleanupTemplate(JobTemplate):
         return {
             "type": "object",
             "properties": {
-                "cleanup_sessions": {
-                    "type": "boolean",
-                    "description": "Clean up expired user sessions",
-                    "default": True
-                },
-                "cleanup_job_executions": {
-                    "type": "boolean",
-                    "description": "Clean up old job execution records",
-                    "default": True
-                },
-                "cleanup_notification_logs": {
-                    "type": "boolean",
-                    "description": "Clean up old notification logs",
-                    "default": True
-                },
-                "session_days_to_keep": {
-                    "type": "integer",
-                    "description": "Days to keep session data",
-                    "minimum": 1,
-                    "maximum": 365,
-                    "default": 7
-                },
-                "job_execution_days_to_keep": {
-                    "type": "integer",
-                    "description": "Days to keep job execution history",
-                    "minimum": 1,
-                    "maximum": 365,
-                    "default": 30
-                },
-                "notification_log_days_to_keep": {
-                    "type": "integer",
-                    "description": "Days to keep notification logs",
-                    "minimum": 1,
-                    "maximum": 365,
-                    "default": 30
+                "cleanup_config": {
+                    "type": "string",
+                    "description": "JSON array of cleanup configurations. Example: [{\"collection\": \"sessions\", \"days_old\": 1, \"date_field\": \"created_at\"}]",
+                    "default": """[
+  {"collection": "sessions", "days_old": 1, "date_field": "created_at"},
+  {"collection": "logs", "days_old": 1, "date_field": "created_at"},
+  {"collection": "activity_logs", "days_old": 1, "date_field": "timestamp"},
+  {"collection": "job_executions", "days_old": 1, "date_field": "started_at"},
+  {"collection": "notifications", "days_old": 1, "date_field": "createdAt"},
+  {"collection": "favorites", "days_old": 45, "date_field": "createdAt"},
+  {"collection": "shortlists", "days_old": 45, "date_field": "createdAt"},
+  {"collection": "audit_logs", "days_old": 30, "date_field": "timestamp"},
+  {"collection": "messages", "days_old": 120, "date_field": "createdAt"},
+  {"collection": "conversation_status", "days_old": 120, "date_field": "createdAt"},
+  {"collection": "blocked_message_attempts", "days_old": 120, "date_field": "attemptedAt"},
+  {"collection": "notification_log", "days_old": 30, "date_field": "createdAt"},
+  {"collection": "notification_queue", "days_old": 7, "date_field": "createdAt"},
+  {"collection": "registration_interests", "days_old": 30, "date_field": "updatedAt", "filter": {"$or": [{"status": "rejected"}, {"archived": true}]}}
+]"""
                 },
                 "cleanup_excluded_messages": {
                     "type": "boolean",
@@ -91,88 +75,74 @@ class SystemCleanupTemplate(JobTemplate):
         start_time = time.time()
         params = context.parameters
         
-        # Get parameters with defaults
-        cleanup_sessions = params.get("cleanup_sessions", True)
-        cleanup_job_executions = params.get("cleanup_job_executions", True)
-        cleanup_notification_logs = params.get("cleanup_notification_logs", True)
+        # Get cleanup config JSON
+        import json
+        cleanup_config_str = params.get("cleanup_config")
         cleanup_excluded_messages = params.get("cleanup_excluded_messages", True)
-        session_days = params.get("session_days_to_keep", 7)
-        job_exec_days = params.get("job_execution_days_to_keep", 30)
-        notif_log_days = params.get("notification_log_days_to_keep", 30)
         excluded_msg_days = params.get("excluded_messages_days", 30)
         
-        context.log("INFO", "🧹 Starting system cleanup...")
+        # Parse cleanup config
+        try:
+            cleanup_config = json.loads(cleanup_config_str) if cleanup_config_str else []
+        except json.JSONDecodeError as e:
+            context.log("ERROR", f"Invalid cleanup_config JSON: {str(e)}")
+            return JobResult(
+                status="failed",
+                message=f"Invalid cleanup_config JSON: {str(e)}",
+                errors=[f"Invalid JSON: {str(e)}"],
+                duration_seconds=time.time() - start_time
+            )
+        
+        context.log("INFO", f"🧹 Starting database cleanup with {len(cleanup_config)} collection configurations...")
         
         total_deleted = 0
         cleanup_results = {}
         errors = []
         
         try:
-            # 1. Clean up expired sessions
-            if cleanup_sessions:
+            # Process each cleanup configuration
+            for config in cleanup_config:
+                collection = config.get("collection")
+                days_old = config.get("days_old", 30)
+                date_field = config.get("date_field", "createdAt")
+                filter_query = config.get("filter", {})
+                
+                if not collection:
+                    context.log("WARNING", f"   ⚠️ Skipping config with missing collection name")
+                    continue
+                
                 try:
-                    cutoff = datetime.utcnow() - timedelta(days=session_days)
-                    result = await context.db.sessions.delete_many({
-                        "$or": [
-                            {"expires_at": {"$lt": datetime.utcnow()}},
-                            {"created_at": {"$lt": cutoff}},
-                            {"last_activity": {"$lt": cutoff}}
-                        ]
-                    })
+                    cutoff = datetime.utcnow() - timedelta(days=days_old)
+                    
+                    # Build query: date filter + custom filter
+                    query = {
+                        date_field: {"$lt": cutoff}
+                    }
+                    if filter_query:
+                        query = {**query, **filter_query}
+                    
+                    # Special handling for sessions (also check expires_at and last_activity)
+                    if collection == "sessions":
+                        query = {
+                            "$or": [
+                                {"expires_at": {"$lt": datetime.utcnow()}},
+                                {"created_at": {"$lt": cutoff}},
+                                {"last_activity": {"$lt": cutoff}}
+                            ]
+                        }
+                    
+                    result = await context.db[collection].delete_many(query)
                     deleted = result.deleted_count
-                    cleanup_results["sessions"] = deleted
+                    cleanup_results[collection] = deleted
                     total_deleted += deleted
-                    context.log("INFO", f"   ✅ Sessions: Deleted {deleted} expired records")
+                    
+                    filter_desc = f" (filter: {filter_query})" if filter_query else ""
+                    context.log("INFO", f"   ✅ {collection}: Deleted {deleted} records (> {days_old} days{filter_desc})")
                 except Exception as e:
-                    errors.append(f"Sessions cleanup failed: {str(e)}")
-                    context.log("ERROR", f"   ❌ Sessions cleanup failed: {str(e)}")
+                    errors.append(f"{collection} cleanup failed: {str(e)}")
+                    context.log("ERROR", f"   ❌ {collection} cleanup failed: {str(e)}")
             
-            # 2. Clean up old job executions
-            if cleanup_job_executions:
-                try:
-                    cutoff = datetime.utcnow() - timedelta(days=job_exec_days)
-                    result = await context.db.job_executions.delete_many({
-                        "started_at": {"$lt": cutoff}
-                    })
-                    deleted = result.deleted_count
-                    cleanup_results["job_executions"] = deleted
-                    total_deleted += deleted
-                    context.log("INFO", f"   ✅ Job Executions: Deleted {deleted} old records")
-                except Exception as e:
-                    errors.append(f"Job executions cleanup failed: {str(e)}")
-                    context.log("ERROR", f"   ❌ Job executions cleanup failed: {str(e)}")
-            
-            # 3. Clean up old notification logs
-            if cleanup_notification_logs:
-                try:
-                    cutoff = datetime.utcnow() - timedelta(days=notif_log_days)
-                    result = await context.db.notification_log.delete_many({
-                        "timestamp": {"$lt": cutoff}
-                    })
-                    deleted = result.deleted_count
-                    cleanup_results["notification_logs"] = deleted
-                    total_deleted += deleted
-                    context.log("INFO", f"   ✅ Notification Logs: Deleted {deleted} old records")
-                except Exception as e:
-                    errors.append(f"Notification logs cleanup failed: {str(e)}")
-                    context.log("ERROR", f"   ❌ Notification logs cleanup failed: {str(e)}")
-            
-            # 4. Clean up sent notifications from queue (older than 7 days)
-            try:
-                cutoff = datetime.utcnow() - timedelta(days=7)
-                result = await context.db.notification_queue.delete_many({
-                    "status": "sent",
-                    "updatedAt": {"$lt": cutoff}
-                })
-                deleted = result.deleted_count
-                cleanup_results["sent_notifications"] = deleted
-                total_deleted += deleted
-                context.log("INFO", f"   ✅ Sent Notifications: Deleted {deleted} old records")
-            except Exception as e:
-                errors.append(f"Sent notifications cleanup failed: {str(e)}")
-                context.log("ERROR", f"   ❌ Sent notifications cleanup failed: {str(e)}")
-            
-            # 5. Clean up messages from excluded users (after grace period)
+            # Clean up messages from excluded users (after grace period)
             if cleanup_excluded_messages:
                 try:
                     cutoff = datetime.utcnow() - timedelta(days=excluded_msg_days)
@@ -215,13 +185,13 @@ class SystemCleanupTemplate(JobTemplate):
             # Determine status
             if errors and len(errors) >= 3:
                 status = "failed"
-                message = f"System cleanup failed with {len(errors)} errors"
+                message = f"Database cleanup failed with {len(errors)} errors"
             elif errors:
                 status = "partial"
-                message = f"System cleanup completed with {len(errors)} errors. Deleted {total_deleted} total records."
+                message = f"Database cleanup completed with {len(errors)} errors. Deleted {total_deleted} total records."
             else:
                 status = "success"
-                message = f"System cleanup completed successfully. Deleted {total_deleted} total records."
+                message = f"Database cleanup completed successfully. Deleted {total_deleted} total records."
             
             context.log("INFO", f"🧹 {message}")
             
@@ -236,10 +206,10 @@ class SystemCleanupTemplate(JobTemplate):
             
         except Exception as e:
             duration = time.time() - start_time
-            context.log("ERROR", f"System cleanup failed: {str(e)}")
+            context.log("ERROR", f"Database cleanup failed: {str(e)}")
             return JobResult(
                 status="failed",
-                message=f"System cleanup failed: {str(e)}",
+                message=f"Database cleanup failed: {str(e)}",
                 errors=[str(e)],
                 duration_seconds=duration
             )
