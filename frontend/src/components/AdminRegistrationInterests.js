@@ -44,7 +44,7 @@ const AdminRegistrationInterests = () => {
   const [notesText, setNotesText] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(null);
-  const [detailsMessage, setDetailsMessage] = useState('');
+  const [detailsMessage, setDetailsMessage] = useState('We would like to request additional information regarding your registration interest. Please provide your referred details so that we can process your request as soon as possible. If you have any questions, please contact admins. Thanks.');
   const [detailsChannel, setDetailsChannel] = useState('email');
 
   const adminApi = createApiInstance(getBackendUrl());
