@@ -34,19 +34,7 @@ class SystemCleanupTemplate(JobTemplate):
                     "description": "JSON array of cleanup configurations. Example: [{\"collection\": \"sessions\", \"days_old\": 1, \"date_field\": \"created_at\"}]",
                     "default": """[
   {"collection": "sessions", "days_old": 1, "date_field": "created_at"},
-  {"collection": "logs", "days_old": 1, "date_field": "created_at"},
-  {"collection": "activity_logs", "days_old": 1, "date_field": "timestamp"},
-  {"collection": "job_executions", "days_old": 1, "date_field": "started_at"},
-  {"collection": "notifications", "days_old": 1, "date_field": "createdAt"},
-  {"collection": "favorites", "days_old": 45, "date_field": "createdAt"},
-  {"collection": "shortlists", "days_old": 45, "date_field": "createdAt"},
-  {"collection": "audit_logs", "days_old": 30, "date_field": "timestamp"},
-  {"collection": "messages", "days_old": 120, "date_field": "createdAt"},
-  {"collection": "conversation_status", "days_old": 120, "date_field": "createdAt"},
-  {"collection": "blocked_message_attempts", "days_old": 120, "date_field": "attemptedAt"},
-  {"collection": "notification_log", "days_old": 30, "date_field": "createdAt"},
-  {"collection": "notification_queue", "days_old": 7, "date_field": "createdAt"},
-  {"collection": "registration_interests", "days_old": 30, "date_field": "updatedAt", "filter": {"$or": [{"status": "rejected"}, {"archived": true}]}}
+  {"collection": "registration_interests", "days_old": 3, "date_field": "updatedAt", "filter": {"$or": [{"status": "rejected"}, {"archived": true}]}}
 ]"""
                 },
                 "cleanup_excluded_messages": {
