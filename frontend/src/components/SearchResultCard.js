@@ -765,11 +765,23 @@ const SearchResultCard = ({
             {user.eatingPreference && <span className="card-stat-pill">{user.eatingPreference}</span>}
           </div>
 
-          {/* User Details - Single Column with Icons */}
-          <div className="card-details-list">
-            <p className="card-detail-line">📍 {user.location || 'Location not specified'}</p>
-            <p className="card-detail-line">💼 {displayOccupation || 'Not specified'}</p>
-            <p className="card-detail-line">🎓 {displayEducation || 'Not specified'}</p>
+          {/* User Details - Pill Style */}
+          <div className="card-details-pills">
+            {user.location && (
+              <span className="card-detail-pill card-detail-pill--location" title={user.location}>
+                📍 {user.location}
+              </span>
+            )}
+            {displayOccupation && (
+              <span className="card-detail-pill card-detail-pill--occupation" title={displayOccupation}>
+                💼 {displayOccupation}
+              </span>
+            )}
+            {displayEducation && (
+              <span className="card-detail-pill card-detail-pill--education" title={displayEducation}>
+                🎓 {displayEducation}
+              </span>
+            )}
           </div>
 
           {/* Looking For Summary */}

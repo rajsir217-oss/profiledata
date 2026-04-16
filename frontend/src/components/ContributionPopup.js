@@ -686,7 +686,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
           <button 
             className="contribution-remind-btn"
-            onClick={onClose}
+            onClick={handleDismiss}
             disabled={loading}
           >
             Close
