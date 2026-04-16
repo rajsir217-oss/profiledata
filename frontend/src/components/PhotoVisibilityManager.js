@@ -176,7 +176,8 @@ const PhotoVisibilityManager = ({
         onVisibilityChange({ profilePic, memberVisible, onRequest });
       }
     } catch (error) {
-      showStatus('error', '❌ Failed to save: ' + (error.response?.data?.detail || error.message));
+      const detail = error.response?.data?.detail || error.message;
+      showStatus('error', `❌ Failed to save: ${detail}\n\nIf you still experience this error, please send a message to the admins with a screenshot.\nSorry for the inconvenience - Admins`);
     } finally {
       setSaving(false);
     }
@@ -340,7 +341,8 @@ const PhotoVisibilityManager = ({
         
         showStatus('success', '✅ Photo deleted!');
       } catch (error) {
-        showStatus('error', '❌ Failed to delete: ' + (error.response?.data?.detail || error.message));
+        const detail = error.response?.data?.detail || error.message;
+        showStatus('error', `❌ Failed to delete: ${detail}\n\nIf you still experience this error, please send a message to the admins with a screenshot.\nSorry for the inconvenience - Admins`);
       } finally {
         setSaving(false);
       }
@@ -382,7 +384,8 @@ const PhotoVisibilityManager = ({
     
     for (let file of files) {
       if (file.size > 5 * 1024 * 1024) {
-        showStatus('error', `❌ "${file.name}" is too large (max 5MB)`);
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        showStatus('error', `❌ "${file.name}" is too large (${fileSizeMB}MB, max 5MB). Please compress the image or use a smaller version.\n\nIf you still experience this error, please send a message to the admins with a screenshot.\nSorry for the inconvenience - Admins`);
         e.target.value = '';
         return;
       }
@@ -421,12 +424,12 @@ const PhotoVisibilityManager = ({
       } catch (error) {
         const detail = error.response?.data?.detail || error.message;
         const isFaceError = detail.toLowerCase().includes('face detection');
+        const baseMessage = isFaceError ? `📸 ${detail}` : `❌ Upload failed: ${detail}`;
+        const adminMessage = `\n\nIf you still experience this error, please send a message to the admins with a screenshot.\nSorry for the inconvenience - Admins`;
         showStatus(
           'error',
-          isFaceError
-            ? `📸 ${detail}`
-            : `❌ Upload failed: ${detail}`,
-          isFaceError ? 8000 : 4000
+          baseMessage + adminMessage,
+          isFaceError ? 10000 : 6000
         );
       } finally {
         setUploading(false);
@@ -486,7 +489,8 @@ const PhotoVisibilityManager = ({
           showStatus('success', '🔄 Photo rotated!');
         }
       } catch (error) {
-        showStatus('error', '❌ Rotate failed: ' + (error.response?.data?.detail || error.message));
+        const detail = error.response?.data?.detail || error.message;
+        showStatus('error', `❌ Rotate failed: ${detail}\n\nIf you still experience this error, please send a message to the admins with a screenshot.\nSorry for the inconvenience - Admins`);
       } finally {
         setRotatingIndex(null);
       }
@@ -515,7 +519,7 @@ const PhotoVisibilityManager = ({
         
         showStatus('success', '🔄 Photo rotated!');
       } catch (error) {
-        showStatus('error', '❌ Rotate failed: ' + error.message);
+        showStatus('error', `❌ Rotate failed: ${error.message}\n\nIf you still experience this error, please send a message to the admins with a screenshot.\nSorry for the inconvenience - Admins`);
       } finally {
         setRotatingIndex(null);
       }
