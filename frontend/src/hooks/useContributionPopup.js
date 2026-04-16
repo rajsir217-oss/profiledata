@@ -64,9 +64,16 @@ const useContributionPopup = () => {
         return;
       }
 
-      // Check if dismissed this session
-      if (sessionStorage.getItem('contribution_dismissed')) {
-        console.log('🔔 Contribution popup: Dismissed this session');
+      // Check if this is a fresh browser session (sessionStorage is cleared on browser close)
+      if (!sessionStorage.getItem('contribution_session_active')) {
+        // Fresh browser open — clear any stale dismiss and mark session as active
+        localStorage.removeItem('contribution_dismissed_at');
+        sessionStorage.setItem('contribution_session_active', 'true');
+      }
+
+      // Check if dismissed this login session (shared across tabs via localStorage)
+      const dismissedAt = localStorage.getItem('contribution_dismissed_at');
+      if (dismissedAt) {
         setLoading(false);
         return;
       }
