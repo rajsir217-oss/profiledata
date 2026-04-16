@@ -21,6 +21,7 @@ import RichTextEditor from "./shared/RichTextEditor";
 import { getAuthenticatedImageUrl } from "../utils/imageUtils";
 import logger from "../utils/logger";
 import ActivitySummaryPanel from "./ActivitySummaryPanel";
+import useContributionPopup from "../hooks/useContributionPopup";
 import "./Profile.css";
 import { ACTION_ICONS } from "../constants/icons";
 import { createApiInstance } from "../api";
@@ -51,6 +52,10 @@ const Profile = ({
   const [isOnline, setIsOnline] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  
+  // Contribution eligibility (same logic as popup)
+  const { shouldShowContribution } = useContributionPopup();
   
   // Search carousel navigation state
   const [searchResults, setSearchResults] = useState(null);
@@ -1533,6 +1538,28 @@ const Profile = ({
               <span className="carousel-arrow">››</span>
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Contribution Reminder Banner - same eligibility as popup, only on other profiles */}
+      {!isOwnProfile && shouldShowContribution && !bannerDismissed && (
+        <div className="contribution-reminder-banner">
+          <span className="contribution-reminder-text">
+            💛 Help keep this platform free — your support makes a difference!
+          </span>
+          <button 
+            className="contribution-reminder-btn"
+            onClick={() => navigate('/preferences?tab=contributions')}
+          >
+            Contribute Now
+          </button>
+          <button 
+            className="contribution-reminder-close"
+            onClick={() => setBannerDismissed(true)}
+            title="Dismiss"
+          >
+            ✕
+          </button>
         </div>
       )}
 

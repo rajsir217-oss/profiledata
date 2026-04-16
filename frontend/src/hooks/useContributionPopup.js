@@ -11,6 +11,7 @@ import { hasRecentPayment } from '../utils/dateUtils';
  */
 const useContributionPopup = () => {
   const [showPopup, setShowPopup] = useState(false);
+  const [shouldShowContribution, setShouldShowContribution] = useState(false);
   const [loading, setLoading] = useState(true);
   const [contributionConfig, setContributionConfig] = useState(null);
   const popupTimeoutRef = useRef(null);
@@ -63,6 +64,9 @@ const useContributionPopup = () => {
         setLoading(false);
         return;
       }
+
+      // User qualifies for contribution prompts (banner always, popup once per session)
+      setShouldShowContribution(true);
 
       // Check if this is a fresh browser session (sessionStorage is cleared on browser close)
       if (!sessionStorage.getItem('contribution_session_active')) {
@@ -138,6 +142,7 @@ const useContributionPopup = () => {
 
   return {
     showPopup,
+    shouldShowContribution,
     closePopup,
     loading,
     contributionConfig
