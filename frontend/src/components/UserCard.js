@@ -358,20 +358,24 @@ const UserCard = ({
           {(profileData?.age || profileData?.birthYear) && <span className="user-age-badge">{profileData?.age || calculateAge(profileData?.birthYear, profileData?.birthMonth)}y</span>}
         </h4>
         
-        {/* Location */}
-        <p className="user-location">
-          📍 {profileData?.location || <span className="placeholder-text">Location not specified</span>}
-        </p>
-        
-        {/* Education */}
-        <p className="user-education">
-          🎓 {profileData?.education || profileData?.educationHistory?.[0]?.degree || <span className="placeholder-text">Education not specified</span>}
-        </p>
-        
-        {/* Occupation/Experience */}
-        <p className="user-occupation">
-          💼 {displayOccupation || <span className="placeholder-text">Occupation not specified</span>}
-        </p>
+        {/* Details Pills */}
+        <div className="user-details-pills">
+          {profileData?.location && (
+            <span className="user-detail-pill user-detail-pill--location" title={profileData.location}>
+              📍 {profileData.location}
+            </span>
+          )}
+          {displayOccupation && (
+            <span className="user-detail-pill user-detail-pill--occupation" title={displayOccupation}>
+              💼 {displayOccupation}
+            </span>
+          )}
+          {(profileData?.education || profileData?.educationHistory?.[0]?.degree) && (
+            <span className="user-detail-pill user-detail-pill--education" title={profileData?.education || profileData?.educationHistory?.[0]?.degree}>
+              🎓 {profileData?.education || profileData?.educationHistory?.[0]?.degree}
+            </span>
+          )}
+        </div>
 
         {/* Height & DOB Row */}
         {(displayHeight || displayDOB) && (
