@@ -108,6 +108,18 @@
   animation: wiggle 2s ease-in-out infinite;
 }
 
+.contribution-title-pill {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 @keyframes wiggle {
   0%, 100% { transform: rotate(-5deg); }
   50% { transform: rotate(5deg); }
@@ -243,18 +255,12 @@
   gap: 2px;
 }
 
-.popular-badge {
+.heart-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: var(--text-on-gradient);
-  font-size: 6px;
-  font-weight: 700;
-  padding: 1px 3px;
-  border-radius: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  top: -6px;
+  right: -6px;
+  font-size: 12px;
+  line-height: 1;
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -272,6 +278,8 @@
   justify-content: center;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
+  flex-wrap: nowrap;
 }
 
 .custom-amount-input {
@@ -425,19 +433,21 @@
   to { transform: rotate(360deg); }
 }
 
-/* Remind Button - Solid Button */
+/* Remind Button - Compact */
 .contribution-remind-btn {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   border: none;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
-  padding: 12px 24px;
-  border-radius: 12px;
+  padding: 10px 40px;
+  border-radius: 20px;
   transition: all 0.3s ease;
   text-decoration: none;
-  font-weight: 700;
-  width: 100%;
+  font-weight: 600;
+  width: auto;
+  margin: 0 auto;
+  display: block;
   text-align: center;
   letter-spacing: 0.3px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
