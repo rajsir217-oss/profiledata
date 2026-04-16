@@ -24,9 +24,9 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [cloverSuccess, setCloverSuccess] = useState(false);
   const [cloverRecurring, setCloverRecurring] = useState(false);
 
-  // Use amounts from config and always ensure $50 is included
-  const baseAmounts = contributionConfig?.amounts || [10, 15, 25];
-  const amounts = [...new Set([...baseAmounts, 50])].sort((a, b) => a - b);
+  // Use amounts from config, ensure $50 is included, exclude $10
+  const baseAmounts = contributionConfig?.amounts || [15, 25];
+  const amounts = [...new Set([...baseAmounts, 50])].filter(a => a !== 10).sort((a, b) => a - b);
 
   // Log activity to backend (fire and forget)
   const logActivity = useCallback(async (action, amount = null, pType = null) => {
@@ -403,8 +403,8 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
       <div className="contribution-popup" onClick={(e) => e.stopPropagation()}>
         <div className="contribution-popup-header">
           <h2>
-            <span className="contribution-icon">🔔</span>
-            PLEASE SUPPORT THE PLATFORM
+            <span className="contribution-icon" role="img" aria-label="namaste">{'\u{1F64F}'}</span>
+            <span className="contribution-title-pill">PLEASE SUPPORT THE PLATFORM</span>
           </h2>
           <button 
             className="contribution-popup-close" 
@@ -441,7 +441,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                   disabled={loading}
                 />
                 <span className="contribution-amount-label">${amt}</span>
-                {amt === 25 && <span className="popular-badge">Popular</span>}
+                {amt === 25 && <span className="heart-badge">❤️</span>}
               </label>
             ))}
             
@@ -456,7 +456,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                 onChange={() => setSelectedAmount('custom')}
                 disabled={loading}
               />
-              <span className="contribution-amount-label">
+              <span className="contribution-amount-label custom-amount-label">
                 Custom: $
                 <input
                   type="number"
@@ -467,7 +467,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                     setSelectedAmount('custom');
                     setError('');
                   }}
-                  placeholder="Enter amount"
+                  placeholder="Amt"
                   min="1"
                   disabled={loading}
                 />
@@ -488,20 +488,20 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                 PayPal
               </button>
               <button
-                className={`payment-method-btn ${paymentMethod === 'venmo-qr' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('venmo-qr')}
-                disabled={loading}
-              >
-                <span className="venmo-v">V</span>
-                Venmo QR
-              </button>
-              <button
                 className={`payment-method-btn ${paymentMethod === 'paypal-qr' ? 'active' : ''}`}
                 onClick={() => setPaymentMethod('paypal-qr')}
                 disabled={loading}
               >
                 <span className="paypal-p">P</span>
                 PayPal QR
+              </button>
+              <button
+                className={`payment-method-btn ${paymentMethod === 'venmo-qr' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('venmo-qr')}
+                disabled={loading}
+              >
+                <span className="venmo-v">V</span>
+                Venmo QR
               </button>
               <button
                 className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
