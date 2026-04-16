@@ -677,6 +677,7 @@ class SessionManager {
     localStorage.removeItem('sessionLastActivity');
     localStorage.removeItem('sessionLastTokenUpdate');
     localStorage.removeItem('sessionRefreshLock');
+    localStorage.removeItem('contribution_dismissed_at');
     
     // Mark as logged out to prevent duplicate handling
     sessionStorage.setItem('hasLoggedOut', 'true');
@@ -754,6 +755,7 @@ class SessionManager {
     localStorage.removeItem('sessionLastActivity');
     localStorage.removeItem('sessionLastTokenUpdate');
     localStorage.removeItem('sessionRefreshLock');
+    localStorage.removeItem('contribution_dismissed_at');
     
     // Mark as logged out to prevent duplicate handling
     sessionStorage.setItem('hasLoggedOut', 'true');
