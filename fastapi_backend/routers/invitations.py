@@ -768,7 +768,7 @@ async def validate_invitation(
         )
     
     # Check if token is expired
-    if invitation.tokenExpiresAt < datetime.utcnow():
+    if invitation.tokenExpiresAt and invitation.tokenExpiresAt < datetime.utcnow():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invitation link has expired"
