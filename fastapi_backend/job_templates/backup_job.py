@@ -17,7 +17,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-BACKUP_DIR = Path("backups")
+# BACKUP_DIR is set at runtime based on environment config
+# Default will be overridden in execute() from settings.backup_dir
+BACKUP_DIR = None
 
 
 class BackupJobTemplate(JobTemplate):
@@ -82,11 +84,22 @@ class BackupJobTemplate(JobTemplate):
         
         from config import settings
         
+        # Set backup directory from config (environment-aware)
+        global BACKUP_DIR
+        backup_dir_str = settings.backup_dir or "backups"
+        BACKUP_DIR = Path(backup_dir_str)
+        
+        # Make absolute if relative (relative to backend directory)
+        if not BACKUP_DIR.is_absolute():
+            from pathlib import Path
+            BACKUP_DIR = Path(__file__).resolve().parent.parent / BACKUP_DIR
+        
         now = datetime.now(timezone.utc)
         timestamp = now.strftime("%Y%m%d_%H%M%S")
         db_name = settings.database_name
         
         context.log("INFO", f"Starting backup of '{db_name}' at {timestamp}")
+        context.log("INFO", f"Backup directory: {BACKUP_DIR}")
         
         # Ensure backup directory exists
         BACKUP_DIR.mkdir(parents=True, exist_ok=True)
