@@ -35,12 +35,12 @@
 # Environment variables loaded from: fastapi_backend/.env.production
 #
 # Usage:
-#   ./deploy-production.sh [--frontend|-f] [--backend|-b] [--all|-a] [--show-logs=true|false]
+#   ./deploy-production.sh [--frontend|--f] [--backend|--b] [--all|--a] [--show-logs=true|false]
 #
 # Options:
-#   --frontend, -f     Deploy frontend only
-#   --backend, -b      Deploy backend only
-#   --all, -a          Deploy both frontend and backend
+#   --frontend, --f     Deploy frontend only
+#   --backend, --b      Deploy backend only
+#   --all, --a          Deploy both frontend and backend
 #   --show-logs=true   (default) Display all logs (LOG_LEVEL=INFO)
 #   --show-logs=false  Show only critical errors (LOG_LEVEL=ERROR)
 #   (no target flag)   Interactive prompt to choose what to deploy
@@ -64,13 +64,13 @@ DEPLOY_TARGET=""  # Empty = interactive prompt
 
 for arg in "$@"; do
   case $arg in
-    --frontend|-f)
+    --frontend|--f)
       DEPLOY_TARGET="frontend"
       ;;
-    --backend|-b)
+    --backend|--b)
       DEPLOY_TARGET="backend"
       ;;
-    --all|-a)
+    --all|--a)
       DEPLOY_TARGET="all"
       ;;
     --show-logs=*)
