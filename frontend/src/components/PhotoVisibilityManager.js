@@ -375,28 +375,45 @@ const PhotoVisibilityManager = ({
   // Handle file upload
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
-    
+
     if (photos.length + files.length > 5) {
       showStatus('error', '❌ Maximum 5 photos allowed');
       e.target.value = '';
       return;
     }
-    
-    for (let file of files) {
-      if (file.size > 5 * 1024 * 1024) {
-        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-        showStatus('error', `❌ "${file.name}" is too large (${fileSizeMB}MB, max 5MB). Please compress the image or use a smaller version.\n\nIf you still experience this error, please send a message to the admins with a screenshot.\nSorry for the inconvenience - Admins`);
-        e.target.value = '';
-        return;
-      }
+
+    // Compress files that exceed 5MB
+    const processedFiles = await Promise.all(
+      files.map(async (file) => {
+        if (file.size > 5 * 1024 * 1024) {
+          const originalSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+          try {
+            const compressed = await compressImage(file);
+            const compressedSizeMB = (compressed.size / (1024 * 1024)).toFixed(2);
+            showStatus('info', `📉 "${file.name}" compressed from ${originalSizeMB}MB to ${compressedSizeMB}MB`);
+            return compressed;
+          } catch (error) {
+            showStatus('error', `❌ Failed to compress "${file.name}". Please try a smaller image.\n\nIf you still experience this error, please send a message to the admins with a screenshot.\nSorry for the inconvenience - Admins`);
+            return null;
+          }
+        }
+        return file;
+      })
+    );
+
+    // Filter out failed compressions
+    const validFiles = processedFiles.filter(f => f !== null);
+    if (validFiles.length === 0) {
+      e.target.value = '';
+      return;
     }
-    
+
     if (isEditMode && username) {
       // Edit mode: upload immediately
       setUploading(true);
       try {
         const formData = new FormData();
-        files.forEach(file => formData.append('images', file));
+        validFiles.forEach(file => formData.append('images', file));
         
         const existingUrls = photos.map(p => p.url);
         formData.append('existingImages', JSON.stringify(existingUrls));
@@ -438,8 +455,8 @@ const PhotoVisibilityManager = ({
     } else {
       // Registration mode: collect files locally
       const newPhotos = [...photos];
-      
-      files.forEach(file => {
+
+      validFiles.forEach(file => {
         newPhotos.push({
           url: URL.createObjectURL(file),
           visibility: newPhotos.length === 0 ? 'profilePic' : 'memberVisible',
@@ -550,7 +567,7 @@ const PhotoVisibilityManager = ({
         );
       };
       img.onerror = () => reject(new Error('Failed to load image'));
-      
+
       if (isNew && fileOrUrl instanceof File) {
         img.src = URL.createObjectURL(fileOrUrl);
       } else if (typeof fileOrUrl === 'string') {
@@ -558,6 +575,43 @@ const PhotoVisibilityManager = ({
       } else {
         img.src = URL.createObjectURL(fileOrUrl);
       }
+    });
+  };
+
+  // Compress image client-side using Canvas (resize to max 1920px, compress to 0.75 quality)
+  const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const MAX_DIMENSION = 1920;
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate scale factor to fit within max dimension
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          const scale = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error('Canvas toBlob failed'));
+            const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          0.75
+        );
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
     });
   };
 
