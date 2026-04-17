@@ -141,11 +141,6 @@ const WhatsAppVerification = () => {
 
   return (
     <div className="whatsapp-verification">
-      <div className="page-header">
-        <h1>📱 WhatsApp Group Verification</h1>
-        <p>Verify WhatsApp group members against registered users</p>
-      </div>
-
       {error && (
         <div className="alert alert-error">
           {error}

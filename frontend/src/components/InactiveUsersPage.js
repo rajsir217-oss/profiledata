@@ -33,11 +33,6 @@ const InactiveUsersPage = () => {
 
   return (
     <div className="inactive-users-page">
-      <div className="page-header">
-        <h1>🔍 Admin: Inactive Users Report</h1>
-        <p>Comprehensive report of inactive users with filtering, sorting, and engagement tools.</p>
-      </div>
-      
       <InactiveUsersReport />
     </div>
   );

@@ -395,13 +395,13 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       
       // === CONFIGURATION ===
       items.push({ isHeader: true, label: 'CONFIGURATION' });
-      
-      items.push({ 
-        icon: '⚙️', 
-        label: 'Settings', 
+
+      items.push({
+        icon: '⚙️',
+        label: 'Settings',
         subLabel: 'App preferences',
         action: () => navigate('/preferences'),
-        disabled: !isActive
+        disabled: false // Always enabled - paused users need to access settings to unpause
       });
       
       // === TESTING & SUPPORT ===
@@ -480,24 +480,24 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       });
       
       items.push({ isHeader: true, label: 'CONFIGURATION' });
-      
-      items.push({ 
-        icon: '⚙️', 
-        label: 'Settings', 
+
+      items.push({
+        icon: '⚙️',
+        label: 'Settings',
         subLabel: 'App preferences',
         action: () => navigate('/preferences'),
-        disabled: !isActive
+        disabled: false // Always enabled - paused users need to access settings to unpause
       });
     }
 
     // Show Settings for non-admin users (admins have it in their sections)
     if (isLoggedIn && userRole !== 'admin' && userRole !== 'moderator') {
-      items.push({ 
-        icon: '⚙️', 
-        label: 'Settings', 
+      items.push({
+        icon: '⚙️',
+        label: 'Settings',
         subLabel: 'Preferences, Theme & Notifications',
         action: () => navigate('/preferences'),
-        disabled: !isActive
+        disabled: false // Always enabled - paused users need to access settings to unpause
       });
     }
 

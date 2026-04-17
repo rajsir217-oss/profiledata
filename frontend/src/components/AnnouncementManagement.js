@@ -304,12 +304,6 @@ const AnnouncementManagement = () => {
 
   return (
     <div className="announcement-management">
-      {/* Header */}
-      <div className="management-header">
-        <h1>📢 Announcement Management</h1>
-        <p>Create and manage site-wide announcements and ticker settings</p>
-      </div>
-
       {/* Tab Navigation */}
       <div className="tab-navigation">
         <button 

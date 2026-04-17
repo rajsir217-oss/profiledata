@@ -217,10 +217,7 @@ const NotificationTester = () => {
   if (!currentUser) {
     return (
       <div className="notification-tester">
-        <div className="tester-header">
-          <h1>🔔 Notification Tester</h1>
-          <p>Please login to test notifications</p>
-        </div>
+        <p>Please login to test notifications</p>
       </div>
     );
   }
@@ -232,11 +229,6 @@ const NotificationTester = () => {
           {toast.message}
         </div>
       )}
-
-      <div className="tester-header">
-        <h1>🔔 Notification Tester</h1>
-        <p>Test and manage notification system for <strong>{currentUser.username}</strong></p>
-      </div>
 
       {/* Analytics Overview */}
       {analytics && (

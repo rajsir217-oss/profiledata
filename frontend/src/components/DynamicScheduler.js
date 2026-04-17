@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useToast from '../hooks/useToast';
 import { getBackendApiUrl } from '../utils/urlHelper';
@@ -28,6 +28,7 @@ const DynamicScheduler = ({ currentUser }) => {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const toast = useToast();
+  const sentinelRef = useRef(null);
 
   // Cache localStorage access to avoid repeated calls
   const getCachedAuth = useCallback(() => {
@@ -149,6 +150,29 @@ const DynamicScheduler = ({ currentUser }) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templates, userRole]);
+
+  // Infinite scroll: auto-load more when sentinel is visible
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setDisplayCount(prev => {
+            const sorted = getSortedJobs();
+            if (prev >= sorted.length) return prev;
+            return Math.min(prev + recordsPerPage, sorted.length);
+          });
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobs, sortBy, sortOrder]);
 
   // Show access denied message if not admin (but don't early return - breaks hooks)
   if (!isAdmin) {
@@ -564,46 +588,8 @@ const DynamicScheduler = ({ currentUser }) => {
         </button>
       </div>
 
-      {/* Status Cards */}
-      {status && status.jobs && status.scheduler && status.executions && (
-        <div className="status-cards">
-          <div className="status-card">
-            <div className="status-icon">📊</div>
-            <div className="status-info">
-              <div className="status-value">{status.jobs.total || 0}</div>
-              <div className="status-label">Total Jobs</div>
-            </div>
-          </div>
-          <div className="status-card success">
-            <div className="status-icon">✅</div>
-            <div className="status-info">
-              <div className="status-value">{status.jobs.enabled || 0}</div>
-              <div className="status-label">Active Jobs</div>
-            </div>
-          </div>
-          <div 
-            className="status-card clickable" 
-            onClick={() => navigate('/notification-management?tab=templates')}
-            title="Click to manage templates"
-          >
-            <div className="status-icon">📋</div>
-            <div className="status-info">
-              <div className="status-value">{status.scheduler.template_count || 0}</div>
-              <div className="status-label">Templates</div>
-            </div>
-          </div>
-          <div className="status-card">
-            <div className="status-icon">📈</div>
-            <div className="status-info">
-              <div className="status-value">{status.executions.success_rate || 'N/A'}</div>
-              <div className="status-label">Success Rate</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="scheduler-filters">
+      {/* Filters + Status Cards in one bar */}
+      <div className="scheduler-toolbar">
         <div className="filter-group template-filter">
           <label>Template Type:</label>
           <div className="multi-select-container">
@@ -667,13 +653,51 @@ const DynamicScheduler = ({ currentUser }) => {
             <option value="enabled">Enabled</option>
             <option value="disabled">Disabled</option>
           </select>
+          <button 
+            className="btn btn-primary"
+            onClick={() => setRefreshTrigger(prev => prev + 1)}
+          >
+            🔄 Refresh
+          </button>
         </div>
-        <button 
-          className="btn btn-secondary"
-          onClick={() => setRefreshTrigger(prev => prev + 1)}
-        >
-          🔄 Refresh
-        </button>
+
+        {/* Status Cards (right) */}
+        {status && status.jobs && status.scheduler && status.executions && (
+          <div className="status-cards">
+            <div className="status-card">
+              <div className="status-icon">📊</div>
+              <div className="status-info">
+                <div className="status-value">{status.jobs.total || 0}</div>
+                <div className="status-label">Total Jobs</div>
+              </div>
+            </div>
+            <div className="status-card success">
+              <div className="status-icon">✅</div>
+              <div className="status-info">
+                <div className="status-value">{status.jobs.enabled || 0}</div>
+                <div className="status-label">Active Jobs</div>
+              </div>
+            </div>
+            <div 
+              className="status-card clickable" 
+              onClick={() => navigate('/notification-management?tab=templates')}
+              title="Click to manage templates"
+            >
+              <div className="status-icon">📋</div>
+              <div className="status-info">
+                <div className="status-value">{status.scheduler.template_count || 0}</div>
+                <div className="status-label">Templates</div>
+              </div>
+            </div>
+            <div className="status-card">
+              <div className="status-icon">📈</div>
+              <div className="status-info">
+                <div className="status-value">{status.executions.success_rate || 'N/A'}</div>
+                <div className="status-label">Success Rate</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Jobs Table */}
@@ -799,25 +823,21 @@ const DynamicScheduler = ({ currentUser }) => {
             </table>
           </div>
 
-          {/* Load More Controls */}
+          {/* Infinite Scroll Sentinel & Status */}
           <div className="load-more-container">
             <div className="load-more-content">
-              {displayCount < getSortedJobs().length && (
-                <button 
-                  className="load-more-button"
-                  onClick={() => setDisplayCount(prev => Math.min(prev + recordsPerPage, getSortedJobs().length))}
-                >
-                  Load {Math.min(recordsPerPage, getSortedJobs().length - displayCount)} more [{displayCount}/{getSortedJobs().length}]
-                </button>
-              )}
-              
-              {displayCount >= getSortedJobs().length && getSortedJobs().length > recordsPerPage && (
+              {displayCount < getSortedJobs().length ? (
+                <div className="load-more-count">
+                  Showing {displayCount} of {getSortedJobs().length} jobs
+                </div>
+              ) : getSortedJobs().length > recordsPerPage ? (
                 <div className="load-more-complete">
                   ✓ All {getSortedJobs().length} jobs loaded
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
+          <div ref={sentinelRef} style={{ height: 1 }} />
         </>
       )}
 

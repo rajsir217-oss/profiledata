@@ -127,12 +127,6 @@ const AdminBackups = () => {
   return (
     <div className="admin-backups-page">
       <div className="backups-header">
-        <div className="backups-title-section">
-          <h2>💾 Database Backups</h2>
-          <p className="backups-subtitle">
-            Manage MongoDB backups — local storage {gcsConfigured ? '+ Google Cloud Storage' : '(GCS not configured)'}
-          </p>
-        </div>
         <div className="backups-actions">
           <button
             className="btn-trigger-backup"

@@ -198,11 +198,6 @@ const EmailTemplatePreview = () => {
 
   return (
     <div className="email-template-preview-container">
-      <div className="template-header">
-        <h1>📧 Email Templates</h1>
-        <p>Preview and manage all notification email templates</p>
-      </div>
-
       {/* Category Filter */}
       <div className="template-filters">
         <button

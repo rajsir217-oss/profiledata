@@ -421,7 +421,6 @@ const PricingPage = () => {
     return (
       <div className="pricing-page">
         <div className="pricing-container">
-          <div className="pricing-header"><h1>You are a Premium Member!</h1><p>Thank you for being a valued member.</p></div>
           <div className="current-subscription">
             <div className="subscription-card">
               <div className="subscription-badge">Active</div>
@@ -443,7 +442,6 @@ const PricingPage = () => {
   return (
     <div className="pricing-page">
       <div className="pricing-container">
-        <div className="pricing-header"><h1>Choose Your Membership</h1><p>Unlock premium features and find your perfect match</p></div>
         {!braintreeConfigured && !paypalConfigured && <div className="payment-warning">Payment system is being configured. Please check back soon.</div>}
         <div className="plans-grid">
           {plans.map(plan => (
