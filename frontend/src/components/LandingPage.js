@@ -435,7 +435,7 @@ const LandingPage = () => {
       <section className="pricing-section">
         <div className="pricing-header-wrapper">
           <span className="pricing-title-badge">Membership Plans</span>
-          <p className="section-subtitle">Choose the plan that fits your journey</p>
+          <p className="section-subtitle">No need to choose — we offer our <strong>Premium Plus plan at no cost</strong>. Other matrimonial services charge premium fees; this platform is <strong>community-developed</strong>. Please consider making a generous contribution to support us. 💜</p>
         </div>
         
         <div className="pricing-grid">
@@ -451,9 +451,14 @@ const LandingPage = () => {
               <li>✓ Create your profile</li>
               <li>✓ Browse profiles</li>
               <li>✓ View L3V3L compatibility scores</li>
-              <li>✓ Basic search filters</li>
-              <li>✗ Send messages</li>
-              <li>✗ See who viewed you</li>
+              <li>✓ Unlimited messaging</li>
+              <li>✓ See who viewed your profile</li>
+              <li>✓ Advanced search filters</li>
+              <li>✓ Profile boost (3x visibility)</li>
+              <li>✓ Dedicated matchmaker support</li>
+              <li>✓ Verified badge on profile</li>
+              <li>✓ Read receipts on messages</li>
+              <li>✓ Early access to new features</li>
             </ul>
             <button className="btn-pricing" onClick={() => navigate('/login')}>Get Started</button>
           </div>
@@ -463,31 +468,41 @@ const LandingPage = () => {
             <div className="pricing-header">
               <h3>Premium</h3>
               <div className="pricing-price">
-                <span className="price-amount">$29</span>
+                <span className="price-amount">$0</span>
                 <span className="price-period">/month</span>
               </div>
             </div>
             <ul className="pricing-features">
-              <li>✓ Everything in Free</li>
+              <li>✓ Create your profile</li>
+              <li>✓ Browse profiles</li>
+              <li>✓ View L3V3L compatibility scores</li>
               <li>✓ Unlimited messaging</li>
               <li>✓ See who viewed your profile</li>
               <li>✓ Advanced search filters</li>
-              <li>✓ Priority customer support</li>
-              <li>✓ Hide your activity</li>
+              <li>✓ Profile boost (3x visibility)</li>
+              <li>✓ Dedicated matchmaker support</li>
+              <li>✓ Verified badge on profile</li>
+              <li>✓ Read receipts on messages</li>
+              <li>✓ Early access to new features</li>
             </ul>
-            <button className="btn-pricing featured" onClick={() => navigate('/login')}>Start Free Trial</button>
+            <button className="btn-pricing featured" onClick={() => navigate('/login')}>Get Started</button>
           </div>
           
           <div className="pricing-card">
             <div className="pricing-header">
               <h3>Premium Plus</h3>
               <div className="pricing-price">
-                <span className="price-amount">$49</span>
+                <span className="price-amount">$0</span>
                 <span className="price-period">/month</span>
               </div>
             </div>
             <ul className="pricing-features">
-              <li>✓ Everything in Premium</li>
+              <li>✓ Create your profile</li>
+              <li>✓ Browse profiles</li>
+              <li>✓ View L3V3L compatibility scores</li>
+              <li>✓ Unlimited messaging</li>
+              <li>✓ See who viewed your profile</li>
+              <li>✓ Advanced search filters</li>
               <li>✓ Profile boost (3x visibility)</li>
               <li>✓ Dedicated matchmaker support</li>
               <li>✓ Verified badge on profile</li>
@@ -497,10 +512,6 @@ const LandingPage = () => {
             <button className="btn-pricing" onClick={() => navigate('/login')}>Get Started</button>
           </div>
         </div>
-        
-        <p className="pricing-note">
-          All paid plans include a 7-day free trial. Cancel anytime. See our <a href="/terms">Terms of Service</a> and <a href="/privacy">Refund Policy</a> for details.
-        </p>
       </section>
 
       {/* Features Section */}
