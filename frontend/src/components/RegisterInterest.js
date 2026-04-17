@@ -316,6 +316,19 @@ const RegisterInterest = () => {
             </div>
           )}
 
+          {/* Verification Process Info */}
+          <div className="ri-process-info">
+            <h4 className="ri-process-info-title">📋 What Happens Next?</h4>
+            <ul className="ri-process-info-list">
+              <li>Once your interest is verified, you will receive an invitation from <strong>www.l3v3lmatches.com</strong></li>
+              <li>Click on "Create Profile" or paste the URL in your browser</li>
+              <li>Complete the profile creation process</li>
+              <li>Our admin team will review your profile and activate it</li>
+              <li>You will receive an email confirming your profile is active</li>
+              <li>Then you can login, search profiles, and access all platform features</li>
+            </ul>
+          </div>
+
           {/* Submit */}
           <div className="ri-actions">
             <button

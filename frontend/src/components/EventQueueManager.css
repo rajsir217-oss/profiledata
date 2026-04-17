@@ -70,6 +70,7 @@
 
 .status-text {
   font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .queue-controls {
