@@ -52,6 +52,12 @@ class BackupJobTemplate(JobTemplate):
                     "description": "Upload backup archive to Google Cloud Storage",
                     "default": True
                 },
+                "skip_local_storage": {
+                    "type": "boolean",
+                    "title": "Skip Local Storage",
+                    "description": "Skip local file storage (recommended for Cloud Run - uploads directly to GCS)",
+                    "default": False
+                },
                 "gcs_prefix": {
                     "type": "string",
                     "title": "GCS Prefix",
@@ -78,11 +84,13 @@ class BackupJobTemplate(JobTemplate):
         params = context.parameters
         retention_days = params.get("retention_days", 30)
         upload_to_gcs = params.get("upload_to_gcs", True)
+        skip_local_storage = params.get("skip_local_storage", False)
         gcs_prefix = params.get("gcs_prefix", "backups")
         collections_str = params.get("collections", "")
         collections = [c.strip() for c in collections_str.split(",") if c.strip()] if collections_str else []
         
         from config import settings
+        import os
         
         # Set backup directory from config (environment-aware)
         global BACKUP_DIR
@@ -93,27 +101,62 @@ class BackupJobTemplate(JobTemplate):
         if not BACKUP_DIR.is_absolute():
             BACKUP_DIR = Path(__file__).resolve().parent.parent / BACKUP_DIR
         
+        # Detect if running on Cloud Run (ephemeral storage)
+        is_cloud_run = os.environ.get('K_SERVICE') is not None or os.environ.get('ENV') == 'production'
+        
+        # Auto-enable skip_local_storage on Cloud Run (ephemeral storage is limited)
+        if is_cloud_run and not skip_local_storage:
+            skip_local_storage = True
+            context.log("INFO", "Auto-enabled skip_local_storage for Cloud Run (ephemeral storage)")
+        
         now = datetime.now(timezone.utc)
         timestamp = now.strftime("%Y%m%d_%H%M%S")
         db_name = settings.database_name
         
         context.log("INFO", f"Starting backup of '{db_name}' at {timestamp}")
         context.log("INFO", f"Backup directory: {BACKUP_DIR}")
+        context.log("INFO", f"Running on Cloud Run: {is_cloud_run}")
+        context.log("INFO", f"Skip local storage: {skip_local_storage}")
         
-        # Ensure backup directory exists
-        BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+        # Determine backup method
+        # On Cloud Run or when skip_local_storage is enabled, use Python dump
+        # mongodump to local disk fails when database exceeds ephemeral storage limits
+        if is_cloud_run or skip_local_storage:
+            context.log("INFO", "Using Python JSON dump (Cloud Run or skip_local_storage enabled)")
+            use_mongodump = False
+        else:
+            # Check available disk space for local environments
+            use_mongodump = True
+            try:
+                import shutil
+                disk_usage = shutil.disk_usage(BACKUP_DIR)
+                free_gb = disk_usage.free / (1024**3)
+                context.log("INFO", f"Available disk space: {free_gb:.2f} GB")
+                if free_gb < 1.0:
+                    context.log("WARNING", f"Low disk space ({free_gb:.2f} GB), falling back to Python dump")
+                    use_mongodump = False
+            except Exception as e:
+                context.log("WARNING", f"Could not check disk space: {e}, using Python dump")
+                use_mongodump = False
+        
+        # Ensure backup directory exists (only if not skipping local storage)
+        if not skip_local_storage:
+            BACKUP_DIR.mkdir(parents=True, exist_ok=True)
         
         try:
-            # Try mongodump first, fall back to Python dump
+            # Try mongodump first (if available and not Cloud Run), fall back to Python dump
             mongodump_available = self._check_mongodump()
             
-            if mongodump_available:
+            if mongodump_available and use_mongodump:
                 context.log("INFO", "Using mongodump binary")
                 archive_path, method = await self._backup_mongodump(
                     context, settings.mongodb_url, db_name, timestamp, collections
                 )
             else:
-                context.log("INFO", "mongodump not found — using Python JSON dump")
+                if not mongodump_available:
+                    context.log("INFO", "mongodump not found — using Python JSON dump")
+                else:
+                    context.log("INFO", "Using Python JSON dump (Cloud Run or low disk space)")
                 archive_path, method = await self._backup_python(
                     context, db_name, timestamp, collections
                 )
@@ -218,12 +261,15 @@ class BackupJobTemplate(JobTemplate):
                 cmd.extend([f"--collection={coll}"])
         
         context.log("INFO", f"Running: mongodump --db={db_name} --archive={archive_name} --gzip")
+        context.log("INFO", f"Archive path: {archive_path}")
+        context.log("INFO", f"Command: {' '.join(cmd[:3])}... (uri hidden)")
         
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        # Increased timeout to 30 minutes for large databases
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
         
         if result.returncode != 0:
-            context.log("ERROR", f"mongodump stderr: {result.stderr[:500]}")
-            raise RuntimeError(f"mongodump failed: {result.stderr[:200]}")
+            context.log("ERROR", f"mongodump stderr: {result.stderr[:2000]}")
+            raise RuntimeError(f"mongodump failed: {result.stderr[:500]}")
         
         context.log("INFO", "mongodump completed successfully")
         return archive_path, "mongodump"
