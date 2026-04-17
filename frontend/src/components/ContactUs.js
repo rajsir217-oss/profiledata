@@ -268,12 +268,6 @@ const ContactUs = () => {
       />
     <div className="contact-page">
       <div className="contact-container">
-        {/* Header */}
-        <div className="contact-header">
-          <h1>📧 Contact Us</h1>
-          <p>We're here to help! Send us a message and we'll respond within 24-48 hours.</p>
-        </div>
-
         {/* Success Message */}
         {submitted && (
           <div className="alert alert-success chat-message">

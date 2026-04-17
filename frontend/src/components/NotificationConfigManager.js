@@ -139,10 +139,6 @@ const NotificationConfigManager = () => {
   return (
     <div className="notification-config-manager">
       <div className="config-header">
-        <h1>📧 Notification Trigger Configuration</h1>
-        <p className="subtitle">
-          Control which status changes send email notifications to users
-        </p>
         <div className="stats">
           <div className="stat-card">
             <span className="stat-label">Total Triggers</span>

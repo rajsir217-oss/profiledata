@@ -218,8 +218,6 @@ const AdminRecurringContributions = () => {
 
   return (
     <div className="admin-recurring-container">
-      <h1>Recurring Contributions</h1>
-      
       {/* Stats Cards */}
       {stats && (
         <div className="stats-grid">

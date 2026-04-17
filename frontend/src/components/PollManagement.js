@@ -520,12 +520,8 @@ const PollManagement = () => {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header Actions */}
       <div className="poll-management-header">
-        <div className="poll-header-left">
-          <h1>📊 Poll Management</h1>
-          <p className="poll-subtitle">Create and manage polls for your users</p>
-        </div>
         <button className="poll-create-btn" onClick={() => setShowCreateModal(true)}>
           + Create Poll
         </button>

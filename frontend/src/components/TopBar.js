@@ -127,6 +127,10 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     if (path === '/admin-reports') return { icon: '📊', title: 'Admin Reports', subtitle: 'View system reports and analytics' };
     if (path === '/contribution-management') return { icon: '💝', title: 'Contribution Management', subtitle: 'Track and manage user contributions' };
     if (path === '/admin/recurring-contributions') return { icon: '🔄', title: 'Recurring Contributions', subtitle: 'Manage recurring payment subscriptions' };
+    if (path === '/virtual-meets') return { icon: '🎥', title: 'Virtual Meets', subtitle: 'Match with participants and connect in 1:1 virtual rooms' };
+    if (path === '/pricing') return { icon: '💎', title: 'Membership Pricing', subtitle: 'Choose your membership plan' };
+    if (path === '/admin-backups') return { icon: '💾', title: 'Database Backups', subtitle: 'Manage MongoDB backups and restores' };
+    if (path === '/admin/inactive-users') return { icon: '🔍', title: 'Inactive Users Report', subtitle: 'Comprehensive report of inactive users' };
     return null;
   };
 

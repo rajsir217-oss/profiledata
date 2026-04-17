@@ -111,11 +111,6 @@ const AdminReports = () => {
   
   return (
     <div className="admin-reports-page">
-      <div className="admin-reports-header">
-        <h1>📊 Admin Reports</h1>
-        <p className="subtitle">User analytics and statistics</p>
-      </div>
-
       {/* Summary Cards */}
       {summary && (
         <div className="summary-cards">

@@ -1224,13 +1224,6 @@ const VirtualMeets = () => {
 
   return (
     <div className="vm-container">
-        <div className="vm-page-header">
-          <div className="vm-header-left">
-            <h1 className="vm-page-title">🎥 Virtual Meets</h1>
-            <p className="vm-page-subtitle">Match with participants and connect in 1:1 virtual rooms</p>
-          </div>
-        </div>
-
         {adminView ? renderAdminOverview() : selectedEvent ? renderMatchList() : renderEventsList()}
 
         {/* Analytics Section (shown when admin view and analytics toggle is on) */}

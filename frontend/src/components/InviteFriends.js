@@ -259,11 +259,6 @@ const InviteFriends = () => {
 
   return (
     <div className="invite-friends">
-      <div className="invite-header">
-        <h1>👥 Invite Friends & Family</h1>
-        <p className="subtitle">Share L3V3LMATCH with people you care about</p>
-      </div>
-
       {/* Statistics Cards */}
       {stats && (
         <div className="stats-grid">

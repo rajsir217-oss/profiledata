@@ -749,11 +749,6 @@ const InvitationManager = () => {
         noindex={true}
       />
       <div className="invitation-manager">
-        <div className="invitation-header">
-          <h1>📧 Invitation Manager</h1>
-        <p className="subtitle">Manage user invitations and track registration conversions</p>
-      </div>
-
       {/* Statistics Cards */}
       {stats && (
         <div className="stats-grid">
