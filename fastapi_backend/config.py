@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     
     # Storage Configuration
     upload_dir: str = "uploads"
+    backup_dir: str = "backups"  # Local backup directory (production may skip local backups)
     use_gcs: bool = False  # Set to True in production
     gcs_bucket_name: Optional[str] = None
     gcs_project_id: Optional[str] = None
