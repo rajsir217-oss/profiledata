@@ -91,7 +91,6 @@ class BackupJobTemplate(JobTemplate):
         
         # Make absolute if relative (relative to backend directory)
         if not BACKUP_DIR.is_absolute():
-            from pathlib import Path
             BACKUP_DIR = Path(__file__).resolve().parent.parent / BACKUP_DIR
         
         now = datetime.now(timezone.utc)
