@@ -257,7 +257,7 @@ const RegisterInterest = () => {
               <span className="ri-highly-recommended">Highly Recommended</span>
             </h3>
             <p className="ri-section-desc">
-              This is a <strong>community-based platform</strong> built on trust. Providing referral information significantly speeds up your verification and helps maintain the quality of our community.
+              This is a <strong>community-based platform</strong> built on trust. Providing referral information <strong style={{ color: 'var(--danger-color)' }}>significantly speeds up your verification </strong> and helps maintain the quality of our community.
             </p>
             <div className="ri-field-row">
               <div className="ri-field">

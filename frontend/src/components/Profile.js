@@ -1939,6 +1939,45 @@ const Profile = ({
                 )}
               </div>
             )}
+
+            {/* Referred By Section - Admin Only */}
+            {isAdmin && (user.referredByInfo || user.invitedBy) && (
+              <div className="referred-by-section">
+                <div className="referred-by-header">
+                  <span className="referred-by-icon">🤝</span>
+                  <span className="referred-by-title">Referred By</span>
+                </div>
+                <div className="referred-by-details">
+                  {user.referredByInfo && (
+                    <>
+                      {(user.referredByInfo.firstName || user.referredByInfo.lastName) && (
+                        <span className="referred-by-item">
+                          <strong>Name:</strong> {[user.referredByInfo.firstName, user.referredByInfo.lastName].filter(Boolean).join(' ')}
+                        </span>
+                      )}
+                      {user.referredByInfo.phone && (
+                        <span className="referred-by-item">
+                          <strong>Phone:</strong> {user.referredByInfo.phone}
+                        </span>
+                      )}
+                      {user.referredByInfo.email && (
+                        <span className="referred-by-item">
+                          <strong>Email:</strong> {user.referredByInfo.email}
+                        </span>
+                      )}
+                    </>
+                  )}
+                  {user.invitedBy && user.invitedBy !== 'system' && (
+                    <span className="referred-by-item">
+                      <strong>Invited by:</strong> @{user.invitedBy}
+                    </span>
+                  )}
+                  {user.invitedBy === 'system' && !user.referredByInfo && (
+                    <span className="referred-by-item referred-by-muted">No referral info available</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Floating Ribbon with Stats - Positioned before Edit Button */}

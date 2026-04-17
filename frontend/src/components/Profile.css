@@ -1707,6 +1707,66 @@
 }
 
 /* ========================================
+   Referred By Section (Admin Only)
+   ======================================== */
+
+.referred-by-section {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--primary-color);
+}
+
+.referred-by-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.referred-by-icon {
+  font-size: 14px;
+}
+
+.referred-by-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--primary-color);
+}
+
+.referred-by-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.referred-by-item {
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.referred-by-item strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.referred-by-muted {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .referred-by-details {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+/* ========================================
    Profile Carousel Navigation
    Supports: Button clicks + Touch swipe gestures
    Swipe left = Next profile | Swipe right = Previous profile

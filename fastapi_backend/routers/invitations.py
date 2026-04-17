@@ -7,6 +7,7 @@ Purpose: API endpoints for invitation management (Admin only)
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from bson import ObjectId
 import logging
 import os
 
@@ -756,48 +757,58 @@ async def validate_invitation(
     PUBLIC endpoint - no authentication required
     Used by registration page to pre-fill user data
     """
-    invitation_service = InvitationService(db)
-    
-    # Find invitation by token
-    invitation = await invitation_service.get_invitation_by_token(token)
-    
-    if not invitation:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invitation not found or invalid token"
-        )
-    
-    # Check if token is expired
-    if invitation.tokenExpiresAt and invitation.tokenExpiresAt < datetime.utcnow():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invitation link has expired"
-        )
-    
-    # Check if already accepted
-    if invitation.emailStatus == InvitationStatus.ACCEPTED:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invitation already accepted by {invitation.registeredUsername}"
-        )
-    
-    # Fetch raw doc for extra fields not on the Pydantic model
-    raw_inv = await db.invitations.find_one({"_id": ObjectId(invitation.id)})
-    referred_by_info = raw_inv.get("referredByInfo") if raw_inv else None
-    promo_code = raw_inv.get("promoCode") if raw_inv else None
+    try:
+        invitation_service = InvitationService(db)
+        
+        # Find invitation by token
+        invitation = await invitation_service.get_invitation_by_token(token)
+        
+        if not invitation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invitation not found or invalid token"
+            )
+        
+        # Check if token is expired
+        if invitation.tokenExpiresAt and invitation.tokenExpiresAt < datetime.utcnow():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invitation link has expired"
+            )
+        
+        # Check if already accepted
+        if invitation.emailStatus == InvitationStatus.ACCEPTED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invitation already accepted by {invitation.registeredUsername}"
+            )
+        
+        # Fetch raw doc for extra fields not on the Pydantic model
+        raw_inv = await db.invitations.find_one({"_id": ObjectId(invitation.id)})
+        referred_by_info = raw_inv.get("referredByInfo") if raw_inv else None
+        promo_code = raw_inv.get("promoCode") if raw_inv else None
 
-    # Return invitation data (excluding sensitive fields)
-    return {
-        "id": invitation.id,
-        "name": invitation.name,
-        "email": invitation.email,
-        "phone": invitation.phone,
-        "invitedBy": invitation.invitedBy,
-        "customMessage": invitation.customMessage,
-        "createdAt": invitation.createdAt,
-        "promoCode": promo_code,
-        "referredByInfo": referred_by_info
-    }
+        # Return invitation data (excluding sensitive fields)
+        return {
+            "id": invitation.id,
+            "name": invitation.name,
+            "email": invitation.email,
+            "phone": invitation.phone,
+            "invitedBy": invitation.invitedBy,
+            "customMessage": invitation.customMessage,
+            "createdAt": invitation.createdAt,
+            "promoCode": promo_code,
+            "referredByInfo": referred_by_info
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        logger.error(f"❌ Invitation validate error for token '{token}': {e}\n{traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error validating invitation: {str(e)}"
+        )
 
 
 @router.post("/accept/{token}")
