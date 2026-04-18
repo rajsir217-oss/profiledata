@@ -182,6 +182,15 @@ const ContributionManagement = () => {
     });
   };
 
+  const formatDaysElapsed = (dateString) => {
+    if (!dateString) return '-';
+    const now = new Date();
+    const then = new Date(dateString);
+    const diffMs = now - then;
+    if (isNaN(diffMs) || diffMs < 0) return '-';
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  };
+
   const formatAmount = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -534,6 +543,7 @@ const ContributionManagement = () => {
                     <th>Type</th>
                     <th>Status</th>
                     <th>Date</th>
+                    <th>Days Elapsed</th>
                     <th>Session ID</th>
                     <th>Actions</th>
                   </tr>
@@ -572,6 +582,9 @@ const ContributionManagement = () => {
                       </td>
                       <td className="date-cell">
                         {formatDate(contribution.createdAt)}
+                      </td>
+                      <td className="days-elapsed-cell">
+                        {formatDaysElapsed(contribution.createdAt)}
                       </td>
                       <td className="session-id-cell">
                         <span className="session-id" title={contribution.sessionId}>
