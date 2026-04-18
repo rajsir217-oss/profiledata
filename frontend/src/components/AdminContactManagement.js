@@ -384,7 +384,23 @@ const AdminContactManagement = () => {
                       )}
                     </div>
                     <h4 className="ticket-item-subject">{ticket.subject}</h4>
-                    <p className="ticket-item-from">From: {ticket.name} ({ticket.username || 'Guest'})</p>
+                    <p className="ticket-item-from">
+                      From: {ticket.name} (
+                      {ticket.username ? (
+                        <a
+                          href={`/profile/${ticket.username}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="ticket-username-link"
+                        >
+                          {ticket.username}
+                        </a>
+                      ) : (
+                        'Guest'
+                      )}
+                      )
+                    </p>
                     <p className="ticket-item-preview">{ticket.message.substring(0, 60)}...</p>
                     <div className="ticket-item-meta">
                       <span className="ticket-date">
@@ -431,7 +447,16 @@ const AdminContactManagement = () => {
                       value: selectedTicket.name
                     }, {
                       label: 'Username',
-                      value: selectedTicket.username || 'Guest'
+                      value: selectedTicket.username ? (
+                        <a
+                          href={`/profile/${selectedTicket.username}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ticket-username-link"
+                        >
+                          {selectedTicket.username}
+                        </a>
+                      ) : 'Guest'
                     }, {
                       label: 'Email',
                       value: selectedTicket.email
