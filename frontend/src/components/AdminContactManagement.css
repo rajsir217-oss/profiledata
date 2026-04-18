@@ -1322,3 +1322,16 @@ body.theme-dark .btn-outline-secondary:hover {
   background: #4b5563;
   border-color: #6b7280;
 }
+
+/* Ticket username link (opens profile in new tab) */
+.ticket-username-link {
+  color: var(--primary-color);
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ticket-username-link:hover {
+  color: var(--secondary-color);
+  text-decoration: none;
+}
