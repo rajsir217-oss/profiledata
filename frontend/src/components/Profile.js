@@ -377,7 +377,7 @@ const Profile = ({
         if (err.response?.status === 404) {
           setError(err.response?.data?.detail || `Profile not found: ${username}`);
         } else if (err.response?.status === 403) {
-          setError("You don't have permission to view this profile");
+          setError(err.response?.data?.detail || "You don't have permission to view this profile");
         } else if (err.response?.data?.detail) {
           setError(err.response.data.detail);
         } else {

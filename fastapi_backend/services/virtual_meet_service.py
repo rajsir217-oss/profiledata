@@ -237,10 +237,14 @@ class VirtualMeetService:
         opposite_usernames = [s["username"] for s in opposite_sessions]
 
         # Get user profiles for all matches
+        # Only include active users - exclude paused/inactive/suspended/deleted etc.
         profiles = {}
         if opposite_usernames:
             cursor = db.users.find(
-                {"username": {"$in": opposite_usernames}},
+                {
+                    "username": {"$in": opposite_usernames},
+                    "accountStatus": "active"
+                },
                 {
                     "username": 1, "firstName": 1, "lastName": 1,
                     "age": 1, "dateOfBirth": 1,

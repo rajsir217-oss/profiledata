@@ -53,11 +53,16 @@ class PauseService:
             paused_until = now + timedelta(days=duration_days)
         
         # Update user document
+        # NOTE: We also set legacy nested `status.status` to keep backward-compat
+        # search queries in sync (they OR on both fields). Without this, paused
+        # users with legacy schema would still match `status.status == 'active'`
+        # and leak into search results.
         result = await self.users_collection.update_one(
             {"username": username},
             {
                 "$set": {
                     "accountStatus": "paused",
+                    "status.status": "paused",
                     "pausedAt": now,
                     "pausedUntil": paused_until,
                     "pauseReason": reason,
@@ -136,11 +141,14 @@ class PauseService:
         was_paused = user.get("accountStatus") == "paused"
         
         # Update user document
+        # NOTE: Also set legacy nested `status.status` to keep backward-compat
+        # search queries in sync (see pause_user for rationale).
         result = await self.users_collection.update_one(
             {"username": username},
             {
                 "$set": {
                     "accountStatus": "active",
+                    "status.status": "active",
                     "pausedAt": None,
                     "pausedUntil": None,
                     "pauseReason": None,

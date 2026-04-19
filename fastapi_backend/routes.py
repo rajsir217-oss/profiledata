@@ -4915,9 +4915,12 @@ async def search_users(
         id_or_username = {"$regex": profileId, "$options": "i"}
         if not is_privileged:
             # Non-privileged: match (profileId OR username) AND active status
+            # Belt-and-suspenders: explicitly exclude non-active statuses to prevent
+            # legacy status.status='active' from leaking paused/inactive users.
             query["$and"] = [
                 {"$or": [{"profileId": id_or_username}, {"username": id_or_username}]},
-                {"$or": [{"accountStatus": "active"}, {"status.status": "active"}]}
+                {"$or": [{"accountStatus": "active"}, {"status.status": "active"}]},
+                {"accountStatus": {"$nin": ["paused", "inactive", "deactivated", "suspended", "deleted", "pending_email_verification", "pending_admin_approval"]}}
             ]
         else:
             query["$or"] = [{"profileId": id_or_username}, {"username": id_or_username}]
@@ -4929,11 +4932,21 @@ async def search_users(
         else:
             # Default to active users only for everyone else
             # (including if a regular user tries to pass status_filter)
-            # Handle both status formats: nested object or direct accountStatus
-            query["$or"] = [
-                {"accountStatus": "active"},
-                {"status.status": "active"}
-            ]
+            # Handle both status formats: nested object or direct accountStatus.
+            # Belt-and-suspenders: explicitly exclude non-active statuses to prevent
+            # legacy status.status='active' from leaking paused/inactive users.
+            # NOTE: Appended to and_conditions (not query["$and"]) because the final
+            # assembly at the bottom does `query["$and"] = and_conditions` which would
+            # otherwise overwrite any $and set directly on query here.
+            and_conditions.append({
+                "$or": [
+                    {"accountStatus": "active"},
+                    {"status.status": "active"}
+                ]
+            })
+            and_conditions.append({
+                "accountStatus": {"$nin": ["paused", "inactive", "deactivated", "suspended", "deleted", "pending_email_verification", "pending_admin_approval"]}
+            })
 
     # Skip all other filters if profileId is provided (direct lookup)
     # Initialize age filter variables (needed even if profileId search)
