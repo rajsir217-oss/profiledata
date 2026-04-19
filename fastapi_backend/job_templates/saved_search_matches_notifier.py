@@ -595,6 +595,11 @@ async def find_matches_for_search(
             {'status.status': 'active'}
         ]
     })
+    # Belt-and-suspenders: explicitly exclude non-active statuses to prevent
+    # legacy status.status='active' from leaking paused/inactive users into notifications.
+    query_and.append({
+        'accountStatus': {'$nin': ['paused', 'inactive', 'deactivated', 'suspended', 'deleted', 'pending_email_verification', 'pending_admin_approval']}
+    })
     
     logger.info(f"🔍 Building query for user '{username}' with criteria: {criteria}")
     
