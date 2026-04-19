@@ -54,6 +54,7 @@ import PaymentSuccess from './components/PaymentSuccess';
 import PaymentCancel from './components/PaymentCancel';
 import ContributionCancel from './components/ContributionCancel';
 import ContributionPopupWrapper from './components/ContributionPopupWrapper';
+import { ContributionProvider } from './contexts/ContributionContext';
 import ImpersonationBanner from './components/ImpersonationBanner';
 import TipOfTheDay from './components/TipOfTheDay';
 import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
@@ -468,14 +469,16 @@ function App() {
   return (
     <HelmetProvider>
       <Router>
-        <AuthGuard>
-          <AppContent />
-        </AuthGuard>
-        <ToastContainer />
-        <PIIAccessRefreshNotification />
-        <ContributionPopupWrapper />
-        <ImpersonationBanner />
-        <TipOfTheDay />
+        <ContributionProvider>
+          <AuthGuard>
+            <AppContent />
+          </AuthGuard>
+          <ToastContainer />
+          <PIIAccessRefreshNotification />
+          <ContributionPopupWrapper />
+          <ImpersonationBanner />
+          <TipOfTheDay />
+        </ContributionProvider>
       </Router>
     </HelmetProvider>
   );

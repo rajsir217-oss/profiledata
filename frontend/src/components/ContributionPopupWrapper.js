@@ -1,34 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import ContributionPopup from './ContributionPopup';
-import useContributionPopup from '../hooks/useContributionPopup';
+import { useContribution } from '../contexts/ContributionContext';
 
 /**
- * Wrapper component that handles contribution popup display logic
- * Should be rendered inside authenticated routes
+ * Wrapper component that renders the contribution popup.
+ * All display logic lives in the original useContributionPopup hook (wrapped
+ * by ContributionContext). This wrapper just:
+ *  - subscribes to context state
+ *  - forwards the `force-contribution-popup` window event (admin/test) to
+ *    the context's openPopup() so the popup can be triggered imperatively.
  */
 const ContributionPopupWrapper = () => {
-  const { showPopup, closePopup, contributionConfig } = useContributionPopup();
-  const [forceShow, setForceShow] = useState(false);
+  const { showPopup, closePopup, openPopup, contributionConfig } = useContribution();
 
-  // Listen for force-show event (for testing)
   useEffect(() => {
-    const handleForceShow = () => {
-      setForceShow(true);
-    };
-    
+    const handleForceShow = () => openPopup();
     window.addEventListener('force-contribution-popup', handleForceShow);
     return () => window.removeEventListener('force-contribution-popup', handleForceShow);
-  }, []);
-
-  const handleClose = () => {
-    setForceShow(false);
-    closePopup();
-  };
+  }, [openPopup]);
 
   return (
-    <ContributionPopup 
-      isOpen={showPopup || forceShow} 
-      onClose={handleClose}
+    <ContributionPopup
+      isOpen={showPopup}
+      onClose={closePopup}
       contributionConfig={contributionConfig}
     />
   );

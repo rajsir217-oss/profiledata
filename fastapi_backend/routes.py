@@ -2010,9 +2010,7 @@ async def get_user_activity_summary(
         {"username": username, "timestamp": {"$gte": seven_days_ago}}
     )
 
-    # --- 10. Account age ---
-    created_at = user.get("createdAt")
-
+    # Helper: safely convert datetime to ISO string (defined early so contributions block below can use it)
     def ts(val):
         """Safely convert to ISO string."""
         if val is None:
@@ -2020,6 +2018,47 @@ async def get_user_activity_summary(
         if isinstance(val, datetime):
             return val.isoformat()
         return str(val)
+
+    # --- 9b. Contributions (payments collection) ---
+    contribution_query = {
+        "username": username,
+        "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}
+    }
+    contribution_count = await db.payments.count_documents(contribution_query)
+    # Aggregate totals
+    contribution_total = 0.0
+    recurring_count = 0
+    if contribution_count > 0:
+        agg_cursor = db.payments.aggregate([
+            {"$match": contribution_query},
+            {"$group": {
+                "_id": None,
+                "total": {"$sum": "$amount"},
+                "recurring": {"$sum": {"$cond": [{"$eq": ["$paymentType", "contribution_recurring"]}, 1, 0]}}
+            }}
+        ])
+        async for agg in agg_cursor:
+            contribution_total = float(agg.get("total") or 0)
+            recurring_count = int(agg.get("recurring") or 0)
+    avg_contribution = (contribution_total / contribution_count) if contribution_count else 0.0
+    # Latest 10 for the grid
+    recent_contributions_docs = await db.payments.find(contribution_query).sort("createdAt", -1).limit(10).to_list(10)
+    recent_contributions = [
+        {
+            "id": str(c.get("_id")),
+            "amount": float(c.get("amount") or 0),
+            "type": "recurring" if c.get("paymentType") == "contribution_recurring" else "one-time",
+            "date": ts(c.get("createdAt")),
+            "paymentMethod": c.get("paymentProvider") or c.get("paymentMethod") or "—",
+            "status": c.get("status") or "completed",
+            "description": c.get("description") or "Platform Contribution",
+        }
+        for c in recent_contributions_docs
+    ]
+    last_contribution_date = recent_contributions[0]["date"] if recent_contributions else None
+
+    # --- 10. Account age ---
+    created_at = user.get("createdAt")
 
     return {
         "username": username,
@@ -2086,6 +2125,15 @@ async def get_user_activity_summary(
         },
         "recentActivity": {
             "last7Days": recent_activity_count,
+        },
+        "contributions": {
+            "count": contribution_count,
+            "totalAmount": round(contribution_total, 2),
+            "averageAmount": round(avg_contribution, 2),
+            "recurringCount": recurring_count,
+            "isRecurringContributor": recurring_count > 0,
+            "lastContribution": last_contribution_date,
+            "recent": recent_contributions,  # latest 10
         },
     }
 

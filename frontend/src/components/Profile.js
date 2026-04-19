@@ -21,7 +21,7 @@ import RichTextEditor from "./shared/RichTextEditor";
 import { getAuthenticatedImageUrl } from "../utils/imageUtils";
 import logger from "../utils/logger";
 import ActivitySummaryPanel from "./ActivitySummaryPanel";
-import useContributionPopup from "../hooks/useContributionPopup";
+import { useContribution } from "../contexts/ContributionContext";
 import "./Profile.css";
 import { ACTION_ICONS } from "../constants/icons";
 import { createApiInstance } from "../api";
@@ -52,10 +52,9 @@ const Profile = ({
   const [isOnline, setIsOnline] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [bannerDismissed, setBannerDismissed] = useState(false);
-  
-  // Contribution eligibility (same logic as popup)
-  const { shouldShowContribution } = useContributionPopup();
+  // Contribution prompt state — shared across app via context.
+  // shouldShowContribution already factors in persistent dismissal.
+  const { shouldShowContribution, openPopup, dismissBanner } = useContribution();
   
   // Search carousel navigation state
   const [searchResults, setSearchResults] = useState(null);
@@ -1541,22 +1540,25 @@ const Profile = ({
         </div>
       )}
 
-      {/* Contribution Reminder Banner - same eligibility as popup, only on other profiles */}
-      {!isOwnProfile && shouldShowContribution && !bannerDismissed && (
-        <div className="contribution-reminder-banner">
+      {/* Contribution Reminder Banner — eligibility & dismissal shared via ContributionContext.
+          Shown only on OTHER users' profiles (not own). Clicking 'Contribute Now'
+          opens the inline popup so the user stays on the profile. */}
+      {!isOwnProfile && shouldShowContribution && (
+        <div className="contribution-reminder-banner" role="complementary" aria-label="Contribution reminder">
           <span className="contribution-reminder-text">
-            💛 Help keep this platform free — your support makes a difference!
+            🙏 Help keep this platform free — your support makes a difference!
           </span>
-          <button 
+          <button
             className="contribution-reminder-btn"
-            onClick={() => navigate('/preferences?tab=contributions')}
+            onClick={openPopup}
           >
             Contribute Now
           </button>
-          <button 
+          <button
             className="contribution-reminder-close"
-            onClick={() => setBannerDismissed(true)}
+            onClick={dismissBanner}
             title="Dismiss"
+            aria-label="Dismiss contribution reminder"
           >
             ✕
           </button>

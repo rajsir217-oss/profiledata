@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import logger from '../utils/logger';
+import { useContribution } from '../contexts/ContributionContext';
 import './PlatformActivityBar.css';
 
 const PERIODS = [
@@ -21,11 +22,15 @@ const STAT_CONFIG = [
 ];
 
 const PlatformActivityBar = () => {
+  // Contribution prompt — shared with profile banner & popup via context
+  const { shouldShowContribution, openPopup, dismissBanner } = useContribution();
+
   const [stats, setStats] = useState(null);
   const [period, setPeriod] = useState(() => localStorage.getItem('platformStatsPeriod') || 'monthly');
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('platformStatsCollapsed') === 'true');
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [, setTick] = useState(0); // Forces re-render so 'Updated Xm ago' stays live
 
   const isLoggedIn = !!localStorage.getItem('token');
 
@@ -49,6 +54,12 @@ const PlatformActivityBar = () => {
     const interval = setInterval(fetchStats, 300000); // 5 min
     return () => clearInterval(interval);
   }, [fetchStats]);
+
+  // Tick every 30s so 'Updated Xm ago' label stays accurate between fetches
+  useEffect(() => {
+    const tickInterval = setInterval(() => setTick((t) => t + 1), 30000);
+    return () => clearInterval(tickInterval);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('platformStatsPeriod', period);
@@ -86,6 +97,30 @@ const PlatformActivityBar = () => {
 
   return (
     <div className="pab-bar">
+      {/* Contribution banner row — shown above stats when user is eligible & not dismissed */}
+      {shouldShowContribution && (
+        <div className="pab-contribution-banner" role="complementary" aria-label="Contribution reminder">
+          <span className="pab-contribution-text">
+            🙏 Help keep this platform free — your support makes a difference!
+          </span>
+          <button
+            type="button"
+            className="pab-contribution-btn"
+            onClick={openPopup}
+          >
+            Contribute Now
+          </button>
+          <button
+            type="button"
+            className="pab-contribution-close"
+            onClick={dismissBanner}
+            title="Dismiss"
+            aria-label="Dismiss contribution reminder"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <div className="pab-row">
         <div className="pab-period-tabs">
           {PERIODS.map(p => (
