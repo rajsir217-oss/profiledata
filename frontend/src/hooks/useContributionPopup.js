@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getBackendUrl } from '../config/apiConfig';
 import { hasRecentPayment } from '../utils/dateUtils';
+import { isModeratorOrAdmin } from '../utils/permissions';
 
 /**
  * Simplified hook to manage contribution popup display logic
- * 
+ *
  * Shows popup when:
  * - User is logged in
+ * - User is NOT an admin or moderator (staff roles are excluded)
  * - Has NOT paid in the last 30 days
  */
 const useContributionPopup = () => {
@@ -20,6 +22,13 @@ const useContributionPopup = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      // Staff roles (admin, moderator) are excluded from contribution prompts.
+      // Short-circuits BEFORE the API call so we don't even hit the backend.
+      if (isModeratorOrAdmin()) {
         setLoading(false);
         return;
       }
