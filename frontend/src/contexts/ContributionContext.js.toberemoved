@@ -1,0 +1,177 @@
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { getBackendUrl } from '../config/apiConfig';
+import { hasRecentPayment } from '../utils/dateUtils';
+
+/**
+ * ContributionContext
+ *
+ * Single source of truth for contribution-prompt state across the app.
+ * Replaces per-component instances of `useContributionPopup` so the eligibility
+ * API is called once, and dismissal in any surface (popup, banner on profile,
+ * banner in footer) is shared.
+ *
+ * Provides:
+ *  - shouldShowContribution: user is eligible AND has not dismissed this session
+ *  - showPopup: controls popup visibility
+ *  - openPopup() / closePopup(): imperative controls
+ *  - dismissBanner(): persists dismissal across tabs/reloads (cleared on fresh
+ *    browser session, matching the popup's existing behavior)
+ *  - contributionConfig: amounts / popup config from backend
+ */
+
+const ContributionContext = createContext(null);
+
+const isDismissed = () => !!localStorage.getItem('contribution_dismissed_at');
+
+export const ContributionProvider = ({ children }) => {
+  const [showPopup, setShowPopup] = useState(false);
+  const [eligible, setEligible] = useState(false);
+  const [contributionConfig, setContributionConfig] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [dismissed, setDismissed] = useState(isDismissed());
+  const popupTimeoutRef = useRef(null);
+  const checkedRef = useRef(false);
+
+  const checkEligibility = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${getBackendUrl()}/api/contributions/contribution-status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setLoading(false);
+        return;
+      }
+
+      setContributionConfig(data.popupConfig);
+
+      // Site-level disabled
+      if (!data.siteEnabled) {
+        setLoading(false);
+        return;
+      }
+      // Admin disabled for this user
+      if (data.userDisabledByAdmin) {
+        setLoading(false);
+        return;
+      }
+      // Already paid recently
+      if (hasRecentPayment(data.lastContributionDate, data.lastRecurringPaymentDate, 30)) {
+        setLoading(false);
+        return;
+      }
+
+      // Eligible
+      setEligible(true);
+
+      // Fresh browser session check — clear stale dismissal once per browser open
+      if (!sessionStorage.getItem('contribution_session_active')) {
+        localStorage.removeItem('contribution_dismissed_at');
+        sessionStorage.setItem('contribution_session_active', 'true');
+        setDismissed(false);
+      }
+
+      // Auto-show popup once per session if not dismissed yet
+      if (!isDismissed()) {
+        setShowPopup(true);
+        localStorage.setItem('contribution_popup_last_shown', Date.now().toString());
+      }
+    } catch (err) {
+      // Silent fail — don't break UX
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const scheduleCheck = useCallback((delay) => {
+    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
+    popupTimeoutRef.current = setTimeout(() => {
+      checkEligibility();
+      popupTimeoutRef.current = null;
+    }, delay);
+  }, [checkEligibility]);
+
+  useEffect(() => {
+    if (checkedRef.current) return;
+    checkedRef.current = true;
+
+    const token = localStorage.getItem('token');
+    if (token) scheduleCheck(1000);
+
+    const handleUserLoggedIn = () => {
+      const loginCount = parseInt(localStorage.getItem('login_count') || '0', 10);
+      localStorage.setItem('login_count', (loginCount + 1).toString());
+      // Reset session flag so eligibility re-checks fully on login
+      sessionStorage.removeItem('contribution_session_active');
+      checkedRef.current = false;
+      scheduleCheck(500);
+    };
+
+    window.addEventListener('userLoggedIn', handleUserLoggedIn);
+    return () => {
+      if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
+      window.removeEventListener('userLoggedIn', handleUserLoggedIn);
+    };
+  }, [scheduleCheck]);
+
+  const openPopup = useCallback(() => setShowPopup(true), []);
+  const closePopup = useCallback(() => setShowPopup(false), []);
+
+  const dismissBanner = useCallback(() => {
+    localStorage.setItem('contribution_dismissed_at', Date.now().toString());
+    setDismissed(true);
+  }, []);
+
+  const value = {
+    // Banner-eligible if user qualifies AND has not dismissed
+    shouldShowContribution: eligible && !dismissed,
+    eligible,
+    showPopup,
+    openPopup,
+    closePopup,
+    contributionConfig,
+    loading,
+    dismissed,
+    dismissBanner,
+  };
+
+  return (
+    <ContributionContext.Provider value={value}>
+      {children}
+    </ContributionContext.Provider>
+  );
+};
+
+export const useContribution = () => {
+  const ctx = useContext(ContributionContext);
+  if (!ctx) {
+    // Fallback no-op so accidental consumers outside the provider don't crash
+    return {
+      shouldShowContribution: false,
+      eligible: false,
+      showPopup: false,
+      openPopup: () => {},
+      closePopup: () => {},
+      contributionConfig: null,
+      loading: false,
+      dismissed: false,
+      dismissBanner: () => {},
+    };
+  }
+  return ctx;
+};
+
+export default ContributionContext;

@@ -255,3 +255,82 @@
     font-size: 10px;
   }
 }
+
+/* Contribution banner row inside footer — uses CSS variables for theming */
+.pab-contribution-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  /* Subtle tint using the theme's primary color so the banner adapts
+     per-theme. Fallback kicks in for browsers without color-mix support. */
+  background: var(--warning-light, #fef3c7);
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  border: 1px solid var(--warning-color, rgba(99, 102, 241, 0.3));
+  border-color: color-mix(in srgb, var(--primary-color) 35%, transparent);
+}
+
+.pab-contribution-text {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pab-contribution-btn {
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.pab-contribution-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.pab-contribution-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.pab-contribution-close:hover {
+  color: var(--text-color);
+  background: var(--hover-background);
+}
+
+@media (max-width: 768px) {
+  .pab-contribution-banner {
+    padding: 5px 8px;
+    gap: 8px;
+  }
+
+  .pab-contribution-text {
+    font-size: 11px;
+  }
+
+  .pab-contribution-btn {
+    font-size: 10px;
+    padding: 3px 10px;
+  }
+}

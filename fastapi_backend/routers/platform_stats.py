@@ -1,9 +1,11 @@
 """
 Platform Stats Router
 Provides aggregated, anonymous platform activity statistics for the footer bar.
-Cached in-memory with a 5-minute TTL to minimize database load.
+Cached in Redis (shared across workers) with a 5-minute TTL; falls back to
+in-memory cache if Redis is unavailable.
 """
 
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
@@ -18,23 +20,78 @@ router = APIRouter(
     tags=["platform-stats"]
 )
 
-# --- In-Memory Cache ---
-_stats_cache = {}  # {"weekly": {"data": {...}, "expires": datetime}, ...}
+# --- Caching ---
 CACHE_TTL_SECONDS = 300  # 5 minutes
+CACHE_KEY_PREFIX = "platform_stats:"
+
+# In-memory fallback cache (used if Redis is down)
+_stats_cache = {}  # {"weekly": {"data": {...}, "expires": datetime}, ...}
+
+
+def _cache_get(period: str) -> Optional[dict]:
+    """Fetch cached stats from Redis, falling back to in-memory dict."""
+    # Try Redis first
+    try:
+        from redis_manager import get_redis_manager
+        rm = get_redis_manager()
+        if rm and rm.redis_client:
+            raw = rm.redis_client.get(f"{CACHE_KEY_PREFIX}{period}")
+            if raw:
+                return json.loads(raw)
+    except Exception as e:
+        logger.debug(f"Redis cache read skipped: {e}")
+
+    # Fallback: in-memory
+    cached = _stats_cache.get(period)
+    if cached and cached["expires"] > datetime.utcnow():
+        return cached["data"]
+    return None
+
+
+def _cache_set(period: str, data: dict) -> None:
+    """Store stats in Redis (with TTL) and in-memory as backup."""
+    # Write to Redis
+    try:
+        from redis_manager import get_redis_manager
+        rm = get_redis_manager()
+        if rm and rm.redis_client:
+            rm.redis_client.setex(
+                f"{CACHE_KEY_PREFIX}{period}",
+                CACHE_TTL_SECONDS,
+                json.dumps(data, default=str)
+            )
+    except Exception as e:
+        logger.debug(f"Redis cache write skipped: {e}")
+
+    # Always also update in-memory (fast-path for same worker)
+    _stats_cache[period] = {
+        "data": data,
+        "expires": datetime.utcnow() + timedelta(seconds=CACHE_TTL_SECONDS)
+    }
 
 
 def _get_period_start(period: str) -> Optional[datetime]:
-    """Calculate the start datetime for a given period."""
+    """Calculate the calendar-aligned start datetime for a given period (UTC).
+
+    - weekly: Monday 00:00 UTC of the current ISO week
+    - monthly: 1st of current month at 00:00 UTC
+    - yearly: January 1st at 00:00 UTC of current year
+    - all: None (no lower bound)
+    """
     now = datetime.utcnow()
     if period == "weekly":
-        return now - timedelta(days=7)
+        # Python's weekday(): Monday=0, Sunday=6
+        monday = now - timedelta(days=now.weekday())
+        return monday.replace(hour=0, minute=0, second=0, microsecond=0)
     elif period == "monthly":
-        return now - timedelta(days=30)
+        return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     elif period == "yearly":
         return now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
     elif period == "all":
-        return None  # No lower bound
-    return now - timedelta(days=7)  # fallback
+        return None
+    # Fallback: week-to-date
+    monday = now - timedelta(days=now.weekday())
+    return monday.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 async def _compute_stats(period: str, db) -> dict:
@@ -47,16 +104,6 @@ async def _compute_stats(period: str, db) -> dict:
     if period_start:
         time_filter = {"timestamp": {"$gte": period_start}}
 
-    # Time filter for collections using createdAt (datetime objects)
-    created_at_filter = {}
-    if period_start:
-        created_at_filter = {"createdAt": {"$gte": period_start}}
-
-    # Time filter for profile_views (uses firstViewedAt / lastViewedAt)
-    pv_filter = {}
-    if period_start:
-        pv_filter = {"lastViewedAt": {"$gte": period_start}}
-
     try:
         # 1. Searches — from activity_logs
         searches = await db.activity_logs.count_documents({
@@ -64,8 +111,14 @@ async def _compute_stats(period: str, db) -> dict:
             **time_filter
         })
 
-        # 2. Profile Views — from profile_views collection (count view events, not unique pairs)
-        profile_views = await db.profile_views.count_documents(pv_filter) if period_start else await db.profile_views.count_documents({})
+        # 2. Profile Views — count TRUE view EVENTS from activity_logs.
+        # (The profile_views collection stores one row per unique
+        # viewer/profile pair with upsert-on-revisit, so it cannot be used
+        # to count events per period.)
+        profile_views = await db.activity_logs.count_documents({
+            "action_type": "profile_viewed",
+            **time_filter
+        })
 
         # 3. Favorited — from activity_logs
         favorited = await db.activity_logs.count_documents({
@@ -79,38 +132,34 @@ async def _compute_stats(period: str, db) -> dict:
             **time_filter
         })
 
-        # 5. Conversations — from activity_logs
-        conversations = await db.activity_logs.count_documents({
-            "action_type": "conversation_started",
-            **time_filter
-        })
-
-        # 6. Active Members — users with recent login
-        if period_start:
-            active_members = await db.users.count_documents({
-                "accountStatus": "active",
-                "security.last_login_at": {"$gte": period_start}
-            })
-        else:
-            active_members = await db.users.count_documents({
-                "accountStatus": "active"
-            })
-
-        # 7. Messages sent — from activity_logs
+        # 5. Messages sent — from activity_logs
         messages_sent = await db.activity_logs.count_documents({
             "action_type": "message_sent",
             **time_filter
         })
+
+        # 6. Active Members — UNIFIED semantics across all periods:
+        # "users who logged in at least once during the period".
+        # For "all time" this means "users who have ever logged in"
+        # (i.e. security.last_login_at is set).
+        active_members_query = {"accountStatus": "active"}
+        if period_start:
+            active_members_query["security.last_login_at"] = {"$gte": period_start}
+        else:
+            active_members_query["security.last_login_at"] = {
+                "$exists": True, "$ne": None
+            }
+        active_members = await db.users.count_documents(active_members_query)
 
         return {
             "searches": searches,
             "profileViews": profile_views,
             "favorited": favorited,
             "shortlisted": shortlisted,
-            "conversations": conversations,
             "activeMembers": active_members,
             "messagesSent": messages_sent,
             "period": period,
+            "periodStart": period_start.isoformat() if period_start else None,
             "cachedAt": now.isoformat()
         }
     except Exception as e:
@@ -120,10 +169,10 @@ async def _compute_stats(period: str, db) -> dict:
             "profileViews": 0,
             "favorited": 0,
             "shortlisted": 0,
-            "conversations": 0,
             "activeMembers": 0,
             "messagesSent": 0,
             "period": period,
+            "periodStart": period_start.isoformat() if period_start else None,
             "cachedAt": now.isoformat(),
             "error": str(e)
         }
@@ -139,18 +188,10 @@ async def get_platform_stats(
     Get aggregated platform activity statistics.
     Available to all logged-in users. Cached for 5 minutes per period.
     """
-    # Check cache
-    cached = _stats_cache.get(period)
-    if cached and cached["expires"] > datetime.utcnow():
-        return cached["data"]
+    cached = _cache_get(period)
+    if cached:
+        return cached
 
-    # Compute fresh stats
     stats = await _compute_stats(period, db)
-
-    # Store in cache
-    _stats_cache[period] = {
-        "data": stats,
-        "expires": datetime.utcnow() + timedelta(seconds=CACHE_TTL_SECONDS)
-    }
-
+    _cache_set(period, stats)
     return stats

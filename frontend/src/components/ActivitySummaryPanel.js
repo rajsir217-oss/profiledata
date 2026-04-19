@@ -321,6 +321,81 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
               </div>
             </div>
           </div>
+
+          {/* Contributions */}
+          <div className="activity-section">
+            <h4>💝 Contributions</h4>
+            <div className="activity-stats-row">
+              <div className="activity-stat">
+                <span className="stat-number">${(d.contributions?.totalAmount || 0).toFixed(2)}</span>
+                <span className="stat-label">Total</span>
+              </div>
+              <div className="activity-stat">
+                <span className="stat-number">{d.contributions?.count || 0}</span>
+                <span className="stat-label">Contributions</span>
+              </div>
+              <div className="activity-stat">
+                <span className="stat-number">${(d.contributions?.averageAmount || 0).toFixed(2)}</span>
+                <span className="stat-label">Avg Amount</span>
+              </div>
+              <div className="activity-stat">
+                <span className="stat-number">{d.contributions?.recurringCount || 0}</span>
+                <span className="stat-label">Recurring</span>
+              </div>
+            </div>
+            <div className="activity-grid">
+              <div className="activity-item">
+                <span className="activity-label">Last Contribution</span>
+                <span className="activity-value">{formatDate(d.contributions?.lastContribution)}</span>
+              </div>
+            </div>
+
+            {/* Latest 10 contributions grid */}
+            {d.contributions?.recent && d.contributions.recent.length > 0 ? (
+              <div className="activity-table-wrapper">
+                <table className="activity-table">
+                  <thead>
+                    <tr>
+                      <th>Date &amp; Time</th>
+                      <th className="align-right">Amount</th>
+                      <th>Type</th>
+                      <th>Method</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.contributions.recent.map((c) => (
+                      <tr key={c.id}>
+                        <td>{c.date ? new Date(c.date).toLocaleString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric',
+                          hour: 'numeric', minute: '2-digit'
+                        }) : '—'}</td>
+                        <td className="align-right amount-cell">${Number(c.amount || 0).toFixed(2)}</td>
+                        <td>
+                          <span className={`contrib-type-badge type-${c.type}`}>
+                            {c.type === 'recurring' ? 'Recurring' : 'One-time'}
+                          </span>
+                        </td>
+                        <td>{c.paymentMethod || '—'}</td>
+                        <td>
+                          <span className={`contrib-status-badge status-${(c.status || '').toLowerCase()}`}>
+                            {c.status || 'completed'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {d.contributions.count > d.contributions.recent.length && (
+                  <p className="activity-table-footer">
+                    Showing latest {d.contributions.recent.length} of {d.contributions.count}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="activity-empty">No contributions yet.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
