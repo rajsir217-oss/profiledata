@@ -73,7 +73,8 @@ const PayPalRecurringReturn = () => {
           
           // Clean up localStorage
           localStorage.removeItem('recurring_setup_amount');
-          localStorage.setItem('contribution_popup_last_shown', Date.now().toString());
+          // Notify the contribution hook to re-check eligibility.
+          window.dispatchEvent(new Event('contributionMade'));
           
           // Redirect after a delay
           setTimeout(() => {

@@ -40,7 +40,8 @@ const CloverPaymentReturn = ({ status = 'success' }) => {
 
         if (data.success) {
           setConfirmed(true);
-          localStorage.setItem('contribution_popup_last_shown', Date.now().toString());
+          // Notify the contribution hook to re-check eligibility.
+          window.dispatchEvent(new Event('contributionMade'));
           if (toastService) {
             toastService.success('Thank you for your contribution! 💜');
           }

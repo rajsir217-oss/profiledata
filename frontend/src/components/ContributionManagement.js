@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
+import { getSilenceDays } from '../utils/contributionSilence';
 import AddManualPayment from './AddManualPayment';
 import './ContributionManagement.css';
 import './ContributionThankYou.css';
@@ -189,6 +190,21 @@ const ContributionManagement = () => {
     const diffMs = now - then;
     if (isNaN(diffMs) || diffMs < 0) return '-';
     return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  };
+
+  /**
+   * Days of popup/banner silence this specific contribution still buys.
+   *   silenceDays = floor(amount)   (see utils/contributionSilence.js)
+   *   remaining   = max(0, silenceDays - daysElapsed)
+   * Returns a number (0 = expired) or '-' if data is missing.
+   */
+  const silenceDaysLeft = (dateString, amount) => {
+    if (!dateString) return '-';
+    const silenceDays = getSilenceDays(amount);
+    if (silenceDays <= 0) return 0;
+    const elapsed = formatDaysElapsed(dateString);
+    if (elapsed === '-') return '-';
+    return Math.max(0, silenceDays - elapsed);
   };
 
   const formatAmount = (amount) => {
@@ -542,10 +558,13 @@ const ContributionManagement = () => {
                     <th>Amount</th>
                     <th>Type</th>
                     <th>Status</th>
-                    <th>Date</th>
-                    <th>Days Elapsed</th>
+                    <th>Paid</th>
+                    <th>Elapsed</th>
+                    <th title="Remaining days the popup/banner is silenced for this user by this contribution. silence_days = floor(amount)">
+                      Left
+                    </th>
                     <th>Session ID</th>
-                    <th>Actions</th>
+                    <th>Actns</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -576,15 +595,28 @@ const ContributionManagement = () => {
                         </span>
                       </td>
                       <td>
-                        <span className={`status-badge ${contribution.status}`}>
-                         ...
-                        </span>
+                        {(() => {
+                          const s = contribution.status || 'completed';
+                          // Short 1-char labels for alternate/legacy statuses;
+                          // full words for the canonical set.
+                          const shortLabels = { succeeded: 'S', paid: 'P', refunded: 'R' };
+                          const label = shortLabels[s] || s.charAt(0).toUpperCase() + s.slice(1);
+                          return <span className={`status-badge ${s}`} title={s}>{label}</span>;
+                        })()}
                       </td>
                       <td className="date-cell">
                         {formatDate(contribution.createdAt)}
                       </td>
                       <td className="days-elapsed-cell">
                         {formatDaysElapsed(contribution.createdAt)}
+                      </td>
+                      <td className="silence-left-cell">
+                        {(() => {
+                          const left = silenceDaysLeft(contribution.createdAt, contribution.amount);
+                          if (left === '-') return '-';
+                          const cls = left > 0 ? 'silence-pill active' : 'silence-pill expired';
+                          return <span className={cls} title={left > 0 ? 'Popup silenced' : 'Silence expired'}>{left}</span>;
+                        })()}
                       </td>
                       <td className="session-id-cell">
                         <span className="session-id" title={contribution.sessionId}>

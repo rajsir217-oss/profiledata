@@ -162,6 +162,7 @@ async def create_charge(
             {
                 "$set": {
                     "contributions.lastContributionDate": now,
+                    "contributions.lastContributionAmount": amount_float,
                 },
                 "$inc": {
                     "contributions.totalContributed": amount_float
@@ -344,6 +345,7 @@ async def confirm_clover_payment(
         {
             "$set": {
                 "contributions.lastContributionDate": datetime.utcnow(),
+                "contributions.lastContributionAmount": amount,
             },
             "$inc": {
                 "contributions.totalContributed": amount

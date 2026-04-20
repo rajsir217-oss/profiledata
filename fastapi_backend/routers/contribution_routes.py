@@ -202,6 +202,23 @@ async def get_contribution_status(
         # Debug logging
         logger.info(f"💝 Contribution status for {current_user['username']}: site_settings exists={site_settings is not None}, contributions={contribution_config}, siteEnabled={site_enabled}")
         
+        # Resolve last contribution amount.
+        # Preferred: the `contributions.lastContributionAmount` field stamped by
+        # payment handlers. Fallback: look up the most recent contribution in
+        # db.payments (handles users who paid before the stamping change).
+        last_amount = contributions.get("lastContributionAmount")
+        if last_amount is None:
+            latest_payment = await db.payments.find_one(
+                {
+                    "username": current_user["username"],
+                    "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
+                    "status": {"$in": ["completed", "succeeded", "paid", None]},
+                },
+                sort=[("createdAt", -1)],
+            )
+            if latest_payment:
+                last_amount = latest_payment.get("amount", 0) or 0
+        
         return {
             "success": True,
             "siteEnabled": site_enabled,  # Only True if explicitly enabled
@@ -209,6 +226,7 @@ async def get_contribution_status(
             "hasActiveRecurringContribution": contributions.get("hasActiveRecurring", False),
             "lastContributionDate": contributions.get("lastContributionDate"),
             "lastRecurringPaymentDate": contributions.get("lastRecurringPaymentDate"),
+            "lastContributionAmount": last_amount,
             "totalContributed": contributions.get("totalContributed", 0),
             "popupConfig": {
                 "amounts": contribution_config.get("amounts", [10, 15, 25]),
@@ -693,7 +711,10 @@ async def add_manual_contribution(
         {"username": request.username},
         {
             "$inc": {"contributions.totalContributed": request.amount},
-            "$set": {"contributions.lastContributionDate": payment_date}
+            "$set": {
+                "contributions.lastContributionDate": payment_date,
+                "contributions.lastContributionAmount": request.amount,
+            }
         }
     )
 

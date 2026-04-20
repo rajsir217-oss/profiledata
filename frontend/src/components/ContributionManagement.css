@@ -444,6 +444,31 @@
   border-radius: 4px;
 }
 
+/* Silence-Left pill: shows remaining days this contribution silences the popup */
+.silence-left-cell {
+  text-align: center;
+}
+.silence-left-cell .silence-pill {
+  display: inline-block;
+  min-width: 32px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+}
+.silence-left-cell .silence-pill.active {
+  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+  border-color: color-mix(in srgb, var(--primary-color) 30%, transparent);
+}
+.silence-left-cell .silence-pill.expired {
+  color: var(--text-secondary);
+  background: var(--surface-color);
+  border-color: var(--border-color);
+}
+
 /* Type Badge */
 .type-badge {
   display: inline-flex;
@@ -493,6 +518,18 @@
 .status-badge.cancelled {
   background: rgba(107, 114, 128, 0.1);
   color: #6b7280;
+}
+
+/* Single-char variants (tooltip shows full status name) */
+.status-badge.succeeded,
+.status-badge.paid {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.status-badge.refunded {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
 }
 
 /* Pagination */

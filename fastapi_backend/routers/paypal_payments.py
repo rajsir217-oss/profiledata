@@ -265,7 +265,10 @@ async def capture_paypal_order(
             {"username": username},
             {
                 "$inc": {"contributions.totalContributed": amount},
-                "$set": {"contributions.lastContributionDate": datetime.utcnow()}
+                "$set": {
+                    "contributions.lastContributionDate": datetime.utcnow(),
+                    "contributions.lastContributionAmount": amount,
+                }
             }
         )
 
