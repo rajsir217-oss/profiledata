@@ -86,7 +86,20 @@ async def register(
         if existing_user:
             raise HTTPException(status_code=400, detail="Username already exists")
         
-        # Check if email exists
+        # Check if email exists.
+        #
+        # Uniqueness policy (see also routes.py contactEmail handler & profile
+        # update contactNumber handler):
+        #   - login `email`        → UNIQUE (enforced here)
+        #   - `contactEmail`       → UNIQUE (enforced in profile update)
+        #   - `contactNumber`(s)   → duplicates ALLOWED (parent/guardian may
+        #                            manage multiple profiles under one phone)
+        #
+        # The asymmetry is intentional: the login email doubles as the
+        # password-reset channel and the abuse-detection signal, so it must
+        # map to exactly one account. A parent who wants to manage multiple
+        # profiles needs a distinct login email per profile (phone can be
+        # shared).
         existing_email = await db.users.find_one({"email": reg_request.email})
         if existing_email:
             raise HTTPException(status_code=400, detail="Email already registered")

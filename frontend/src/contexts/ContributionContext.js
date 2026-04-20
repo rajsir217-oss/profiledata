@@ -4,49 +4,36 @@ import useContributionPopup from '../hooks/useContributionPopup';
 /**
  * ContributionContext
  *
- * Thin wrapper around the original `useContributionPopup` hook so its
- * eligibility + auto-popup business logic is preserved unchanged. The context
- * exists solely to:
- *   1. Deduplicate the hook call (was previously invoked in multiple components
- *      → now invoked ONCE here, shared via context)
- *   2. Expose an imperative `openPopup()` so banners can trigger the popup
- *      without navigating away.
- *   3. Provide a shared `dismissBanner()` + `bannerDismissed` flag so the
- *      profile banner and the footer banner share the same dismiss state
- *      per page-load (not persisted — that matches the prior per-component
- *      behavior, just scoped across multiple surfaces now).
+ * Thin wrapper around `useContributionPopup` that:
+ *   1. Ensures a single eligibility check is shared across all consumers
+ *      (popup wrapper, profile banner, footer banner).
+ *   2. Adds an in-memory `bannerDismissed` flag for the current page view.
+ *      This is NOT persisted — a full page reload resets it (the amount-tier
+ *      silence remains the long-term gate).
  *
- * The original popup-dismiss semantics (writing `contribution_dismissed_at` to
- * localStorage inside `ContributionPopup.handleDismiss`) are untouched.
+ * Semantics (matches the agreed business rule):
+ *   - Banner visibility  = eligible AND not just-dismissed-in-memory
+ *   - Popup visibility   = auto-shown once per browser session (hook-driven),
+ *     OR imperatively opened via `openPopup()` (e.g. banner button click).
+ *     Closing the popup flags it dismissed for the rest of the session (hook).
  */
 
 const ContributionContext = createContext(null);
 
 export const ContributionProvider = ({ children }) => {
-  // Preserve the original business logic exactly — single hook instance.
   const hook = useContributionPopup();
-  const [forcePopup, setForcePopup] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
-  const openPopup = useCallback(() => setForcePopup(true), []);
-
-  const closePopup = useCallback(() => {
-    setForcePopup(false);
-    hook.closePopup();
-  }, [hook]);
-
-  const dismissBanner = useCallback(() => {
-    setBannerDismissed(true);
-  }, []);
+  // Banner ✕ hides both banners until next page load / navigation remount.
+  // (Silence is governed by the amount-tier rule in the hook, not here.)
+  const dismissBanner = useCallback(() => setBannerDismissed(true), []);
 
   const value = {
-    // Auto-popup (from hook) OR imperatively opened via banner click.
-    showPopup: hook.showPopup || forcePopup,
-    openPopup,
-    closePopup,
+    showPopup: hook.showPopup,
+    openPopup: hook.openPopup,
+    closePopup: hook.closePopup,
     contributionConfig: hook.contributionConfig,
     loading: hook.loading,
-    // Banner visibility: eligible AND not dismissed in this session (in-memory).
     shouldShowContribution: hook.shouldShowContribution && !bannerDismissed,
     bannerDismissed,
     dismissBanner,
@@ -62,8 +49,6 @@ export const ContributionProvider = ({ children }) => {
 export const useContribution = () => {
   const ctx = useContext(ContributionContext);
   if (!ctx) {
-    // Safe no-op fallback so accidental consumers outside the provider
-    // don't crash the app.
     return {
       showPopup: false,
       openPopup: () => {},

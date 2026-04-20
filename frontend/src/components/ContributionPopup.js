@@ -24,9 +24,12 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [cloverSuccess, setCloverSuccess] = useState(false);
   const [cloverRecurring, setCloverRecurring] = useState(false);
 
-  // Use amounts from config, ensure $50 is included, exclude $10
-  const baseAmounts = contributionConfig?.amounts || [15, 25];
-  const amounts = [...new Set([...baseAmounts, 50])].filter(a => a !== 10).sort((a, b) => a - b);
+  // Use admin-configured amounts verbatim (deduped + numeric sort).
+  // Default [10, 15, 25] matches the backend default if config is missing.
+  const amounts = [...new Set(contributionConfig?.amounts || [10, 15, 25])]
+    .map(Number)
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .sort((a, b) => a - b);
 
   // Log activity to backend (fire and forget)
   const logActivity = useCallback(async (action, amount = null, pType = null) => {
@@ -154,7 +157,8 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             const captureData = await response.json();
             if (captureData.success) {
               logActivity('contributed', amountRef.current, 'one-time');
-              localStorage.setItem('contribution_popup_last_shown', Date.now().toString());
+              // Notify the hook so banners refresh (silence window now active).
+              window.dispatchEvent(new Event('contributionMade'));
               if (toastService) {
                 toastService.success('Thank you for your contribution! 💜');
               }
@@ -370,6 +374,8 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
       const chargeData = await chargeRes.json();
       if (chargeData.success) {
         setCloverSuccess(true);
+        // Notify the hook so banners refresh (silence window now active).
+        window.dispatchEvent(new Event('contributionMade'));
         if (toastService) {
           const recurMsg = cloverRecurring ? ' (monthly recurring)' : '';
           toastService.success(`Payment of $${amount.toFixed(2)}${recurMsg} successful! Thank you!`);
@@ -389,11 +395,11 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, [getAmount, logActivity, onClose, cloverRecurring]);
 
-  // Handle dismiss
+  // Handle dismiss. onClose() delegates to the hook, which writes the
+  // per-session SESSION_POPUP_DISMISSED flag. No localStorage write here.
   const handleDismiss = () => {
     if (!loading) {
       logActivity('popup_dismissed');
-      localStorage.setItem('contribution_dismissed_at', Date.now().toString());
       onClose();
     }
   };

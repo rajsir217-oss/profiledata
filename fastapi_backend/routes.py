@@ -2611,7 +2611,18 @@ async def update_user_profile(
                 update_data["contactNumber"] = primary["number"].strip()
                 update_data["contactNumberVisible"] = primary.get("visible", True)
     
-    # Handle contactEmail update with uniqueness check
+    # Handle contactEmail update with uniqueness check.
+    #
+    # Uniqueness policy (mirrors auth/auth_routes.py register handler):
+    #   - `contactEmail`     → UNIQUE (enforced below via contactEmailHash)
+    #   - `contactNumber`(s) → duplicates ALLOWED (see handler above)
+    #   - login `email`      → UNIQUE (enforced at registration)
+    #
+    # Rationale: email is a 1:1 identity/abuse-control anchor; phone is
+    # shared intentionally so a parent/guardian can manage multiple
+    # profiles under one number. To relax email uniqueness (cap-per-email,
+    # managed-profile model, etc.) change both this site AND the register
+    # handler together.
     if contactEmail is not None and contactEmail.strip():
         new_email = contactEmail.strip()
         # Check if email is actually changing
