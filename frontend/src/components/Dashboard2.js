@@ -2099,7 +2099,7 @@ const Dashboard2 = () => {
           <div className="activity-group-title">
             <span className="activity-group-icon">🔐</span>
             <h2>
-              <span className="label-desktop">Contact &amp; Photo Requests</span>
+              <span className="label-desktop">Contacts &amp; Photo Requests</span>
               <span className="label-mobile">Data Requests</span>
             </h2>
             <span className="activity-group-count">
