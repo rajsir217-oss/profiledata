@@ -1974,13 +1974,16 @@ const SearchPage2 = () => {
                   fontSize: '13px',
                   color: 'var(--text-muted)'
                 }}>
-                  Loading profiles...
+                  Searching…
                 </div>
               </div>
             </div>
           )}
 
-          {!loading && currentRecords.length === 0 && (
+          {/* Only render the empty state after the first search completes, so
+              we never flash 'No profiles found' while the initial fetch is still
+              in flight or between a refresh's clear→fetch render gap. */}
+          {initialSearchComplete && !loading && currentRecords.length === 0 && (
             <div className="no-results">
               {excludedProfileMessage ? (
                 <>
