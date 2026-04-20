@@ -30,7 +30,7 @@ export const ACTION_ICONS = {
   // Blocking/Exclusions
   HIDE: '🙈',               // Hide profile (exclude/not interested)
   UNHIDE: '👀',             // Unhide profile (remove exclusion)
-  NOT_INTERESTED: '🫥',     // Dotted line face — "hidden/excluded" (better contrast than 🙈 on red pill)
+  NOT_INTERESTED: '⛔',     // No-entry sign — universally supported (Unicode 5.2) & high contrast on red pill
   BLOCK: '🚫',              // Block user (legacy alias)
   UNBLOCK: '👀',            // Unblock (legacy alias)
   
@@ -63,7 +63,8 @@ export const SECTION_ICONS = {
   MY_FAVORITES: '⭐',
   MY_SHORTLISTS: '📋',
   MY_PHOTO_REQUESTS: '📷',  // Outgoing photo requests I made
-  HIDDEN: '🙈',              // Hidden profiles (exclusions)
+  HIDDEN: '🙈',              // Hidden profiles (exclusions) — legacy alias
+  NOT_INTERESTED: '⛔',      // Search Exclude pill icon — universally supported, high contrast on red
   
   // Others' Activities
   PROFILE_VIEWS: '👁️',
