@@ -30,7 +30,7 @@ export const ACTION_ICONS = {
   // Blocking/Exclusions
   HIDE: '🙈',               // Hide profile (exclude/not interested)
   UNHIDE: '👀',             // Unhide profile (remove exclusion)
-  NOT_INTERESTED: '🙈',     // Alias for HIDE (backward compat)
+  NOT_INTERESTED: '🫥',     // Dotted line face — "hidden/excluded" (better contrast than 🙈 on red pill)
   BLOCK: '🚫',              // Block user (legacy alias)
   UNBLOCK: '👀',            // Unblock (legacy alias)
   

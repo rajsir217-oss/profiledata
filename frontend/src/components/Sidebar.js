@@ -190,8 +190,8 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       },
       { 
         icon: '🔒', 
-        label: 'Data Requests', 
-        subLabel: 'Manage PII access',
+        label: 'Contacts & Photo Requests', 
+        subLabel: 'Manage contact & photo access',
         action: () => navigate('/pii-management'),
         disabled: !isActive
       },

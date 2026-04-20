@@ -91,7 +91,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     if (path === '/shortlist') return { icon: '📋', title: 'Shortlist', subtitle: 'Your curated list of potential matches' };
     if (path === '/exclusions') return { icon: '🚫', title: 'Exclusions', subtitle: 'Profiles you\'ve chosen to hide' };
     if (path === '/l3v3l-matches') return { icon: '🎯', title: 'L3V3L Matches', subtitle: 'AI-powered compatibility matches' };
-    if (path === '/pii-management') return { icon: '🔒', title: 'Privacy & Data Management', subtitle: 'Manage who can access your private information' };
+    if (path === '/pii-management') return { icon: '🔒', title: 'Contacts & Photo Requests', subtitle: 'Manage who can access your contact info and photos' };
     if (path === '/requests') return { icon: '📬', title: 'Contact Requests', subtitle: 'Manage incoming contact requests' };
     if (path === '/preferences') return { icon: '🔔', title: 'Notification Preferences', subtitle: 'Customize your notification settings' };
     if (path === '/user-management') return { icon: '👥', title: 'User Management', subtitle: 'Manage user roles, permissions, and account status' };

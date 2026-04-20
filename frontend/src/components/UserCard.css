@@ -1482,9 +1482,25 @@ body.theme-ultra-black .user-action-btn.btn-outline-danger:hover {
 }
 
 .user-card-bottom-actions .bottom-action-btn .btn-icon {
+  /* Defend against leaking global .btn-icon rules (padding:16px; min:40x40;
+     border-radius:50%; font-size:20px) defined in utilities.css and
+     InvitationManager.css — they would otherwise balloon this span to ~48x45
+     and visually clip the emoji against the 24px round button. */
   font-size: 11px !important;
-  line-height: 1;
+  line-height: 1 !important;
   flex-shrink: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .user-card-bottom-actions .bottom-action-btn .btn-label {
