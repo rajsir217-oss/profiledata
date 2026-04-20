@@ -937,6 +937,16 @@
   background: linear-gradient(135deg, #6b5b95 0%, #5a9a8a 100%);
 }
 
+/* PII group header label: long form on desktop, compact on mobile.
+   Even though the whole group is hidden on mobile (rule below), keep the
+   responsive swap so any future mobile rendering stays compact. */
+.activity-group-title .label-desktop { display: inline; }
+.activity-group-title .label-mobile  { display: none; }
+@media (max-width: 640px) {
+  .activity-group-title .label-desktop { display: none; }
+  .activity-group-title .label-mobile  { display: inline; }
+}
+
 /* Hide Data Requests section on mobile - use stat cards instead */
 @media (max-width: 640px) {
   .activity-group:has(.activity-group-header-pii) {
