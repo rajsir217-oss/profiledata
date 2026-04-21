@@ -12,11 +12,13 @@ const AdminReports = () => {
   const [error, setError] = useState(null);
   const [genderFilter, setGenderFilter] = useState('all');
   const [chartType, setChartType] = useState('bar'); // 'bar' or 'pie'
-  const [reportType, setReportType] = useState('gender-by-age'); // 'gender-by-age', 'by-location', 'by-profession'
+  const [reportType, setReportType] = useState('gender-by-age'); // 'gender-by-age', 'by-location', 'by-profession', 'member-acquisition'
   const [reportData, setReportData] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [summary, setSummary] = useState(null);
+  const [yearFilter, setYearFilter] = useState('all');
+  const [availableYears, setAvailableYears] = useState([]);
 
   // Check admin access
   useEffect(() => {
@@ -32,8 +34,13 @@ const AdminReports = () => {
     setLoading(true);
     setError(null);
     try {
-      const params = genderFilter !== 'all' ? `?gender=${genderFilter}` : '';
-      const response = await api.get(`/api/admin/reports/${reportType}${params}`);
+      const params = new URLSearchParams();
+      if (genderFilter !== 'all') params.append('gender', genderFilter);
+      if (reportType === 'member-acquisition' && yearFilter !== 'all') {
+        params.append('year', yearFilter);
+      }
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const response = await api.get(`/api/admin/reports/${reportType}${qs}`);
       if (response.data.success) {
         setReportData(response.data);
       }
@@ -43,7 +50,20 @@ const AdminReports = () => {
     } finally {
       setLoading(false);
     }
-  }, [genderFilter, reportType]);
+  }, [genderFilter, reportType, yearFilter]);
+
+  // Fetch available years for the Member Acquisition report
+  const fetchAvailableYears = useCallback(async () => {
+    try {
+      const response = await api.get('/api/admin/reports/member-acquisition/years');
+      if (response.data.success) {
+        setAvailableYears(response.data.years || []);
+      }
+    } catch (err) {
+      console.error('Error fetching available years:', err);
+      setAvailableYears([]);
+    }
+  }, []);
 
   // Fetch summary
   const fetchSummary = useCallback(async () => {
@@ -61,6 +81,13 @@ const AdminReports = () => {
     fetchReport();
     fetchSummary();
   }, [fetchReport, fetchSummary]);
+
+  // Load available years once the Member Acquisition report is selected
+  useEffect(() => {
+    if (reportType === 'member-acquisition' && availableYears.length === 0) {
+      fetchAvailableYears();
+    }
+  }, [reportType, availableYears.length, fetchAvailableYears]);
 
   // ESC key binding to close modal
   useEffect(() => {
@@ -152,6 +179,7 @@ const AdminReports = () => {
             {reportType === 'gender-by-age' && '👤 Members by Age Distribution'}
             {reportType === 'by-location' && '📍 Members by Location'}
             {reportType === 'by-profession' && '💼 Members by Profession'}
+            {reportType === 'member-acquisition' && '📈 Members Added by Month'}
           </h2>
           <div className="filter-controls">
             <label>Report:</label>
@@ -168,7 +196,23 @@ const AdminReports = () => {
               <option value="gender-by-age">👤 By Age</option>
               <option value="by-location">📍 By Location</option>
               <option value="by-profession">💼 By Profession</option>
+              <option value="member-acquisition">📈 Members Added by Month</option>
             </select>
+            {reportType === 'member-acquisition' && (
+              <>
+                <label>Year:</label>
+                <select
+                  value={yearFilter}
+                  onChange={(e) => setYearFilter(e.target.value)}
+                  className="year-select"
+                >
+                  <option value="all">All Time</option>
+                  {availableYears.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </>
+            )}
             {reportType === 'gender-by-age' && (
               <>
                 <label>Chart:</label>
@@ -294,8 +338,8 @@ const AdminReports = () => {
               </div>
             ) : null}
 
-            {/* Horizontal Bar Chart for all report types */}
-            {chartType === 'bar' && (
+            {/* Horizontal Bar Chart for all report types EXCEPT member-acquisition */}
+            {chartType === 'bar' && reportType !== 'member-acquisition' && (
               <>
                 <div className="horizontal-bar-chart">
                   <svg 
@@ -353,6 +397,8 @@ const AdminReports = () => {
                         label = d.ageRange || `Age ${d.ageGroup}`;
                       } else if (reportType === 'by-location') {
                         label = d.location;
+                      } else if (reportType === 'member-acquisition') {
+                        label = d.periodLabel;
                       } else {
                         label = d.profession;
                       }
@@ -389,7 +435,7 @@ const AdminReports = () => {
                       textAnchor="middle"
                       transform={`rotate(-90, 20, ${chartHeight / 2})`}
                     >
-                      {reportType === 'gender-by-age' ? 'Age' : reportType === 'by-location' ? 'Location' : 'Profession'}
+                      {reportType === 'gender-by-age' ? 'Age' : reportType === 'by-location' ? 'Location' : reportType === 'member-acquisition' ? 'Month' : 'Profession'}
                     </text>
 
                     {/* Horizontal bars */}
@@ -497,6 +543,210 @@ const AdminReports = () => {
                 </p>
               </>
             )}
+
+            {/* Vertical Bar Chart for member-acquisition (Month on X, Count on Y) */}
+            {chartType === 'bar' && reportType === 'member-acquisition' && (() => {
+              const vPadding = { top: 30, right: 30, bottom: 80, left: 60 };
+              const vChartHeight = 420;
+              const vChartWidth = Math.max(800, data.length * 90 + vPadding.left + vPadding.right);
+              const vInnerWidth = vChartWidth - vPadding.left - vPadding.right;
+              const vInnerHeight = vChartHeight - vPadding.top - vPadding.bottom;
+              // Y-axis max based on the larger of male/female per month (not total),
+              // so side-by-side bars fit comfortably.
+              const vMax = Math.max(
+                ...data.map(d => Math.max(d.maleCount || 0, d.femaleCount || 0, d.count || 0)),
+                1
+              );
+              const vTickCount = 5;
+              const vTicks = [];
+              for (let i = 0; i <= vTickCount; i++) {
+                vTicks.push(Math.round((vMax / vTickCount) * i));
+              }
+              const yScale = (count) =>
+                vPadding.top + vInnerHeight - (count / vMax) * vInnerHeight;
+              const groupWidth = vInnerWidth / Math.max(data.length, 1);
+              const barWidth = Math.min(28, (groupWidth - 12) / 2);
+
+              return (
+                <>
+                  <div className="horizontal-bar-chart">
+                    <svg
+                      viewBox={`0 0 ${vChartWidth} ${vChartHeight}`}
+                      className="horizontal-bar-chart-svg"
+                      preserveAspectRatio="xMidYMid meet"
+                    >
+                      {/* Horizontal grid lines */}
+                      {vTicks.map((tick, i) => (
+                        <line
+                          key={`v-grid-${i}`}
+                          x1={vPadding.left}
+                          y1={yScale(tick)}
+                          x2={vChartWidth - vPadding.right}
+                          y2={yScale(tick)}
+                          className="grid-line"
+                        />
+                      ))}
+
+                      {/* Y-axis */}
+                      <line
+                        x1={vPadding.left}
+                        y1={vPadding.top}
+                        x2={vPadding.left}
+                        y2={vChartHeight - vPadding.bottom}
+                        className="axis-line"
+                      />
+
+                      {/* X-axis */}
+                      <line
+                        x1={vPadding.left}
+                        y1={vChartHeight - vPadding.bottom}
+                        x2={vChartWidth - vPadding.right}
+                        y2={vChartHeight - vPadding.bottom}
+                        className="axis-line"
+                      />
+
+                      {/* Y-axis tick labels */}
+                      {vTicks.map((tick, i) => (
+                        <text
+                          key={`v-y-label-${i}`}
+                          x={vPadding.left - 8}
+                          y={yScale(tick)}
+                          className="axis-label y-label"
+                          textAnchor="end"
+                          dominantBaseline="middle"
+                        >
+                          {tick}
+                        </text>
+                      ))}
+
+                      {/* X-axis month labels */}
+                      {data.map((d, i) => {
+                        const cx = vPadding.left + groupWidth * i + groupWidth / 2;
+                        const y = vChartHeight - vPadding.bottom + 20;
+                        return (
+                          <text
+                            key={`v-x-label-${i}`}
+                            x={cx}
+                            y={y}
+                            className="axis-label x-label"
+                            textAnchor="end"
+                            transform={`rotate(-35, ${cx}, ${y})`}
+                          >
+                            {d.periodLabel}
+                          </text>
+                        );
+                      })}
+
+                      {/* Axis titles */}
+                      <text
+                        x={vChartWidth / 2}
+                        y={vChartHeight - 6}
+                        className="axis-title"
+                        textAnchor="middle"
+                      >
+                        Month
+                      </text>
+                      <text
+                        x={18}
+                        y={vChartHeight / 2}
+                        className="axis-title"
+                        textAnchor="middle"
+                        transform={`rotate(-90, 18, ${vChartHeight / 2})`}
+                      >
+                        Count
+                      </text>
+
+                      {/* Paired bars: male + female per month */}
+                      {data.map((d, i) => {
+                        const groupX = vPadding.left + groupWidth * i;
+                        const centerX = groupX + groupWidth / 2;
+                        const maleX = centerX - barWidth - 2;
+                        const femaleX = centerX + 2;
+                        const baseY = vChartHeight - vPadding.bottom;
+                        const maleH = ((d.maleCount || 0) / vMax) * vInnerHeight;
+                        const femaleH = ((d.femaleCount || 0) / vMax) * vInnerHeight;
+
+                        return (
+                          <g key={`v-bar-${i}`} className="vertical-bar-group">
+                            {/* Invisible click target for the whole group (rendered first so bars stay on top) */}
+                            <rect
+                              x={groupX}
+                              y={vPadding.top}
+                              width={groupWidth}
+                              height={vInnerHeight}
+                              fill="transparent"
+                              onClick={() => handleDataPointClick(d)}
+                              style={{ cursor: 'pointer' }}
+                            />
+                            {/* Male bar */}
+                            {(d.maleCount || 0) > 0 && (
+                              <>
+                                <rect
+                                  x={maleX}
+                                  y={baseY - maleH}
+                                  width={barWidth}
+                                  height={maleH}
+                                  className="bar-male"
+                                  onClick={() => handleDataPointClick(d)}
+                                  style={{ cursor: 'pointer' }}
+                                />
+                                <text
+                                  x={maleX + barWidth / 2}
+                                  y={baseY - maleH - 4}
+                                  className="data-label"
+                                  textAnchor="middle"
+                                  style={{ fontSize: '11px' }}
+                                >
+                                  {d.maleCount}
+                                </text>
+                              </>
+                            )}
+                            {/* Female bar */}
+                            {(d.femaleCount || 0) > 0 && (
+                              <>
+                                <rect
+                                  x={femaleX}
+                                  y={baseY - femaleH}
+                                  width={barWidth}
+                                  height={femaleH}
+                                  className="bar-female"
+                                  onClick={() => handleDataPointClick(d)}
+                                  style={{ cursor: 'pointer' }}
+                                />
+                                <text
+                                  x={femaleX + barWidth / 2}
+                                  y={baseY - femaleH - 4}
+                                  className="data-label"
+                                  textAnchor="middle"
+                                  style={{ fontSize: '11px' }}
+                                >
+                                  {d.femaleCount}
+                                </text>
+                              </>
+                            )}
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
+
+                  <div className="chart-legend">
+                    <div className="legend-item">
+                      <span className="legend-color male"></span>
+                      <span>Male</span>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-color female"></span>
+                      <span>Female</span>
+                    </div>
+                  </div>
+
+                  <p className="chart-hint">
+                    💡 Click on any bar to see the members who joined that month
+                  </p>
+                </>
+              );
+            })()}
           </div>
         )}
       </div>
@@ -510,6 +760,7 @@ const AdminReports = () => {
                 {reportType === 'gender-by-age' && `👥 Members ${selectedItem.ageRange || `Age ${selectedItem.ageGroup}`}`}
                 {reportType === 'by-location' && `📍 Members in ${selectedItem.location}`}
                 {reportType === 'by-profession' && `💼 Members in ${selectedItem.profession}`}
+                {reportType === 'member-acquisition' && `📈 Members Joined ${selectedItem.periodLabel}`}
                 <span className="user-count">({selectedItem.count} members)</span>
               </h3>
               <button className="close-btn" onClick={() => setShowModal(false)}>×</button>

@@ -543,3 +543,180 @@ async def get_by_profession_report(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generating profession report: {str(e)}"
         )
+
+
+# Month labels for formatting periodLabel
+_MONTH_LABELS = [
+    "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+]
+
+
+@router.get("/member-acquisition")
+async def get_member_acquisition_report(
+    gender: Optional[str] = Query(None, description="Filter by gender: male, female, or None for all"),
+    year: Optional[int] = Query(None, description="Filter by approval year; omit for all years"),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get user count by month of admin approval (adminApprovedAt), grouped by month,
+    with optional gender and year filters. Returns data for horizontal bar chart.
+    """
+    _check_admin_access(current_user)
+    logger.info(f"📊 Admin report: member-acquisition, gender={gender}, year={year}")
+
+    try:
+        # Build base match for active + approved users with a recorded approval timestamp
+        match_query: Dict[str, Any] = {
+            "accountStatus": "active",
+            "adminApprovedAt": {"$exists": True, "$nin": [None, ""]}
+        }
+        if gender and gender.lower() in ["male", "female"]:
+            match_query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}
+
+        # Aggregation: coerce adminApprovedAt (ISO string or datetime) into a Date,
+        # then group by year/month. Invalid values are discarded via onError/onNull.
+        pipeline: List[Dict[str, Any]] = [
+            {"$match": match_query},
+            {"$addFields": {
+                "approvedDateParsed": {
+                    "$cond": {
+                        "if": {"$eq": [{"$type": "$adminApprovedAt"}, "date"]},
+                        "then": "$adminApprovedAt",
+                        "else": {
+                            "$dateFromString": {
+                                "dateString": {"$toString": "$adminApprovedAt"},
+                                "onError": None,
+                                "onNull": None
+                            }
+                        }
+                    }
+                },
+                "normalizedGender": {"$toLower": {"$ifNull": ["$gender", "other"]}}
+            }},
+            {"$match": {"approvedDateParsed": {"$ne": None}}},
+            {"$addFields": {
+                "approvedYear": {"$year": "$approvedDateParsed"},
+                "approvedMonth": {"$month": "$approvedDateParsed"}
+            }}
+        ]
+
+        if year is not None:
+            pipeline.append({"$match": {"approvedYear": year}})
+
+        pipeline += [
+            {"$group": {
+                "_id": {"year": "$approvedYear", "month": "$approvedMonth"},
+                "count": {"$sum": 1},
+                "maleCount": {
+                    "$sum": {"$cond": [{"$eq": ["$normalizedGender", "male"]}, 1, 0]}
+                },
+                "femaleCount": {
+                    "$sum": {"$cond": [{"$eq": ["$normalizedGender", "female"]}, 1, 0]}
+                },
+                "users": {"$push": {
+                    "profileId": "$profileId",
+                    "username": "$username",
+                    "firstName": "$firstName",
+                    "lastName": "$lastName",
+                    "gender": "$gender"
+                }}
+            }},
+            {"$sort": {"_id.year": 1, "_id.month": 1}},
+            {"$limit": 240}  # 20 years safety cap
+        ]
+
+        raw_results = await db.users.aggregate(pipeline).to_list(240)
+
+        formatted_results = []
+        for item in raw_results:
+            key = item["_id"] or {}
+            y = key.get("year")
+            m = key.get("month")
+            if not y or not m or m < 1 or m > 12:
+                continue
+            period = f"{y:04d}-{m:02d}"
+            period_label = f"{_MONTH_LABELS[m]} {y}"
+            formatted_results.append({
+                "period": period,
+                "periodLabel": period_label,
+                "year": y,
+                "month": m,
+                "count": item.get("count", 0),
+                "maleCount": item.get("maleCount", 0),
+                "femaleCount": item.get("femaleCount", 0),
+                "users": (item.get("users") or [])[:100]
+            })
+
+        total_count = sum(r["count"] for r in formatted_results)
+        filter_desc = f"{gender or 'all'}|year={year if year is not None else 'all'}"
+
+        logger.info(
+            f"📊 Member acquisition report: {len(formatted_results)} months, "
+            f"{total_count} users (filter={filter_desc})"
+        )
+
+        return ReportResponse(
+            success=True,
+            filter=filter_desc,
+            totalCount=total_count,
+            data=formatted_results
+        )
+
+    except Exception as e:
+        logger.error(f"❌ Error generating member acquisition report: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating member acquisition report: {str(e)}"
+        )
+
+
+@router.get("/member-acquisition/years")
+async def get_member_acquisition_years(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get distinct years in which members were admin-approved.
+    Used to populate the Year filter dropdown on the Member Acquisition report.
+    """
+    _check_admin_access(current_user)
+
+    try:
+        pipeline = [
+            {"$match": {
+                "accountStatus": "active",
+                "adminApprovedAt": {"$exists": True, "$nin": [None, ""]}
+            }},
+            {"$addFields": {
+                "approvedDateParsed": {
+                    "$cond": {
+                        "if": {"$eq": [{"$type": "$adminApprovedAt"}, "date"]},
+                        "then": "$adminApprovedAt",
+                        "else": {
+                            "$dateFromString": {
+                                "dateString": {"$toString": "$adminApprovedAt"},
+                                "onError": None,
+                                "onNull": None
+                            }
+                        }
+                    }
+                }
+            }},
+            {"$match": {"approvedDateParsed": {"$ne": None}}},
+            {"$group": {"_id": {"$year": "$approvedDateParsed"}}},
+            {"$sort": {"_id": -1}}
+        ]
+
+        raw = await db.users.aggregate(pipeline).to_list(50)
+        years = [item["_id"] for item in raw if item.get("_id")]
+
+        return {"success": True, "years": years}
+
+    except Exception as e:
+        logger.error(f"❌ Error fetching member acquisition years: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching member acquisition years: {str(e)}"
+        )
