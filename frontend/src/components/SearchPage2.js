@@ -1952,7 +1952,7 @@ const SearchPage2 = () => {
 
       <div className="search-container">
         <div className="search-results" ref={searchResultsRef}>
-          {loading && (
+          {(loading || (!initialSearchComplete && currentRecords.length === 0)) && (
             <div className="text-center py-4">
               <div style={{
                 display: 'flex',
@@ -1962,23 +1962,27 @@ const SearchPage2 = () => {
               }}>
                 <div style={{
                   fontSize: '32px',
-                  animation: 'pulse 1s ease-in-out infinite'
+                  animation: loading
+                    ? 'pulse 1s ease-in-out infinite'
+                    : 'spin 1s linear infinite'
                 }}>
-                  ⏱️
+                  {loading ? '⏱️' : '⟳'}
                 </div>
-                <div style={{
-                  fontSize: '18px',
-                  fontWeight: 600,
-                  color: 'var(--primary-color)',
-                  fontFamily: 'monospace'
-                }}>
-                  {elapsedTime}s
-                </div>
+                {loading && (
+                  <div style={{
+                    fontSize: '18px',
+                    fontWeight: 600,
+                    color: 'var(--primary-color)',
+                    fontFamily: 'monospace'
+                  }}>
+                    {elapsedTime}s
+                  </div>
+                )}
                 <div style={{
                   fontSize: '13px',
                   color: 'var(--text-muted)'
                 }}>
-                  Searching…
+                  {loading ? 'Searching…' : 'Loading search…'}
                 </div>
               </div>
             </div>

@@ -45,6 +45,7 @@ const CategorySection = ({
   dragOverIndex,
   onRefresh, // Function to refresh this section's data
   isRefreshing = false, // Loading state for refresh
+  isLoading = false, // True during the section's initial lazy-load fetch
   children, // Support for custom content instead of data-driven rendering
   badgeCount = 0, // Badge count for special indicators (e.g., contact attempts)
   badgeIcon = '💬', // Icon for the badge
@@ -182,6 +183,21 @@ const CategorySection = ({
           {children ? (
             // Render custom children if provided
             children
+          ) : isLoading && data.length === 0 ? (
+            <div className="category-empty-state category-loading-state">
+              <p>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    marginRight: '8px',
+                    animation: 'spin 1s linear infinite'
+                  }}
+                >
+                  ⟳
+                </span>
+                Loading {title?.toLowerCase?.() || 'data'}…
+              </p>
+            </div>
           ) : data.length > 0 ? (
             <div className={viewMode === 'cards' ? 'category-cards-grid' : 'category-cards-rows'}>
               {data.map((item, index) => {
