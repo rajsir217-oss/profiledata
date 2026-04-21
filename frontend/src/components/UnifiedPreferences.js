@@ -56,10 +56,6 @@ const UnifiedPreferences = () => {
   
   // Contribution Settings State
   const [contributionEnabled, setContributionEnabled] = useState(false);
-  const [contributionMinLogins, setContributionMinLogins] = useState(10);
-  const [contributionFrequencyDays, setContributionFrequencyDays] = useState(14);
-  const [contributionLoginDelaySeconds, setContributionLoginDelaySeconds] = useState(30);
-  const [contributionMonthlySilenceDays, setContributionMonthlySilenceDays] = useState(35);
   const [savingContributionSettings, setSavingContributionSettings] = useState(false);
   const [showContributionTooltip, setShowContributionTooltip] = useState(false);
   
@@ -441,10 +437,6 @@ const UnifiedPreferences = () => {
       if (response.data.success) {
         const settings = response.data.contributions;
         setContributionEnabled(settings.enabled || false);
-        setContributionMinLogins(settings.minLogins || 10);
-        setContributionFrequencyDays(settings.frequencyDays || 14);
-        setContributionLoginDelaySeconds(settings.loginDelaySeconds || 30);
-        setContributionMonthlySilenceDays(settings.monthlySilenceDays || 35);
       }
     } catch (error) {
       console.error('Error loading contribution settings:', error);
@@ -456,11 +448,7 @@ const UnifiedPreferences = () => {
       setSavingContributionSettings(true);
       const token = localStorage.getItem('token');
       await axios.put(`${getBackendUrl()}/api/contributions/admin/contribution-settings`, {
-        enabled: contributionEnabled,
-        minLogins: contributionMinLogins,
-        frequencyDays: contributionFrequencyDays,
-        loginDelaySeconds: contributionLoginDelaySeconds,
-        monthlySilenceDays: contributionMonthlySilenceDays
+        enabled: contributionEnabled
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -1664,81 +1652,6 @@ const UnifiedPreferences = () => {
                           </label>
                         </div>
 
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                            Minimum Logins Before Popup
-                          </label>
-                          <select
-                            value={contributionMinLogins}
-                            onChange={(e) => setContributionMinLogins(Number(e.target.value))}
-                            disabled={savingContributionSettings}
-                            className="form-control"
-                            style={{ width: '100%' }}
-                          >
-                            <option value={5}>5 logins</option>
-                            <option value={10}>10 logins</option>
-                            <option value={15}>15 logins</option>
-                            <option value={20}>20 logins</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="form-row">
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                            Popup Frequency (days)
-                          </label>
-                          <select
-                            value={contributionFrequencyDays}
-                            onChange={(e) => setContributionFrequencyDays(Number(e.target.value))}
-                            disabled={savingContributionSettings}
-                            className="form-control"
-                            style={{ width: '100%' }}
-                          >
-                            <option value={7}>7 days</option>
-                            <option value={14}>14 days</option>
-                            <option value={30}>30 days</option>
-                            <option value={60}>60 days</option>
-                            <option value={90}>90 days</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                            Login Delay Before Showing Popup
-                          </label>
-                          <select
-                            value={contributionLoginDelaySeconds}
-                            onChange={(e) => setContributionLoginDelaySeconds(Number(e.target.value))}
-                            disabled={savingContributionSettings}
-                            className="form-control"
-                            style={{ width: '100%' }}
-                          >
-                            <option value={0}>Immediately</option>
-                            <option value={15}>15 seconds</option>
-                            <option value={30}>30 seconds</option>
-                            <option value={60}>1 minute</option>
-                            <option value={120}>2 minutes</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                          Monthly Member Silence Period
-                        </label>
-                        <select
-                          value={contributionMonthlySilenceDays}
-                          onChange={(e) => setContributionMonthlySilenceDays(Number(e.target.value))}
-                          disabled={savingContributionSettings}
-                          className="form-control"
-                          style={{ width: '100%' }}
-                        >
-                          <option value={30}>30 days</option>
-                          <option value={35}>35 days</option>
-                          <option value={45}>45 days</option>
-                          <option value={60}>60 days</option>
-                        </select>
                       </div>
 
                       <button
@@ -2693,83 +2606,6 @@ const UnifiedPreferences = () => {
                   </span>
                 </label>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                      Minimum Logins Required
-                    </label>
-                    <select
-                      value={contributionMinLogins}
-                      onChange={(e) => setContributionMinLogins(Number(e.target.value))}
-                      disabled={savingContributionSettings}
-                      className="form-control"
-                      style={{ width: '100%' }}
-                    >
-                      <option value={1}>1 login</option>
-                      <option value={2}>2 logins</option>
-                      <option value={3}>3 logins</option>
-                      <option value={5}>5 logins</option>
-                      <option value={10}>10 logins</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                      Show Popup Every
-                    </label>
-                    <select
-                      value={contributionFrequencyDays}
-                      onChange={(e) => setContributionFrequencyDays(Number(e.target.value))}
-                      disabled={savingContributionSettings}
-                      className="form-control"
-                      style={{ width: '100%' }}
-                    >
-                      <option value={7}>7 days</option>
-                      <option value={14}>14 days</option>
-                      <option value={30}>30 days</option>
-                      <option value={60}>60 days</option>
-                      <option value={90}>90 days</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                      Login Delay Before Showing Popup
-                    </label>
-                    <select
-                      value={contributionLoginDelaySeconds}
-                      onChange={(e) => setContributionLoginDelaySeconds(Number(e.target.value))}
-                      disabled={savingContributionSettings}
-                      className="form-control"
-                      style={{ width: '100%' }}
-                    >
-                      <option value={0}>Immediately</option>
-                      <option value={15}>15 seconds</option>
-                      <option value={30}>30 seconds</option>
-                      <option value={60}>1 minute</option>
-                      <option value={120}>2 minutes</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                      Monthly Member Silence Period
-                    </label>
-                    <select
-                      value={contributionMonthlySilenceDays}
-                      onChange={(e) => setContributionMonthlySilenceDays(Number(e.target.value))}
-                      disabled={savingContributionSettings}
-                      className="form-control"
-                      style={{ width: '100%' }}
-                    >
-                      <option value={30}>30 days</option>
-                      <option value={35}>35 days</option>
-                      <option value={45}>45 days</option>
-                      <option value={60}>60 days</option>
-                    </select>
-                  </div>
-                </div>
-
                 <button
                   onClick={handleSaveContributionSettings}
                   disabled={savingContributionSettings}
@@ -2787,8 +2623,8 @@ const UnifiedPreferences = () => {
                   border: contributionEnabled ? '1px solid var(--success-color)' : '1px solid var(--border-color)'
                 }}>
                   <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-color)' }}>
-                    <strong>Current Status:</strong> {contributionEnabled 
-                      ? `💝 Popup enabled - Shows after ${contributionLoginDelaySeconds}s on login, requires ${contributionMinLogins} logins, every ${contributionFrequencyDays} days. Monthly members silenced for ${contributionMonthlySilenceDays} days.`
+                    <strong>Current Status:</strong> {contributionEnabled
+                      ? '💝 Popup enabled - Popup will show to eligible users (non-admin/moderator, not inside silence window)'
                       : '🔕 Popup disabled - Users will not see contribution requests'}
                   </p>
                 </div>
