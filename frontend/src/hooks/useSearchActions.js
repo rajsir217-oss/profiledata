@@ -322,6 +322,9 @@ export const useSearchActions = (searchState, userState, filterState) => {
       if (err.name !== 'AbortError') {
         logger.error('❌ Search error:', err);
         setError(err.response?.data?.detail || err.message || 'Search failed');
+        // Mark the search attempt as complete so the UI can render feedback
+        // (empty state / error) instead of staying blank forever.
+        setInitialSearchComplete(true);
       }
     } finally {
       setLoading(false);

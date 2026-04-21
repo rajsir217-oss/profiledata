@@ -806,11 +806,15 @@ const SearchPage2 = () => {
       logger.info('🧹 Clearing stale users before loading search criteria');
       setUsers([]);
 
-      // Prevent multiple auto-executions (or if state was restored)
+      // Prevent multiple auto-executions (or if state was restored).
+      // CRITICAL: Set the ref synchronously BEFORE any await so React 18
+      // StrictMode's double mount-unmount-remount cycle can't slip through
+      // and fire the initial search twice.
       if (hasAutoExecutedRef.current) {
         logger.info('⏭️ Already auto-executed default search or state restored, skipping');
         return;
       }
+      hasAutoExecutedRef.current = true;
 
       try {
         // Check if there's a default saved search
