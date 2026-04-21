@@ -25,10 +25,10 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [cloverRecurring, setCloverRecurring] = useState(false);
 
   // Use admin-configured amounts verbatim (deduped + numeric sort).
-  // Default [10, 15, 25] matches the backend default if config is missing.
-  const amounts = [...new Set(contributionConfig?.amounts || [10, 15, 25])]
+  // Default [25, 50, 75, 100] matches the configured amounts if config is missing.
+  const amounts = [...new Set(contributionConfig?.amounts || [25, 50, 75, 100])]
     .map(Number)
-    .filter((n) => Number.isFinite(n) && n > 0)
+    .filter((n) => Number.isFinite(n) && n > 0 && n !== 10)
     .sort((a, b) => a - b);
 
   // Log activity to backend (fire and forget)
@@ -408,9 +408,10 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     <div className="contribution-popup-overlay" onClick={handleDismiss} style={{ display: isOpen ? 'flex' : 'none' }}>
       <div className="contribution-popup" onClick={(e) => e.stopPropagation()}>
         <div className="contribution-popup-header">
-          <h2>
+          <h2 >
             <span className="contribution-icon" role="img" aria-label="namaste">{'\u{1F64F}'}</span>
-            <span className="contribution-title-pill">PLEASE SUPPORT THE PLATFORM</span>
+            <span className="contribution-title-pill">PLEASE SUPPORT THE L3V3LMATCHES PLATFORM</span>
+            <span className="contribution-namaste" role="img" aria-label="namaste">{'\u{1F64F}'}</span>
           </h2>
           <button 
             className="contribution-popup-close" 
@@ -447,7 +448,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                   disabled={loading}
                 />
                 <span className="contribution-amount-label">${amt}</span>
-                {amt === 25 && <span className="heart-badge">❤️</span>}
+                {amt === 50 && <span className="heart-badge">❤️</span>}
               </label>
             ))}
             
