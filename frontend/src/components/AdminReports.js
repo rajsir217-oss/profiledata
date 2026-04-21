@@ -551,10 +551,10 @@ const AdminReports = () => {
               const vChartWidth = Math.max(800, data.length * 90 + vPadding.left + vPadding.right);
               const vInnerWidth = vChartWidth - vPadding.left - vPadding.right;
               const vInnerHeight = vChartHeight - vPadding.top - vPadding.bottom;
-              // Y-axis max based on the larger of male/female per month (not total),
-              // so side-by-side bars fit comfortably.
+              // Y-axis max based on the largest value across all three bars per month
+              // (total is usually the largest since total = male + female).
               const vMax = Math.max(
-                ...data.map(d => Math.max(d.maleCount || 0, d.femaleCount || 0, d.count || 0)),
+                ...data.map(d => Math.max(d.count || 0, d.maleCount || 0, d.femaleCount || 0)),
                 1
               );
               const vTickCount = 5;
@@ -565,7 +565,8 @@ const AdminReports = () => {
               const yScale = (count) =>
                 vPadding.top + vInnerHeight - (count / vMax) * vInnerHeight;
               const groupWidth = vInnerWidth / Math.max(data.length, 1);
-              const barWidth = Math.min(28, (groupWidth - 12) / 2);
+              // Three bars per group: male, female, total
+              const barWidth = Math.min(22, (groupWidth - 16) / 3);
 
               return (
                 <>
@@ -656,15 +657,20 @@ const AdminReports = () => {
                         Count
                       </text>
 
-                      {/* Paired bars: male + female per month */}
+                      {/* Triplet bars per month: male, female, total */}
                       {data.map((d, i) => {
                         const groupX = vPadding.left + groupWidth * i;
                         const centerX = groupX + groupWidth / 2;
-                        const maleX = centerX - barWidth - 2;
-                        const femaleX = centerX + 2;
+                        // Three bars centered around the group center, 2px gap between them
+                        const gap = 2;
+                        const triWidth = barWidth * 3 + gap * 2;
+                        const maleX = centerX - triWidth / 2;
+                        const femaleX = maleX + barWidth + gap;
+                        const totalX = femaleX + barWidth + gap;
                         const baseY = vChartHeight - vPadding.bottom;
                         const maleH = ((d.maleCount || 0) / vMax) * vInnerHeight;
                         const femaleH = ((d.femaleCount || 0) / vMax) * vInnerHeight;
+                        const totalH = ((d.count || 0) / vMax) * vInnerHeight;
 
                         return (
                           <g key={`v-bar-${i}`} className="vertical-bar-group">
@@ -724,6 +730,29 @@ const AdminReports = () => {
                                 </text>
                               </>
                             )}
+                            {/* Total bar */}
+                            {(d.count || 0) > 0 && (
+                              <>
+                                <rect
+                                  x={totalX}
+                                  y={baseY - totalH}
+                                  width={barWidth}
+                                  height={totalH}
+                                  className="bar-total"
+                                  onClick={() => handleDataPointClick(d)}
+                                  style={{ cursor: 'pointer' }}
+                                />
+                                <text
+                                  x={totalX + barWidth / 2}
+                                  y={baseY - totalH - 4}
+                                  className="data-label"
+                                  textAnchor="middle"
+                                  style={{ fontSize: '11px', fontWeight: 600 }}
+                                >
+                                  {d.count}
+                                </text>
+                              </>
+                            )}
                           </g>
                         );
                       })}
@@ -738,6 +767,10 @@ const AdminReports = () => {
                     <div className="legend-item">
                       <span className="legend-color female"></span>
                       <span>Female</span>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-color total"></span>
+                      <span>Total</span>
                     </div>
                   </div>
 
