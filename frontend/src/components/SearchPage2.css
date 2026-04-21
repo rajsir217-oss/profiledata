@@ -696,6 +696,11 @@
   50% { transform: scale(1.1); opacity: 0.8; }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Split-Screen Layout Styles */
 .split-screen-layout {
   display: flex !important;

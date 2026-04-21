@@ -1492,6 +1492,7 @@ const Dashboard2 = () => {
         tooltip={tooltip}
         onRefresh={getRefreshFunction(sectionKey)}
         isRefreshing={refreshing[sectionKey]}
+        isLoading={isSectionLoading(sectionKey)}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
@@ -1502,9 +1503,32 @@ const Dashboard2 = () => {
     );
   };
 
+  // Map each sectionKey to the lazy-load group flag in loadedData.
+  // Used to render a "Loading…" placeholder while the group's initial fetch
+  // is still in flight (instead of a misleading "No X yet" empty state).
+  const SECTION_GROUP_MAP = {
+    myMessages: 'myActivities',
+    myNotes: 'myActivities',
+    myFavorites: 'myActivities',
+    myShortlists: 'myActivities',
+    myExclusions: 'myActivities',
+    myViews: 'othersActivities',
+    theirFavorites: 'othersActivities',
+    theirShortlists: 'othersActivities',
+    myRequests: 'piiRequests',
+    piiInbox: 'piiRequests',
+    piiSent: 'piiRequests',
+    piiHistory: 'piiRequests'
+  };
+  const isSectionLoading = (sectionKey) => {
+    const group = SECTION_GROUP_MAP[sectionKey];
+    return group ? !loadedData[group] : false;
+  };
+
   // Render tab content directly without collapsible wrapper (for tab-based layout)
   const renderTabContent = (title, data, sectionKey, icon, color, removeHandler = null) => {
     const context = SECTION_CONTEXT_MAP[sectionKey] || 'default';
+    const loadingThisSection = isSectionLoading(sectionKey) && (!data || data.length === 0);
     
     return (
       <div className="tab-content-wrapper" style={{ '--tab-color': color }}>
@@ -1567,7 +1591,17 @@ const Dashboard2 = () => {
         </div>
         
         {/* Content area */}
-        {(!data || data.length === 0) ? (
+        {loadingThisSection ? (
+          <div className="tab-empty-state tab-loading-state">
+            <span
+              className="tab-empty-icon"
+              style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}
+            >
+              ⟳
+            </span>
+            <p>Loading {title.toLowerCase()}…</p>
+          </div>
+        ) : (!data || data.length === 0) ? (
           <div className="tab-empty-state">
             <span className="tab-empty-icon">{icon}</span>
             <p>No {title.toLowerCase()} yet</p>
