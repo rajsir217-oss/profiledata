@@ -748,3 +748,46 @@ async def get_member_acquisition_years(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching member acquisition years: {str(e)}"
         )
+
+
+@router.get("/whatsapp-group-cleanup")
+async def get_whatsapp_group_cleanup_report(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get list of users who should be manually removed from WhatsApp group
+    Includes deleted, banned, and suspended users
+    """
+    _check_admin_access(current_user)
+
+    try:
+        query = {
+            "accountStatus": {"$in": ["deleted", "banned", "suspended"]}
+        }
+
+        users = await db.users.find(query).to_list(None)
+
+        cleanup_list = []
+        for user in users:
+            cleanup_list.append({
+                "username": user.get("username"),
+                "firstName": user.get("firstName"),
+                "lastName": user.get("lastName"),
+                "contactNumber": user.get("contactNumber"),
+                "accountStatus": user.get("accountStatus"),
+                "adminApprovedAt": user.get("adminApprovedAt")
+            })
+
+        return {
+            "success": True,
+            "totalCount": len(cleanup_list),
+            "data": cleanup_list
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Error fetching WhatsApp cleanup report: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching WhatsApp cleanup report: {str(e)}"
+        )
