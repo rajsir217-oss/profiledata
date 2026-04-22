@@ -350,6 +350,16 @@ const ContributionManagement = () => {
           <p>View and manage all contributions</p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            className="add-payment-btn"
+            onClick={() => navigate('/admin/recurring-contributions')}
+            style={{
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)'
+            }}
+            title="Manage recurring contributions"
+          >
+            ♻️ Recurring
+          </button>
           <button 
             className="add-payment-btn" 
             onClick={handleExportCSV}

@@ -1,0 +1,76 @@
+.marketing-pricing {
+  padding: 20px;
+  background: var(--card-background);
+  min-height: 100vh;
+}
+
+.mp-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 12px;
+}
+
+.marketing-pricing .tab-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--surface-color);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.marketing-pricing .tab-button:hover {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+}
+
+.marketing-pricing .tab-button.active {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.marketing-pricing .tab-icon {
+  font-size: 18px;
+}
+
+.marketing-pricing .tab-label {
+  font-size: 14px;
+}
+
+.mp-content {
+  background: var(--card-background);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .marketing-pricing {
+    padding: 12px;
+  }
+
+  .mp-tabs {
+    gap: 6px;
+  }
+
+  .marketing-pricing .tab-button {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .marketing-pricing .tab-label {
+    font-size: 13px;
+  }
+}

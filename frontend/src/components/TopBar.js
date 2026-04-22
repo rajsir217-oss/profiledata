@@ -132,6 +132,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     if (path === '/admin-backups') return { icon: '💾', title: 'Database Backups', subtitle: 'Manage MongoDB backups and restores' };
     if (path === '/admin/inactive-users') return { icon: '🔍', title: 'Inactive Users Report', subtitle: 'Comprehensive report of inactive users' };
     if (path === '/unified-reports') return { icon: '📊', title: 'Reports & Analytics', subtitle: 'View all system reports and analytics in one place' };
+    if (path === '/marketing-pricing') return { icon: '🎯', title: 'Marketing & Pricing', subtitle: 'Manage promo codes, pricing, and lead generation' };
     return null;
   };
 
