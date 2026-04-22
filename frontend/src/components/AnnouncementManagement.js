@@ -7,6 +7,7 @@ import DeleteButton from './DeleteButton';
 import RichTextEditor from './shared/RichTextEditor';
 import logger from '../utils/logger';
 import TipsManagement from './TipsManagement';
+import PollManagement from './PollManagement';
 import './AnnouncementManagement.css';
 import './TickerSettings.css';
 
@@ -306,19 +307,25 @@ const AnnouncementManagement = () => {
     <div className="announcement-management">
       {/* Tab Navigation */}
       <div className="tab-navigation">
-        <button 
+        <button
           className={`tab-button ${activeTab === 'announcements' ? 'active' : ''}`}
           onClick={() => setActiveTab('announcements')}
         >
           📢 Announcements
         </button>
-        <button 
+        <button
+          className={`tab-button ${activeTab === 'polls' ? 'active' : ''}`}
+          onClick={() => setActiveTab('polls')}
+        >
+          📊 Polls
+        </button>
+        <button
           className={`tab-button ${activeTab === 'ticker' ? 'active' : ''}`}
           onClick={() => setActiveTab('ticker')}
         >
           ⚙️ Ticker Settings
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'tips' ? 'active' : ''}`}
           onClick={() => setActiveTab('tips')}
         >
@@ -328,6 +335,233 @@ const AnnouncementManagement = () => {
 
       {/* Announcements Tab */}
       {activeTab === 'announcements' && (
+        <>
+          {/* Stats */}
+          {stats && (
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon">📢</div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.total}</div>
+              <div className="stat-label">Total Announcements</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">✅</div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.active}</div>
+              <div className="stat-label">Active</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">📅</div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.scheduled}</div>
+              <div className="stat-label">Scheduled</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">🗑️</div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.archived}</div>
+              <div className="stat-label">Archived</div>
+            </div>
+          </div>
+        </div>
+          )}
+
+          {/* Add Announcement Button */}
+          <div className="action-bar">
+            <button
+              className="btn-add-announcement"
+              onClick={() => setShowForm(true)}
+            >
+              ➕ Create Announcement
+            </button>
+          </div>
+
+          {/* Announcement Form */}
+          {showForm && (
+            <div className="announcement-form">
+              <h3>{editingId ? '✏️ Edit Announcement' : '➕ Create Announcement'}</h3>
+              <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label>Title *</label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    required
+                    placeholder="Announcement title"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Message *</label>
+                  <RichTextEditor
+                    value={formData.message}
+                    onChange={(value) => setFormData({...formData, message: value})}
+                    placeholder="Enter your announcement message..."
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Priority</label>
+                    <select
+                      value={formData.priority}
+                      onChange={(e) => setFormData({...formData, priority: e.target.value})}
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Target Audience</label>
+                    <select
+                      value={formData.targetAudience}
+                      onChange={(e) => setFormData({...formData, targetAudience: e.target.value})}
+                    >
+                      <option value="all">All Users</option>
+                      <option value="active">Active Users</option>
+                      <option value="pending">Pending Users</option>
+                      <option value="premium">Premium Members</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Start Date</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                    />
+                    <small>Leave empty for immediate</small>
+                  </div>
+
+                  <div className="form-group">
+                    <label>End Date</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                    />
+                    <small>Leave empty for no expiry</small>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={formData.showInTicker}
+                      onChange={(e) => setFormData({...formData, showInTicker: e.target.checked})}
+                    />
+                    Show in Info Ticker
+                  </label>
+                </div>
+
+                <div className="form-actions">
+                  <button type="submit" className="btn-primary">
+                    {editingId ? '✏️ Update Announcement' : '➕ Create Announcement'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => {
+                      setShowForm(false);
+                      setEditingId(null);
+                      setFormData({
+                        title: '',
+                        message: '',
+                        priority: 'medium',
+                        targetAudience: 'all',
+                        startDate: '',
+                        endDate: '',
+                        showInTicker: true
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Announcements List */}
+          <div className="announcements-list">
+            {loading ? (
+              <div className="loading-state">Loading announcements...</div>
+            ) : announcements.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📢</div>
+                <h3>No announcements yet</h3>
+                <p>Create your first announcement to get started</p>
+              </div>
+            ) : (
+              <div className="announcements-grid">
+                {announcements.map(announcement => (
+                  <div
+                    key={announcement._id}
+                    className={`announcement-card ${getPriorityBadge(announcement.priority).class}`}
+                  >
+                    <div className="announcement-header">
+                      <h3>{announcement.title}</h3>
+                      <span className={`priority-badge ${getPriorityBadge(announcement.priority).class}`}>
+                        {getPriorityBadge(announcement.priority).label}
+                      </span>
+                    </div>
+                    <div
+                      className="announcement-message"
+                      dangerouslySetInnerHTML={{ __html: announcement.message }}
+                    />
+                    <div className="announcement-meta">
+                      <span className="meta-item">
+                        🎯 {announcement.targetAudience || 'All Users'}
+                      </span>
+                      <span className="meta-item">
+                        📅 {new Date(announcement.createdAt).toLocaleDateString()}
+                      </span>
+                      {announcement.showInTicker && (
+                        <span className="meta-item">
+                          📋 In Ticker
+                        </span>
+                      )}
+                    </div>
+                    <div className="announcement-actions">
+                      <button
+                        className="btn-edit"
+                        onClick={() => handleEdit(announcement)}
+                      >
+                        ✏️ Edit
+                      </button>
+                      <DeleteButton
+                        onDelete={() => handleDelete(announcement._id)}
+                        itemName="announcement"
+                        size="small"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Polls Tab */}
+      {activeTab === 'polls' && (
+        <PollManagement />
+      )}
+
+      {/* Ticker Settings Tab */}
+      {activeTab === 'ticker' && (
         <>
           {/* Stats */}
           {stats && (

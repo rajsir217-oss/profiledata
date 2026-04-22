@@ -257,15 +257,8 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       items.push({
         icon: '📢',
         label: 'Announcement Management',
-        subLabel: 'Site-wide announcements',
+        subLabel: 'Site-wide announcements & polls',
         action: () => navigate('/announcement-management')
-      });
-
-      items.push({
-        icon: '📊',
-        label: 'Poll Management',
-        subLabel: 'Create & manage polls',
-        action: () => navigate('/poll-management')
       });
 
       // === UTILITIES ===
@@ -332,19 +325,12 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       
       // === TESTING & SUPPORT ===
       items.push({ isHeader: true, label: 'TESTING & SUPPORT' });
-      
+
       items.push({
         icon: '🧪',
-        label: 'Notification Tester',
-        subLabel: 'Test & debug notifications',
-        action: () => navigate('/notification-tester')
-      });
-      
-      items.push({
-        icon: '💻',
-        label: 'Test Dashboard',
-        subLabel: 'Run & schedule tests',
-        action: () => navigate('/test-dashboard')
+        label: 'Test Suite',
+        subLabel: 'Test dashboard & notifications',
+        action: () => navigate('/test-suite')
       });
       
       items.push({
@@ -381,14 +367,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         subLabel: 'Site-wide announcements',
         action: () => navigate('/announcement-management')
       });
-      
-      items.push({
-        icon: '📊',
-        label: 'Poll Management',
-        subLabel: 'Create & manage polls',
-        action: () => navigate('/poll-management')
-      });
-      
+
       items.push({ isHeader: true, label: 'GROWTH' });
       
       items.push({
