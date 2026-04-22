@@ -336,56 +336,28 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       
       // === ANALYTICS & REPORTS ===
       items.push({ isHeader: true, label: 'ANALYTICS & REPORTS' });
-      
-      items.push({
-        icon: '📝',
-        label: 'Activity Logs',
-        subLabel: 'Monitor user activities',
-        action: () => navigate('/activity-logs')
-      });
-      
+
       items.push({
         icon: '📊',
-        label: 'Admin Reports',
-        subLabel: 'System reports & analytics',
-        action: () => navigate('/admin-reports')
+        label: 'Reports',
+        subLabel: 'All reports & analytics',
+        action: () => navigate('/unified-reports')
       });
-      
-      items.push({
-        icon: '📮',
-        label: 'Email Analytics',
-        subLabel: 'Track opens & clicks',
-        action: () => navigate('/email-analytics')
-      });
-      
+
       items.push({
         icon: '💌',
         label: 'Email Templates',
         subLabel: 'Preview & manage templates',
         action: () => navigate('/email-templates')
       });
-      
-      items.push({
-        icon: '😴',
-        label: 'Inactive Users Report',
-        subLabel: 'User engagement analysis',
-        action: () => navigate('/admin/inactive-users')
-      });
-      
+
       items.push({
         icon: '🔧',
         label: 'Notification Config',
         subLabel: 'Status change triggers',
         action: () => navigate('/admin/notification-config')
       });
-      
-      items.push({
-        icon: '⏸️',
-        label: 'Pause Analytics',
-        subLabel: 'Track pause patterns',
-        action: () => navigate('/pause-analytics')
-      });
-      
+
       items.push({
         icon: '🔎',
         label: 'Saved Search Notifications',

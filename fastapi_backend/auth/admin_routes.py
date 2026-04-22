@@ -435,7 +435,20 @@ async def manage_user(
             "timestamp": datetime.utcnow(),
             "severity": "warning" if action in ["suspend", "ban"] else "info"
         })
-        
+
+        # Log deletion event for WhatsApp cleanup tracking
+        if action in ["ban", "suspend"]:
+            await db.activity_logs.insert_one({
+                "action": "user_deleted",
+                "username": username,
+                "adminUsername": current_user.get("username"),
+                "accountStatus": update_data.get("accountStatus"),
+                "reason": request.reason,
+                "requiresWhatsappCleanup": True,
+                "timestamp": datetime.utcnow()
+            })
+            logger.info(f"📱 Logged WhatsApp cleanup event for user '{username}' (action: {action})")
+
         return {
             "message": f"User {action}d successfully",
             "username": username,

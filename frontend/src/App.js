@@ -69,6 +69,7 @@ import AnnouncementManagement from './components/AnnouncementManagement';
 import PollManagement from './components/PollManagement';
 import VirtualMeets from './components/VirtualMeets';
 import AdminReports from './components/AdminReports';
+import UnifiedReports from './components/UnifiedReports';
 import ContributionManagement from './components/ContributionManagement';
 import AdminRecurringContributions from './components/AdminRecurringContributions';
 import PayPalRecurringSetup from './components/PayPalRecurringSetup';
@@ -426,10 +427,14 @@ function AppContent() {
               <Route path="/admin/notification-config" element={<ProtectedRoute><NotificationConfigManager /></ProtectedRoute>} />
               <Route path="/announcement-management" element={<ProtectedRoute><AnnouncementManagement /></ProtectedRoute>} />
               <Route path="/email-templates" element={<ProtectedRoute><EmailTemplatePreview /></ProtectedRoute>} />
-              <Route path="/email-analytics" element={<ProtectedRoute><EmailAnalytics /></ProtectedRoute>} />
-              <Route path="/activity-logs" element={<ProtectedRoute><ActivityLogs /></ProtectedRoute>} />
-              <Route path="/admin/inactive-users" element={<ProtectedRoute><InactiveUsersPage /></ProtectedRoute>} />
-              <Route path="/pause-analytics" element={<ProtectedRoute><PauseAnalyticsDashboard /></ProtectedRoute>} />
+              {/* Unified Reports Page */}
+              <Route path="/unified-reports" element={<ProtectedRoute><UnifiedReports /></ProtectedRoute>} />
+              {/* Backward compatibility - redirect old report routes to unified page */}
+              <Route path="/email-analytics" element={<Navigate to="/unified-reports?tab=email-analytics" replace />} />
+              <Route path="/activity-logs" element={<Navigate to="/unified-reports?tab=activity-logs" replace />} />
+              <Route path="/admin/inactive-users" element={<Navigate to="/unified-reports?tab=inactive-users" replace />} />
+              <Route path="/pause-analytics" element={<Navigate to="/unified-reports?tab=pause-analytics" replace />} />
+              <Route path="/admin-reports" element={<Navigate to="/unified-reports?tab=admin-reports" replace />} />
               <Route path="/invitations" element={<ProtectedRoute><InvitationManager /></ProtectedRoute>} />
               <Route path="/admin/registration-interests" element={<Navigate to="/admin?tab=interests" replace />} />
               <Route path="/invite-friends" element={<ProtectedRoute><InviteFriends /></ProtectedRoute>} />
