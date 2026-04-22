@@ -70,6 +70,7 @@ import PollManagement from './components/PollManagement';
 import VirtualMeets from './components/VirtualMeets';
 import AdminReports from './components/AdminReports';
 import UnifiedReports from './components/UnifiedReports';
+import MarketingPricing from './components/MarketingPricing';
 import ContributionManagement from './components/ContributionManagement';
 import AdminRecurringContributions from './components/AdminRecurringContributions';
 import PayPalRecurringSetup from './components/PayPalRecurringSetup';
@@ -439,9 +440,12 @@ function AppContent() {
               <Route path="/admin/registration-interests" element={<Navigate to="/admin?tab=interests" replace />} />
               <Route path="/invite-friends" element={<ProtectedRoute><InviteFriends /></ProtectedRoute>} />
               <Route path="/virtual-meets" element={<ProtectedRoute><VirtualMeets /></ProtectedRoute>} />
-              <Route path="/promo-codes" element={<ProtectedRoute><PromoCodeManager /></ProtectedRoute>} />
+              {/* Marketing & Pricing unified page */}
+              <Route path="/marketing-pricing" element={<ProtectedRoute><MarketingPricing /></ProtectedRoute>} />
+              {/* Backward compatibility - redirect old routes to unified page */}
+              <Route path="/promo-codes" element={<Navigate to="/marketing-pricing?tab=promo-codes" replace />} />
+              <Route path="/pricing" element={<Navigate to="/marketing-pricing?tab=pricing" replace />} />
               <Route path="/membership-plans" element={<ProtectedRoute><MembershipPlans /></ProtectedRoute>} />
-              <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
               <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
               <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
               <Route path="/payment/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
@@ -449,7 +453,7 @@ function AppContent() {
               <Route path="/contribution/cancel" element={<ProtectedRoute><ContributionCancel /></ProtectedRoute>} />
               <Route path="/contribution/clover-success" element={<ProtectedRoute><CloverPaymentReturn status="success" /></ProtectedRoute>} />
               <Route path="/contribution/clover-failure" element={<ProtectedRoute><CloverPaymentReturn status="failure" /></ProtectedRoute>} />
-              <Route path="/lead-generation" element={<ProtectedRoute><PromoCodeAccounting /></ProtectedRoute>} />
+              <Route path="/lead-generation" element={<Navigate to="/marketing-pricing?tab=lead-generation" replace />} />
               <Route path="/contribution-management" element={<ProtectedRoute><ContributionManagement /></ProtectedRoute>} />
               <Route path="/admin/recurring-contributions" element={<ProtectedRoute><AdminRecurringContributions /></ProtectedRoute>} />
               <Route path="/paypal-recurring-setup" element={<ProtectedRoute><PayPalRecurringSetup /></ProtectedRoute>} />

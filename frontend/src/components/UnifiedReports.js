@@ -12,6 +12,15 @@ const UnifiedReports = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('activity-logs');
 
+  // Admin-only access check
+  React.useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+      console.warn('⚠️ Unauthorized access attempt to Unified Reports');
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
   // Set document title
   React.useEffect(() => {
     document.title = '📊 Reports & Analytics - ProfileData';

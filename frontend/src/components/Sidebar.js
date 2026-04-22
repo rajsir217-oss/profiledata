@@ -300,24 +300,10 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       });
       
       items.push({
-        icon: '🎫',
-        label: 'Promo Code Manager',
-        subLabel: 'Codes, discounts & QR',
-        action: () => navigate('/promo-codes')
-      });
-      
-      items.push({
-        icon: '💳',
-        label: 'Membership Plans',
-        subLabel: 'Pricing & plans',
-        action: () => navigate('/pricing')
-      });
-      
-      items.push({
-        icon: '📈',
-        label: 'Lead Generation',
-        subLabel: 'Track members & revenue',
-        action: () => navigate('/lead-generation')
+        icon: '🎯',
+        label: 'Marketing & Pricing',
+        subLabel: 'Promos, pricing & leads',
+        action: () => navigate('/marketing-pricing')
       });
       
       items.push({
@@ -325,13 +311,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         label: 'Contribution Management',
         subLabel: 'View all contributions',
         action: () => navigate('/contribution-management')
-      });
-      
-      items.push({
-        icon: '♻️',
-        label: 'Recurring Contributions',
-        subLabel: 'Manage recurring payments',
-        action: () => navigate('/admin/recurring-contributions')
       });
       
       // === ANALYTICS & REPORTS ===
