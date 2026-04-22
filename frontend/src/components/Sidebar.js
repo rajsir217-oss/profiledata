@@ -246,42 +246,38 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         subLabel: 'Manage automated tasks',
         action: () => navigate('/dynamic-scheduler')
       });
-      
-      items.push({
-        icon: '🗄️',
-        label: 'Database Backups',
-        subLabel: 'Backup & restore MongoDB',
-        action: () => navigate('/admin-backups')
-      });
-      
+
       items.push({
         icon: '🔔',
         label: 'Notification Management',
         subLabel: 'Queue, logs & templates',
         action: () => navigate('/notification-management')
       });
-      
+
       items.push({
         icon: '📢',
         label: 'Announcement Management',
         subLabel: 'Site-wide announcements',
         action: () => navigate('/announcement-management')
       });
-      
+
       items.push({
         icon: '📊',
         label: 'Poll Management',
         subLabel: 'Create & manage polls',
         action: () => navigate('/poll-management')
       });
-      
+
+      // === UTILITIES ===
+      items.push({ isHeader: true, label: 'UTILITIES' });
+
       items.push({
-        icon: '📱',
-        label: 'WhatsApp Verification',
-        subLabel: 'Group member verification',
-        action: () => navigate('/whatsapp-verification')
+        icon: '🔧',
+        label: 'Utilities',
+        subLabel: 'Admin tools & utilities',
+        action: () => navigate('/admin-utilities')
       });
-      
+
       // === MEMBER ACQUIRE ===
       items.push({ isHeader: true, label: 'MEMBER ACQUIRE' });
       
@@ -321,27 +317,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         label: 'Reports',
         subLabel: 'All reports & analytics',
         action: () => navigate('/unified-reports')
-      });
-
-      items.push({
-        icon: '💌',
-        label: 'Email Templates',
-        subLabel: 'Preview & manage templates',
-        action: () => navigate('/email-templates')
-      });
-
-      items.push({
-        icon: '🔧',
-        label: 'Notification Config',
-        subLabel: 'Status change triggers',
-        action: () => navigate('/admin/notification-config')
-      });
-
-      items.push({
-        icon: '🔎',
-        label: 'Saved Search Notifications',
-        subLabel: 'Override & manage user alerts',
-        action: () => navigate('/admin/notifications')
       });
       
       // === CONFIGURATION ===

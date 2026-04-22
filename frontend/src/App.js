@@ -71,6 +71,7 @@ import VirtualMeets from './components/VirtualMeets';
 import AdminReports from './components/AdminReports';
 import UnifiedReports from './components/UnifiedReports';
 import MarketingPricing from './components/MarketingPricing';
+import AdminUtilities from './components/AdminUtilities';
 import ContributionManagement from './components/ContributionManagement';
 import AdminRecurringContributions from './components/AdminRecurringContributions';
 import PayPalRecurringSetup from './components/PayPalRecurringSetup';
@@ -401,7 +402,8 @@ function AppContent() {
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
               <Route path="/contact" element={<ProtectedRoute><ContactUs /></ProtectedRoute>} />
               <Route path="/admin/contact" element={<ProtectedRoute><AdminContactManagement /></ProtectedRoute>} />
-              <Route path="/admin/notifications" element={<ProtectedRoute><SavedSearchNotificationManager /></ProtectedRoute>} />
+              {/* Backward compatibility - redirect old utility routes to unified page */}
+              <Route path="/admin/notifications" element={<Navigate to="/admin-utilities?tab=saved-search-notifications" replace />} />
               <Route path="/admin/settings" element={<Navigate to="/preferences" replace />} />
               <Route path="/matching-criteria" element={<ProtectedRoute><MatchingCriteria /></ProtectedRoute>} />
               <Route path="/top-matches" element={<ProtectedRoute><TopMatches /></ProtectedRoute>} />
@@ -422,12 +424,16 @@ function AppContent() {
               <Route path="/role-management" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
               <Route path="/test-dashboard" element={<ProtectedRoute><TestDashboard /></ProtectedRoute>} />
               <Route path="/dynamic-scheduler" element={<ProtectedRoute><DynamicScheduler currentUser={localStorage.getItem('username')} /></ProtectedRoute>} />
-              <Route path="/admin-backups" element={<ProtectedRoute><AdminBackups /></ProtectedRoute>} />
+              {/* Admin Utilities unified page */}
+              <Route path="/admin-utilities" element={<ProtectedRoute><AdminUtilities /></ProtectedRoute>} />
+              {/* Backward compatibility - redirect old utility routes to unified page */}
+              <Route path="/admin-backups" element={<Navigate to="/admin-utilities?tab=backups" replace />} />
               <Route path="/notification-tester" element={<ProtectedRoute><NotificationTester /></ProtectedRoute>} />
               <Route path="/notification-management" element={<ProtectedRoute><NotificationManagement /></ProtectedRoute>} />
-              <Route path="/admin/notification-config" element={<ProtectedRoute><NotificationConfigManager /></ProtectedRoute>} />
+              {/* Backward compatibility - redirect old utility routes to unified page */}
+              <Route path="/admin/notification-config" element={<Navigate to="/admin-utilities?tab=notification-config" replace />} />
+              <Route path="/email-templates" element={<Navigate to="/admin-utilities?tab=email-templates" replace />} />
               <Route path="/announcement-management" element={<ProtectedRoute><AnnouncementManagement /></ProtectedRoute>} />
-              <Route path="/email-templates" element={<ProtectedRoute><EmailTemplatePreview /></ProtectedRoute>} />
               {/* Unified Reports Page */}
               <Route path="/unified-reports" element={<ProtectedRoute><UnifiedReports /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old report routes to unified page */}
@@ -459,7 +465,8 @@ function AppContent() {
               <Route path="/paypal-recurring-setup" element={<ProtectedRoute><PayPalRecurringSetup /></ProtectedRoute>} />
               <Route path="/paypal-recurring-return" element={<ProtectedRoute><PayPalRecurringReturn /></ProtectedRoute>} />
               <Route path="/poll-management" element={<ProtectedRoute><PollManagement /></ProtectedRoute>} />
-              <Route path="/whatsapp-verification" element={<ProtectedRoute><WhatsAppVerification /></ProtectedRoute>} />
+              {/* Backward compatibility - redirect old utility routes to unified page */}
+              <Route path="/whatsapp-verification" element={<Navigate to="/admin-utilities?tab=whatsapp" replace />} />
               <Route path="/admin-reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
               {/* Legacy routes - redirect to unified page */}
               <Route path="/template-manager" element={<Navigate to="/notification-management" replace />} />
