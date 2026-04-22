@@ -134,6 +134,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     if (path === '/unified-reports') return { icon: '📊', title: 'Reports & Analytics', subtitle: 'View all system reports and analytics in one place' };
     if (path === '/marketing-pricing') return { icon: '🎯', title: 'Marketing & Pricing', subtitle: 'Manage promo codes, pricing, and lead generation' };
     if (path === '/admin-utilities') return { icon: '🔧', title: 'Utilities', subtitle: 'Admin tools and system utilities' };
+    if (path === '/test-suite') return { icon: '🧪', title: 'Test Suite', subtitle: 'Test dashboard and notification tools' };
     return null;
   };
 
