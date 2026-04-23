@@ -73,6 +73,8 @@ import UnifiedReports from './components/UnifiedReports';
 import MarketingPricing from './components/MarketingPricing';
 import AdminUtilities from './components/AdminUtilities';
 import TestSuite from './components/TestSuite';
+import Automation from './components/Automation';
+import MemberRoles from './components/MemberRoles';
 import ContributionManagement from './components/ContributionManagement';
 import AdminRecurringContributions from './components/AdminRecurringContributions';
 import PayPalRecurringSetup from './components/PayPalRecurringSetup';
@@ -421,19 +423,25 @@ function AppContent() {
               <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
               <Route path="/pii-management" element={<ProtectedRoute><PIIManagement /></ProtectedRoute>} />
               <Route path="/notifications" element={<Navigate to="/preferences" replace />} />
-              <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
-              <Route path="/role-management" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
+              {/* Member Roles unified page */}
+              <Route path="/member-roles" element={<ProtectedRoute><MemberRoles /></ProtectedRoute>} />
+              {/* Backward compatibility - redirect old member roles routes to unified page */}
+              <Route path="/user-management" element={<Navigate to="/member-roles?tab=users" replace />} />
+              <Route path="/role-management" element={<Navigate to="/member-roles?tab=roles" replace />} />
               {/* Test Suite unified page */}
               <Route path="/test-suite" element={<ProtectedRoute><TestSuite /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old test routes to unified page */}
               <Route path="/test-dashboard" element={<Navigate to="/test-suite?tab=test-dashboard" replace />} />
-              <Route path="/dynamic-scheduler" element={<ProtectedRoute><DynamicScheduler currentUser={localStorage.getItem('username')} /></ProtectedRoute>} />
+              {/* Automation unified page */}
+              <Route path="/automation" element={<ProtectedRoute><Automation /></ProtectedRoute>} />
+              {/* Backward compatibility - redirect old automation routes to unified page */}
+              <Route path="/dynamic-scheduler" element={<Navigate to="/automation?tab=scheduler" replace />} />
               {/* Admin Utilities unified page */}
               <Route path="/admin-utilities" element={<ProtectedRoute><AdminUtilities /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/admin-backups" element={<Navigate to="/admin-utilities?tab=backups" replace />} />
               <Route path="/notification-tester" element={<Navigate to="/test-suite?tab=notification-tester" replace />} />
-              <Route path="/notification-management" element={<ProtectedRoute><NotificationManagement /></ProtectedRoute>} />
+              <Route path="/notification-management" element={<Navigate to="/automation?tab=notifications" replace />} />
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/admin/notification-config" element={<Navigate to="/admin-utilities?tab=notification-config" replace />} />
               <Route path="/email-templates" element={<Navigate to="/admin-utilities?tab=email-templates" replace />} />

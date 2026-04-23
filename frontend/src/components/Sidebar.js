@@ -225,33 +225,19 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       
       items.push({
         icon: '👥',
-        label: 'User Management',
-        subLabel: 'Manage users',
-        action: () => navigate('/user-management')
-      });
-      
-      items.push({
-        icon: '🎭',
-        label: 'Role Management',
-        subLabel: 'Roles & Permissions',
-        action: () => navigate('/role-management')
+        label: 'Member Roles',
+        subLabel: 'Users & permissions',
+        action: () => navigate('/member-roles')
       });
       
       // === MONITORING & AUTOMATION ===
       items.push({ isHeader: true, label: 'MONITORING & AUTOMATION' });
       
       items.push({
-        icon: '🗓️',
-        label: 'Scheduler & Jobs',
-        subLabel: 'Manage automated tasks',
-        action: () => navigate('/dynamic-scheduler')
-      });
-
-      items.push({
-        icon: '🔔',
-        label: 'Notification Management',
-        subLabel: 'Queue, logs & templates',
-        action: () => navigate('/notification-management')
+        icon: '🤖',
+        label: 'Automation',
+        subLabel: 'Scheduler & notifications',
+        action: () => navigate('/automation')
       });
 
       items.push({
