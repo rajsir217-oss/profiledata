@@ -231,7 +231,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       });
       
       // === MONITORING & AUTOMATION ===
-      items.push({ isHeader: true, label: 'MONITORING & AUTOMATION' });
+      // items.push({ isHeader: true, label: 'MONITORING & AUTOMATION' });
       
       items.push({
         icon: '🤖',
@@ -248,14 +248,14 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       });
 
       // === UTILITIES ===
-      items.push({ isHeader: true, label: 'UTILITIES' });
+      // items.push({ isHeader: true, label: 'UTILITIES' });
 
-      items.push({
-        icon: '🔧',
-        label: 'Utilities',
-        subLabel: 'Admin tools & utilities',
-        action: () => navigate('/admin-utilities')
-      });
+      // items.push({
+      //   icon: '🔧',
+      //   label: 'Utilities',
+      //   subLabel: 'Admin tools & utilities',
+      //   action: () => navigate('/admin-utilities')
+      // });
 
       // === MEMBER ACQUIRE ===
       items.push({ isHeader: true, label: 'MEMBER ACQUIRE' });
@@ -297,7 +297,12 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         subLabel: 'All reports & analytics',
         action: () => navigate('/unified-reports')
       });
-      
+            items.push({
+        icon: '🔧',
+        label: 'Utilities',
+        subLabel: 'Admin tools & utilities',
+        action: () => navigate('/admin-utilities')
+      });
       // === CONFIGURATION ===
       items.push({ isHeader: true, label: 'CONFIGURATION' });
 
