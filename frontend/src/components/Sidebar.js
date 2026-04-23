@@ -318,13 +318,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         subLabel: 'Test dashboard & notifications',
         action: () => navigate('/test-suite')
       });
-      
-      items.push({
-        icon: '📨',
-        label: 'Contact Support',
-        subLabel: 'Manage user inquiries',
-        action: () => navigate('/admin/contact')
-      });
     }
 
     // Add Moderator section for moderator user
@@ -337,14 +330,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         subLabel: 'Manage all users',
         action: () => navigate('/admin')
       });
-      
-      items.push({
-        icon: '📨',
-        label: 'Contact Support',
-        subLabel: 'Manage user inquiries',
-        action: () => navigate('/admin/contact')
-      });
-      
+
       items.push({ isHeader: true, label: 'MONITORING' });
       
       items.push({
@@ -392,12 +378,12 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       });
     }
 
-    // Add Contact Us before logout
-    items.push({ 
-      icon: '📧', 
-      label: 'Contact Us', 
-      subLabel: 'Get in touch with support',
-      action: () => navigate('/contact')
+    // Add Support before logout
+    items.push({
+      icon: '📧',
+      label: 'Support',
+      subLabel: 'Get help & contact support',
+      action: () => navigate('/support')
     });
 
     // Add logout at the end

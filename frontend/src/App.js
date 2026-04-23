@@ -75,6 +75,7 @@ import AdminUtilities from './components/AdminUtilities';
 import TestSuite from './components/TestSuite';
 import Automation from './components/Automation';
 import MemberRoles from './components/MemberRoles';
+import Support from './components/Support';
 import ContributionManagement from './components/ContributionManagement';
 import AdminRecurringContributions from './components/AdminRecurringContributions';
 import PayPalRecurringSetup from './components/PayPalRecurringSetup';
@@ -403,8 +404,11 @@ function AppContent() {
               <Route path="/edit-profile" element={<ProtectedRoute><Register2 mode="edit" /></ProtectedRoute>} />
               <Route path="/preferences" element={<ProtectedRoute><UnifiedPreferences /></ProtectedRoute>} />
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
-              <Route path="/contact" element={<ProtectedRoute><ContactUs /></ProtectedRoute>} />
-              <Route path="/admin/contact" element={<ProtectedRoute><AdminContactManagement /></ProtectedRoute>} />
+              {/* Support unified page */}
+              <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+              {/* Backward compatibility - redirect old support routes to unified page */}
+              <Route path="/contact" element={<Navigate to="/support?tab=contact-us" replace />} />
+              <Route path="/admin/contact" element={<Navigate to="/support?tab=admin-contact" replace />} />
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/admin/notifications" element={<Navigate to="/admin-utilities?tab=saved-search-notifications" replace />} />
               <Route path="/admin/settings" element={<Navigate to="/preferences" replace />} />
