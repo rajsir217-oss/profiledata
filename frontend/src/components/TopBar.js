@@ -137,6 +137,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     if (path === '/test-suite') return { icon: '🧪', title: 'Test Suite', subtitle: 'Test dashboard and notification tools' };
     if (path === '/automation') return { icon: '🤖', title: 'Automation', subtitle: 'Scheduler and notification management' };
     if (path === '/member-roles') return { icon: '👥', title: 'Member Roles', subtitle: 'User and role management' };
+    if (path === '/support') return { icon: '📧', title: 'Support', subtitle: 'Contact and support management' };
     return null;
   };
 
