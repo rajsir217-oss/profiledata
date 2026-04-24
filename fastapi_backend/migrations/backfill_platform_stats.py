@@ -7,10 +7,13 @@ from the activity_logs collection.
 Phase 1 of migration strategy from PLATFORM_STATS_SNAPSHOT_DESIGN.md
 
 Usage:
-    python -m migrations.backfill_platform_stats
+    python -m migrations.backfill_platform_stats --env development
+    python -m migrations.backfill_platform_stats --env production
 """
 
 import asyncio
+import argparse
+import os
 from datetime import datetime, timedelta
 from typing import Dict, Any
 from database import connect_to_mongo, close_mongo_connection, get_database
@@ -367,8 +370,29 @@ async def backfill_all_time_snapshot(db) -> Dict[str, Any]:
 
 async def main():
     """Main backfill function."""
+    parser = argparse.ArgumentParser(description="Backfill platform stats from activity logs")
+    parser.add_argument(
+        "--env",
+        choices=["local", "development", "staging", "production", "docker", "test"],
+        default=None,
+        help="Environment to use for database connection (auto-detect if not specified)"
+    )
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=90,
+        help="Number of days to backfill (default: 90)"
+    )
+    args = parser.parse_args()
+    
+    # Set environment if specified
+    if args.env:
+        os.environ["APP_ENV"] = args.env
+    
     print("=" * 60)
     print("Platform Stats Backfill Script")
+    if args.env:
+        print(f"📦 Environment: {args.env}")
     print("=" * 60)
     
     # Initialize database connection
@@ -452,6 +476,9 @@ async def main():
             print(f"  - {error}")
     else:
         print("\n✅ Backfill completed successfully!")
+    
+    # Close database connection
+    await close_mongo_connection()
 
 
 if __name__ == "__main__":
