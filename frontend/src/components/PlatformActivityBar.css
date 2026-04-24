@@ -318,6 +318,16 @@
   white-space: nowrap;
   transition: all 0.2s ease;
   flex-shrink: 0;
+  /* Color cycling animation */
+  animation: contribution-btn-colors 2s linear infinite;
+}
+
+@keyframes contribution-btn-colors {
+  0% { background: linear-gradient(135deg, #10b981 0%, #059669 100%); } /* green */
+  25% { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); } /* purple */
+  50% { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); } /* red */
+  75% { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); } /* pink */
+  100% { background: linear-gradient(135deg, #10b981 0%, #059669 100%); } /* back to green */
 }
 
 .pab-contribution-btn:hover {
