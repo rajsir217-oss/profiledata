@@ -241,5 +241,18 @@ def initialize_templates():
     from .referrer_auto_invite import ReferrerAutoInviteTemplate
     registry.register(ReferrerAutoInviteTemplate())
     
+    # Register platform stats snapshot templates
+    from .daily_platform_stats_snapshot import DailyPlatformStatsSnapshotTemplate
+    from .monthly_platform_stats_aggregation import MonthlyPlatformStatsAggregationTemplate
+    from .yearly_platform_stats_aggregation import YearlyPlatformStatsAggregationTemplate
+    from .daily_platform_stats_purge import DailyPlatformStatsPurgeTemplate
+    from .monthly_platform_stats_purge import MonthlyPlatformStatsPurgeTemplate
+    
+    registry.register(DailyPlatformStatsSnapshotTemplate())
+    registry.register(MonthlyPlatformStatsAggregationTemplate())
+    registry.register(YearlyPlatformStatsAggregationTemplate())
+    registry.register(DailyPlatformStatsPurgeTemplate())
+    registry.register(MonthlyPlatformStatsPurgeTemplate())
+    
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
