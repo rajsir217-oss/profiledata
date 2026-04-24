@@ -58,22 +58,19 @@ async def backfill_daily_snapshots(db, days: int = 90) -> Dict[str, Any]:
                 **time_filter
             })
             
-            # 3. Favorited
-            favorited = await db.activity_logs.count_documents({
-                "action_type": "favorite_added",
-                **time_filter
+            # 3. Favorited - query favorites collection
+            favorited = await db.favorites.count_documents({
+                "createdAt": {"$gte": day_start, "$lte": day_end}
             })
             
-            # 4. Shortlisted
-            shortlisted = await db.activity_logs.count_documents({
-                "action_type": "shortlist_added",
-                **time_filter
+            # 4. Shortlisted - query shortlists collection
+            shortlisted = await db.shortlists.count_documents({
+                "createdAt": {"$gte": day_start, "$lte": day_end}
             })
             
-            # 5. Messages Sent
-            messages_sent = await db.activity_logs.count_documents({
-                "action_type": "message_sent",
-                **time_filter
+            # 5. Messages Sent - query messages collection
+            messages_sent = await db.messages.count_documents({
+                "createdAt": {"$gte": day_start, "$lte": day_end}
             })
             
             # 6. Active Members (users who logged in on this day)
@@ -383,6 +380,11 @@ async def main():
         default=90,
         help="Number of days to backfill (default: 90)"
     )
+    parser.add_argument(
+        "--check-actions",
+        action="store_true",
+        help="Check what action types exist in activity_logs"
+    )
     args = parser.parse_args()
     
     # Set environment if specified
@@ -398,6 +400,16 @@ async def main():
     # Initialize database connection
     await connect_to_mongo()
     db = get_database()
+    
+    # Check action types if requested
+    if args.check_actions:
+        print("\n🔍 Checking action types in activity_logs...")
+        action_types = await db.activity_logs.distinct("action_type")
+        print(f"Found {len(action_types)} unique action types:")
+        for action_type in sorted(action_types):
+            count = await db.activity_logs.count_documents({"action_type": action_type})
+            print(f"  - {action_type}: {count} occurrences")
+        return
     
     # Check if activity_logs collection exists and has data
     activity_count = await db.activity_logs.count_documents({})
