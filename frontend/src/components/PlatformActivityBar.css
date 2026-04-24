@@ -266,10 +266,27 @@
   border-radius: 8px;
   /* Subtle tint using the theme's primary color so the banner adapts
      per-theme. Fallback kicks in for browsers without color-mix support. */
-  background: var(--warning-light, #fef3c7);
-  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--primary-color) 12%, transparent) 0%,
+    color-mix(in srgb, var(--primary-color) 25%, transparent) 50%,
+    color-mix(in srgb, var(--primary-color) 12%, transparent) 100%
+  );
+  background-size: 200% 100%;
   border: 1px solid var(--warning-color, rgba(99, 102, 241, 0.3));
   border-color: color-mix(in srgb, var(--primary-color) 35%, transparent);
+  /* Combined animations: shimmer + jump */
+  animation: contribution-shimmer 2s linear infinite, contribution-jump 3s ease-in-out infinite;
+}
+
+@keyframes contribution-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes contribution-jump {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
 .pab-contribution-text {
@@ -280,6 +297,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Text glow animation */
+  animation: contribution-text-glow 2s ease-in-out infinite;
+}
+
+@keyframes contribution-text-glow {
+  0%, 100% { text-shadow: 0 0 5px var(--primary-color); }
+  50% { text-shadow: 0 0 15px var(--primary-color), 0 0 25px var(--primary-color); }
 }
 
 .pab-contribution-btn {
