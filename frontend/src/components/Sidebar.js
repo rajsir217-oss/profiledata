@@ -262,28 +262,28 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       
       items.push({
         icon: '📧',
-        label: 'Invitations Manager',
+        label: 'Invitations',
         subLabel: 'Manage user invitations',
         action: () => navigate('/invitations')
       });
       
       items.push({
         icon: '📋',
-        label: 'Registration Interests',
+        label: 'Interests',
         subLabel: 'Review interest forms',
         action: () => navigate('/admin?tab=interests')
       });
       
       items.push({
         icon: '🎯',
-        label: 'Marketing & Pricing',
+        label: 'Memberships',
         subLabel: 'Promos, pricing & leads',
         action: () => navigate('/marketing-pricing')
       });
       
       items.push({
         icon: '💝',
-        label: 'Contribution Management',
+        label: 'Contributions',
         subLabel: 'View all contributions',
         action: () => navigate('/contribution-management')
       });
