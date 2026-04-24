@@ -158,11 +158,13 @@ async def _compute_stats(period: str, db) -> dict:
         messages_sent = 0
 
         # Query daily snapshots for recent dates
-        if period_start <= daily_cutoff:
+        if period_start >= daily_cutoff:
             # Period starts within last 90 days - use daily snapshots
+            logger.info(f"Querying daily snapshots for period {period}: {period_start_str} to {period_end_str}")
             daily_docs = await db.platform_stats_daily.find({
                 "date": {"$gte": period_start_str, "$lte": period_end_str}
             }).to_list(length=None)
+            logger.info(f"Found {len(daily_docs)} daily snapshots")
             
             for doc in daily_docs:
                 searches += doc.get("searches", 0)
@@ -182,6 +184,21 @@ async def _compute_stats(period: str, db) -> dict:
                 month_id = f"{year_str}-{month:02d}"
                 monthly_doc = await db.platform_stats_monthly.find_one({"_id": month_id})
                 if monthly_doc:
+                    searches += monthly_doc.get("searches", 0)
+                    profile_views += monthly_doc.get("profileViews", 0)
+                    favorited += monthly_doc.get("favorited", 0)
+                    shortlisted += monthly_doc.get("shortlisted", 0)
+                    messages_sent += monthly_doc.get("messagesSent", 0)
+        
+        # For "this year" (yearly period), also aggregate monthly snapshots
+        if period == "yearly" and period_start and period_start.year == now.year:
+            year_str = str(now.year)
+            logger.info(f"Aggregating monthly snapshots for current year {year_str}")
+            for month in range(1, now.month + 1):
+                month_id = f"{year_str}-{month:02d}"
+                monthly_doc = await db.platform_stats_monthly.find_one({"_id": month_id})
+                if monthly_doc:
+                    logger.info(f"Found monthly snapshot for {month_id}")
                     searches += monthly_doc.get("searches", 0)
                     profile_views += monthly_doc.get("profileViews", 0)
                     favorited += monthly_doc.get("favorited", 0)

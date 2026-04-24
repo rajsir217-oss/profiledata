@@ -61,22 +61,19 @@ class PlatformStatsDailySnapshotTemplate(JobTemplate):
                 **time_filter
             })
             
-            # 3. Favorited
-            favorited = await db.activity_logs.count_documents({
-                "action_type": "favorite_added",
-                **time_filter
+            # 3. Favorited - query favorites collection
+            favorited = await db.favorites.count_documents({
+                "createdAt": {"$gte": day_start, "$lte": day_end}
             })
             
-            # 4. Shortlisted
-            shortlisted = await db.activity_logs.count_documents({
-                "action_type": "shortlist_added",
-                **time_filter
+            # 4. Shortlisted - query shortlists collection
+            shortlisted = await db.shortlists.count_documents({
+                "createdAt": {"$gte": day_start, "$lte": day_end}
             })
             
-            # 5. Messages Sent
-            messages_sent = await db.activity_logs.count_documents({
-                "action_type": "message_sent",
-                **time_filter
+            # 5. Messages Sent - query messages collection
+            messages_sent = await db.messages.count_documents({
+                "createdAt": {"$gte": day_start, "$lte": day_end}
             })
             
             # 6. Active Members (users who logged in on this day)
