@@ -50,6 +50,9 @@ const LandingPage = () => {
       <section className="hero-section">
         <div className="hero-content-centered">
           <div className="butterfly-animation">🦋</div>
+          <p className="hero-trust-message">
+            Search with confidence. Every profile on L3V3LMatches.com is genuine, verified, and community‑collected — supporting families in finding the right match
+          </p>
           <h1 className="hero-title">
             Transform Your Search.<br/>
             Discover True Compatibility.

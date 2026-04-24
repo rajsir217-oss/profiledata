@@ -148,6 +148,42 @@
   75% { transform: translateY(-10px) rotate(5deg); }
 }
 
+.hero-trust-message {
+  font-size: 15px;
+  font-weight: 600;
+  color: #667eea;
+  margin-bottom: 24px;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.12) 100%);
+  border: 2px solid rgba(102, 126, 234, 0.25);
+  border-radius: 12px;
+  text-align: center;
+  letter-spacing: 0.4px;
+  line-height: 1.6;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+  animation: trust-badge-pulse 3s ease-in-out infinite;
+}
+
+.hero-trust-message::before {
+  content: '✓';
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 18px;
+  color: #667eea;
+}
+
+@keyframes trust-badge-pulse {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+    border-color: rgba(102, 126, 234, 0.25);
+  }
+  50% {
+    box-shadow: 0 6px 30px rgba(102, 126, 234, 0.25);
+    border-color: rgba(102, 126, 234, 0.4);
+  }
+}
+
 .hero-title {
   font-size: 48px;
   font-weight: 900;
