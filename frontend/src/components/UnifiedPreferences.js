@@ -2723,7 +2723,7 @@ const UnifiedPreferences = () => {
         isOpen={showContributionPopup}
         onClose={() => setShowContributionPopup(false)}
         contributionConfig={{
-          amounts: [10, 15, 25, 50, 100],
+          amounts: [25, 50, 75, 100],
           message: "Support the platform and help us continue providing great service"
         }}
       />
