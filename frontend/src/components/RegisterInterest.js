@@ -12,6 +12,7 @@ const RegisterInterest = () => {
     lastName: '',
     email: '',
     phone: '',
+    linkedInUrl: '',
     refFirstName: '',
     refLastName: '',
     refPhone: '',
@@ -60,6 +61,14 @@ const RegisterInterest = () => {
       setError('Please select your residency status.');
       return;
     }
+    // LinkedIn URL validation (optional but must be valid URL if provided)
+    if (formData.linkedInUrl.trim()) {
+      const urlPattern = /^https?:\/\/(www\.)?linkedin\.com\/.*/i;
+      if (!urlPattern.test(formData.linkedInUrl.trim())) {
+        setError('Please enter a valid LinkedIn URL (e.g., https://www.linkedin.com/in/username)');
+        return;
+      }
+    }
 
     setSubmitting(true);
     try {
@@ -68,6 +77,7 @@ const RegisterInterest = () => {
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim(),
+        linkedInUrl: formData.linkedInUrl.trim() || null,
         residencyStatus: formData.residencyStatus,
         referredBy: (formData.refFirstName || formData.refLastName || formData.refPhone || formData.refEmail) ? {
           firstName: formData.refFirstName.trim(),
@@ -213,6 +223,18 @@ const RegisterInterest = () => {
                   required
                 />
               </div>
+            </div>
+            <div className="ri-field">
+              <label htmlFor="linkedInUrl">LinkedIn Profile URL</label>
+              <input
+                id="linkedInUrl"
+                name="linkedInUrl"
+                type="url"
+                value={formData.linkedInUrl}
+                onChange={handleChange}
+                placeholder="https://www.linkedin.com/in/username"
+              />
+              <small className="ri-field-hint">Optional - Helps us verify your professional background</small>
             </div>
           </div>
 

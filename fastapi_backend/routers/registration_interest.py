@@ -41,6 +41,7 @@ class RegistrationInterestCreate(BaseModel):
     lastName: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
     phone: str = Field(..., min_length=5, max_length=20)
+    linkedInUrl: Optional[str] = Field(None, max_length=500)
     residencyStatus: str = Field(..., pattern="^(us_citizen|green_card)$")
     referredBy: Optional[ReferredByInfo] = None
     howDidYouHear: Optional[str] = Field(None, max_length=200)
@@ -105,6 +106,7 @@ async def submit_registration_interest(
         "lastName": data.lastName.strip(),
         "email": data.email.lower().strip(),
         "phone": data.phone.strip(),
+        "linkedInUrl": data.linkedInUrl.strip() if data.linkedInUrl else None,
         "residencyStatus": data.residencyStatus,
         "referredBy": referred_by,
         "howDidYouHear": data.howDidYouHear.strip() if data.howDidYouHear else None,
