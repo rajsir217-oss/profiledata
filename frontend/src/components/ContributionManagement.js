@@ -515,7 +515,7 @@ const ContributionManagement = () => {
             className={`filter-tab ${activityFilter === 'all' ? 'active' : ''}`}
             onClick={() => setActivityFilter('all')}
           >
-            All ({Object.values(activityStats).reduce((a, b) => a + b, 0) || 0})
+            All ({activityStats.total || 0})
           </button>
           <button 
             className={`filter-tab ${activityFilter === 'popup_shown' ? 'active' : ''}`}
