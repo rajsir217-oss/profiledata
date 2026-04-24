@@ -95,53 +95,115 @@ def _get_period_start(period: str) -> Optional[datetime]:
 
 
 async def _compute_stats(period: str, db) -> dict:
-    """Run the aggregation queries against the database."""
+    """Run the aggregation queries against the snapshot collections."""
     period_start = _get_period_start(period)
     now = datetime.utcnow()
 
-    # Time filter for activity_logs (timestamp field)
-    time_filter = {}
-    if period_start:
-        time_filter = {"timestamp": {"$gte": period_start}}
-
     try:
-        # 1. Searches — from activity_logs
-        searches = await db.activity_logs.count_documents({
-            "action_type": "search_performed",
-            **time_filter
-        })
+        # For "all time" - query single all_time snapshot
+        if period == "all":
+            all_time_doc = await db.platform_stats_all_time.find_one({"_id": "all_time"})
+            if all_time_doc:
+                return {
+                    "searches": all_time_doc.get("searches", 0),
+                    "profileViews": all_time_doc.get("profileViews", 0),
+                    "favorited": all_time_doc.get("favorited", 0),
+                    "shortlisted": all_time_doc.get("shortlisted", 0),
+                    "activeMembers": all_time_doc.get("activeMembers", 0),
+                    "messagesSent": all_time_doc.get("messagesSent", 0),
+                    "period": period,
+                    "periodStart": None,
+                    "cachedAt": now.isoformat()
+                }
+        
+        # For other periods - aggregate from snapshot collections
+        # Calculate date range
+        if period == "weekly":
+            # Get Monday-Sunday of current ISO week
+            monday = now - timedelta(days=now.weekday())
+            period_start = monday.replace(hour=0, minute=0, second=0, microsecond=0)
+            period_end = monday + timedelta(days=6)
+            period_end = period_end.replace(hour=23, minute=59, second=59, microsecond=999999)
+        elif period == "monthly":
+            # 1st of month to last day
+            period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            if now.month == 12:
+                next_month = now.replace(year=now.year + 1, month=1, day=1)
+            else:
+                next_month = now.replace(month=now.month + 1, day=1)
+            period_end = next_month - timedelta(days=1)
+            period_end = period_end.replace(hour=23, minute=59, second=59, microsecond=999999)
+        elif period == "yearly":
+            # Jan 1 to Dec 31
+            period_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            period_end = now.replace(month=12, day=31, hour=23, minute=59, second=59, microsecond=999999)
+        else:
+            # Default to week
+            monday = now - timedelta(days=now.weekday())
+            period_start = monday.replace(hour=0, minute=0, second=0, microsecond=0)
+            period_end = monday + timedelta(days=6)
+            period_end = period_end.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-        # 2. Profile Views — count TRUE view EVENTS from activity_logs.
-        # (The profile_views collection stores one row per unique
-        # viewer/profile pair with upsert-on-revisit, so it cannot be used
-        # to count events per period.)
-        profile_views = await db.activity_logs.count_documents({
-            "action_type": "profile_viewed",
-            **time_filter
-        })
+        # Determine cutoff for daily snapshots (90 days ago)
+        daily_cutoff = now - timedelta(days=90)
+        daily_cutoff_str = daily_cutoff.strftime("%Y-%m-%d")
+        period_start_str = period_start.strftime("%Y-%m-%d")
+        period_end_str = period_end.strftime("%Y-%m-%d")
 
-        # 3. Favorited — from activity_logs
-        favorited = await db.activity_logs.count_documents({
-            "action_type": "favorite_added",
-            **time_filter
-        })
+        # Aggregate stats from appropriate collections
+        searches = 0
+        profile_views = 0
+        favorited = 0
+        shortlisted = 0
+        messages_sent = 0
 
-        # 4. Shortlisted — from activity_logs
-        shortlisted = await db.activity_logs.count_documents({
-            "action_type": "shortlist_added",
-            **time_filter
-        })
+        # Query daily snapshots for recent dates
+        if period_start <= daily_cutoff:
+            # Period starts within last 90 days - use daily snapshots
+            daily_docs = await db.platform_stats_daily.find({
+                "date": {"$gte": period_start_str, "$lte": period_end_str}
+            }).to_list(length=None)
+            
+            for doc in daily_docs:
+                searches += doc.get("searches", 0)
+                profile_views += doc.get("profileViews", 0)
+                favorited += doc.get("favorited", 0)
+                shortlisted += doc.get("shortlisted", 0)
+                messages_sent += doc.get("messagesSent", 0)
 
-        # 5. Messages sent — from activity_logs
-        messages_sent = await db.activity_logs.count_documents({
-            "action_type": "message_sent",
-            **time_filter
-        })
+        # Query monthly snapshots for older dates in current year
+        if period_start < daily_cutoff:
+            # Period spans beyond 90 days - need monthly snapshots
+            year_str = str(now.year)
+            month_start = int(period_start_str[5:7])
+            month_end = int(period_end_str[5:7])
+            
+            for month in range(month_start, month_end + 1):
+                month_id = f"{year_str}-{month:02d}"
+                monthly_doc = await db.platform_stats_monthly.find_one({"_id": month_id})
+                if monthly_doc:
+                    searches += monthly_doc.get("searches", 0)
+                    profile_views += monthly_doc.get("profileViews", 0)
+                    favorited += monthly_doc.get("favorited", 0)
+                    shortlisted += monthly_doc.get("shortlisted", 0)
+                    messages_sent += monthly_doc.get("messagesSent", 0)
 
-        # 6. Active Members — UNIFIED semantics across all periods:
-        # "users who logged in at least once during the period".
-        # For "all time" this means "users who have ever logged in"
-        # (i.e. security.last_login_at is set).
+        # Query yearly snapshots if period spans multiple years
+        if period_start.year < now.year:
+            year_start = period_start.year
+            year_end = period_end.year
+            
+            for year in range(year_start, year_end + 1):
+                year_id = str(year)
+                yearly_doc = await db.platform_stats_yearly.find_one({"_id": year_id})
+                if yearly_doc:
+                    searches += yearly_doc.get("searches", 0)
+                    profile_views += yearly_doc.get("profileViews", 0)
+                    favorited += yearly_doc.get("favorited", 0)
+                    shortlisted += yearly_doc.get("shortlisted", 0)
+                    messages_sent += yearly_doc.get("messagesSent", 0)
+
+        # Active members - query from users collection based on period
         active_members_query = {"accountStatus": "active"}
         if period_start:
             active_members_query["security.last_login_at"] = {"$gte": period_start}
