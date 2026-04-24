@@ -3,11 +3,16 @@ Platform Stats Snapshot Jobs Migration Script
 
 Creates dynamic jobs in the database for platform stats snapshot system.
 Run this script after registering the job templates.
+
+Usage:
+    python -m migrations.migrate_platform_stats_jobs --env development
+    python -m migrations.migrate_platform_stats_jobs --env production
 """
 
 import asyncio
 import sys
 import os
+import argparse
 from datetime import datetime
 
 # Add parent directory to path
@@ -147,7 +152,22 @@ async def migrate_platform_stats_jobs():
 
 async def main():
     """Main entry point"""
+    parser = argparse.ArgumentParser(description="Migrate platform stats jobs to database")
+    parser.add_argument(
+        "--env",
+        choices=["local", "development", "staging", "production", "docker", "test"],
+        default=None,
+        help="Environment to use for database connection (auto-detect if not specified)"
+    )
+    args = parser.parse_args()
+    
+    # Set environment if specified
+    if args.env:
+        os.environ["APP_ENV"] = args.env
+    
     print("🚀 Starting Platform Stats Jobs Migration...")
+    if args.env:
+        print(f"📦 Environment: {args.env}")
     print("=" * 60)
     
     try:
