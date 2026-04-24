@@ -873,6 +873,15 @@ const InvitationManager = () => {
               />
             </div>
             <div className="filter-item">
+              <label>Email Subject</label>
+              <input
+                type="text"
+                placeholder="Search subject..."
+                value={searchFilters.emailSubject}
+                onChange={(e) => setSearchFilters({...searchFilters, emailSubject: e.target.value})}
+              />
+            </div>
+            <div className="filter-item">
               <label>Phone</label>
               <input
                 type="text"
@@ -888,15 +897,6 @@ const InvitationManager = () => {
                 placeholder="Search comments..."
                 value={searchFilters.comments}
                 onChange={(e) => setSearchFilters({...searchFilters, comments: e.target.value})}
-              />
-            </div>
-            <div className="filter-item">
-              <label>Email Subject</label>
-              <input
-                type="text"
-                placeholder="Search subject..."
-                value={searchFilters.emailSubject}
-                onChange={(e) => setSearchFilters({...searchFilters, emailSubject: e.target.value})}
               />
             </div>
             <div className="filter-item">
