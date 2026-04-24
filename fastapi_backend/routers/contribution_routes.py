@@ -963,6 +963,9 @@ async def get_contribution_activity(
         action_stats = await db.contribution_activity.aggregate(pipeline).to_list(length=20)
         stats = {s["_id"]: s["count"] for s in action_stats}
         
+        # Add total count to stats for accurate "All" filter
+        stats["total"] = total
+        
         return {
             "success": True,
             "activities": formatted_activities,
