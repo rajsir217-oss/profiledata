@@ -13,17 +13,19 @@ from datetime import datetime
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database import get_database
+from database import connect_to_mongo, close_mongo_connection, get_database
 
 
 async def migrate_platform_stats_jobs():
     """Create dynamic jobs for platform stats snapshot system"""
-    db = await get_database()
+    # Initialize database connection
+    await connect_to_mongo()
+    db = get_database()
     
     jobs_to_create = [
         {
-            "name": "Daily Platform Stats Snapshot",
-            "template_type": "daily_platform_stats_snapshot",
+            "name": "Platform Stats Daily Snapshot",
+            "template_type": "platform_stats_daily_snapshot",
             "enabled": True,
             "schedule": {
                 "type": "cron",
@@ -37,8 +39,8 @@ async def migrate_platform_stats_jobs():
             "created_at": datetime.utcnow()
         },
         {
-            "name": "Monthly Platform Stats Aggregation",
-            "template_type": "monthly_platform_stats_aggregation",
+            "name": "Platform Stats Monthly Aggregation",
+            "template_type": "platform_stats_monthly_aggregation",
             "enabled": True,
             "schedule": {
                 "type": "cron",
@@ -52,8 +54,8 @@ async def migrate_platform_stats_jobs():
             "created_at": datetime.utcnow()
         },
         {
-            "name": "Yearly Platform Stats Aggregation",
-            "template_type": "yearly_platform_stats_aggregation",
+            "name": "Platform Stats Yearly Aggregation",
+            "template_type": "platform_stats_yearly_aggregation",
             "enabled": True,
             "schedule": {
                 "type": "cron",
@@ -67,8 +69,8 @@ async def migrate_platform_stats_jobs():
             "created_at": datetime.utcnow()
         },
         {
-            "name": "Daily Platform Stats Purge",
-            "template_type": "daily_platform_stats_purge",
+            "name": "Platform Stats Daily Purge",
+            "template_type": "platform_stats_daily_purge",
             "enabled": True,
             "schedule": {
                 "type": "cron",
@@ -82,8 +84,8 @@ async def migrate_platform_stats_jobs():
             "created_at": datetime.utcnow()
         },
         {
-            "name": "Monthly Platform Stats Purge",
-            "template_type": "monthly_platform_stats_purge",
+            "name": "Platform Stats Monthly Purge",
+            "template_type": "platform_stats_monthly_purge",
             "enabled": True,
             "schedule": {
                 "type": "cron",
@@ -94,6 +96,24 @@ async def migrate_platform_stats_jobs():
             "retry_count": 3,
             "retry_delay": 60,
             "description": "Purges monthly snapshots for years older than current year to maintain storage efficiency",
+            "created_at": datetime.utcnow()
+        },
+        {
+            "name": "Activity Logs Purge",
+            "template_type": "activity_logs_purge",
+            "enabled": False,  # Disabled by default - enable manually after verifying snapshots
+            "schedule": {
+                "type": "cron",
+                "value": "0 5 * * *"  # Daily at 05:00 UTC
+            },
+            "parameters": {
+                "retention_days": 90,
+                "dry_run": False
+            },
+            "timeout": 900,  # 15 minutes
+            "retry_count": 3,
+            "retry_delay": 60,
+            "description": "Purges activity_logs entries older than retention period (data preserved in snapshots)",
             "created_at": datetime.utcnow()
         }
     ]
@@ -147,6 +167,9 @@ async def main():
         import traceback
         traceback.print_exc()
         sys.exit(1)
+    finally:
+        # Close database connection
+        await close_mongo_connection()
 
 
 if __name__ == "__main__":

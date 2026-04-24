@@ -242,17 +242,19 @@ def initialize_templates():
     registry.register(ReferrerAutoInviteTemplate())
     
     # Register platform stats snapshot templates
-    from .daily_platform_stats_snapshot import DailyPlatformStatsSnapshotTemplate
-    from .monthly_platform_stats_aggregation import MonthlyPlatformStatsAggregationTemplate
-    from .yearly_platform_stats_aggregation import YearlyPlatformStatsAggregationTemplate
-    from .daily_platform_stats_purge import DailyPlatformStatsPurgeTemplate
-    from .monthly_platform_stats_purge import MonthlyPlatformStatsPurgeTemplate
+    from .daily_platform_stats_snapshot import PlatformStatsDailySnapshotTemplate
+    from .monthly_platform_stats_aggregation import PlatformStatsMonthlyAggregationTemplate
+    from .yearly_platform_stats_aggregation import PlatformStatsYearlyAggregationTemplate
+    from .daily_platform_stats_purge import PlatformStatsDailyPurgeTemplate
+    from .monthly_platform_stats_purge import PlatformStatsMonthlyPurgeTemplate
+    from .activity_logs_purge import ActivityLogsPurgeTemplate
     
-    registry.register(DailyPlatformStatsSnapshotTemplate())
-    registry.register(MonthlyPlatformStatsAggregationTemplate())
-    registry.register(YearlyPlatformStatsAggregationTemplate())
-    registry.register(DailyPlatformStatsPurgeTemplate())
-    registry.register(MonthlyPlatformStatsPurgeTemplate())
+    registry.register(PlatformStatsDailySnapshotTemplate())
+    registry.register(PlatformStatsMonthlyAggregationTemplate())
+    registry.register(PlatformStatsYearlyAggregationTemplate())
+    registry.register(PlatformStatsDailyPurgeTemplate())
+    registry.register(PlatformStatsMonthlyPurgeTemplate())
+    registry.register(ActivityLogsPurgeTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
