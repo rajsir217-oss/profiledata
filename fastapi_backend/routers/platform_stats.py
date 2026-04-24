@@ -189,7 +189,7 @@ async def _compute_stats(period: str, db) -> dict:
                     messages_sent += monthly_doc.get("messagesSent", 0)
 
         # Query yearly snapshots if period spans multiple years
-        if period_start.year < now.year:
+        if period_start and period_start.year < now.year:
             year_start = period_start.year
             year_end = period_end.year
             
