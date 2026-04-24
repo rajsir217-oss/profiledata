@@ -304,7 +304,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         action: () => navigate('/admin-utilities')
       });
       // === CONFIGURATION ===
-      items.push({ isHeader: true, label: 'CONFIGURATION' });
+      // items.push({ isHeader: true, label: 'CONFIGURATION' });
 
       items.push({
         icon: '⚙️',
