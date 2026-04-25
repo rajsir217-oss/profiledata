@@ -11,9 +11,35 @@ Usage:
     python -m migrations.backfill_platform_stats --env production
 """
 
+import os
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Set APP_ENVIRONMENT BEFORE any imports that depend on config.py (database, etc.)
+# config.py loads environment at module import time, so this must run first
+env_value = None
+if "--env" in sys.argv:
+    env_index = sys.argv.index("--env") + 1
+    if env_index < len(sys.argv):
+        env_value = sys.argv[env_index]
+        if env_value and not env_value.startswith("-"):
+            os.environ["APP_ENVIRONMENT"] = env_value
+            print(f"🔧 Set APP_ENVIRONMENT={env_value} before imports")
+
+# Force-load the correct .env file BEFORE config.py is imported
+# This ensures MONGODB_URL and other vars are set in os.environ
+script_dir = Path(__file__).resolve().parent.parent  # migrations -> fastapi_backend
+env_file = script_dir / f".env.{env_value or 'local'}"
+if env_file.exists():
+    print(f"📄 Force-loading env file: {env_file}")
+    load_dotenv(str(env_file), override=True)
+    print(f"✅ MONGODB_URL from env: {os.environ.get('MONGODB_URL', 'NOT SET')[:50]}...")
+else:
+    print(f"⚠️ Env file not found: {env_file}")
+
 import asyncio
 import argparse
-import os
 from datetime import datetime, timedelta
 from typing import Dict, Any
 from database import connect_to_mongo, close_mongo_connection, get_database
@@ -81,7 +107,6 @@ async def backfill_daily_snapshots(db, days: int = 90) -> Dict[str, Any]:
             
             # 7. Upsert to platform_stats_daily
             daily_doc = {
-                "_id": date_str,
                 "date": date_str,
                 "searches": searches,
                 "profileViews": profile_views,
@@ -389,7 +414,7 @@ async def main():
     
     # Set environment if specified
     if args.env:
-        os.environ["APP_ENV"] = args.env
+        os.environ["APP_ENVIRONMENT"] = args.env
     
     print("=" * 60)
     print("Platform Stats Backfill Script")
@@ -400,6 +425,15 @@ async def main():
     # Initialize database connection
     await connect_to_mongo()
     db = get_database()
+    
+    # Log which database we're actually connected to
+    from config import settings
+    print(f"\n🔌 Connected to MongoDB: {settings.mongodb_url}")
+    print(f"📁 Database name: {settings.database_name}")
+    
+    # Verify connection by listing collections
+    collections = await db.list_collection_names()
+    print(f"📂 Available collections: {collections}")
     
     # Check action types if requested
     if args.check_actions:
@@ -435,13 +469,17 @@ async def main():
         "errors": []
     }
     
-    # 1. Backfill daily snapshots (last 90 days)
+    # 1. Backfill daily snapshots (last N days)
     print("\n" + "=" * 60)
-    print("Step 1: Backfilling daily snapshots (last 90 days)")
+    print(f"Step 1: Backfilling daily snapshots (last {args.days} days)")
     print("=" * 60)
-    daily_results = await backfill_daily_snapshots(db, days=90)
+    daily_results = await backfill_daily_snapshots(db, days=args.days)
     total_results["daily_snapshots_created"] = daily_results["daily_snapshots_created"]
     total_results["errors"].extend(daily_results["errors"])
+    
+    # Verify daily snapshots were actually written
+    daily_count = await db.platform_stats_daily.count_documents({})
+    print(f"\n🔍 Verification: platform_stats_daily has {daily_count} documents")
     
     # 2. Backfill monthly snapshots for current year (older months)
     print("\n" + "=" * 60)
