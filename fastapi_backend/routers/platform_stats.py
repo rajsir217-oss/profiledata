@@ -98,23 +98,52 @@ async def _compute_stats(period: str, db) -> dict:
     """Run the aggregation queries against the snapshot collections."""
     period_start = _get_period_start(period)
     now = datetime.utcnow()
+    
+    # Platform inception date: November 2025
+    inception_date = datetime(2025, 11, 1, 0, 0, 0)
+    logger.info(f"Platform inception date: {inception_date}")
 
     try:
-        # For "all time" - query single all_time snapshot
-        if period == "all":
-            all_time_doc = await db.platform_stats_all_time.find_one({"_id": "all_time"})
-            if all_time_doc:
-                return {
-                    "searches": all_time_doc.get("searches", 0),
-                    "profileViews": all_time_doc.get("profileViews", 0),
-                    "favorited": all_time_doc.get("favorited", 0),
-                    "shortlisted": all_time_doc.get("shortlisted", 0),
-                    "activeMembers": all_time_doc.get("activeMembers", 0),
-                    "messagesSent": all_time_doc.get("messagesSent", 0),
-                    "period": period,
-                    "periodStart": None,
-                    "cachedAt": now.isoformat()
-                }
+        # For "this year" and "all time" - query from inception to now using actual collections
+        if period in ["yearly", "all"]:
+            logger.info(f"Querying {period} stats from inception {inception_date} to {now}")
+            
+            # Query actual collections from inception to now
+            searches = await db.activity_logs.count_documents({
+                "action_type": "search_performed",
+                "timestamp": {"$gte": inception_date, "$lte": now}
+            })
+            profile_views = await db.activity_logs.count_documents({
+                "action_type": "profile_viewed",
+                "timestamp": {"$gte": inception_date, "$lte": now}
+            })
+            favorited = await db.favorites.count_documents({
+                "createdAt": {"$gte": inception_date, "$lte": now}
+            })
+            shortlisted = await db.shortlists.count_documents({
+                "createdAt": {"$gte": inception_date, "$lte": now}
+            })
+            messages_sent = await db.messages.count_documents({
+                "createdAt": {"$gte": inception_date, "$lte": now}
+            })
+            active_members = await db.users.count_documents({
+                "accountStatus": "active",
+                "security.last_login_at": {"$gte": inception_date, "$lte": now}
+            })
+            
+            logger.info(f"{period} stats: searches={searches}, profileViews={profile_views}, favorited={favorited}, shortlisted={shortlisted}, messagesSent={messages_sent}, activeMembers={active_members}")
+            
+            return {
+                "searches": searches,
+                "profileViews": profile_views,
+                "favorited": favorited,
+                "shortlisted": shortlisted,
+                "activeMembers": active_members,
+                "messagesSent": messages_sent,
+                "period": period,
+                "periodStart": inception_date.isoformat(),
+                "cachedAt": now.isoformat()
+            }
         
         # For other periods - aggregate from snapshot collections
         # Calculate date range
@@ -190,22 +219,7 @@ async def _compute_stats(period: str, db) -> dict:
                     shortlisted += monthly_doc.get("shortlisted", 0)
                     messages_sent += monthly_doc.get("messagesSent", 0)
         
-        # For "this year" (yearly period), also aggregate monthly snapshots
-        if period == "yearly" and period_start and period_start.year == now.year:
-            year_str = str(now.year)
-            logger.info(f"Aggregating monthly snapshots for current year {year_str}")
-            for month in range(1, now.month + 1):
-                month_id = f"{year_str}-{month:02d}"
-                monthly_doc = await db.platform_stats_monthly.find_one({"_id": month_id})
-                if monthly_doc:
-                    logger.info(f"Found monthly snapshot for {month_id}")
-                    searches += monthly_doc.get("searches", 0)
-                    profile_views += monthly_doc.get("profileViews", 0)
-                    favorited += monthly_doc.get("favorited", 0)
-                    shortlisted += monthly_doc.get("shortlisted", 0)
-                    messages_sent += monthly_doc.get("messagesSent", 0)
-
-        # Query yearly snapshots if period spans multiple years
+        # Query yearly snapshots if period spans multiple years (not used for current year)
         if period_start and period_start.year < now.year:
             year_start = period_start.year
             year_end = period_end.year
