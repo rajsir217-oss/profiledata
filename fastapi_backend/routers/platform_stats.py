@@ -100,7 +100,7 @@ async def _compute_stats(period: str, db) -> dict:
     now = datetime.utcnow()
     
     # Platform inception date: November 2025
-    inception_date = datetime(2025, 11, 1, 0, 0, 0)
+    inception_date = datetime(2025, 9, 1, 0, 0, 0)
     logger.info(f"Platform inception date: {inception_date}")
 
     try:
@@ -187,15 +187,17 @@ async def _compute_stats(period: str, db) -> dict:
         messages_sent = 0
 
         # Query daily snapshots for recent dates
+        logger.info(f"Querying daily snapshots for period {period}: period_start={period_start_str}, period_end={period_end_str}, daily_cutoff={daily_cutoff_str}")
         if period_start >= daily_cutoff:
             # Period starts within last 90 days - use daily snapshots
-            logger.info(f"Querying daily snapshots for period {period}: {period_start_str} to {period_end_str}")
+            logger.info(f"Period start {period_start} >= daily_cutoff {daily_cutoff}, querying daily snapshots")
             daily_docs = await db.platform_stats_daily.find({
                 "date": {"$gte": period_start_str, "$lte": period_end_str}
             }).to_list(length=None)
-            logger.info(f"Found {len(daily_docs)} daily snapshots")
+            logger.info(f"Found {len(daily_docs)} daily snapshots for date range {period_start_str} to {period_end_str}")
             
             for doc in daily_docs:
+                logger.info(f"Daily snapshot {doc.get('date')}: favorited={doc.get('favorited', 0)}, shortlisted={doc.get('shortlisted', 0)}, messagesSent={doc.get('messagesSent', 0)}")
                 searches += doc.get("searches", 0)
                 profile_views += doc.get("profileViews", 0)
                 favorited += doc.get("favorited", 0)
