@@ -340,49 +340,67 @@ async def get_all_contributions(
         elif payment_type == "recurring":
             query["paymentType"] = "contribution_recurring"
         
-        # Filter by username if provided
+        # Resolve search to a set of usernames BEFORE pagination
+        target_usernames = None
         if username and username.strip():
-            query["username"] = username.strip()
+            target_usernames = {username.strip()}
         
-        # Get total count
+        if search and search.strip():
+            regex = {"$regex": search.strip(), "$options": "i"}
+            matching_users = await db.users.find(
+                {"$or": [{"username": regex}, {"firstName": regex}, {"lastName": regex}]},
+                {"username": 1, "_id": 0}
+            ).to_list(length=None)
+            search_usernames = {u["username"] for u in matching_users if u.get("username")}
+            
+            if not search_usernames:
+                return {
+                    "success": True,
+                    "contributions": [],
+                    "pagination": {"page": page, "limit": limit, "total": 0, "totalPages": 0},
+                    "stats": {"totalAmount": 0, "totalCount": 0, "oneTimeCount": 0, "recurringCount": 0}
+                }
+            
+            if target_usernames:
+                target_usernames = target_usernames & search_usernames
+                if not target_usernames:
+                    return {
+                        "success": True,
+                        "contributions": [],
+                        "pagination": {"page": page, "limit": limit, "total": 0, "totalPages": 0},
+                        "stats": {"totalAmount": 0, "totalCount": 0, "oneTimeCount": 0, "recurringCount": 0}
+                    }
+            else:
+                target_usernames = search_usernames
+        
+        if target_usernames:
+            query["username"] = {"$in": list(target_usernames)}
+        
+        # Get total count (reflects search + payment_type filters)
         total = await db.payments.count_documents(query)
         
         # Get contributions with pagination
         skip = (page - 1) * limit
         contributions = await db.payments.find(query).sort("createdAt", -1).skip(skip).limit(limit).to_list(length=limit)
         
-        # Get unique usernames from contributions to fetch user details
+        # Fetch user details in batch
         usernames = list(set(c.get("username") for c in contributions if c.get("username")))
         user_details = {}
-        
         if usernames:
-            # Fetch user details in batch
-            users_cursor = db.users.find(
+            users = await db.users.find(
                 {"username": {"$in": usernames}},
                 {"username": 1, "firstName": 1, "lastName": 1, "_id": 0}
-            )
-            users = await users_cursor.to_list(length=len(usernames))
+            ).to_list(length=len(usernames))
             user_details = {u["username"]: u for u in users}
         
         # Format for frontend
         formatted_contributions = []
         for c in contributions:
-            username = c.get("username")
-            user = user_details.get(username, {})
-            
-            # Apply combined search filter if provided
-            if search and search.strip():
-                search_lower = search.strip().lower()
-                username_match = search_lower in username.lower()
-                first_name_match = search_lower in user.get("firstName", "").lower()
-                last_name_match = search_lower in user.get("lastName", "").lower()
-                
-                if not (username_match or first_name_match or last_name_match):
-                    continue
-            
+            uname = c.get("username")
+            user = user_details.get(uname, {})
             formatted_contributions.append({
                 "id": str(c.get("_id")),
-                "username": username,
+                "username": uname,
                 "firstName": user.get("firstName"),
                 "lastName": user.get("lastName"),
                 "amount": c.get("amount"),
@@ -394,9 +412,9 @@ async def get_all_contributions(
                 "thankYouEmailSentAt": c.get("thankYouEmailSentAt").isoformat() if c.get("thankYouEmailSentAt") else None
             })
         
-        # Get summary stats
+        # Get summary stats — use the SAME query so stats respect filters
         pipeline = [
-            {"$match": {"paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}}},
+            {"$match": query},
             {"$group": {
                 "_id": None,
                 "totalAmount": {"$sum": "$amount"},
@@ -902,49 +920,72 @@ async def get_contribution_activity(
         if action_filter and action_filter != "all":
             query["action"] = action_filter
         
-        # Filter by username if provided
+        # Resolve search to a set of usernames BEFORE pagination
+        target_usernames = None
         if username and username.strip():
-            query["username"] = username.strip()
+            target_usernames = {username.strip()}
         
-        # Get total count
+        if search and search.strip():
+            regex = {"$regex": search.strip(), "$options": "i"}
+            matching_users = await db.users.find(
+                {"$or": [{"username": regex}, {"firstName": regex}, {"lastName": regex}]},
+                {"username": 1, "_id": 0}
+            ).to_list(length=None)
+            search_usernames = {u["username"] for u in matching_users if u.get("username")}
+            
+            if not search_usernames:
+                return {
+                    "success": True,
+                    "activities": [],
+                    "pagination": {"page": page, "limit": limit, "total": 0, "totalPages": 0},
+                    "stats": {}
+                }
+            
+            if target_usernames:
+                target_usernames = target_usernames & search_usernames
+                if not target_usernames:
+                    return {
+                        "success": True,
+                        "activities": [],
+                        "pagination": {"page": page, "limit": limit, "total": 0, "totalPages": 0},
+                        "stats": {}
+                    }
+            else:
+                target_usernames = search_usernames
+        
+        # Build query
+        query = {}
+        if action_filter and action_filter != "all":
+            query["action"] = action_filter
+        
+        if target_usernames:
+            query["username"] = {"$in": list(target_usernames)}
+        
+        # Get total count (reflects search + action_filter)
         total = await db.contribution_activity.count_documents(query)
         
         # Get activities with pagination
         skip = (page - 1) * limit
         activities = await db.contribution_activity.find(query).sort("timestamp", -1).skip(skip).limit(limit).to_list(length=limit)
         
-        # Get unique usernames from activities to fetch user details
+        # Fetch user details in batch
         usernames = list(set(a.get("username") for a in activities if a.get("username")))
         user_details = {}
-        
         if usernames:
-            # Fetch user details in batch
-            users_cursor = db.users.find(
+            users = await db.users.find(
                 {"username": {"$in": usernames}},
                 {"username": 1, "firstName": 1, "lastName": 1, "_id": 0}
-            )
-            users = await users_cursor.to_list(length=len(usernames))
+            ).to_list(length=len(usernames))
             user_details = {u["username"]: u for u in users}
         
         # Format for frontend
         formatted_activities = []
         for a in activities:
-            username = a.get("username")
-            user = user_details.get(username, {})
-            
-            # Apply combined search filter if provided
-            if search and search.strip():
-                search_lower = search.strip().lower()
-                username_match = search_lower in username.lower()
-                first_name_match = search_lower in user.get("firstName", "").lower()
-                last_name_match = search_lower in user.get("lastName", "").lower()
-                
-                if not (username_match or first_name_match or last_name_match):
-                    continue
-            
+            uname = a.get("username")
+            user = user_details.get(uname, {})
             formatted_activities.append({
                 "id": str(a.get("_id")),
-                "username": username,
+                "username": uname,
                 "firstName": user.get("firstName"),
                 "lastName": user.get("lastName"),
                 "action": a.get("action"),
@@ -953,13 +994,17 @@ async def get_contribution_activity(
                 "timestamp": a.get("timestamp").isoformat() if a.get("timestamp") else None
             })
         
-        # Get action summary stats
-        pipeline = [
-            {"$group": {
+        # Get action summary stats — use the SAME query so stats respect filters
+        match_stage = {"$match": query} if query else None
+        pipeline = []
+        if match_stage:
+            pipeline.append(match_stage)
+        pipeline.append({
+            "$group": {
                 "_id": "$action",
                 "count": {"$sum": 1}
-            }}
-        ]
+            }
+        })
         action_stats = await db.contribution_activity.aggregate(pipeline).to_list(length=20)
         stats = {s["_id"]: s["count"] for s in action_stats}
         

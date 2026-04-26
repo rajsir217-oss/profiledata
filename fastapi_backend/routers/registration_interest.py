@@ -32,15 +32,16 @@ router = APIRouter(
 class ReferredByInfo(BaseModel):
     firstName: Optional[str] = None
     lastName: Optional[str] = None
-    phone: Optional[str] = None
+    phone: Optional[str] = Field(None, min_length=10, max_length=20, pattern=r"^[\d\s\-\(\)\.\+]+$")
     email: Optional[str] = None
 
 
 class RegistrationInterestCreate(BaseModel):
+    registeringFor: str = Field(..., pattern="^(myself|my_son|my_daughter)$")
     firstName: str = Field(..., min_length=1, max_length=100)
     lastName: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
-    phone: str = Field(..., min_length=5, max_length=20)
+    phone: str = Field(..., min_length=10, max_length=20, pattern=r"^[\d\s\-\(\)\.\+]+$")
     linkedInUrl: Optional[str] = Field(None, max_length=500)
     residencyStatus: str = Field(..., pattern="^(us_citizen|green_card)$")
     referredBy: Optional[ReferredByInfo] = None
@@ -102,6 +103,7 @@ async def submit_registration_interest(
 
     now = datetime.utcnow()
     doc = {
+        "registeringFor": data.registeringFor,
         "firstName": data.firstName.strip(),
         "lastName": data.lastName.strip(),
         "email": data.email.lower().strip(),
