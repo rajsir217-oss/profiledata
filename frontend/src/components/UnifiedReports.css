@@ -13,7 +13,7 @@
   padding-bottom: 12px;
 }
 
-.tab-button {
+.unified-reports .tab-button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -26,6 +26,9 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex: 0 0 auto !important;
+  min-width: unset !important;
+  width: auto !important;
 }
 
 .tab-button:hover {
@@ -69,9 +72,12 @@
     gap: 6px;
   }
 
-  .tab-button {
+  .unified-reports .tab-button {
     padding: 10px 16px;
     font-size: 13px;
+    flex: 0 0 auto !important;
+    min-width: unset !important;
+    width: auto !important;
   }
 
   .tab-label {

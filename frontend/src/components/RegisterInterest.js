@@ -8,6 +8,7 @@ import './RegisterInterest.css';
 const RegisterInterest = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    registeringFor: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -57,6 +58,15 @@ const RegisterInterest = () => {
       setError('Phone number is required.');
       return;
     }
+    const phoneDigits = formData.phone.trim().replace(/\D/g, '');
+    if (phoneDigits.length < 10) {
+      setError('Please enter a valid 10-digit phone number.');
+      return;
+    }
+    if (!formData.registeringFor) {
+      setError('Please select who you are registering for.');
+      return;
+    }
     if (!formData.residencyStatus) {
       setError('Please select your residency status.');
       return;
@@ -72,7 +82,18 @@ const RegisterInterest = () => {
 
     setSubmitting(true);
     try {
+      // Also validate referrer phone if provided
+      if (formData.refPhone.trim()) {
+        const refPhoneDigits = formData.refPhone.trim().replace(/\D/g, '');
+        if (refPhoneDigits.length < 10) {
+          setError('Please enter a valid 10-digit referrer phone number.');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const payload = {
+        registeringFor: formData.registeringFor,
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
@@ -141,6 +162,77 @@ const RegisterInterest = () => {
             🇺🇸🇮🇳 This platform is exclusively for individuals of <strong>Indian origin</strong> who are <strong>US Citizens</strong> or <strong>Green Card (Permanent Resident) holders</strong>. By submitting this form, you confirm that you meet this requirement.
           </div>
 
+          {/* How Did You Hear About Us */}
+          <div className="ri-section">
+            <h3 className="ri-section-title">How did you hear about us?</h3>
+            <div className="ri-field">
+              <select
+                name="howDidYouHear"
+                value={formData.howDidYouHear}
+                onChange={handleChange}
+                className="ri-select"
+              >
+                <option value="">Select an option</option>
+                <option value="friend_family">Friend or Family Member</option>
+                <option value="community_event">Community Event / Gathering</option>
+                <option value="social_media">Social Media (Facebook, Instagram, etc.)</option>
+                <option value="temple_organization">Temple / Cultural Organization</option>
+                <option value="online_search">Online Search (Google, etc.)</option>
+                <option value="word_of_mouth">Word of Mouth</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            {formData.howDidYouHear === 'other' && (
+              <div className="ri-field" style={{ marginTop: '10px' }}>
+                <input
+                  name="howDidYouHearOther"
+                  type="text"
+                  value={formData.howDidYouHearOther}
+                  onChange={handleChange}
+                  placeholder="Please specify..."
+                  maxLength={200}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Who Are You Registering For */}
+          <div className="ri-section">
+            <h3 className="ri-section-title">I am registering for *</h3>
+            <div className="ri-radio-group ri-radio-grid-4">
+              <label className={`ri-radio-option ${formData.registeringFor === 'myself' ? 'ri-radio-selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="registeringFor"
+                  value="myself"
+                  checked={formData.registeringFor === 'myself'}
+                  onChange={handleChange}
+                />
+                <span className="ri-radio-label">Myself</span>
+              </label>
+              <label className={`ri-radio-option ${formData.registeringFor === 'my_son' ? 'ri-radio-selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="registeringFor"
+                  value="my_son"
+                  checked={formData.registeringFor === 'my_son'}
+                  onChange={handleChange}
+                />
+                <span className="ri-radio-label">Son</span>
+              </label>
+              <label className={`ri-radio-option ${formData.registeringFor === 'my_daughter' ? 'ri-radio-selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="registeringFor"
+                  value="my_daughter"
+                  checked={formData.registeringFor === 'my_daughter'}
+                  onChange={handleChange}
+                />
+                <span className="ri-radio-label">Daughter</span>
+              </label>
+            </div>
+          </div>
+
           {/* Residency Status */}
           <div className="ri-section">
             <h3 className="ri-section-title">Residency Status *</h3>
@@ -171,7 +263,7 @@ const RegisterInterest = () => {
           {/* Your Information */}
           <div className="ri-section">
             <h3 className="ri-section-title">Your Information</h3>
-            <div className="ri-field-row">
+            <div className="ri-field-row ri-field-row-4">
               <div className="ri-field">
                 <label htmlFor="firstName">First Name *</label>
                 <input
@@ -197,8 +289,6 @@ const RegisterInterest = () => {
                   required
                 />
               </div>
-            </div>
-            <div className="ri-field-row">
               <div className="ri-field">
                 <label htmlFor="email">Email *</label>
                 <input
@@ -238,40 +328,6 @@ const RegisterInterest = () => {
             </div>
           </div>
 
-          {/* How Did You Hear About Us */}
-          <div className="ri-section">
-            <h3 className="ri-section-title">How did you hear about us?</h3>
-            <div className="ri-field">
-              <select
-                name="howDidYouHear"
-                value={formData.howDidYouHear}
-                onChange={handleChange}
-                className="ri-select"
-              >
-                <option value="">Select an option</option>
-                <option value="friend_family">Friend or Family Member</option>
-                <option value="community_event">Community Event / Gathering</option>
-                <option value="social_media">Social Media (Facebook, Instagram, etc.)</option>
-                <option value="temple_organization">Temple / Cultural Organization</option>
-                <option value="online_search">Online Search (Google, etc.)</option>
-                <option value="word_of_mouth">Word of Mouth</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            {formData.howDidYouHear === 'other' && (
-              <div className="ri-field" style={{ marginTop: '10px' }}>
-                <input
-                  name="howDidYouHearOther"
-                  type="text"
-                  value={formData.howDidYouHearOther}
-                  onChange={handleChange}
-                  placeholder="Please specify..."
-                  maxLength={200}
-                />
-              </div>
-            )}
-          </div>
-
           {/* Referred By */}
           <div className="ri-section">
             <h3 className="ri-section-title">
@@ -281,7 +337,7 @@ const RegisterInterest = () => {
             <p className="ri-section-desc">
               This is a <strong>community-based platform</strong> built on trust. Providing referral information <strong style={{ color: 'var(--danger-color)' }}>significantly speeds up your verification </strong> and helps maintain the quality of our community.
             </p>
-            <div className="ri-field-row">
+            <div className="ri-field-row ri-field-row-4">
               <div className="ri-field">
                 <label htmlFor="refFirstName">Referrer First Name</label>
                 <input
@@ -304,19 +360,6 @@ const RegisterInterest = () => {
                   placeholder="Last name"
                 />
               </div>
-            </div>
-            <div className="ri-field-row">
-              <div className="ri-field">
-                <label htmlFor="refPhone">Referrer Phone</label>
-                <input
-                  id="refPhone"
-                  name="refPhone"
-                  type="tel"
-                  value={formData.refPhone}
-                  onChange={handleChange}
-                  placeholder="(555) 123-4567"
-                />
-              </div>
               <div className="ri-field">
                 <label htmlFor="refEmail">Referrer Email</label>
                 <input
@@ -326,6 +369,17 @@ const RegisterInterest = () => {
                   value={formData.refEmail}
                   onChange={handleChange}
                   placeholder="referrer@email.com"
+                />
+              </div>
+              <div className="ri-field">
+                <label htmlFor="refPhone">Referrer Phone</label>
+                <input
+                  id="refPhone"
+                  name="refPhone"
+                  type="tel"
+                  value={formData.refPhone}
+                  onChange={handleChange}
+                  placeholder="(555) 123-4567"
                 />
               </div>
             </div>

@@ -72,16 +72,21 @@ async def backfill_daily_snapshots(db, days: int = 90) -> Dict[str, Any]:
         time_filter = {"timestamp": {"$gte": day_start, "$lte": day_end}}
         
         try:
-            # 1. Searches
+            # 1. Searches (activity_logs only - no historical alternative)
             searches = await db.activity_logs.count_documents({
                 "action_type": "search_performed",
                 **time_filter
             })
             
-            # 2. Profile Views
-            profile_views = await db.activity_logs.count_documents({
-                "action_type": "profile_viewed",
-                **time_filter
+            # 2. Profile Views - query profile_views collection directly
+            # Uses $or to handle mixed schemas (viewedAt, lastViewedAt, createdAt, viewed_at)
+            profile_views = await db.profile_views.count_documents({
+                "$or": [
+                    {"viewedAt": {"$gte": day_start, "$lte": day_end}},
+                    {"lastViewedAt": {"$gte": day_start, "$lte": day_end}},
+                    {"createdAt": {"$gte": day_start, "$lte": day_end}},
+                    {"viewed_at": {"$gte": day_start, "$lte": day_end}}
+                ]
             })
             
             # 3. Favorited - query favorites collection

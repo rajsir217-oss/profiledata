@@ -108,28 +108,32 @@ async def _compute_stats(period: str, db) -> dict:
         if period in ["yearly", "all"]:
             logger.info(f"Querying {period} stats from inception {inception_date} to {now}")
             
-            # Query actual collections from inception to now
-            searches = await db.activity_logs.count_documents({
-                "action_type": "search_performed",
-                "timestamp": {"$gte": inception_date, "$lte": now}
-            })
-            profile_views = await db.activity_logs.count_documents({
-                "action_type": "profile_viewed",
-                "timestamp": {"$gte": inception_date, "$lte": now}
-            })
-            favorited = await db.favorites.count_documents({
-                "createdAt": {"$gte": inception_date, "$lte": now}
-            })
-            shortlisted = await db.shortlists.count_documents({
-                "createdAt": {"$gte": inception_date, "$lte": now}
-            })
-            messages_sent = await db.messages.count_documents({
-                "createdAt": {"$gte": inception_date, "$lte": now}
-            })
-            active_members = await db.users.count_documents({
-                "accountStatus": "active",
-                "security.last_login_at": {"$gte": inception_date, "$lte": now}
-            })
+            # For yearly/all, sum daily snapshots for accurate totals
+            # (avoids schema/type mismatches in raw collections)
+            inception_str = inception_date.strftime("%Y-%m-%d")
+            now_str = now.strftime("%Y-%m-%d")
+
+            daily_pipeline = [
+                {"$match": {"date": {"$gte": inception_str, "$lte": now_str}}},
+                {"$group": {
+                    "_id": None,
+                    "searches": {"$sum": "$searches"},
+                    "profileViews": {"$sum": "$profileViews"},
+                    "favorited": {"$sum": "$favorited"},
+                    "shortlisted": {"$sum": "$shortlisted"},
+                    "messagesSent": {"$sum": "$messagesSent"},
+                    "activeMembers": {"$sum": "$activeMembers"}
+                }}
+            ]
+            daily_result = await db.platform_stats_daily.aggregate(daily_pipeline).to_list(1)
+            daily_agg = daily_result[0] if daily_result else {}
+
+            searches = daily_agg.get("searches", 0)
+            profile_views = daily_agg.get("profileViews", 0)
+            favorited = daily_agg.get("favorited", 0)
+            shortlisted = daily_agg.get("shortlisted", 0)
+            messages_sent = daily_agg.get("messagesSent", 0)
+            active_members = daily_agg.get("activeMembers", 0)
             
             logger.info(f"{period} stats: searches={searches}, profileViews={profile_views}, favorited={favorited}, shortlisted={shortlisted}, messagesSent={messages_sent}, activeMembers={active_members}")
             
