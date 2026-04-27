@@ -275,7 +275,7 @@ async def capture_paypal_order(
         # Send thank you email (lazy import to avoid circular)
         try:
             from routers.contribution_routes import send_contribution_thank_you_email
-            email_sent = await send_contribution_thank_you_email(db=db, username=username, amount=amount, payment_type="one-time", payment_method="PayPal")
+            email_sent = await send_contribution_thank_you_email(db=db, username=username, amount=amount, payment_type="one-time", payment_method="PayPal", contribution_id=str(payment_record["_id"]))
             if email_sent:
                 await db.payments.update_one(
                     {"_id": payment_record["_id"]},
