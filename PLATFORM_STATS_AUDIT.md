@@ -39,10 +39,9 @@
 - `daily_platform_stats_snapshot.py`: profile_views uses `$switch` + `$ifNull` aggregation on `profile_views` collection to pick the best date field without double-counting.
 - `backfill_platform_stats.py`: profile_views uses `$sum: "$viewCount"` aggregation on `profile_views` for total cumulative views.
 
-### ISSUE-2: Monthly Aggregation Deletes Source Data
+### ISSUE-2: Monthly Aggregation Deletes Source Daily Snapshots
 **File:** `monthly_platform_stats_aggregation.py:122-124`  
-After aggregating a month, daily snapshots for that month are deleted. If the job is re-run or partially fails, data is permanently lost.  
-**Fix:** Mark dailies as `aggregated: true` instead of deleting. Delete only after verification.
+**Status: FIXED** — Changed `delete_many` to `update_many` with `$set: {aggregated: True}` in `monthly_platform_stats_aggregation.py:118-120`. Daily snapshots are now soft-marked as aggregated instead of being permanently removed. This allows re-runs to succeed and preserves the daily granularity for future drill-down queries. Also updated the job description to reflect the new non-destructive behavior.
 
 ### ISSUE-3: No Database Indexes for Snapshot Queries
 **Status: FIXED** — Added `background=True` indexes at startup (`main.py`) and standalone script (`ensure_performance_indexes.py`):
@@ -140,11 +139,15 @@ The `activity_logs` collection is the largest in the system. `count_documents` w
 **Fix:** Maintain running counters in Redis or use `$inc` on a counter document instead of counting logs retrospectively.
 
 ### ISSUE-13: Backfill Loads All Docs Into Memory
-**File:** `backfill_platform_stats.py:175-177`  
-```python
-.to_list(length=None)  # Unbounded!
-```
-**Fix:** Use MongoDB aggregation with `$group` and `$sum` instead of loading all docs into Python memory.
+**Status: FIXED** — Replaced `find().to_list(length=None)` with MongoDB aggregation pipelines (`$match` + `$group` + `$sum`) in both `backfill_platform_stats.py` and `monthly_platform_stats_aggregation.py`:
+
+| Function | File | Before | After |
+|----------|------|--------|-------|
+| `backfill_monthly_snapshots` | `backfill_platform_stats.py` | `find().to_list(length=None)` + Python loop summing | `$match` + `$group` pipeline with `$sum` |
+| `backfill_yearly_snapshots` | `backfill_platform_stats.py` | `find().to_list(length=None)` + Python loop summing | `$match` + `$group` pipeline with `$sum` |
+| `execute` | `monthly_platform_stats_aggregation.py` | `find().to_list(length=None)` + Python loop summing | `$match` + `$group` pipeline with `$sum` |
+
+This avoids O(N) memory growth where N = number of daily/monthly snapshots. The aggregation runs entirely in MongoDB's query engine and returns a single summary document.
 
 ## Security & Operations
 
