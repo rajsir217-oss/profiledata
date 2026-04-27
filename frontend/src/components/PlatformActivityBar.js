@@ -3,6 +3,7 @@ import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import logger from '../utils/logger';
 import { useContribution } from '../contexts/ContributionContext';
+import useAuth from '../hooks/useAuth';
 import './PlatformActivityBar.css';
 
 const PERIODS = [
@@ -32,7 +33,7 @@ const PlatformActivityBar = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [, setTick] = useState(0); // Forces re-render so 'Updated Xm ago' stays live
 
-  const isLoggedIn = !!localStorage.getItem('token');
+  const { isLoggedIn } = useAuth();
 
   const fetchStats = useCallback(async () => {
     if (!isLoggedIn) return;
@@ -51,14 +52,47 @@ const PlatformActivityBar = () => {
 
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 300000); // 5 min
-    return () => clearInterval(interval);
+    let interval = setInterval(fetchStats, 300000); // 5 min
+
+    // Pause/resume polling when tab is hidden/visible to reduce background load
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        clearInterval(interval);
+      } else {
+        fetchStats();
+        interval = setInterval(fetchStats, 300000);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [fetchStats]);
 
   // Tick every 30s so 'Updated Xm ago' label stays accurate between fetches
   useEffect(() => {
-    const tickInterval = setInterval(() => setTick((t) => t + 1), 30000);
-    return () => clearInterval(tickInterval);
+    let tickInterval;
+    const startTick = () => {
+      tickInterval = setInterval(() => setTick((t) => t + 1), 30000);
+    };
+    startTick();
+
+    // Pause/resume tick when tab is hidden/visible
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        clearInterval(tickInterval);
+      } else {
+        startTick();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(tickInterval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {

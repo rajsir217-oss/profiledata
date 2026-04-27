@@ -670,6 +670,9 @@ class SessionManager {
     // Clear storage
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    
+    // Notify same-tab listeners before redirect
+    window.dispatchEvent(new Event('loginStatusChanged'));
     localStorage.removeItem('username');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userStatus');
