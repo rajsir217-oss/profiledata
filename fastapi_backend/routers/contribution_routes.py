@@ -101,6 +101,9 @@ async def send_contribution_thank_you_email(
             <style>
                 body {{ font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 20px; background-color: #f8fafc; }}
                 .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .brand-banner {{ background: linear-gradient(135deg, #6366f1, #a78bfa); color: white; padding: 16px 30px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); }}
+                .brand-banner span {{ font-size: 22px; vertical-align: middle; margin-right: 6px; }}
+                .brand-banner .brand-text {{ font-size: 18px; font-weight: 700; letter-spacing: 1px; vertical-align: middle; }}
                 .header {{ background: linear-gradient(135deg, #6366f1, #a78bfa); color: white; padding: 40px 30px; text-align: center; }}
                 .header h1 {{ margin: 0; font-size: 28px; font-weight: 700; }}
                 .header p {{ margin: 10px 0 0 0; font-size: 16px; opacity: 0.9; }}
@@ -123,6 +126,10 @@ async def send_contribution_thank_you_email(
         </head>
         <body>
             <div class="container">
+                <div class="brand-banner">
+                    <span>🦋</span>
+                    <span class="brand-text">L3V3L Matches</span>
+                </div>
                 <div class="header">
                     <h1>Thank You! 💝</h1>
                     <p>Your generosity makes a difference</p>
