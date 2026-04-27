@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import logging
 from datetime import datetime
+import pytz
 
 from database import get_database
 from auth.jwt_auth import get_current_user_dependency as get_current_user
@@ -26,7 +27,8 @@ async def send_contribution_thank_you_email(
     username: str,
     amount: float,
     payment_type: str,
-    payment_method: str = "PayPal"
+    payment_method: str = "PayPal",
+    contribution_id: Optional[str] = None
 ):
     """Send thank you email after successful contribution"""
     try:
@@ -50,10 +52,44 @@ async def send_contribution_thank_you_email(
                 logger.error(f"Failed to decrypt email for {username}: {e}")
                 return
         first_name = user.get("firstName", "Supporter")
-        
+
+        # Resolve timezone-aware date
+        try:
+            tz = pytz.timezone("America/Los_Angeles")
+            now = datetime.now(tz)
+            date_str = now.strftime('%B %d, %Y %I:%M %p %Z')
+        except Exception:
+            date_str = datetime.utcnow().strftime('%B %d, %Y UTC')
+
+        # Resolve transaction ID and actual payment type from contribution record
+        transaction_id = "N/A"
+        actual_payment_type = payment_type
+        if contribution_id:
+            from bson import ObjectId
+            try:
+                payment = await db.payments.find_one({"_id": ObjectId(contribution_id)})
+                if payment:
+                    transaction_id = (
+                        payment.get("stripeSessionId")
+                        or payment.get("paypalOrderId")
+                        or payment.get("paypalCaptureId")
+                        or payment.get("cloverChargeId")
+                        or payment.get("sessionId")
+                        or "N/A"
+                    )
+                    stored_type = payment.get("paymentType")
+                    if stored_type == "contribution_recurring":
+                        actual_payment_type = "Recurring"
+                    elif stored_type == "contribution_one_time":
+                        actual_payment_type = "One-time"
+            except Exception:
+                pass
+
+        app_url = settings.frontend_url or "https://l3v3lmatches.com"
+
         # Create email content
         subject = f"Thank You for Your ${amount:.2f} Contribution! 💝"
-        
+
         # HTML email template
         html_content = f"""
         <!DOCTYPE html>
@@ -77,6 +113,10 @@ async def send_contribution_thank_you_email(
                 .impact {{ margin: 30px 0; }}
                 .impact h3 {{ color: #1f2937; margin-bottom: 15px; }}
                 .impact ul {{ color: #6b7280; line-height: 1.6; }}
+                .cta {{ text-align: center; margin: 24px 0; }}
+                .cta a {{ display: inline-block; background: linear-gradient(135deg, #6366f1, #a78bfa); color: white; padding: 12px 28px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 15px; }}
+                .notice {{ background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 14px 18px; margin: 20px 0; text-align: center; }}
+                .notice p {{ margin: 0; color: #92400e; font-size: 14px; }}
                 .footer {{ text-align: center; padding: 30px; background: #f8fafc; color: #6b7280; font-size: 14px; }}
                 .heart {{ color: #ef4444; font-size: 20px; }}
             </style>
@@ -87,43 +127,51 @@ async def send_contribution_thank_you_email(
                     <h1>Thank You! 💝</h1>
                     <p>Your generosity makes a difference</p>
                 </div>
-                
+
                 <div class="content">
                     <div class="thank-you">
                         <h2>Dear {first_name},</h2>
                         <p>We're incredibly grateful for your support! Your contribution helps us continue providing valuable services to our community.</p>
-                        
+
                         <div class="amount">
                             ${amount:.2f}
                         </div>
-                        
-                        <p><strong>{payment_type.title()} Contribution</strong> via {payment_method}</p>
+
+                        <p><strong>{actual_payment_type} Contribution</strong> via {payment_method}</p>
                     </div>
-                    
+
                     <div class="details">
                         <p><strong>Contribution Details:</strong></p>
                         <p>Amount: ${amount:.2f}</p>
-                        <p>Type: {payment_type.title()}</p>
-                        <p>Date: {datetime.utcnow().strftime('%B %d, %Y')}</p>
-                        <p>Transaction ID: Will be available in your contribution history</p>
+                        <p>Type: {actual_payment_type}</p>
+                        <p>Date: {date_str}</p>
+                        <p>Transaction ID: {transaction_id}</p>
                     </div>
-                    
+
                     <div class="impact">
                         <h3>Your Impact 🌟</h3>
                         <ul>
-                            <li>Helps keep our platform running smoothly</li>
-                            <li>Enables us to add new features and improvements</li>
-                            <li>Provides better support to all users</li>
-                            <li>Ensures secure and reliable service</li>
+                            <li>Connecting more Indian-origin professionals with their ideal match</li>
+                            <li>Keeping the platform safe, respectful, and community-verified</li>
+                            <li>Providing free access to families seeking genuine relationships</li>
+                            <li>Maintaining secure profiles and responsive support for our members</li>
                         </ul>
                     </div>
-                    
+
+                    <div class="cta">
+                        <a href="{app_url}/contribution-management">View Contribution History</a>
+                    </div>
+
+                    <div class="notice">
+                        <p><strong>Important:</strong> On your credit card statement, charges may appear as <strong>nimbledata.us</strong>.</p>
+                    </div>
+
                     <p style="text-align: center; margin-top: 30px;">
                         <strong>With heartfelt thanks,</strong><br>
-                        L3V3L Team <span class="heart">❤️</span>
+                        The L3V3L Matches Team <span class="heart">❤️</span>
                     </p>
                 </div>
-                
+
                 <div class="footer">
                     <p>This is an automated receipt for your contribution. Please keep it for your records.</p>
                     <p>If you have any questions, please don't hesitate to contact our support team.</p>
@@ -132,7 +180,7 @@ async def send_contribution_thank_you_email(
         </body>
         </html>
         """
-        
+
         # Plain text version
         text_content = f"""
 Thank You for Your Contribution! 💝
@@ -143,18 +191,24 @@ We're incredibly grateful for your support! Your contribution helps us continue 
 
 Contribution Details:
 - Amount: ${amount:.2f}
-- Type: {payment_type.title()}
+- Type: {actual_payment_type}
 - Payment Method: {payment_method}
-- Date: {datetime.utcnow().strftime('%B %d, %Y')}
+- Date: {date_str}
+- Transaction ID: {transaction_id}
 
 Your Impact:
-- Helps keep our platform running smoothly
-- Enables us to add new features and improvements
-- Provides better support to all users
-- Ensures secure and reliable service
+- Connecting more Indian-origin professionals with their ideal match
+- Keeping the platform safe, respectful, and community-verified
+- Providing free access to families seeking genuine relationships
+- Maintaining secure profiles and responsive support for our members
+
+Important Notice:
+On your credit card statement, charges may appear as "nimbledata.us".
+
+View your contribution history: {app_url}/contribution-management
 
 With heartfelt thanks,
-The L3V3L Team ❤️
+The L3V3L Matches Team ❤️
 
 This is an automated receipt for your contribution. Please keep it for your records.
 """
@@ -633,7 +687,8 @@ async def send_thank_you_email(
         username=username,
         amount=amount,
         payment_type=payment_type,
-        payment_method=contribution.get("paymentProvider", "PayPal").title()
+        payment_method=contribution.get("paymentProvider", "PayPal").title(),
+        contribution_id=contribution_id
     )
 
     # Mark contribution as thanked
@@ -743,7 +798,8 @@ async def add_manual_contribution(
             ptype = "monthly" if request.paymentType == "recurring" else "one-time"
             email_sent = await send_contribution_thank_you_email(
                 db=db, username=request.username, amount=request.amount,
-                payment_type=ptype, payment_method=request.paymentMethod.title()
+                payment_type=ptype, payment_method=request.paymentMethod.title(),
+                contribution_id=str(result.inserted_id)
             )
             if email_sent:
                 thank_you_sent = datetime.utcnow()

@@ -174,7 +174,7 @@ async def create_charge(
         try:
             from routers.contribution_routes import send_contribution_thank_you_email
             ptype = "monthly" if is_recurring else "one-time"
-            email_sent = await send_contribution_thank_you_email(db, username, amount_float, ptype, "Clover Card")
+            email_sent = await send_contribution_thank_you_email(db, username, amount_float, ptype, "Clover Card", contribution_id=str(payment_record["_id"]))
             if email_sent:
                 await db.payments.update_one(
                     {"_id": payment_record["_id"]},
@@ -356,6 +356,7 @@ async def confirm_clover_payment(
     # Send thank you email (fire and forget)
     try:
         from routers.contribution_routes import send_contribution_thank_you_email
+        # NOTE: no payment_record created here; transaction_id will show N/A
         await send_contribution_thank_you_email(db, username, amount, "one-time", "Clover")
     except Exception as e:
         logger.warning(f"Failed to send Clover thank-you email: {e}")
