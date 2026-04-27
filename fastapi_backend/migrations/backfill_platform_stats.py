@@ -339,24 +339,29 @@ async def backfill_all_time_snapshot(db) -> Dict[str, Any]:
             "action_type": "search_performed"
         })
         
-        # 2. Profile Views
-        profile_views = await db.activity_logs.count_documents({
-            "action_type": "profile_viewed"
+        # 2. Profile Views — sum viewCount from dedicated profile_views collection
+        pv_pipeline = [
+            {"$group": {
+                "_id": None,
+                "totalViews": {"$sum": "$viewCount"}
+            }}
+        ]
+        pv_result = await db.profile_views.aggregate(pv_pipeline).to_list(1)
+        profile_views = pv_result[0]["totalViews"] if pv_result else 0
+        
+        # 3. Favorited (dedicated collection — source of truth)
+        favorited = await db.favorites.count_documents({
+            "createdAt": {"$exists": True, "$ne": None}
         })
         
-        # 3. Favorited
-        favorited = await db.activity_logs.count_documents({
-            "action_type": "favorite_added"
+        # 4. Shortlisted (dedicated collection — source of truth)
+        shortlisted = await db.shortlists.count_documents({
+            "createdAt": {"$exists": True, "$ne": None}
         })
         
-        # 4. Shortlisted
-        shortlisted = await db.activity_logs.count_documents({
-            "action_type": "shortlist_added"
-        })
-        
-        # 5. Messages Sent
-        messages_sent = await db.activity_logs.count_documents({
-            "action_type": "message_sent"
+        # 5. Messages Sent (dedicated collection — source of truth)
+        messages_sent = await db.messages.count_documents({
+            "createdAt": {"$exists": True, "$ne": None}
         })
         
         # 6. Active Members (users who have ever logged in)
@@ -486,14 +491,24 @@ async def main():
     daily_count = await db.platform_stats_daily.count_documents({})
     print(f"\n🔍 Verification: platform_stats_daily has {daily_count} documents")
     
-    # 2. Backfill monthly snapshots for current year (older months)
+    # 2. Backfill monthly snapshots for all years with daily data
     print("\n" + "=" * 60)
-    print("Step 2: Backfilling monthly snapshots (current year)")
+    print("Step 2: Backfilling monthly snapshots")
     print("=" * 60)
+    # Determine years from daily snapshots
+    daily_years = set()
+    async for doc in db.platform_stats_daily.find({}, {"date": 1}):
+        date_val = doc.get("date")
+        if date_val and len(date_val) >= 4:
+            daily_years.add(int(date_val[:4]))
+    # Also include current year in case dailies don't exist yet
     current_year = datetime.utcnow().year
-    monthly_results = await backfill_monthly_snapshots(db, current_year)
-    total_results["monthly_snapshots_created"] = monthly_results["monthly_snapshots_created"]
-    total_results["errors"].extend(monthly_results["errors"])
+    daily_years.add(current_year)
+    for year in sorted(daily_years):
+        print(f"  → Backfilling monthly snapshots for {year}")
+        monthly_results = await backfill_monthly_snapshots(db, year)
+        total_results["monthly_snapshots_created"] += monthly_results["monthly_snapshots_created"]
+        total_results["errors"].extend(monthly_results["errors"])
     
     # 3. Backfill yearly snapshots for previous years
     print("\n" + "=" * 60)

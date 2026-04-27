@@ -189,6 +189,39 @@ async def lifespan(app: FastAPI):
     await initialize_activity_logger(db)
     logger.info("✅ Activity Logger initialized")
     
+    # Create Platform Stats indexes (non-blocking) — critical for aggregation performance
+    try:
+        await db.platform_stats_daily.create_index(
+            [("date", 1)], unique=True, background=True
+        )
+        await db.platform_stats_monthly.create_index(
+            [("year", 1), ("month", 1)], unique=True, background=True
+        )
+        await db.platform_stats_yearly.create_index(
+            [("year", 1)], unique=True, background=True
+        )
+        await db.activity_logs.create_index(
+            [("timestamp", 1), ("action_type", 1)], background=True
+        )
+        await db.activity_logs.create_index(
+            [("action_type", 1), ("timestamp", 1)], background=True
+        )
+        await db.profile_views.create_index(
+            [("lastViewedAt", 1)], background=True
+        )
+        await db.profile_views.create_index(
+            [("firstViewedAt", 1)], background=True
+        )
+        await db.profile_views.create_index(
+            [("createdAt", 1)], background=True
+        )
+        await db.messages.create_index(
+            [("createdAt", 1)], background=True
+        )
+        logger.info("✅ Platform Stats indexes created")
+    except Exception as e:
+        logger.warning(f"⚠️ Platform Stats index creation failed (non-critical): {e}")
+
     # Create Virtual Meets indexes (non-blocking)
     try:
         await db.virtual_meet_sessions.create_index(

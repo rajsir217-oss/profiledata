@@ -59,6 +59,34 @@ async def ensure_indexes():
     logger.info("Setting up online_status indexes...")
     await db.online_status.create_index([("username", 1)], unique=True)
     
+    # 8. platform_stats_daily - critical for all-time aggregation from dailies
+    logger.info("Setting up platform_stats_daily indexes...")
+    await db.platform_stats_daily.create_index([("date", 1)], unique=True, background=True)
+    
+    # 9. platform_stats_monthly - critical for yearly aggregation
+    logger.info("Setting up platform_stats_monthly indexes...")
+    await db.platform_stats_monthly.create_index([("year", 1), ("month", 1)], unique=True, background=True)
+    
+    # 10. platform_stats_yearly - for quick year lookups
+    logger.info("Setting up platform_stats_yearly indexes...")
+    await db.platform_stats_yearly.create_index([("year", 1)], unique=True, background=True)
+    
+    # 11. activity_logs - critical for searches count and daily snapshot job
+    logger.info("Setting up activity_logs indexes...")
+    await db.activity_logs.create_index([("timestamp", 1), ("action_type", 1)], background=True)
+    await db.activity_logs.create_index([("action_type", 1), ("timestamp", 1)], background=True)
+    
+    # 12. profile_views - critical for profile view counting in daily snapshots
+    logger.info("Setting up profile_views indexes...")
+    await db.profile_views.create_index([("lastViewedAt", 1)], background=True)
+    await db.profile_views.create_index([("firstViewedAt", 1)], background=True)
+    await db.profile_views.create_index([("createdAt", 1)], background=True)
+    await db.profile_views.create_index([("profileUsername", 1), ("viewedByUsername", 1)], background=True)
+    
+    # 13. messages - for daily snapshot counting
+    logger.info("Setting up messages indexes...")
+    await db.messages.create_index([("createdAt", 1)], background=True)
+    
     logger.info("✅ All performance indexes ensured!")
     await close_mongo_connection()
 

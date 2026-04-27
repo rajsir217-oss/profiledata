@@ -55,16 +55,29 @@ class PlatformStatsDailySnapshotTemplate(JobTemplate):
                 **time_filter
             })
             
-            # 2. Profile Views - query profile_views collection directly
-            # Uses $or to handle mixed schemas (viewedAt, lastViewedAt, createdAt, viewed_at)
-            profile_views = await db.profile_views.count_documents({
-                "$or": [
-                    {"viewedAt": {"$gte": day_start, "$lte": day_end}},
-                    {"lastViewedAt": {"$gte": day_start, "$lte": day_end}},
-                    {"createdAt": {"$gte": day_start, "$lte": day_end}},
-                    {"viewed_at": {"$gte": day_start, "$lte": day_end}}
-                ]
-            })
+            # 2. Profile Views — dedicated collection with viewCount, firstViewedAt, lastViewedAt
+            # Pick the best available date field to avoid double-counting docs
+            # that have multiple date fields set.
+            pv_pipeline = [
+                {"$addFields": {
+                    "bestDate": {
+                        "$switch": {
+                            "branches": [
+                                {"case": {"$ifNull": ["$lastViewedAt", False]}, "then": "$lastViewedAt"},
+                                {"case": {"$ifNull": ["$firstViewedAt", False]}, "then": "$firstViewedAt"},
+                                {"case": {"$ifNull": ["$createdAt", False]}, "then": "$createdAt"}
+                            ],
+                            "default": None
+                        }
+                    }
+                }},
+                {"$match": {
+                    "bestDate": {"$gte": day_start, "$lte": day_end}
+                }},
+                {"$count": "total"}
+            ]
+            pv_result = await db.profile_views.aggregate(pv_pipeline).to_list(1)
+            profile_views = pv_result[0]["total"] if pv_result else 0
             
             # 3. Favorited - query favorites collection
             favorited = await db.favorites.count_documents({
@@ -117,9 +130,9 @@ class PlatformStatsDailySnapshotTemplate(JobTemplate):
             })
             
             if all_time_doc:
-                # Update existing
+                # Update existing (idempotent: only $inc if this day hasn't been processed)
                 await db.platform_stats_all_time.update_one(
-                    {"_id": "all_time"},
+                    {"_id": "all_time", "processedDays": {"$ne": date_str}},
                     {
                         "$inc": {
                             "searches": searches,
@@ -131,7 +144,8 @@ class PlatformStatsDailySnapshotTemplate(JobTemplate):
                         "$set": {
                             "activeMembers": all_time_active_members,
                             "updatedAt": datetime.utcnow()
-                        }
+                        },
+                        "$addToSet": {"processedDays": date_str}
                     }
                 )
             else:
@@ -144,6 +158,7 @@ class PlatformStatsDailySnapshotTemplate(JobTemplate):
                     "shortlisted": shortlisted,
                     "messagesSent": messages_sent,
                     "activeMembers": all_time_active_members,
+                    "processedDays": [date_str],
                     "createdAt": datetime.utcnow(),
                     "updatedAt": datetime.utcnow()
                 })

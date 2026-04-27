@@ -125,4 +125,5 @@ RATE_LIMITS = {
     "ai": "10/minute",           # AI-powered endpoints
     "admin": "60/minute",        # Admin operations
     "upload": "20/minute",       # File uploads
+    "stats": "60/minute",        # Platform stats, analytics (cached read-only)
 }

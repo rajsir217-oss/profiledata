@@ -10,8 +10,10 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, Query
+from starlette.requests import Request
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from database import get_database
+from middleware.rate_limiter import limiter, RATE_LIMITS
 
 logger = logging.getLogger(__name__)
 
@@ -99,13 +101,13 @@ async def _compute_stats(period: str, db) -> dict:
     period_start = _get_period_start(period)
     now = datetime.utcnow()
     
-    # Platform inception date: November 2025
+    # Platform inception date: September 2025
     inception_date = datetime(2025, 9, 1, 0, 0, 0)
     logger.info(f"Platform inception date: {inception_date}")
 
     try:
-        # For "this year" and "all time" - query from inception to now using actual collections
-        if period in ["yearly", "all"]:
+        # For "all time" - query from inception to now using actual collections
+        if period == "all":
             logger.info(f"Querying {period} stats from inception {inception_date} to {now}")
             
             # For yearly/all, sum daily snapshots for accurate totals
@@ -133,7 +135,11 @@ async def _compute_stats(period: str, db) -> dict:
             favorited = daily_agg.get("favorited", 0)
             shortlisted = daily_agg.get("shortlisted", 0)
             messages_sent = daily_agg.get("messagesSent", 0)
-            active_members = daily_agg.get("activeMembers", 0)
+            # Active members: count unique users who have ever logged in (not summed from dailies)
+            active_members = await db.users.count_documents({
+                "accountStatus": "active",
+                "security.last_login_at": {"$exists": True, "$ne": None}
+            })
             
             logger.info(f"{period} stats: searches={searches}, profileViews={profile_views}, favorited={favorited}, shortlisted={shortlisted}, messagesSent={messages_sent}, activeMembers={active_members}")
             
@@ -278,7 +284,9 @@ async def _compute_stats(period: str, db) -> dict:
 
 
 @router.get("")
+@limiter.limit(RATE_LIMITS["stats"])
 async def get_platform_stats(
+    request: Request,
     period: str = Query("weekly", regex="^(weekly|monthly|yearly|all)$"),
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
