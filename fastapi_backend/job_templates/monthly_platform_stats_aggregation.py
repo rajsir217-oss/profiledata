@@ -3,7 +3,7 @@ Monthly Platform Stats Aggregation Job Template
 
 Aggregates previous month's daily snapshots into monthly snapshot.
 Runs on 1st of each month at 01:00 UTC.
-Purges daily snapshots for the aggregated month.
+Marks daily snapshots as aggregated instead of deleting them.
 """
 
 from datetime import datetime, timedelta
@@ -61,34 +61,30 @@ class PlatformStatsMonthlyAggregationTemplate(JobTemplate):
         month_end = month_end.replace(hour=23, minute=59, second=59, microsecond=999999)
         
         try:
-            # 1. Aggregate all daily docs for this month
-            daily_docs = await db.platform_stats_daily.find({
-                "date": {"$gte": prev_month.strftime("%Y-%m-%d"), "$lte": month_end.strftime("%Y-%m-%d")}
-            }).to_list(length=None)
+            # 1. Aggregate all daily docs for this month via $group (avoids loading all docs into memory)
+            pipeline = [
+                {"$match": {"date": {"$gte": prev_month.strftime("%Y-%m-%d"), "$lte": month_end.strftime("%Y-%m-%d")}}},
+                {"$group": {
+                    "_id": None,
+                    "searches": {"$sum": "$searches"},
+                    "profileViews": {"$sum": "$profileViews"},
+                    "favorited": {"$sum": "$favorited"},
+                    "shortlisted": {"$sum": "$shortlisted"},
+                    "messagesSent": {"$sum": "$messagesSent"}
+                }}
+            ]
+            agg_result = await db.platform_stats_daily.aggregate(pipeline).to_list(length=1)
             
-            if not daily_docs:
+            if not agg_result:
                 return JobResult(
                     status="success",
                     message=f"No daily snapshots found for {month_id}",
                     records_affected=0
                 )
             
-            # 2. Sum all stats
-            aggregated = {
-                "searches": 0,
-                "profileViews": 0,
-                "favorited": 0,
-                "shortlisted": 0,
-                "messagesSent": 0,
-                "activeMembers": 0  # Will be computed separately
-            }
-            
-            for doc in daily_docs:
-                aggregated["searches"] += doc.get("searches", 0)
-                aggregated["profileViews"] += doc.get("profileViews", 0)
-                aggregated["favorited"] += doc.get("favorited", 0)
-                aggregated["shortlisted"] += doc.get("shortlisted", 0)
-                aggregated["messagesSent"] += doc.get("messagesSent", 0)
+            # 2. Build aggregated stats
+            aggregated = agg_result[0]
+            del aggregated["_id"]
             
             # 3. Compute active members for the month (users who logged in during the month)
             month_start = prev_month.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -118,16 +114,17 @@ class PlatformStatsMonthlyAggregationTemplate(JobTemplate):
                 upsert=True
             )
             
-            # 5. Purge daily docs for this month (now older than 90 days)
-            delete_result = await db.platform_stats_daily.delete_many({
-                "date": {"$gte": prev_month.strftime("%Y-%m-%d"), "$lte": month_end.strftime("%Y-%m-%d")}
-            })
+            # 5. Mark daily docs as aggregated (soft-delete so re-runs don't lose data)
+            mark_result = await db.platform_stats_daily.update_many(
+                {"date": {"$gte": prev_month.strftime("%Y-%m-%d"), "$lte": month_end.strftime("%Y-%m-%d")}},
+                {"$set": {"aggregated": True, "updatedAt": datetime.utcnow()}}
+            )
             
             return JobResult(
                 status="success",
-                message=f"Monthly snapshot created for {month_id}, purged {delete_result.deleted_count} daily docs",
+                message=f"Monthly snapshot created for {month_id}, marked {mark_result.modified_count} daily docs as aggregated",
                 details=aggregated,
-                records_affected=delete_result.deleted_count
+                records_affected=mark_result.modified_count
             )
             
         except Exception as e:

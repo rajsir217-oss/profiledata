@@ -171,31 +171,27 @@ async def backfill_monthly_snapshots(db, year: int) -> Dict[str, Any]:
         month_end = next_month_start - timedelta(seconds=1)
         
         try:
-            # Aggregate all daily docs for this month
-            daily_docs = await db.platform_stats_daily.find({
-                "date": {"$gte": month_start.strftime("%Y-%m-%d"), "$lte": month_end.strftime("%Y-%m-%d")}
-            }).to_list(length=None)
+            # Aggregate all daily docs for this month via $group (avoids loading all docs into memory)
+            pipeline = [
+                {"$match": {"date": {"$gte": month_start.strftime("%Y-%m-%d"), "$lte": month_end.strftime("%Y-%m-%d")}}},
+                {"$group": {
+                    "_id": None,
+                    "searches": {"$sum": "$searches"},
+                    "profileViews": {"$sum": "$profileViews"},
+                    "favorited": {"$sum": "$favorited"},
+                    "shortlisted": {"$sum": "$shortlisted"},
+                    "messagesSent": {"$sum": "$messagesSent"}
+                }}
+            ]
+            agg_result = await db.platform_stats_daily.aggregate(pipeline).to_list(length=1)
             
-            if not daily_docs:
+            if not agg_result:
                 print(f"⚠️ No daily snapshots found for {month_id}, skipping")
                 continue
             
-            # Sum all stats
-            aggregated = {
-                "searches": 0,
-                "profileViews": 0,
-                "favorited": 0,
-                "shortlisted": 0,
-                "messagesSent": 0,
-                "activeMembers": 0
-            }
-            
-            for doc in daily_docs:
-                aggregated["searches"] += doc.get("searches", 0)
-                aggregated["profileViews"] += doc.get("profileViews", 0)
-                aggregated["favorited"] += doc.get("favorited", 0)
-                aggregated["shortlisted"] += doc.get("shortlisted", 0)
-                aggregated["messagesSent"] += doc.get("messagesSent", 0)
+            # Build aggregated stats
+            aggregated = agg_result[0]
+            del aggregated["_id"]
             
             # Compute active members for the month (users who logged in during the month)
             aggregated["activeMembers"] = await db.users.count_documents({
@@ -253,31 +249,27 @@ async def backfill_yearly_snapshots(db, year: int) -> Dict[str, Any]:
     }
     
     try:
-        # Aggregate all monthly docs for this year
-        monthly_docs = await db.platform_stats_monthly.find({
-            "year": year_str
-        }).to_list(length=None)
+        # Aggregate all monthly docs for this year via $group (avoids loading all docs into memory)
+        pipeline = [
+            {"$match": {"year": year_str}},
+            {"$group": {
+                "_id": None,
+                "searches": {"$sum": "$searches"},
+                "profileViews": {"$sum": "$profileViews"},
+                "favorited": {"$sum": "$favorited"},
+                "shortlisted": {"$sum": "$shortlisted"},
+                "messagesSent": {"$sum": "$messagesSent"}
+            }}
+        ]
+        agg_result = await db.platform_stats_monthly.aggregate(pipeline).to_list(length=1)
         
-        if not monthly_docs:
+        if not agg_result:
             print(f"⚠️ No monthly snapshots found for {year_str}, skipping")
             return results
         
-        # Sum all stats
-        aggregated = {
-            "searches": 0,
-            "profileViews": 0,
-            "favorited": 0,
-            "shortlisted": 0,
-            "messagesSent": 0,
-            "activeMembers": 0
-        }
-        
-        for doc in monthly_docs:
-            aggregated["searches"] += doc.get("searches", 0)
-            aggregated["profileViews"] += doc.get("profileViews", 0)
-            aggregated["favorited"] += doc.get("favorited", 0)
-            aggregated["shortlisted"] += doc.get("shortlisted", 0)
-            aggregated["messagesSent"] += doc.get("messagesSent", 0)
+        # Build aggregated stats
+        aggregated = agg_result[0]
+        del aggregated["_id"]
         
         # Compute active members for the year (users who logged in during the year)
         year_start = datetime(year, 1, 1, 0, 0, 0)
