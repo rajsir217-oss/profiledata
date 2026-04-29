@@ -4952,6 +4952,18 @@ async def search_users(
     """Advanced search for users with filters"""
     logger.info(f"🔍 Search request - keyword: '{keyword}', profileId: '{profileId}', status_filter: '{status_filter}', page: {page}, limit: {limit}, gender: '{gender}', ageMin: {ageMin}, ageMax: {ageMax}, heightMin: {heightMin}, heightMax: {heightMax}")
     
+    # Validate range sanity: min must not exceed max
+    if ageMin > 0 and ageMax > 0 and ageMin > ageMax:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Age Min ({ageMin}) cannot be greater than Age Max ({ageMax})"
+        )
+    if heightMin > 0 and heightMax > 0 and heightMin > heightMax:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Height Min ({heightMin} inches) cannot be greater than Height Max ({heightMax} inches)"
+        )
+    
     # Non-active users cannot search for other profiles
     if current_user.get("accountStatus") != "active":
         raise HTTPException(

@@ -84,14 +84,40 @@ const SearchFilters = ({
       return { valid: true };
     }
     
-    const hasAgeRange = searchCriteria.ageMin && searchCriteria.ageMax;
+    const ageMin = Number(searchCriteria.ageMin) || 0;
+    const ageMax = Number(searchCriteria.ageMax) || 0;
     
     // Main search requires at least age range for non-admin users
-    if (!hasAgeRange) {
-      return { 
-        valid: false, 
-        message: 'Please specify Age Range (Min and Max) to search' 
+    if (!ageMin || !ageMax) {
+      return {
+        valid: false,
+        message: 'Please specify Age Range (Min and Max) to search'
       };
+    }
+    
+    // Age range sanity: min must not exceed max
+    if (ageMin > ageMax) {
+      return {
+        valid: false,
+        message: `Age Min (${ageMin}) cannot be greater than Age Max (${ageMax})`
+      };
+    }
+    
+    // Height range sanity: min must not exceed max
+    const hMinFeet = Number(searchCriteria.heightMinFeet) || 0;
+    const hMinInches = Number(searchCriteria.heightMinInches) || 0;
+    const hMaxFeet = Number(searchCriteria.heightMaxFeet) || 0;
+    const hMaxInches = Number(searchCriteria.heightMaxInches) || 0;
+    
+    if (hMinFeet || hMinInches || hMaxFeet || hMaxInches) {
+      const heightMinTotal = hMinFeet * 12 + hMinInches;
+      const heightMaxTotal = hMaxFeet * 12 + hMaxInches;
+      if (heightMinTotal > 0 && heightMaxTotal > 0 && heightMinTotal > heightMaxTotal) {
+        return {
+          valid: false,
+          message: `Height Min (${hMinFeet}'${hMinInches}") cannot be greater than Height Max (${hMaxFeet}'${hMaxInches}")`
+        };
+      }
     }
     
     return { valid: true };
