@@ -612,14 +612,14 @@ const Login = () => {
         }}>
           <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '0' }}>
             Don't have an account?{' '}
-            <Link to="/register2" style={{
+            <Link to="/register-interest" style={{
               color: '#667eea',
               textDecoration: 'none',
               fontWeight: '600'
             }}
             onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
             onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-            >Registration is by invitation only</Link>
+            >Register</Link>
           </p>
         </div>
       )}
