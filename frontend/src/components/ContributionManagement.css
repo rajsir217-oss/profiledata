@@ -698,6 +698,196 @@
   }
 }
 
+/* Bulk actions bar for unpaid members */
+.bulk-actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.bulk-actions-info {
+  display: flex;
+  align-items: center;
+}
+
+.bulk-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.bulk-actions-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bulk-reminder-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.bulk-reminder-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.bulk-reminder-btn.sms-bulk {
+  background: linear-gradient(135deg, var(--success-color) 0%, var(--info-color) 100%);
+}
+
+.bulk-warning {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--warning-color);
+}
+
+/* Reminder buttons for unpaid members */
+.unpaid-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.reminder-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reminder-btn.email {
+  background: var(--info-color);
+  color: white;
+}
+
+.reminder-btn.email:hover {
+  background: var(--info-light);
+  transform: translateY(-1px);
+}
+
+.reminder-btn.sms {
+  background: var(--success-color);
+  color: white;
+}
+
+.reminder-btn.sms:hover {
+  background: var(--success-hover);
+  transform: translateY(-1px);
+}
+
+/* Reminder Modal */
+.reminder-modal {
+  background: var(--surface-color);
+  border-radius: 12px;
+  padding: 0;
+  min-width: 400px;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.reminder-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.reminder-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-color);
+}
+
+.reminder-modal-body {
+  padding: 20px;
+}
+
+.recipient-info {
+  background: var(--hover-background);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.recipient-info p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.message-preview {
+  margin-bottom: 20px;
+}
+
+.message-preview h4 {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.email-preview {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.email-preview p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.email-body-preview {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.sms-preview {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-color);
+}
+
+.reminder-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 /* Extra small screens */
 @media (max-width: 380px) {
   .contribution-management {
@@ -737,5 +927,20 @@
   .filter-tab {
     padding: 6px 8px;
     font-size: 11px;
+  }
+
+  .unpaid-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .reminder-btn {
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+
+  .reminder-modal {
+    min-width: 300px;
+    max-width: 100%;
   }
 }
