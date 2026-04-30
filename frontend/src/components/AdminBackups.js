@@ -215,15 +215,13 @@ const AdminBackups = () => {
                   </td>
                   <td className="col-actions">
                     <div className="action-buttons">
-                      {backup.local_exists && (
-                        <button
-                          className="btn-action btn-download"
-                          onClick={() => handleDownload(backup.filename)}
-                          title="Download backup"
-                        >
-                          ⬇️
-                        </button>
-                      )}
+                      <button
+                        className="btn-action btn-download"
+                        onClick={() => handleDownload(backup.filename)}
+                        title="Download backup"
+                      >
+                        ⬇️
+                      </button>
                       <button
                         className="btn-action btn-restore"
                         onClick={() => handleRestoreCommand(backup.filename)}
@@ -263,18 +261,40 @@ const AdminBackups = () => {
                 ⚠️ {restoreCommand.warning}
               </div>
 
-              <div className="restore-command-block">
-                <pre>{restoreCommand.command}</pre>
-                <button
-                  className="btn-copy-command"
-                  onClick={() => {
-                    navigator.clipboard.writeText(restoreCommand.command);
-                    showToast('Command copied to clipboard', 'success');
-                  }}
-                >
-                  📋 Copy
-                </button>
+              <div className="restore-command-section">
+                <h4>Production (server-side restore)</h4>
+                <div className="restore-command-block">
+                  <pre>{restoreCommand.command}</pre>
+                  <button
+                    className="btn-copy-command"
+                    onClick={() => {
+                      navigator.clipboard.writeText(restoreCommand.command);
+                      showToast('Production command copied', 'success');
+                    }}
+                  >
+                    📋 Copy
+                  </button>
+                </div>
               </div>
+
+              {restoreCommand.dev_command && (
+                <div className="restore-command-section">
+                  <h4>Dev / Local (restore to your laptop)</h4>
+                  <p className="restore-hint">Database: <code>{restoreCommand.dest_db}</code> &nbsp;|&nbsp; URI: <code>{restoreCommand.dest_uri}</code></p>
+                  <div className="restore-command-block">
+                    <pre>{restoreCommand.dev_command}</pre>
+                    <button
+                      className="btn-copy-command"
+                      onClick={() => {
+                        navigator.clipboard.writeText(restoreCommand.dev_command);
+                        showToast('Dev command copied', 'success');
+                      }}
+                    >
+                      📋 Copy
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

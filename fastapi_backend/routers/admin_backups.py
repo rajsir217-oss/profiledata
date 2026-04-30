@@ -126,8 +126,8 @@ async def download_backup(
     current_user: dict = Depends(get_current_user),
 ):
     """
-    Download a backup file from local storage.
-    For GCS-only backups, returns the gsutil command to download.
+    Download a backup file. Streams from local disk if available;
+    otherwise downloads from GCS to a temp file and streams it.
     """
     _require_admin(current_user)
 
@@ -140,14 +140,35 @@ async def download_backup(
             filename=filename,
         )
 
-    # Check if it's on GCS
+    # File not local — try GCS
     from config import settings
     if settings.use_gcs and settings.gcs_bucket_name:
-        return {
-            "error": "File not available locally",
-            "gcs_command": f"gsutil cp gs://{settings.gcs_bucket_name}/backups/{filename} ./{filename}",
-            "message": "This backup is on GCS only. Use the gsutil command to download it."
-        }
+        try:
+            from google.cloud import storage as gcs_storage
+            client = gcs_storage.Client()
+            bucket = client.bucket(settings.gcs_bucket_name)
+            blob = bucket.blob(f"backups/{filename}")
+
+            if not blob.exists():
+                raise HTTPException(status_code=404, detail="Backup not found in GCS")
+
+            # Download to temp file and stream
+            import tempfile
+            temp_dir = tempfile.mkdtemp(prefix="backup_download_")
+            temp_path = Path(temp_dir) / filename
+            blob.download_to_filename(str(temp_path))
+
+            from fastapi.responses import FileResponse
+            return FileResponse(
+                str(temp_path),
+                media_type="application/octet-stream",
+                filename=filename,
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"GCS download failed for {filename}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to download from GCS: {str(e)}")
 
     raise HTTPException(status_code=404, detail="Backup file not found")
 
@@ -244,29 +265,43 @@ async def trigger_backup(
 @router.get("/restore-command/{filename}")
 async def get_restore_command(
     filename: str,
+    target_uri: str = "",
     current_user: dict = Depends(get_current_user),
 ):
     """
     Returns the mongorestore command for a given backup file.
     Does NOT execute it — restore is always manual.
+
+    Query params:
+      target_uri: Optional MongoDB URI for the destination (default: dev localhost)
     """
     _require_admin(current_user)
 
     from config import settings
 
+    # Default to localhost dev URI if not provided
+    dest_uri = target_uri or "mongodb://localhost:27017"
+    dest_db = settings.database_name + "_dev"
+
     if filename.endswith(".archive.gz"):
         # mongodump archive format
-        cmd = (
+        prod_cmd = (
             f'mongorestore --uri="{settings.mongodb_url}" '
             f'--db={settings.database_name}_restore '
             f'--archive=backups/{filename} --gzip '
             f'--nsFrom="{settings.database_name}.*" '
             f'--nsTo="{settings.database_name}_restore.*"'
         )
+        dev_cmd = (
+            f'mongorestore --uri="{dest_uri}" '
+            f'--nsFrom="{settings.database_name}.*" '
+            f'--nsTo="{dest_db}.*" '
+            f'--archive=backups/{filename} --gzip'
+        )
         restore_type = "mongorestore"
     elif filename.endswith(".tar.gz"):
         # Python JSON dump format
-        cmd = (
+        prod_cmd = (
             f"# 1. Extract the archive\n"
             f"tar -xzf backups/{filename} -C backups/\n"
             f"# 2. For each collection JSON file:\n"
@@ -274,14 +309,30 @@ async def get_restore_command(
             f'--db={settings.database_name}_restore '
             f'--collection=<collection_name> --file=backups/<dir>/<collection>.json --jsonArray'
         )
+        dev_cmd = (
+            f"# 1. Extract the archive\n"
+            f"tar -xzf backups/{filename} -C ./restore_temp/\n"
+            f"# 2. For each collection JSON file:\n"
+            f'for f in restore_temp/*/*.json; do\n'
+            f'  coll=$(basename "$f" .json)\n'
+            f'  mongoimport --uri="{dest_uri}" --db={dest_db} '
+            f'--collection="$coll" --file="$f" --jsonArray --drop\n'
+            f'done\n'
+            f"# 3. Cleanup: rm -rf restore_temp/"
+        )
         restore_type = "mongoimport"
     else:
-        cmd = "Unknown backup format"
+        prod_cmd = "Unknown backup format"
+        dev_cmd = "Unknown backup format"
         restore_type = "unknown"
 
     return {
         "filename": filename,
         "restore_type": restore_type,
-        "command": cmd,
+        "command": prod_cmd,
+        "dev_command": dev_cmd,
+        "dest_uri": dest_uri,
+        "dest_db": dest_db,
         "warning": "Always restore to a TEMP database first (_restore suffix), inspect, then merge into production.",
+        "dev_note": "Use the dev_command for restoring to your local dev environment. It targets localhost:27017 by default.",
     }
