@@ -1,5 +1,8 @@
 {
   "dependencies": {
+    "@expo/webpack-config": "^19.0.1",
+    "react-dom": "^18.2.0",
+    "react-native-web": "^0.19.13",
     "react-router-dom": "^7.9.3"
   }
 }
