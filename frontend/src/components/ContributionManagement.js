@@ -45,6 +45,14 @@ const ContributionManagement = () => {
   const [thankYouSent, setThankYouSent] = useState({});
   const [toast, setToast] = useState(null);
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
+
+  // Unpaid Members state
+  const [unpaidMembers, setUnpaidMembers] = useState([]);
+  const [unpaidPagination, setUnpaidPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 1 });
+  const [unpaidSearchFilter, setUnpaidSearchFilter] = useState('');
+  const [hasMoreUnpaid, setHasMoreUnpaid] = useState(true);
+  const [reminderModal, setReminderModal] = useState(null); // { user, channel }
+  const [reminderSending, setReminderSending] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
@@ -56,11 +64,13 @@ const ContributionManagement = () => {
     }
     if (activeTab === 'contributions') {
       loadContributions();
-    } else {
+    } else if (activeTab === 'activity') {
       loadActivities();
+    } else if (activeTab === 'unpaid') {
+      loadUnpaidMembers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, filter, activeTab, activityFilter, searchFilter, activitySearchFilter]);
+  }, [navigate, filter, activeTab, activityFilter, searchFilter, activitySearchFilter, unpaidSearchFilter]);
 
   const loadContributions = async (page = 1, append = false) => {
     try {
@@ -110,9 +120,11 @@ const ContributionManagement = () => {
     try {
       if (!append) {
         setLoading(true);
+        setActivities([]);
       } else {
         setIsLoadingMore(true);
       }
+
       const token = localStorage.getItem('token');
       
       let url = `${getBackendUrl()}/api/contributions/admin/contribution-activity?page=${page}&limit=20`;
@@ -126,24 +138,55 @@ const ContributionManagement = () => {
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.data.success) {
-        if (append) {
-          setActivities(prev => [...prev, ...response.data.activities]);
-        } else {
-          setActivities(response.data.activities);
-          setActivityStats(response.data.stats || {});
-        }
-        setActivityPagination(response.data.pagination);
-        
-        // Check if there are more rows to load
-        const currentPage = response.data.pagination.page;
-        const totalPages = response.data.pagination.totalPages;
-        setHasMoreActivities(currentPage < totalPages);
+        const newActivities = response.data.activities || [];
+        setActivities(prev => append ? [...prev, ...newActivities] : newActivities);
+        setActivityPagination(response.data.pagination || {});
+        setActivityStats(response.data.stats || {});
+        setHasMoreActivities(
+          (response.data.pagination?.page || 1) < (response.data.pagination?.totalPages || 1)
+        );
       }
     } catch (err) {
       console.error('Error loading activities:', err);
       setError('Failed to load activity log');
+    } finally {
+      setLoading(false);
+      setIsLoadingMore(false);
+    }
+  };
+
+  const loadUnpaidMembers = async (page = 1, append = false) => {
+    try {
+      if (!append) {
+        setLoading(true);
+        setUnpaidMembers([]);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      const token = localStorage.getItem('token');
+      let url = `${getBackendUrl()}/api/contributions/admin/unpaid-members?page=${page}&limit=50`;
+      if (unpaidSearchFilter && unpaidSearchFilter.trim()) {
+        url += `&search=${encodeURIComponent(unpaidSearchFilter.trim())}`;
+      }
+
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        const newUsers = response.data.users || [];
+        setUnpaidMembers(prev => append ? [...prev, ...newUsers] : newUsers);
+        setUnpaidPagination(response.data.pagination || { page: 1, limit: 50, total: 0, totalPages: 1 });
+        setHasMoreUnpaid(
+          (response.data.pagination?.page || 1) < (response.data.pagination?.totalPages || 1)
+        );
+      }
+    } catch (err) {
+      console.error('Error loading unpaid members:', err);
+      setError('Failed to load unpaid members');
     } finally {
       setLoading(false);
       setIsLoadingMore(false);
@@ -243,6 +286,54 @@ const ContributionManagement = () => {
       showToast(detail, 'error');
     } finally {
       setThankYouSending(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const sendReminder = async (user, channel, customMessage = '') => {
+    setReminderSending(true);
+    try {
+      const token = localStorage.getItem('token');
+      const isBulk = reminderModal?.bulk;
+
+      if (isBulk) {
+        // Bulk send to all unpaid members
+        const response = await axios.post(
+          `${getBackendUrl()}/api/contributions/admin/send-bulk-reminder`,
+          {
+            channel: channel,
+            message: customMessage
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (response.data.success) {
+          showToast(`Bulk email sent to ${response.data.sentCount || 0} unpaid members!`, 'success');
+          setReminderModal(null);
+        } else {
+          showToast(response.data.message || 'Failed to send bulk reminder', 'error');
+        }
+      } else {
+        // Single user send
+        const response = await axios.post(
+          `${getBackendUrl()}/api/contributions/admin/send-reminder`,
+          {
+            username: user.username,
+            channel: channel,
+            message: customMessage
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (response.data.success) {
+          showToast(`Reminder email sent to ${user.fullName || user.username}!`, 'success');
+          setReminderModal(null);
+        } else {
+          showToast(response.data.message || 'Failed to send reminder', 'error');
+        }
+      }
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to send reminder';
+      showToast(detail, 'error');
+    } finally {
+      setReminderSending(false);
     }
   };
 
@@ -423,6 +514,12 @@ const ContributionManagement = () => {
           onClick={() => setActiveTab('contributions')}
         >
           💝 Contributions
+        </button>
+        <button 
+          className={`main-tab ${activeTab === 'unpaid' ? 'active' : ''}`}
+          onClick={() => setActiveTab('unpaid')}
+        >
+          💸 Unpaid Members
         </button>
         <button 
           className={`main-tab ${activeTab === 'activity' ? 'active' : ''}`}
@@ -813,11 +910,251 @@ const ContributionManagement = () => {
         </>
       )}
 
+      {/* Unpaid Members Table */}
+      {activeTab === 'unpaid' && (
+        <>
+          {/* Bulk Actions Bar */}
+          {unpaidMembers.length > 0 && (
+            <div className="bulk-actions-bar">
+              <div className="bulk-actions-info">
+                <span className="bulk-count">{unpaidPagination.total} unpaid members</span>
+              </div>
+              <div className="bulk-actions-buttons">
+                <button
+                  className="bulk-reminder-btn"
+                  onClick={() => setReminderModal({ user: null, channel: 'email', bulk: true })}
+                  title="Send email reminder to ALL unpaid members"
+                >
+                  📧 Send Bulk Email Reminder
+                </button>
+                <button
+                  className="bulk-reminder-btn sms-bulk"
+                  onClick={() => setReminderModal({ user: null, channel: 'sms', bulk: true })}
+                  title="Send SMS reminder to ALL unpaid members"
+                >
+                  📱 Send Bulk SMS Reminder
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* User Filter - Only show for unpaid tab */}
+          <div className="user-filter-container">
+            <div className="filter-row">
+              <label htmlFor="unpaid-search-filter" className="filter-label">Search:</label>
+              <input
+                id="unpaid-search-filter"
+                type="text"
+                className="user-filter-input"
+                placeholder="Search by username, first name, or last name..."
+                value={unpaidSearchFilter}
+                onChange={(e) => setUnpaidSearchFilter(e.target.value)}
+              />
+              {unpaidSearchFilter && (
+                <button 
+                  className="clear-filter-btn"
+                  onClick={() => setUnpaidSearchFilter('')}
+                  title="Clear search filter"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="table-container">
+            {loading ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Loading unpaid members...</p>
+              </div>
+            ) : unpaidMembers.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">💸</div>
+                <h3>No unpaid members found</h3>
+                <p>All users have made contributions. Great!</p>
+              </div>
+            ) : (
+              <table className="contributions-table unpaid-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Email</th>
+                    <th>Joined</th>
+                    <th>Last Login</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {unpaidMembers.map((user) => (
+                    <tr key={user.username}>
+                      <td className="user-cell">
+                        <a 
+                          href={`/profile/${user.username}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="username-link"
+                        >
+                          {user.username}
+                        </a>
+                      </td>
+                      <td className="name-cell">{user.fullName || '-'}</td>
+                      <td className="age-cell">{user.age || '-'}</td>
+                      <td className="gender-cell">{user.gender || '-'}</td>
+                      <td className="email-cell">
+                        {user.contactEmail ? (
+                          <span title={user.contactEmail}>{user.contactEmail}</span>
+                        ) : '-'}
+                      </td>
+                      <td className="date-cell">{formatDate(user.joinedAt)}</td>
+                      <td className="date-cell">{formatDate(user.lastLogin)}</td>
+                      <td className="actions-cell">
+                        <div className="unpaid-actions">
+                          {user.contactEmail && (
+                            <button
+                              className="reminder-btn email"
+                              onClick={() => setReminderModal({ user, channel: 'email', bulk: false })}
+                              title="Send Email Reminder"
+                            >
+                              📧 Email
+                            </button>
+                          )}
+                          {user.contactPhone && (
+                            <button
+                              className="reminder-btn sms"
+                              onClick={() => setReminderModal({ user, channel: 'sms', bulk: false })}
+                              title="Send SMS Reminder"
+                            >
+                              📱 SMS
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Load More */}
+          {unpaidMembers.length > 0 && (
+            <div className="load-more-container">
+              <div className="load-more-content">
+                {hasMoreUnpaid && (
+                  <button 
+                    className="load-more-button"
+                    onClick={() => loadUnpaidMembers(unpaidPagination.page + 1, true)}
+                    disabled={isLoadingMore}
+                  >
+                    {isLoadingMore ? (
+                      <>
+                        <div className="load-more-spinner"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        Load {Math.min(50, unpaidPagination.total - unpaidMembers.length)} more [{unpaidMembers.length}/{unpaidPagination.total}]
+                      </>
+                    )}
+                  </button>
+                )}
+                
+                {!hasMoreUnpaid && unpaidMembers.length > 20 && (
+                  <div className="load-more-complete">
+                    ✓ All {unpaidPagination.total} records loaded
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {showAddPaymentModal && (
         <AddManualPayment 
           onClose={() => setShowAddPaymentModal(false)}
           onSuccess={handleManualPaymentSuccess}
         />
+      )}
+
+      {/* Send Reminder Modal */}
+      {reminderModal && (
+        <div className="modal-overlay" onClick={() => setReminderModal(null)}>
+          <div className="reminder-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="reminder-modal-header">
+              <h3>{reminderModal.bulk ? `Send Bulk ${reminderModal.channel === 'email' ? 'Email' : 'SMS'} Reminder` : 'Send Reminder'}</h3>
+              <button className="btn-close-modal" onClick={() => setReminderModal(null)}>×</button>
+            </div>
+            <div className="reminder-modal-body">
+              {reminderModal.bulk ? (
+                <div className="recipient-info bulk-info">
+                  <p><strong>To:</strong> All {unpaidPagination.total} unpaid members with {reminderModal.channel === 'email' ? 'email addresses' : 'phone numbers'}</p>
+                  <p><strong>Channel:</strong> {reminderModal.channel === 'email' ? '📧 Email' : '📱 SMS'}</p>
+                  <div className="bulk-warning">
+                    ⚠️ This will send a {reminderModal.channel === 'email' ? 'email' : 'SMS'} reminder to every unpaid member who has a valid {reminderModal.channel === 'email' ? 'email address' : 'phone number'}.
+                  </div>
+                </div>
+              ) : (
+                <div className="recipient-info">
+                  <p><strong>To:</strong> {reminderModal.user.fullName || reminderModal.user.username}</p>
+                  <p><strong>Channel:</strong> {reminderModal.channel === 'email' ? '📧 Email' : '📱 SMS'}</p>
+                  <p><strong>Recipient:</strong> {reminderModal.channel === 'email' ? reminderModal.user.contactEmail : reminderModal.user.contactPhone}</p>
+                </div>
+              )}
+
+              <div className="message-preview">
+                {reminderModal.channel === 'email' ? (
+                  <div className="email-preview">
+                    <p><strong>Subject:</strong> We miss you at L3V3L MATCHES 💝</p>
+                    <div className="email-body-preview">
+                      <p>Hi {reminderModal.bulk ? '<First Name>' : (reminderModal.user.fullName?.split(' ')[0] || 'Member')},</p>
+                      <p>We noticed you haven't made a contribution yet. Your support helps us keep L3V3L MATCHES running and improving for everyone in the community.</p>
+                      <p>Every contribution — big or small — directly supports:</p>
+                      <ul>
+                        <li>Server & infrastructure costs</li>
+                        <li>Security & privacy enhancements</li>
+                        <li>New matching features & improvements</li>
+                      </ul>
+                      <p><a href="https://l3v3lmatches.com/contribution" style={{color: '#667eea'}}>Make a Contribution →</a></p>
+                      <p>— The L3V3L Team</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="sms-preview">
+                    <p>Hi {reminderModal.bulk ? '<First Name>' : (reminderModal.user.fullName?.split(' ')[0] || 'Member')}! 💝 Your contribution helps keep L3V3L MATCHES running. Support us today: https://l3v3lmatches.com/contribution — Thanks, L3V3L Team</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="reminder-actions">
+                <button
+                  className="btn-secondary"
+                  onClick={() => setReminderModal(null)}
+                  disabled={reminderSending}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={() => sendReminder(reminderModal.user, reminderModal.channel)}
+                  disabled={reminderSending}
+                >
+                  {reminderSending ? (
+                    <>
+                      <span className="btn-spinner"></span> Sending...
+                    </>
+                  ) : (
+                    <>{reminderModal.bulk ? `📤 Send Bulk ${reminderModal.channel === 'email' ? 'Email' : 'SMS'}` : `📤 Send ${reminderModal.channel === 'email' ? 'Email' : 'SMS'}`}</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
