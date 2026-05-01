@@ -48,12 +48,15 @@ async def send_sms(
             }
         
         # Send the message using the notification method
-        result = await sms_manager.send_notification(
+        success = await sms_manager.send_notification(
             phone=to_phone,
             message=message
         )
         
-        return result
+        if success:
+            return {"success": True}
+        else:
+            return {"success": False, "error": "SMS provider returned failure"}
         
     except Exception as e:
         logger.error(f"Failed to send SMS: {e}")
