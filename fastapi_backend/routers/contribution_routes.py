@@ -563,23 +563,36 @@ async def get_unpaid_members(
             "lastSmsReminderAt": "lastSmsReminderAt",
             "lastReminderAt": "lastEmailReminderAt",  # combined column proxy
         }
-        mongo_sort_field = sort_field_map.get(sort_by, "createdAt")
         mongo_sort_dir = -1 if sort_order == "desc" else 1
 
         # Count total
         total = await db.users.count_documents(unpaid_query)
+
+        # Build sort list. Age is special: sort by birthYear then birthMonth
+        # since the DB age field is often empty and we calculate it on the fly.
+        if sort_by == "age":
+            sort_list = [("birthYear", mongo_sort_dir), ("birthMonth", mongo_sort_dir)]
+        elif sort_by == "lastLogin":
+            # Also consider security.last_login_at as fallback for ordering
+            sort_list = [("lastLogin", mongo_sort_dir), ("security.last_login_at", mongo_sort_dir)]
+        else:
+            mongo_sort_field = sort_field_map.get(sort_by, "createdAt")
+            sort_list = [(mongo_sort_field, mongo_sort_dir)]
 
         # Get page
         cursor = db.users.find(
             unpaid_query,
             {
                 "username": 1, "firstName": 1, "lastName": 1,
-                "age": 1, "gender": 1, "email": 1, "contactEmail": 1,
+                "age": 1, "birthMonth": 1, "birthYear": 1,
+                "gender": 1, "email": 1, "contactEmail": 1,
                 "phone": 1, "contactPhone": 1, "contactNumber": 1, "contactNumbers": 1,
                 "createdAt": 1, "lastLogin": 1, "lastActive": 1,
+                "security.last_login_at": 1,
+                "status.last_seen": 1,
                 "lastEmailReminderAt": 1, "lastSmsReminderAt": 1, "_id": 0
             }
-        ).sort(mongo_sort_field, mongo_sort_dir).skip((page - 1) * limit).limit(limit)
+        ).sort(sort_list).skip((page - 1) * limit).limit(limit)
 
         users = await cursor.to_list(length=limit)
 
@@ -627,19 +640,68 @@ async def get_unpaid_members(
                 return None
             return v.isoformat() if hasattr(v, "isoformat") else str(v)
 
+        def _best_last_login(u):
+            """Compute best last login from multiple sources (same logic as profile view)."""
+            from datetime import datetime, timezone as dt_tz
+            candidates = []
+            for raw in [
+                u.get("security", {}).get("last_login_at"),
+                u.get("lastLogin"),
+                u.get("lastActive"),
+                u.get("status", {}).get("last_seen"),
+            ]:
+                if raw is None:
+                    continue
+                if isinstance(raw, datetime):
+                    dt = raw.replace(tzinfo=None) if raw.tzinfo else raw
+                    candidates.append(dt)
+                elif isinstance(raw, str):
+                    try:
+                        dt = datetime.fromisoformat(raw.replace('Z', '+00:00').replace('+00:00', ''))
+                        dt = dt.replace(tzinfo=None) if dt.tzinfo else dt
+                        candidates.append(dt)
+                    except Exception:
+                        pass
+            return max(candidates) if candidates else None
+
+        def _calculate_age(birth_month, birth_year):
+            """Calculate age from birthMonth and birthYear."""
+            if not birth_month or not birth_year:
+                return None
+            try:
+                from datetime import datetime
+                today = datetime.utcnow()
+                bm = int(birth_month)
+                by = int(birth_year)
+                age = today.year - by
+                if today.month < bm:
+                    age -= 1
+                return age if 0 < age <= 120 else None
+            except Exception:
+                return None
+
         formatted = []
         for u in users:
             contact_email = decrypt_if_needed(u.get("email") or u.get("contactEmail") or "")
             contact_phone = extract_phone(u)
+
+            # Age: use stored value if valid, otherwise calculate from birthMonth/birthYear
+            age = u.get("age")
+            if not age:
+                age = _calculate_age(u.get("birthMonth"), u.get("birthYear"))
+
+            # Last login: pick the most recent from available sources (same as profile view)
+            best_ll = _best_last_login(u)
+
             formatted.append({
                 "username": u.get("username"),
                 "fullName": f"{u.get('firstName','')} {u.get('lastName','')}".strip(),
-                "age": u.get("age"),
+                "age": age,
                 "gender": u.get("gender"),
                 "contactEmail": contact_email,
                 "contactPhone": contact_phone,
                 "joinedAt": fmt_dt(u.get("createdAt")),
-                "lastLogin": fmt_dt(u.get("lastLogin") or u.get("lastActive")),
+                "lastLogin": fmt_dt(best_ll),
                 "lastEmailReminderAt": fmt_dt(u.get("lastEmailReminderAt")),
                 "lastSmsReminderAt": fmt_dt(u.get("lastSmsReminderAt")),
             })
