@@ -192,8 +192,13 @@ class UnpaidReminderEmailTemplate(JobTemplate):
   </div>
   <div style="background:white;padding:28px 24px;border-radius:0 0 12px 12px;max-width:600px;margin:0 auto;">
     <h2 style="color:#667eea;margin-top:0;">Hi {first_name},</h2>
-    <p>Your contribution helps keep L3V3L MATCHES running and connecting people like you.</p>
-    <p>Please consider making a contribution to continue enjoying our premium features:</p>
+    <p>Your support keeps L3V3L MATCHES strong.</p>
+    <p>If you haven't contributed yet, even a small amount helps us cover:</p>
+    <ul>
+      <li>Server & infrastructure</li>
+      <li>Security & privacy</li>
+      <li>New matching features</li>
+    </ul>
     <p style="margin-top:24px;text-align:center;">
       <a href="https://l3v3lmatches.com/contribution" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 28px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102,126,234,0.4);">
         Make a Contribution
