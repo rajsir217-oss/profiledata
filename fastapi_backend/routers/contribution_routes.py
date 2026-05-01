@@ -530,6 +530,7 @@ async def get_unpaid_members(
         # Build query for users WITHOUT contributions
         unpaid_query = {
             "accountStatus": {"$ne": "deleted"},
+            "role": {"$nin": ["admin", "moderator"]},
             "username": {"$nin": list(payment_usernames)}
         }
 
@@ -631,159 +632,6 @@ async def get_unpaid_members(
         raise HTTPException(status_code=500, detail="Failed to get unpaid members")
 
 
-@router.post("/admin/send-reminder")
-async def send_contribution_reminder(
-    request: dict = Body(...),
-    current_user: dict = Depends(get_current_user),
-    db: AsyncIOMotorDatabase = Depends(get_database),
-):
-    """Send a contribution reminder email or SMS to a user (admin only).
-    Request body: {"username": str, "channel": "email"|"sms", "message": str (optional)}
-    Returns the exact message that was sent so the admin can preview templates.
-    """
-    if current_user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-
-    username = request.get("username")
-    channel = request.get("channel", "email")
-    custom_message = request.get("message", "")
-
-    if not username:
-        raise HTTPException(status_code=400, detail="username is required")
-
-    user = await db.users.find_one({"username": username})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    first_name = user.get("firstName", "Member")
-
-    # Build email template
-    email_subject = "We miss you at L3V3L MATCHES 💝"
-    email_body = f"""<html>
-<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:0;background:#f8f9fa;">
-  <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
-    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:1px;">💜 L3V3L MATCHES</h1>
-    <p style="margin:8px 0 0 0;font-size:14px;opacity:0.9;">Level Up Your Connections</p>
-  </div>
-  <div style="background:white;padding:28px 24px;border-radius:0 0 12px 12px;">
-    <h2 style="color:#667eea;margin-top:0;">Hi {first_name},</h2>
-    <p>Your support keeps L3V3L MATCHES strong.</p>
-    <p>If you haven't contributed yet, even a small amount helps us cover:</p>
-    <ul>
-      <li>Server & infrastructure</li>
-      <li>Security & privacy</li>
-      <li>New matching features</li>
-    </ul>
-    <p style="margin-top:24px;text-align:center;">
-      <a href="https://l3v3lmatches.com/contribution" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 28px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102,126,234,0.4);">
-        Make a Contribution
-      </a>
-    </p>
-    <p style="color:#888;font-size:12px;margin-top:32px;text-align:center;border-top:1px solid #eee;padding-top:20px;">
-      Thank you for being part of L3V3L MATCHES.<br>
-      — The L3V3L Team
-    </p>
-  </div>
-</body>
-</html>"""
-
-    # Build SMS template
-    sms_body = f"Hi {first_name}! 💝 Your contribution helps keep L3V3L MATCHES running. Support us today: https://l3v3lmatches.com/contribution — Thanks, L3V3L Team"
-    if custom_message:
-        sms_body = custom_message
-        email_body = f"""<html>
-<body style="font-family:Arial,sans-serif;padding:0;margin:0;background:#f8f9fa;">
-  <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
-    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:1px;">💜 L3V3L MATCHES</h1>
-    <p style="margin:8px 0 0 0;font-size:14px;opacity:0.9;">Level Up Your Connections</p>
-  </div>
-  <div style="background:white;padding:28px 24px;border-radius:0 0 12px 12px;max-width:600px;margin:0 auto;">
-    <h2 style="color:#667eea;margin-top:0;">Hi {first_name},</h2>
-    <p>{custom_message}</p>
-    <p style="margin-top:24px;text-align:center;">
-      <a href="https://l3v3lmatches.com/contribution" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 28px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102,126,234,0.4);">
-        Make a Contribution
-      </a>
-    </p>
-    <p style="color:#888;font-size:12px;margin-top:32px;text-align:center;border-top:1px solid #eee;padding-top:20px;">
-      Thank you for being part of L3V3L MATCHES.<br>
-      — The L3V3L Team
-    </p>
-  </div>
-</body>
-</html>"""
-
-    result = {"channel": channel, "username": username, "sent": False}
-
-    if channel == "email":
-        email = user.get("email") or user.get("contactEmail")
-        if email and email.startswith("gAAAAA"):
-            try:
-                from crypto_utils import get_encryptor
-                email = get_encryptor().decrypt(email)
-            except Exception:
-                email = None
-        if not email:
-            raise HTTPException(status_code=400, detail="User has no email address")
-        send_result = await send_email(email, email_subject, email_body)
-        result["sent"] = send_result.get("success", False)
-        result["message_preview"] = email_body[:200] + "..."
-        result["recipient"] = email
-    elif channel == "sms":
-        # Extract phone from multiple possible sources
-        phone = user.get("phone") or user.get("contactPhone") or user.get("contactNumber")
-        if not phone:
-            contact_numbers = user.get("contactNumbers")
-            if isinstance(contact_numbers, list) and contact_numbers:
-                for entry in contact_numbers:
-                    if isinstance(entry, dict) and entry.get("number"):
-                        phone = entry["number"]
-                        break
-            elif isinstance(contact_numbers, dict):
-                for key in ["primary", "home", "mobile", "work"]:
-                    val = contact_numbers.get(key)
-                    if val:
-                        phone = val
-                        break
-                if not phone:
-                    for val in contact_numbers.values():
-                        if val:
-                            phone = val
-                            break
-        if phone and phone.startswith("gAAAAA"):
-            try:
-                from crypto_utils import get_encryptor
-                phone = get_encryptor().decrypt(phone)
-            except Exception:
-                phone = None
-        if not phone:
-            raise HTTPException(status_code=400, detail="User has no phone number")
-        from services.sms_sender import send_sms
-        send_result = await send_sms(phone, sms_body)
-        result["sent"] = send_result.get("success", False)
-        result["message_preview"] = sms_body
-        result["recipient"] = phone
-    else:
-        raise HTTPException(status_code=400, detail="channel must be 'email' or 'sms'")
-
-    # Log the reminder in activity log
-    await db.contribution_activity.insert_one({
-        "username": username,
-        "action": "reminder_sent",
-        "channel": channel,
-        "adminUsername": current_user.get("username"),
-        "messagePreview": result["message_preview"],
-        "sent": result["sent"],
-        "createdAt": datetime.utcnow()
-    })
-
-    return {
-        "success": result["sent"],
-        "message": f"Reminder {'sent' if result['sent'] else 'failed'} to {username} via {channel}",
-        "details": result
-    }
-
-
 @router.post("/admin/send-bulk-reminder")
 async def send_bulk_contribution_reminder(
     request: dict = Body(...),
@@ -811,6 +659,7 @@ async def send_bulk_contribution_reminder(
         if channel == "email":
             unpaid_query = {
                 "accountStatus": {"$ne": "deleted"},
+                "role": {"$nin": ["admin", "moderator"]},
                 "username": {"$nin": list(payment_usernames)},
                 "$or": [
                     {"email": {"$exists": True, "$ne": ""}},
@@ -821,6 +670,7 @@ async def send_bulk_contribution_reminder(
         elif channel == "sms":
             unpaid_query = {
                 "accountStatus": {"$ne": "deleted"},
+                "role": {"$nin": ["admin", "moderator"]},
                 "username": {"$nin": list(payment_usernames)},
                 "$or": [
                     {"phone": {"$exists": True, "$ne": ""}},
