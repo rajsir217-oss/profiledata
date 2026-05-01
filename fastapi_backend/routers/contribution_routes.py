@@ -660,24 +660,30 @@ async def send_contribution_reminder(
     # Build email template
     email_subject = "We miss you at L3V3L MATCHES 💝"
     email_body = f"""<html>
-<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;">
-  <h2 style="color:#667eea;">Hi {first_name},</h2>
-  <p>We noticed you haven't made a contribution yet. Your support helps us keep L3V3L MATCHES running and improving for everyone in the community.</p>
-  <p>Every contribution — big or small — directly supports:</p>
-  <ul>
-    <li>Server & infrastructure costs</li>
-    <li>Security & privacy enhancements</li>
-    <li>New matching features & improvements</li>
-  </ul>
-  <p style="margin-top:24px;">
-    <a href="https://l3v3lmatches.com/contribution" style="background:#667eea;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600;">
-      Make a Contribution
-    </a>
-  </p>
-  <p style="color:#888;font-size:12px;margin-top:32px;">
-    Thank you for being part of L3V3L MATCHES.<br>
-    — The L3V3L Team
-  </p>
+<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:0;background:#f8f9fa;">
+  <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
+    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:1px;">💜 L3V3L MATCHES</h1>
+    <p style="margin:8px 0 0 0;font-size:14px;opacity:0.9;">Level Up Your Connections</p>
+  </div>
+  <div style="background:white;padding:28px 24px;border-radius:0 0 12px 12px;">
+    <h2 style="color:#667eea;margin-top:0;">Hi {first_name},</h2>
+    <p>We noticed you haven't made a contribution yet. Your support helps us keep L3V3L MATCHES running and improving for everyone in the community.</p>
+    <p>Every contribution — big or small — directly supports:</p>
+    <ul>
+      <li>Server & infrastructure costs</li>
+      <li>Security & privacy enhancements</li>
+      <li>New matching features & improvements</li>
+    </ul>
+    <p style="margin-top:24px;text-align:center;">
+      <a href="https://l3v3lmatches.com/contribution" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 28px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102,126,234,0.4);">
+        Make a Contribution
+      </a>
+    </p>
+    <p style="color:#888;font-size:12px;margin-top:32px;text-align:center;border-top:1px solid #eee;padding-top:20px;">
+      Thank you for being part of L3V3L MATCHES.<br>
+      — The L3V3L Team
+    </p>
+  </div>
 </body>
 </html>"""
 
@@ -685,7 +691,27 @@ async def send_contribution_reminder(
     sms_body = f"Hi {first_name}! 💝 Your contribution helps keep L3V3L MATCHES running. Support us today: https://l3v3lmatches.com/contribution — Thanks, L3V3L Team"
     if custom_message:
         sms_body = custom_message
-        email_body = f"<html><body style='font-family:Arial,sans-serif;padding:20px;'><h2>Hi {first_name},</h2><p>{custom_message}</p><p><a href='https://l3v3lmatches.com/contribution' style='background:#667eea;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;'>Make a Contribution</a></p></body></html>"
+        email_body = f"""<html>
+<body style="font-family:Arial,sans-serif;padding:0;margin:0;background:#f8f9fa;">
+  <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
+    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:1px;">💜 L3V3L MATCHES</h1>
+    <p style="margin:8px 0 0 0;font-size:14px;opacity:0.9;">Level Up Your Connections</p>
+  </div>
+  <div style="background:white;padding:28px 24px;border-radius:0 0 12px 12px;max-width:600px;margin:0 auto;">
+    <h2 style="color:#667eea;margin-top:0;">Hi {first_name},</h2>
+    <p>{custom_message}</p>
+    <p style="margin-top:24px;text-align:center;">
+      <a href="https://l3v3lmatches.com/contribution" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 28px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102,126,234,0.4);">
+        Make a Contribution
+      </a>
+    </p>
+    <p style="color:#888;font-size:12px;margin-top:32px;text-align:center;border-top:1px solid #eee;padding-top:20px;">
+      Thank you for being part of L3V3L MATCHES.<br>
+      — The L3V3L Team
+    </p>
+  </div>
+</body>
+</html>"""
 
     result = {"channel": channel, "username": username, "sent": False}
 
@@ -832,28 +858,54 @@ async def send_bulk_contribution_reminder(
                     continue
 
                 email_body = f"""<html>
-<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;">
-  <h2 style="color:#667eea;">Hi {first_name},</h2>
-  <p>We noticed you haven't made a contribution yet. Your support helps us keep L3V3L MATCHES running and improving for everyone in the community.</p>
-  <p>Every contribution — big or small — directly supports:</p>
-  <ul>
-    <li>Server & infrastructure costs</li>
-    <li>Security & privacy enhancements</li>
-    <li>New matching features & improvements</li>
-  </ul>
-  <p style="margin-top:24px;">
-    <a href="https://l3v3lmatches.com/contribution" style="background:#667eea;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600;">
-      Make a Contribution
-    </a>
-  </p>
-  <p style="color:#888;font-size:12px;margin-top:32px;">
-    Thank you for being part of L3V3L MATCHES.<br>
-    — The L3V3L Team
-  </p>
+<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:0;background:#f8f9fa;">
+  <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
+    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:1px;">💜 L3V3L MATCHES</h1>
+    <p style="margin:8px 0 0 0;font-size:14px;opacity:0.9;">Level Up Your Connections</p>
+  </div>
+  <div style="background:white;padding:28px 24px;border-radius:0 0 12px 12px;">
+    <h2 style="color:#667eea;margin-top:0;">Hi {first_name},</h2>
+    <p>We noticed you haven't made a contribution yet. Your support helps us keep L3V3L MATCHES running and improving for everyone in the community.</p>
+    <p>Every contribution — big or small — directly supports:</p>
+    <ul>
+      <li>Server & infrastructure costs</li>
+      <li>Security & privacy enhancements</li>
+      <li>New matching features & improvements</li>
+    </ul>
+    <p style="margin-top:24px;text-align:center;">
+      <a href="https://l3v3lmatches.com/contribution" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 28px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102,126,234,0.4);">
+        Make a Contribution
+      </a>
+    </p>
+    <p style="color:#888;font-size:12px;margin-top:32px;text-align:center;border-top:1px solid #eee;padding-top:20px;">
+      Thank you for being part of L3V3L MATCHES.<br>
+      — The L3V3L Team
+    </p>
+  </div>
 </body>
 </html>"""
                 if custom_message:
-                    email_body = f"<html><body style='font-family:Arial,sans-serif;padding:20px;'><h2>Hi {first_name},</h2><p>{custom_message}</p><p><a href='https://l3v3lmatches.com/contribution' style='background:#667eea;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;'>Make a Contribution</a></p></body></html>"
+                    email_body = f"""<html>
+<body style="font-family:Arial,sans-serif;padding:0;margin:0;background:#f8f9fa;">
+  <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
+    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:1px;">💜 L3V3L MATCHES</h1>
+    <p style="margin:8px 0 0 0;font-size:14px;opacity:0.9;">Level Up Your Connections</p>
+  </div>
+  <div style="background:white;padding:28px 24px;border-radius:0 0 12px 12px;max-width:600px;margin:0 auto;">
+    <h2 style="color:#667eea;margin-top:0;">Hi {first_name},</h2>
+    <p>{custom_message}</p>
+    <p style="margin-top:24px;text-align:center;">
+      <a href="https://l3v3lmatches.com/contribution" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 28px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102,126,234,0.4);">
+        Make a Contribution
+      </a>
+    </p>
+    <p style="color:#888;font-size:12px;margin-top:32px;text-align:center;border-top:1px solid #eee;padding-top:20px;">
+      Thank you for being part of L3V3L MATCHES.<br>
+      — The L3V3L Team
+    </p>
+  </div>
+</body>
+</html>"""
 
                 try:
                     send_result = await send_email(email, email_subject, email_body)
