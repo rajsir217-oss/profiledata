@@ -1,0 +1,212 @@
+"""
+Unpaid Members Email Reminder Job Template
+Sends bulk email reminders to unpaid members
+"""
+
+import asyncio
+import logging
+from datetime import datetime
+from typing import Dict, Any, List, Tuple
+
+from .base import JobTemplate, JobExecutionContext, JobResult
+from config import settings
+
+logger = logging.getLogger(__name__)
+
+
+class UnpaidReminderEmailTemplate(JobTemplate):
+    """Job template for sending email reminders to unpaid members"""
+    
+    # Template metadata
+    template_type = "unpaid_reminder_email"
+    template_name = "Unpaid Members Email Reminder"
+    template_description = "Send bulk email reminders to unpaid contribution members"
+    category = "contributions"
+    icon = "💰"
+    estimated_duration = "5-10 minutes"
+    resource_usage = "medium"
+    risk_level = "low"
+    
+    def __init__(self):
+        pass
+    
+    def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, str]:
+        """Validate job parameters"""
+        return True, None
+    
+    def get_default_params(self) -> Dict[str, Any]:
+        """Get default parameters"""
+        return {
+            "dry_run": False,
+            "test_mode": False,
+            "batch_size": 100
+        }
+    
+    def get_schema(self) -> Dict[str, Any]:
+        """Get parameter schema for UI"""
+        return {
+            "dry_run": {
+                "type": "boolean",
+                "label": "Dry Run",
+                "description": "Test without sending actual emails",
+                "default": False
+            },
+            "test_mode": {
+                "type": "boolean",
+                "label": "Test Mode",
+                "description": "Send all emails to test address instead of actual recipients",
+                "default": False
+            },
+            "batch_size": {
+                "type": "integer",
+                "label": "Batch Size",
+                "description": "Number of users to process per batch",
+                "default": 100,
+                "min": 1,
+                "max": 500
+            }
+        }
+    
+    async def execute(self, context: JobExecutionContext) -> JobResult:
+        """Execute the unpaid members email reminder job"""
+        params = context.parameters
+        db = context.db
+        
+        dry_run = params.get("dry_run", False)
+        test_mode = params.get("test_mode", False)
+        batch_size = params.get("batch_size", 100)
+        
+        context.log("info", f"💰 Starting unpaid members email reminder job")
+        context.log("info", f"   Dry run: {dry_run}")
+        context.log("info", f"   Test mode: {test_mode}")
+        context.log("info", f"   Batch size: {batch_size}")
+        
+        try:
+            # Get unpaid members
+            unpaid_query = {
+                "accountStatus": {"$ne": "deleted"},
+                "username": {"$nin": list(await db.contributions.distinct("username", {"status": "paid"}))}
+            }
+            
+            projection = {
+                "username": 1,
+                "firstName": 1,
+                "email": 1,
+                "contactEmail": 1
+            }
+            
+            unpaid_users = await db.users.find(unpaid_query, projection).to_list(length=None)
+            
+            total_users = len(unpaid_users)
+            context.log("info", f"📊 Found {total_users} unpaid members")
+            
+            if total_users == 0:
+                return JobResult(
+                    status="success",
+                    message="No unpaid members found",
+                    records_processed=0,
+                    records_affected=0
+                )
+            
+            # Process in batches
+            sent_count = 0
+            failed_count = 0
+            errors = []
+            
+            for i in range(0, total_users, batch_size):
+                batch = unpaid_users[i:i + batch_size]
+                context.log("info", f"📦 Processing batch {i//batch_size + 1}/{(total_users + batch_size - 1)//batch_size}")
+                
+                for user in batch:
+                    try:
+                        username = user.get("username")
+                        email = user.get("email") or user.get("contactEmail")
+                        
+                        if not email:
+                            context.log("warning", f"   ⚠️ No email for {username}, skipping")
+                            continue
+                        
+                        if dry_run:
+                            context.log("info", f"   📝 Dry run: Would send email to {username} ({email[:3]}***)")
+                            sent_count += 1
+                        else:
+                            # Send email
+                            await self._send_email_reminder(
+                                db, username, email, user.get("firstName", ""), test_mode
+                            )
+                            sent_count += 1
+                            context.log("info", f"   ✅ Sent email to {username}")
+                            
+                    except Exception as e:
+                        failed_count += 1
+                        error_msg = f"Failed to send to {user.get('username')}: {str(e)}"
+                        errors.append(error_msg)
+                        context.log("error", f"   ❌ {error_msg}")
+                
+                # Small delay between batches
+                if i + batch_size < total_users:
+                    await asyncio.sleep(1)
+            
+            return JobResult(
+                status="success" if failed_count == 0 else "partial",
+                message=f"Processed {total_users} unpaid members",
+                records_processed=total_users,
+                records_affected=sent_count,
+                details={
+                    "sent": sent_count,
+                    "failed": failed_count,
+                    "dry_run": dry_run,
+                    "test_mode": test_mode
+                },
+                errors=errors[:10]
+            )
+            
+        except Exception as e:
+            context.log("error", f"❌ Unpaid members email reminder job failed: {e}")
+            return JobResult(
+                status="failed",
+                message=f"Job failed: {str(e)}",
+                errors=[str(e)]
+            )
+    
+    async def _send_email_reminder(self, db, username: str, email: str, first_name: str, test_mode: bool):
+        """Send email reminder to a user"""
+        from services.email_sender import send_email
+        from crypto_utils import get_encryptor
+        
+        # Decrypt email if encrypted
+        if email and email.startswith('gAAAAA'):
+            try:
+                encryptor = get_encryptor()
+                email = encryptor.decrypt(email)
+            except Exception:
+                pass
+        
+        # Build email content
+        subject = "We miss you at L3V3L MATCHES 💝"
+        body = f"""
+Hi {first_name}! 💝
+
+Your contribution helps keep L3V3L MATCHES running and connecting people like you.
+
+Please consider making a contribution to continue enjoying our premium features:
+https://l3v3lmatches.com/contribution
+
+Thank you for being part of our community!
+
+Best regards,
+The L3V3L MATCHES Team
+"""
+        
+        # Get email config
+        from utils.gcp_secrets import get_email_config
+        email_config = get_email_config()
+        from_email = (email_config['from_email'] or settings.from_email or "noreply@l3v3lmatches.com").strip()
+        from_name = (email_config['from_name'] or settings.from_name).strip()
+        
+        if test_mode:
+            # Send to test email instead
+            test_email = settings.test_email or "admin@l3v3lmatches.com"
+            await send_email(test_email, subject, body, from_email, from_name)
+        else:
+            await send_email(email, subject, body, from_email, from_name)
