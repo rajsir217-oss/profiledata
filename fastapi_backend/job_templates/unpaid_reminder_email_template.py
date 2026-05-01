@@ -83,9 +83,14 @@ class UnpaidReminderEmailTemplate(JobTemplate):
         
         try:
             # Get unpaid members
+            payment_usernames = await db.contributions.distinct("username", {"status": "paid"})
             unpaid_query = {
                 "accountStatus": {"$ne": "deleted"},
-                "username": {"$nin": list(await db.contributions.distinct("username", {"status": "paid"}))}
+                "role": {"$nin": ["admin", "moderator"]},
+                "username": {"$nin": payment_usernames},
+                "$or": [
+                    {"contactEmail": {"$exists": True, "$ne": None}}
+                ]
             }
             
             projection = {

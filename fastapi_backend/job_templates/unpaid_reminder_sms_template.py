@@ -85,6 +85,7 @@ class UnpaidReminderSMSTemplate(JobTemplate):
             # Get unpaid members with phone numbers
             unpaid_query = {
                 "accountStatus": {"$ne": "deleted"},
+                "role": {"$nin": ["admin", "moderator"]},
                 "username": {"$nin": list(await db.contributions.distinct("username", {"status": "paid"}))},
                 "$or": [
                     {"phone": {"$exists": True, "$ne": None}},
