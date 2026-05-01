@@ -515,8 +515,15 @@ async def get_unpaid_members(
     page: int = 1,
     limit: int = 50,
     search: str = "",
+    sort_by: str = "createdAt",
+    sort_order: str = "desc",
 ):
-    """List users who have never made a contribution payment (admin only)"""
+    """List users who have never made a contribution payment (admin only).
+
+    Sortable fields: username, fullName, age, gender, contactEmail, contactPhone,
+                     joinedAt, lastLogin, lastEmailReminderAt, lastSmsReminderAt
+    sort_order: "asc" or "desc"
+    """
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
 
@@ -542,6 +549,23 @@ async def get_unpaid_members(
                 {"lastName": {"$regex": search_text, "$options": "i"}},
             ]
 
+        # Map frontend sort fields to MongoDB fields
+        sort_field_map = {
+            "username": "username",
+            "fullName": "firstName",
+            "age": "age",
+            "gender": "gender",
+            "contactEmail": "email",
+            "contactPhone": "phone",
+            "joinedAt": "createdAt",
+            "lastLogin": "lastLogin",
+            "lastEmailReminderAt": "lastEmailReminderAt",
+            "lastSmsReminderAt": "lastSmsReminderAt",
+            "lastReminderAt": "lastEmailReminderAt",  # combined column proxy
+        }
+        mongo_sort_field = sort_field_map.get(sort_by, "createdAt")
+        mongo_sort_dir = -1 if sort_order == "desc" else 1
+
         # Count total
         total = await db.users.count_documents(unpaid_query)
 
@@ -552,9 +576,10 @@ async def get_unpaid_members(
                 "username": 1, "firstName": 1, "lastName": 1,
                 "age": 1, "gender": 1, "email": 1, "contactEmail": 1,
                 "phone": 1, "contactPhone": 1, "contactNumber": 1, "contactNumbers": 1,
-                "createdAt": 1, "lastLogin": 1, "lastActive": 1, "_id": 0
+                "createdAt": 1, "lastLogin": 1, "lastActive": 1,
+                "lastEmailReminderAt": 1, "lastSmsReminderAt": 1, "_id": 0
             }
-        ).sort("createdAt", -1).skip((page - 1) * limit).limit(limit)
+        ).sort(mongo_sort_field, mongo_sort_dir).skip((page - 1) * limit).limit(limit)
 
         users = await cursor.to_list(length=limit)
 
@@ -615,6 +640,8 @@ async def get_unpaid_members(
                 "contactPhone": contact_phone,
                 "joinedAt": fmt_dt(u.get("createdAt")),
                 "lastLogin": fmt_dt(u.get("lastLogin") or u.get("lastActive")),
+                "lastEmailReminderAt": fmt_dt(u.get("lastEmailReminderAt")),
+                "lastSmsReminderAt": fmt_dt(u.get("lastSmsReminderAt")),
             })
 
         return {

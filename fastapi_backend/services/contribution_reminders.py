@@ -274,6 +274,15 @@ async def send_reminder_to_user(
         if isinstance(send_result, dict) and send_result.get("success"):
             result["sent"] = True
             result["success"] = True
+            # Stamp last reminder timestamp on user doc (skip for test_mode/dry_run)
+            if username and not test_mode:
+                try:
+                    await db.users.update_one(
+                        {"username": username},
+                        {"$set": {"lastEmailReminderAt": datetime.utcnow()}}
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to stamp lastEmailReminderAt for {username}: {e}")
         else:
             err = (send_result or {}).get("error") if isinstance(send_result, dict) else None
             result["error"] = err or "Failed to send email"
@@ -304,6 +313,15 @@ async def send_reminder_to_user(
         if isinstance(send_result, dict) and send_result.get("success"):
             result["sent"] = True
             result["success"] = True
+            # Stamp last reminder timestamp on user doc (skip for test_mode/dry_run)
+            if username and not test_mode:
+                try:
+                    await db.users.update_one(
+                        {"username": username},
+                        {"$set": {"lastSmsReminderAt": datetime.utcnow()}}
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to stamp lastSmsReminderAt for {username}: {e}")
         else:
             err = (send_result or {}).get("error") if isinstance(send_result, dict) else None
             result["error"] = err or "Failed to send SMS"

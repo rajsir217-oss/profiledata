@@ -51,6 +51,8 @@ const ContributionManagement = () => {
   const [unpaidPagination, setUnpaidPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 1 });
   const [unpaidSearchFilter, setUnpaidSearchFilter] = useState('');
   const [hasMoreUnpaid, setHasMoreUnpaid] = useState(true);
+  const [unpaidSortBy, setUnpaidSortBy] = useState('joinedAt');
+  const [unpaidSortOrder, setUnpaidSortOrder] = useState('desc');
   const [reminderModal, setReminderModal] = useState(null); // { user, channel }
   const [reminderSending, setReminderSending] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -70,7 +72,7 @@ const ContributionManagement = () => {
       loadUnpaidMembers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, filter, activeTab, activityFilter, searchFilter, activitySearchFilter, unpaidSearchFilter]);
+  }, [navigate, filter, activeTab, activityFilter, searchFilter, activitySearchFilter, unpaidSearchFilter, unpaidSortBy, unpaidSortOrder]);
 
   const loadContributions = async (page = 1, append = false) => {
     try {
@@ -171,6 +173,9 @@ const ContributionManagement = () => {
       if (unpaidSearchFilter && unpaidSearchFilter.trim()) {
         url += `&search=${encodeURIComponent(unpaidSearchFilter.trim())}`;
       }
+      if (unpaidSortBy) {
+        url += `&sort_by=${encodeURIComponent(unpaidSortBy)}&sort_order=${encodeURIComponent(unpaidSortOrder)}`;
+      }
 
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
@@ -224,6 +229,21 @@ const ContributionManagement = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Toggle sort column; clicking same column flips order, new column resets to 'desc'
+  const toggleUnpaidSort = (field) => {
+    if (unpaidSortBy === field) {
+      setUnpaidSortOrder(prev => (prev === 'desc' ? 'asc' : 'desc'));
+    } else {
+      setUnpaidSortBy(field);
+      setUnpaidSortOrder('desc');
+    }
+  };
+
+  const renderSortIndicator = (field) => {
+    if (unpaidSortBy !== field) return <span style={{ opacity: 0.35, marginLeft: 4 }}>⇅</span>;
+    return <span style={{ marginLeft: 4 }}>{unpaidSortOrder === 'desc' ? '▼' : '▲'}</span>;
   };
 
   const formatDaysElapsed = (dateString) => {
@@ -979,14 +999,33 @@ const ContributionManagement = () => {
               <table className="contributions-table unpaid-table">
                 <thead>
                   <tr>
-                    <th>User</th>
-                    <th>Name</th>
-                    <th>Age</th>
-                    <th>Gender</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Joined</th>
-                    <th>Last Login</th>
+                    <th onClick={() => toggleUnpaidSort('username')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      User{renderSortIndicator('username')}
+                    </th>
+                    <th onClick={() => toggleUnpaidSort('fullName')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      Name{renderSortIndicator('fullName')}
+                    </th>
+                    <th onClick={() => toggleUnpaidSort('age')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      Age{renderSortIndicator('age')}
+                    </th>
+                    <th onClick={() => toggleUnpaidSort('gender')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      Gender{renderSortIndicator('gender')}
+                    </th>
+                    <th onClick={() => toggleUnpaidSort('contactEmail')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      Email{renderSortIndicator('contactEmail')}
+                    </th>
+                    <th onClick={() => toggleUnpaidSort('contactPhone')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      Phone{renderSortIndicator('contactPhone')}
+                    </th>
+                    <th onClick={() => toggleUnpaidSort('joinedAt')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      Joined{renderSortIndicator('joinedAt')}
+                    </th>
+                    <th onClick={() => toggleUnpaidSort('lastLogin')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      Last Login{renderSortIndicator('lastLogin')}
+                    </th>
+                    <th onClick={() => toggleUnpaidSort('lastEmailReminderAt')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Sort by last email reminder timestamp">
+                      Status{renderSortIndicator('lastEmailReminderAt')}
+                    </th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -1018,6 +1057,21 @@ const ContributionManagement = () => {
                       </td>
                       <td className="date-cell">{formatDate(user.joinedAt)}</td>
                       <td className="date-cell">{formatDate(user.lastLogin)}</td>
+                      <td className="status-cell" style={{ fontSize: '0.85em', lineHeight: 1.4 }}>
+                        {user.lastEmailReminderAt && (
+                          <div title={`Last email reminder: ${formatDate(user.lastEmailReminderAt)}`}>
+                            📧 {formatDate(user.lastEmailReminderAt)}
+                          </div>
+                        )}
+                        {user.lastSmsReminderAt && (
+                          <div title={`Last SMS reminder: ${formatDate(user.lastSmsReminderAt)}`}>
+                            📱 {formatDate(user.lastSmsReminderAt)}
+                          </div>
+                        )}
+                        {!user.lastEmailReminderAt && !user.lastSmsReminderAt && (
+                          <span style={{ opacity: 0.5 }}>Never</span>
+                        )}
+                      </td>
                       <td className="actions-cell">
                         <div className="unpaid-actions">
                           {user.contactEmail && (
