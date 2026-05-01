@@ -11,7 +11,8 @@ import OnlineUsersDropdown from './OnlineUsersDropdown';
 import Logo from './Logo';
 import InfoTicker from './InfoTicker';
 import EventCountdown from './EventCountdown';
-import { getFirstName } from '../utils/userDisplay';
+import { getFirstName, getShortName } from '../utils/userDisplay';
+import { useContribution } from '../contexts/ContributionContext';
 import logger from '../utils/logger';
 import { loadWhitelabelConfig } from '../utils/whitelabelConfig';
 import './TopBar.css';
@@ -33,6 +34,9 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const [adminPendingCounts, setAdminPendingCounts] = useState(null); // Unified admin pending counts
   const [showAdminActions, setShowAdminActions] = useState(false); // Admin Action Center dropdown
   const adminActionsRef = useRef(null); // Ref for click-outside detection
+  const [showUserMenu, setShowUserMenu] = useState(false); // User avatar dropdown
+  const userMenuRef = useRef(null);
+  const { openPopup } = useContribution();
   const [unreadResponseCount, setUnreadResponseCount] = useState(0); // User unread admin responses
   const [urgencyCounts, setUrgencyCounts] = useState({ pending: 0, medium: 0, high: 0, critical: 0 }); // All urgency levels
   const [unattendedConversations, setUnattendedConversations] = useState([]); // For alert panel
@@ -390,6 +394,19 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showAdminActions]);
 
+  // Close user menu dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setShowUserMenu(false);
+      }
+    };
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
+
   // Poll for unread admin responses (all logged-in users)
   useEffect(() => {
     if (!currentUser) {
@@ -664,8 +681,86 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
               />
             )}
           </div>
+
+          {/* User Avatar Dropdown */}
+          {isLoggedIn && (
+            <div className="user-menu-container" ref={userMenuRef}>
+              <button
+                className="btn-user-avatar"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                title={(getShortName(userProfile) || currentUser || 'User')}
+              >
+                {getProfilePicUrl(userProfile) ? (
+                  <img src={getProfilePicUrl(userProfile)} alt="" className="user-avatar-img" />
+                ) : (
+                  <span className="user-avatar-initials">
+                    {(getShortName(userProfile) || currentUser || 'U').charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </button>
+              {showUserMenu && (
+                <div className="user-menu-dropdown">
+                  <div
+                    className="user-menu-header"
+                    onClick={() => { navigate(`/profile/${currentUser}`); setShowUserMenu(false); }}
+                  >
+                    <div className="user-menu-avatar">
+                      {getProfilePicUrl(userProfile) ? (
+                        <img src={getProfilePicUrl(userProfile)} alt="" />
+                      ) : (
+                        <span>{(getShortName(userProfile) || currentUser || 'U').charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className="user-menu-info">
+                      <span className="user-menu-name">{getShortName(userProfile) || currentUser || 'User'}</span>
+                      <span className="user-menu-subtitle">Profile data</span>
+                    </div>
+                  </div>
+                  <div className="user-menu-divider" />
+                  <button
+                    className="user-menu-item support-l3v3l"
+                    onClick={() => { openPopup(); setShowUserMenu(false); }}
+                  >
+                    <span className="user-menu-icon">💜</span>
+                    <div className="user-menu-item-content">
+                      <span className="user-menu-item-label">Support L3V3L</span>
+                      <span className="user-menu-item-sublabel">Keep us free & ad-free</span>
+                    </div>
+                  </button>
+                  <button
+                    className="user-menu-item"
+                    onClick={() => { navigate('/settings'); setShowUserMenu(false); }}
+                  >
+                    <span className="user-menu-icon">⚙️</span>
+                    <div className="user-menu-item-content">
+                      <span className="user-menu-item-label">Settings</span>
+                      <span className="user-menu-item-sublabel">Preferences, Theme & Notifications</span>
+                    </div>
+                  </button>
+                  <button
+                    className="user-menu-item"
+                    onClick={() => { navigate('/support'); setShowUserMenu(false); }}
+                  >
+                    <span className="user-menu-icon">📧</span>
+                    <div className="user-menu-item-content">
+                      <span className="user-menu-item-label">Support</span>
+                      <span className="user-menu-item-sublabel">Get help & contact support</span>
+                    </div>
+                  </button>
+                  <div className="user-menu-divider" />
+                  <button
+                    className="user-menu-item logout"
+                    onClick={() => { handleLogout(); setShowUserMenu(false); }}
+                  >
+                    <span className="user-menu-icon">🚪</span>
+                    <span className="user-menu-item-label">Logout</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        
+
         {/* Message Modal */}
         {showMessageModal && selectedProfile && (
           <MessageModal
