@@ -321,7 +321,7 @@ async def get_contribution_settings(
         "success": True,
         "contributions": {
             "enabled": contribution_config.get("enabled", False),  # Default: disabled
-            "amounts": contribution_config.get("amounts", [10, 15, 25]),
+            "amounts": contribution_config.get("amounts", [25, 50, 75, 100]),
             "message": contribution_config.get("message", "Support the platform"),
             "frequencyDays": contribution_config.get("frequencyDays", 14),
             "minLogins": contribution_config.get("minLogins", 10),
