@@ -68,164 +68,59 @@ class UnpaidReminderSMSTemplate(JobTemplate):
         }
     
     async def execute(self, context: JobExecutionContext) -> JobResult:
-        """Execute the unpaid members SMS reminder job"""
+        """Execute the unpaid members SMS reminder job using shared service."""
+        from services.contribution_reminders import send_bulk_reminders
+
         params = context.parameters
         db = context.db
-        
+
         dry_run = params.get("dry_run", False)
         test_mode = params.get("test_mode", False)
         batch_size = params.get("batch_size", 100)
-        
+
         context.log("info", f"📱 Starting unpaid members SMS reminder job")
         context.log("info", f"   Dry run: {dry_run}")
         context.log("info", f"   Test mode: {test_mode}")
         context.log("info", f"   Batch size: {batch_size}")
-        
+
+        async def _progress(level: str, msg: str):
+            context.log(level, msg)
+
         try:
-            # Get unpaid members with phone numbers
-            unpaid_query = {
-                "accountStatus": {"$ne": "deleted"},
-                "role": {"$nin": ["admin", "moderator"]},
-                "username": {"$nin": list(await db.contributions.distinct("username", {"status": "paid"}))},
-                "$or": [
-                    {"phone": {"$exists": True, "$ne": None}},
-                    {"contactPhone": {"$exists": True, "$ne": None}},
-                    {"contactNumber": {"$exists": True, "$ne": None}},
-                    {"contactNumbers": {"$exists": True, "$ne": []}}
-                ]
-            }
-            
-            projection = {
-                "username": 1,
-                "firstName": 1,
-                "phone": 1,
-                "contactPhone": 1,
-                "contactNumber": 1,
-                "contactNumbers": 1
-            }
-            
-            unpaid_users = await db.users.find(unpaid_query, projection).to_list(length=None)
-            
-            total_users = len(unpaid_users)
-            context.log("info", f"📊 Found {total_users} unpaid members with phone numbers")
-            
-            if total_users == 0:
-                return JobResult(
-                    status="success",
-                    message="No unpaid members with phone numbers found",
-                    records_processed=0,
-                    records_affected=0
-                )
-            
-            # Process in batches
-            sent_count = 0
-            failed_count = 0
-            errors = []
-            
-            for i in range(0, total_users, batch_size):
-                batch = unpaid_users[i:i + batch_size]
-                context.log("info", f"📦 Processing batch {i//batch_size + 1}/{(total_users + batch_size - 1)//batch_size}")
-                
-                for user in batch:
-                    try:
-                        username = user.get("username")
-                        first_name = user.get("firstName", "")
-                        
-                        # Extract phone number
-                        phone = self._extract_phone(user)
-                        
-                        if not phone:
-                            context.log("warning", f"   ⚠️ No phone for {username}, skipping")
-                            continue
-                        
-                        if dry_run:
-                            context.log("info", f"   📝 Dry run: Would send SMS to {username} ({phone[:3]}***)")
-                            sent_count += 1
-                        else:
-                            # Send SMS
-                            await self._send_sms_reminder(
-                                db, username, phone, first_name, test_mode
-                            )
-                            sent_count += 1
-                            context.log("info", f"   ✅ Sent SMS to {username}")
-                            
-                    except Exception as e:
-                        failed_count += 1
-                        error_msg = f"Failed to send to {user.get('username')}: {str(e)}"
-                        errors.append(error_msg)
-                        context.log("error", f"   ❌ {error_msg}")
-                
-                # Small delay between batches
-                if i + batch_size < total_users:
-                    await asyncio.sleep(1)
-            
+            summary = await send_bulk_reminders(
+                db,
+                channel="sms",
+                custom_message="",
+                admin_username=f"scheduler:{context.job_name}",
+                dry_run=dry_run,
+                test_mode=test_mode,
+                batch_size=batch_size,
+                progress_callback=_progress,
+            )
+
+            sent_count = summary.get("sentCount", 0)
+            failed_count = summary.get("failedCount", 0)
+            total = summary.get("total", 0)
+            errors = summary.get("errors", [])
+
+            status = "success" if failed_count == 0 else ("partial" if sent_count > 0 else "failed")
             return JobResult(
-                status="success" if failed_count == 0 else "partial",
-                message=f"Processed {total_users} unpaid members",
-                records_processed=total_users,
+                status=status,
+                message=summary.get("message", f"Processed {total} unpaid members"),
+                records_processed=total,
                 records_affected=sent_count,
                 details={
                     "sent": sent_count,
                     "failed": failed_count,
                     "dry_run": dry_run,
-                    "test_mode": test_mode
+                    "test_mode": test_mode,
                 },
-                errors=errors[:10]
+                errors=errors[:10],
             )
-            
         except Exception as e:
             context.log("error", f"❌ Unpaid members SMS reminder job failed: {e}")
             return JobResult(
                 status="failed",
                 message=f"Job failed: {str(e)}",
-                errors=[str(e)]
+                errors=[str(e)],
             )
-    
-    def _extract_phone(self, user: Dict[str, Any]) -> str:
-        """Extract phone number from user data"""
-        # Try various phone fields
-        phone = user.get("phone") or user.get("contactPhone") or user.get("contactNumber")
-        
-        if phone:
-            return phone
-        
-        # Check contactNumbers array or object
-        contact_numbers = user.get("contactNumbers")
-        if isinstance(contact_numbers, list) and contact_numbers:
-            # Array format: [{"number": "...", "label": "..."}]
-            for cn in contact_numbers:
-                if isinstance(cn, dict):
-                    num = cn.get("number")
-                    if num:
-                        return num
-        elif isinstance(contact_numbers, dict):
-            # Object format: {"primary": "...", "secondary": "..."}
-            for key in ["primary", "home", "mobile", "work"]:
-                num = contact_numbers.get(key)
-                if num:
-                    return num
-        
-        return ""
-    
-    async def _send_sms_reminder(self, db, username: str, phone: str, first_name: str, test_mode: bool):
-        """Send SMS reminder to a user"""
-        from services.sms_sender import send_sms
-        from crypto_utils import get_encryptor
-        
-        # Decrypt phone if encrypted
-        if phone and phone.startswith('gAAAAA'):
-            try:
-                encryptor = get_encryptor()
-                phone = encryptor.decrypt(phone)
-            except Exception:
-                pass
-        
-        # Build SMS message
-        message = f"Hi {first_name}! 💝 Your contribution helps keep L3V3L MATCHES running. Please consider making a contribution: https://l3v3lmatches.com/contribution"
-        
-        if test_mode:
-            # Send to test phone instead
-            test_phone = settings.test_phone or "+1234567890"
-            await send_sms(test_phone, message)
-        else:
-            await send_sms(phone, message)

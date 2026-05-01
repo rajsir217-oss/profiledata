@@ -323,10 +323,11 @@ const ContributionManagement = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (response.data.success) {
-          showToast(`Reminder email sent to ${user.fullName || user.username}!`, 'success');
+          const channelLabel = channel === 'sms' ? 'SMS' : 'email';
+          showToast(`Reminder ${channelLabel} sent to ${user.fullName || user.username}!`, 'success');
           setReminderModal(null);
         } else {
-          showToast(response.data.message || 'Failed to send reminder', 'error');
+          showToast(response.data.error || response.data.message || 'Failed to send reminder', 'error');
         }
       }
     } catch (err) {
