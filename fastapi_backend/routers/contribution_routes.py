@@ -632,213 +632,88 @@ async def get_unpaid_members(
         raise HTTPException(status_code=500, detail="Failed to get unpaid members")
 
 
+@router.post("/admin/send-reminder")
+async def send_contribution_reminder(
+    request: dict = Body(...),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Send a contribution reminder to a single user (admin only).
+    Request body: {"username": str, "channel": "email"|"sms", "message": "" (optional)}
+    """
+    role = current_user.get("role", "")
+    if role not in ("admin", "moderator"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    username = request.get("username")
+    channel = request.get("channel", "email")
+    custom_message = request.get("message", "") or ""
+
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required")
+    if channel not in ("email", "sms"):
+        raise HTTPException(status_code=400, detail="channel must be 'email' or 'sms'")
+
+    try:
+        user = await db.users.find_one(
+            {"username": username},
+            {"username": 1, "firstName": 1, "email": 1, "contactEmail": 1,
+             "phone": 1, "contactPhone": 1, "contactNumber": 1, "contactNumbers": 1}
+        )
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        from services.contribution_reminders import send_reminder_to_user, log_reminder_activity
+
+        result = await send_reminder_to_user(
+            db, user, channel, custom_message=custom_message
+        )
+
+        await log_reminder_activity(
+            db,
+            action="reminder_sent",
+            channel=channel,
+            admin_username=current_user.get("username"),
+            username=username,
+            sent=bool(result.get("sent")),
+        )
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error sending reminder to {username}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to send reminder: {str(e)}")
+
+
 @router.post("/admin/send-bulk-reminder")
 async def send_bulk_contribution_reminder(
     request: dict = Body(...),
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
-    """Send contribution reminder emails to all unpaid members (admin only).
-    Request body: {"channel": "email", "message": "" (optional)}
-    Returns count of emails sent.
+    """Send contribution reminder emails/SMS to all unpaid members (admin only).
+    Request body: {"channel": "email"|"sms", "message": "" (optional)}
+    Returns count of messages sent.
     """
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
 
     channel = request.get("channel", "email")
-    custom_message = request.get("message", "")
+    custom_message = request.get("message", "") or ""
+
+    if channel not in ("email", "sms"):
+        raise HTTPException(status_code=400, detail="channel must be 'email' or 'sms'")
 
     try:
-        # Get usernames who HAVE contributed
-        payment_usernames = await db.payments.distinct("username", {
-            "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}
-        })
-        payment_usernames = set(payment_usernames)
-
-        # Build query for users WITHOUT contributions with the right contact info
-        if channel == "email":
-            unpaid_query = {
-                "accountStatus": {"$ne": "deleted"},
-                "role": {"$nin": ["admin", "moderator"]},
-                "username": {"$nin": list(payment_usernames)},
-                "$or": [
-                    {"email": {"$exists": True, "$ne": ""}},
-                    {"contactEmail": {"$exists": True, "$ne": ""}}
-                ]
-            }
-            projection = {"username": 1, "firstName": 1, "email": 1, "contactEmail": 1}
-        elif channel == "sms":
-            unpaid_query = {
-                "accountStatus": {"$ne": "deleted"},
-                "role": {"$nin": ["admin", "moderator"]},
-                "username": {"$nin": list(payment_usernames)},
-                "$or": [
-                    {"phone": {"$exists": True, "$ne": ""}},
-                    {"contactPhone": {"$exists": True, "$ne": ""}},
-                    {"contactNumber": {"$exists": True, "$ne": ""}},
-                    {"contactNumbers": {"$exists": True, "$ne": []}}
-                ]
-            }
-            projection = {"username": 1, "firstName": 1, "phone": 1, "contactPhone": 1, "contactNumber": 1, "contactNumbers": 1}
-        else:
-            raise HTTPException(status_code=400, detail="channel must be 'email' or 'sms'")
-
-        unpaid_cursor = db.users.find(unpaid_query, projection)
-        unpaid_users = await unpaid_cursor.to_list(length=None)
-
-        sent_count = 0
-        failed_count = 0
-        errors = []
-
-        if channel == "email":
-            email_subject = "We miss you at L3V3L MATCHES 💝"
-            for user in unpaid_users:
-                username = user.get("username")
-                first_name = user.get("firstName", "Member")
-
-                email = user.get("email") or user.get("contactEmail")
-                if email and email.startswith("gAAAAA"):
-                    try:
-                        from crypto_utils import get_encryptor
-                        email = get_encryptor().decrypt(email)
-                    except Exception:
-                        email = None
-                if not email:
-                    failed_count += 1
-                    continue
-
-                email_body = f"""<html>
-<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:0;background:#f8f9fa;">
-  <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
-    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:1px;">💜 L3V3L MATCHES</h1>
-    <p style="margin:8px 0 0 0;font-size:14px;opacity:0.9;">Level Up Your Connections</p>
-  </div>
-  <div style="background:white;padding:28px 24px;border-radius:0 0 12px 12px;">
-    <h2 style="color:#667eea;margin-top:0;">Hi {first_name},</h2>
-    <p>Your support keeps L3V3L MATCHES strong.</p>
-    <p>If you haven't contributed yet, even a small amount helps us cover:</p>
-    <ul>
-      <li>Server & infrastructure</li>
-      <li>Security & privacy</li>
-      <li>New matching features</li>
-    </ul>
-    <p style="margin-top:24px;text-align:center;">
-      <a href="https://l3v3lmatches.com/contribution" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 28px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102,126,234,0.4);">
-        Make a Contribution
-      </a>
-    </p>
-    <p style="color:#888;font-size:12px;margin-top:32px;text-align:center;border-top:1px solid #eee;padding-top:20px;">
-      Thank you for being part of L3V3L MATCHES.<br>
-      — The L3V3L Team
-    </p>
-  </div>
-</body>
-</html>"""
-                if custom_message:
-                    email_body = f"""<html>
-<body style="font-family:Arial,sans-serif;padding:0;margin:0;background:#f8f9fa;">
-  <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
-    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:1px;">💜 L3V3L MATCHES</h1>
-    <p style="margin:8px 0 0 0;font-size:14px;opacity:0.9;">Level Up Your Connections</p>
-  </div>
-  <div style="background:white;padding:28px 24px;border-radius:0 0 12px 12px;max-width:600px;margin:0 auto;">
-    <h2 style="color:#667eea;margin-top:0;">Hi {first_name},</h2>
-    <p>{custom_message}</p>
-    <p style="margin-top:24px;text-align:center;">
-      <a href="https://l3v3lmatches.com/contribution" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 28px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102,126,234,0.4);">
-        Make a Contribution
-      </a>
-    </p>
-    <p style="color:#888;font-size:12px;margin-top:32px;text-align:center;border-top:1px solid #eee;padding-top:20px;">
-      Thank you for being part of L3V3L MATCHES.<br>
-      — The L3V3L Team
-    </p>
-  </div>
-</body>
-</html>"""
-
-                try:
-                    send_result = await send_email(email, email_subject, email_body)
-                    if send_result.get("success"):
-                        sent_count += 1
-                    else:
-                        failed_count += 1
-                        errors.append(f"{username}: {send_result.get('error', 'Unknown')}")
-                except Exception as e:
-                    failed_count += 1
-                    errors.append(f"{username}: {str(e)}")
-
-        elif channel == "sms":
-            from services.sms_sender import send_sms
-            for user in unpaid_users:
-                username = user.get("username")
-                first_name = user.get("firstName", "Member")
-
-                # Extract phone from multiple possible sources
-                phone = user.get("phone") or user.get("contactPhone") or user.get("contactNumber")
-                if not phone:
-                    # Check contactNumbers array or object
-                    contact_numbers = user.get("contactNumbers")
-                    if isinstance(contact_numbers, list) and contact_numbers:
-                        for entry in contact_numbers:
-                            if isinstance(entry, dict) and entry.get("number"):
-                                phone = entry["number"]
-                                break
-                    elif isinstance(contact_numbers, dict):
-                        for key in ["primary", "home", "mobile", "work"]:
-                            val = contact_numbers.get(key)
-                            if val:
-                                phone = val
-                                break
-                        if not phone:
-                            for val in contact_numbers.values():
-                                if val:
-                                    phone = val
-                                    break
-                if phone and phone.startswith("gAAAAA"):
-                    try:
-                        from crypto_utils import get_encryptor
-                        phone = get_encryptor().decrypt(phone)
-                    except Exception:
-                        phone = None
-                if not phone:
-                    failed_count += 1
-                    continue
-
-                sms_body = f"Hi {first_name}! 💝 Your contribution helps keep L3V3L MATCHES running. Support us today: https://l3v3lmatches.com/contribution — Thanks, L3V3L Team"
-                if custom_message:
-                    sms_body = custom_message
-
-                try:
-                    send_result = await send_sms(phone, sms_body)
-                    if send_result.get("success"):
-                        sent_count += 1
-                    else:
-                        failed_count += 1
-                        errors.append(f"{username}: {send_result.get('error', 'Unknown')}")
-                except Exception as e:
-                    failed_count += 1
-                    errors.append(f"{username}: {str(e)}")
-
-        # Log each reminder
-        for user in unpaid_users:
-            await db.contribution_activity.insert_one({
-                "username": user.get("username"),
-                "action": "bulk_reminder_sent",
-                "channel": channel,
-                "adminUsername": current_user.get("username"),
-                "sent": True,
-                "createdAt": datetime.utcnow()
-            })
-
-        return {
-            "success": True,
-            "message": f"Sent {sent_count} bulk reminder {channel}s ({failed_count} failed)",
-            "sentCount": sent_count,
-            "failedCount": failed_count,
-            "total": len(unpaid_users),
-            "errors": errors[:10]  # Limit error details
-        }
+        from services.contribution_reminders import send_bulk_reminders
+        return await send_bulk_reminders(
+            db,
+            channel=channel,
+            custom_message=custom_message,
+            admin_username=current_user.get("username"),
+        )
     except Exception as e:
         logger.error(f"Error sending bulk reminders: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to send bulk reminders: {str(e)}")
