@@ -75,6 +75,10 @@ const UnifiedPreferences = () => {
   
   // Contribution Popup State
   const [showContributionPopup, setShowContributionPopup] = useState(false);
+  const [contributionPopupConfig, setContributionPopupConfig] = useState({
+    amounts: [25, 50, 75, 100],
+    message: 'Support the platform'
+  });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -265,6 +269,24 @@ const UnifiedPreferences = () => {
   };
 
   const channels = ['email', 'sms', 'push'];
+
+  // Load contribution popup config (single source of truth from backend)
+  useEffect(() => {
+    const loadPopupConfig = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${getBackendUrl()}/api/contributions/contribution-status`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data?.success && response.data.popupConfig) {
+          setContributionPopupConfig(response.data.popupConfig);
+        }
+      } catch (error) {
+        console.error('Error loading contribution config:', error);
+      }
+    };
+    loadPopupConfig();
+  }, []);
 
   // Load account preferences
   useEffect(() => {
@@ -2719,13 +2741,10 @@ const UnifiedPreferences = () => {
       )}
       
       {/* Contribution Popup */}
-      <ContributionPopup 
+      <ContributionPopup
         isOpen={showContributionPopup}
         onClose={() => setShowContributionPopup(false)}
-        contributionConfig={{
-          amounts: [25, 50, 75, 100],
-          message: "Support the platform and help us continue providing great service"
-        }}
+        contributionConfig={contributionPopupConfig}
       />
     </div>
   );

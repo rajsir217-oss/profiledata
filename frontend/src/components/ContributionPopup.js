@@ -28,7 +28,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   // Default [25, 50, 75, 100] matches the configured amounts if config is missing.
   const amounts = [...new Set(contributionConfig?.amounts || [25, 50, 75, 100])]
     .map(Number)
-    .filter((n) => Number.isFinite(n) && n > 0 && n !== 10)
+    .filter((n) => Number.isFinite(n) && n > 0)
     .sort((a, b) => a - b);
 
   // Log activity to backend (fire and forget)
