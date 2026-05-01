@@ -789,9 +789,17 @@
   color: white;
 }
 
-.reminder-btn.sms:hover {
+.reminder-btn.sms:hover:not(:disabled) {
   background: var(--success-hover);
   transform: translateY(-1px);
+}
+
+.reminder-btn.sms:disabled {
+  background: var(--surface-color);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 /* Reminder Modal */

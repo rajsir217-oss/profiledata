@@ -983,6 +983,7 @@ const ContributionManagement = () => {
                     <th>Age</th>
                     <th>Gender</th>
                     <th>Email</th>
+                    <th>Phone</th>
                     <th>Joined</th>
                     <th>Last Login</th>
                     <th>Actions</th>
@@ -1009,6 +1010,11 @@ const ContributionManagement = () => {
                           <span title={user.contactEmail}>{user.contactEmail}</span>
                         ) : '-'}
                       </td>
+                      <td className="phone-cell">
+                        {user.contactPhone ? (
+                          <span title={user.contactPhone}>{user.contactPhone}</span>
+                        ) : '-'}
+                      </td>
                       <td className="date-cell">{formatDate(user.joinedAt)}</td>
                       <td className="date-cell">{formatDate(user.lastLogin)}</td>
                       <td className="actions-cell">
@@ -1022,15 +1028,14 @@ const ContributionManagement = () => {
                               📧 Email
                             </button>
                           )}
-                          {user.contactPhone && (
-                            <button
-                              className="reminder-btn sms"
-                              onClick={() => setReminderModal({ user, channel: 'sms', bulk: false })}
-                              title="Send SMS Reminder"
-                            >
-                              📱 SMS
-                            </button>
-                          )}
+                          <button
+                            className="reminder-btn sms"
+                            onClick={() => user.contactPhone && setReminderModal({ user, channel: 'sms', bulk: false })}
+                            disabled={!user.contactPhone}
+                            title={user.contactPhone ? "Send SMS Reminder" : "No phone number on file"}
+                          >
+                            📱 SMS
+                          </button>
                         </div>
                       </td>
                     </tr>
