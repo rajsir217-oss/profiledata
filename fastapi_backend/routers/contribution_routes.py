@@ -550,8 +550,8 @@ async def get_unpaid_members(
             {
                 "username": 1, "firstName": 1, "lastName": 1,
                 "age": 1, "gender": 1, "email": 1, "contactEmail": 1,
-                "phone": 1, "contactPhone": 1, "createdAt": 1,
-                "lastLogin": 1, "lastActive": 1, "_id": 0
+                "phone": 1, "contactPhone": 1, "contactNumber": 1, "contactNumbers": 1,
+                "createdAt": 1, "lastLogin": 1, "lastActive": 1, "_id": 0
             }
         ).sort("createdAt", -1).skip((page - 1) * limit).limit(limit)
 
@@ -569,6 +569,33 @@ async def get_unpaid_members(
                     return "[Encrypted]"
             return value
 
+        def extract_phone(user_doc):
+            """Extract best phone number from user doc, handling contactNumbers array/object or legacy fields."""
+            # 1. Check contactNumbers (array of objects or dict with keys)
+            contact_numbers = user_doc.get("contactNumbers")
+            if contact_numbers:
+                # Array of objects format: [{"number": "...", "label": "primary"}]
+                if isinstance(contact_numbers, list) and contact_numbers:
+                    for entry in contact_numbers:
+                        if isinstance(entry, dict) and entry.get("number"):
+                            return decrypt_if_needed(entry["number"])
+                # Object format: {"primary": "...", "secondary": "..."}
+                elif isinstance(contact_numbers, dict):
+                    for key in ["primary", "home", "mobile", "work"]:
+                        val = contact_numbers.get(key)
+                        if val:
+                            return decrypt_if_needed(val)
+                    # Fallback: any non-empty value
+                    for val in contact_numbers.values():
+                        if val:
+                            return decrypt_if_needed(val)
+            # 2. Legacy contactNumber field
+            contact_number = user_doc.get("contactNumber")
+            if contact_number:
+                return decrypt_if_needed(contact_number)
+            # 3. Even older phone/contactPhone fields
+            return decrypt_if_needed(user_doc.get("phone") or user_doc.get("contactPhone") or "")
+
         def fmt_dt(v):
             if not v:
                 return None
@@ -577,7 +604,7 @@ async def get_unpaid_members(
         formatted = []
         for u in users:
             contact_email = decrypt_if_needed(u.get("email") or u.get("contactEmail") or "")
-            contact_phone = decrypt_if_needed(u.get("phone") or u.get("contactPhone") or "")
+            contact_phone = extract_phone(u)
             formatted.append({
                 "username": u.get("username"),
                 "fullName": f"{u.get('firstName','')} {u.get('lastName','')}".strip(),
@@ -677,7 +704,26 @@ async def send_contribution_reminder(
         result["message_preview"] = email_body[:200] + "..."
         result["recipient"] = email
     elif channel == "sms":
-        phone = user.get("phone") or user.get("contactPhone")
+        # Extract phone from multiple possible sources
+        phone = user.get("phone") or user.get("contactPhone") or user.get("contactNumber")
+        if not phone:
+            contact_numbers = user.get("contactNumbers")
+            if isinstance(contact_numbers, list) and contact_numbers:
+                for entry in contact_numbers:
+                    if isinstance(entry, dict) and entry.get("number"):
+                        phone = entry["number"]
+                        break
+            elif isinstance(contact_numbers, dict):
+                for key in ["primary", "home", "mobile", "work"]:
+                    val = contact_numbers.get(key)
+                    if val:
+                        phone = val
+                        break
+                if not phone:
+                    for val in contact_numbers.values():
+                        if val:
+                            phone = val
+                            break
         if phone and phone.startswith("gAAAAA"):
             try:
                 from crypto_utils import get_encryptor
@@ -752,10 +798,12 @@ async def send_bulk_contribution_reminder(
                 "username": {"$nin": list(payment_usernames)},
                 "$or": [
                     {"phone": {"$exists": True, "$ne": ""}},
-                    {"contactPhone": {"$exists": True, "$ne": ""}}
+                    {"contactPhone": {"$exists": True, "$ne": ""}},
+                    {"contactNumber": {"$exists": True, "$ne": ""}},
+                    {"contactNumbers": {"$exists": True, "$ne": []}}
                 ]
             }
-            projection = {"username": 1, "firstName": 1, "phone": 1, "contactPhone": 1}
+            projection = {"username": 1, "firstName": 1, "phone": 1, "contactPhone": 1, "contactNumber": 1, "contactNumbers": 1}
         else:
             raise HTTPException(status_code=400, detail="channel must be 'email' or 'sms'")
 
@@ -824,7 +872,27 @@ async def send_bulk_contribution_reminder(
                 username = user.get("username")
                 first_name = user.get("firstName", "Member")
 
-                phone = user.get("phone") or user.get("contactPhone")
+                # Extract phone from multiple possible sources
+                phone = user.get("phone") or user.get("contactPhone") or user.get("contactNumber")
+                if not phone:
+                    # Check contactNumbers array or object
+                    contact_numbers = user.get("contactNumbers")
+                    if isinstance(contact_numbers, list) and contact_numbers:
+                        for entry in contact_numbers:
+                            if isinstance(entry, dict) and entry.get("number"):
+                                phone = entry["number"]
+                                break
+                    elif isinstance(contact_numbers, dict):
+                        for key in ["primary", "home", "mobile", "work"]:
+                            val = contact_numbers.get(key)
+                            if val:
+                                phone = val
+                                break
+                        if not phone:
+                            for val in contact_numbers.values():
+                                if val:
+                                    phone = val
+                                    break
                 if phone and phone.startswith("gAAAAA"):
                     try:
                         from crypto_utils import get_encryptor
