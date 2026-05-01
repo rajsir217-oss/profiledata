@@ -729,7 +729,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
                   </button>
                   <button
                     className="user-menu-item"
-                    onClick={() => { navigate('/settings'); setShowUserMenu(false); }}
+                    onClick={() => { navigate('/preferences'); setShowUserMenu(false); }}
                   >
                     <span className="user-menu-icon">⚙️</span>
                     <div className="user-menu-item-content">
