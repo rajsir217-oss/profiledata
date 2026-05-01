@@ -248,6 +248,10 @@ def initialize_templates():
     from .daily_platform_stats_purge import PlatformStatsDailyPurgeTemplate
     from .monthly_platform_stats_purge import PlatformStatsMonthlyPurgeTemplate
     from .activity_logs_purge import ActivityLogsPurgeTemplate
+    from .unpaid_reminder_email_template import UnpaidReminderEmailTemplate
+    from .unpaid_reminder_sms_template import UnpaidReminderSMSTemplate
+    
+    registry = get_template_registry()
     
     registry.register(PlatformStatsDailySnapshotTemplate())
     registry.register(PlatformStatsMonthlyAggregationTemplate())
@@ -255,6 +259,8 @@ def initialize_templates():
     registry.register(PlatformStatsDailyPurgeTemplate())
     registry.register(PlatformStatsMonthlyPurgeTemplate())
     registry.register(ActivityLogsPurgeTemplate())
+    registry.register(UnpaidReminderEmailTemplate())
+    registry.register(UnpaidReminderSMSTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
