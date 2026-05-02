@@ -134,14 +134,14 @@ def build_reminder_email(first_name: str, custom_message: Optional[str] = None) 
     """
     body_inner = (
         f'<p>{custom_message}</p>' if custom_message else
-        '<p>L3V3L MATCHES is powered by community support.</p>'
-        '<p>If you haven\u2019t contributed yet, we\u2019d be grateful for anything you can offer '
-        '\u2014 every bit truly helps.</p>'
+        '<p>L3V3L MATCHES thrives because of members like you.</p>'
+        '<p>We truly appreciate your presence in our community. '
+        'Your contribution directly helps us maintain, secure, and enhance the platform for all families.</p>'
         '<p>Your support goes toward:</p>'
         '<ul>'
-        '<li>Keeping our servers running smoothly</li>'
-        '<li>Strengthening security and privacy</li>'
-        '<li>Developing new features to improve matching</li>'
+        '<li>Reliable servers and infrastructure</li>'
+        '<li>Stronger security and privacy protections</li>'
+        '<li>New and improved matching features</li>'
         '</ul>'
     )
 
@@ -174,8 +174,10 @@ def build_reminder_sms(first_name: str, custom_message: Optional[str] = None) ->
     if custom_message:
         return custom_message
     return (
-        f"Hi {first_name}! 💝 Your contribution helps keep L3V3L MATCHES running. "
-        f"Support us today: https://l3v3lmatches.com/contribution — Thanks, L3V3L Team"
+        f"Hi {first_name}! Hope your partner-search journey is going beautifully. 💝\n\n"
+        f"Thank you for being part of our community. Your contribution plays a big role in keeping L3V3L MATCHES growing and improving for everyone.\n\n"
+        f"Support here: https://l3v3lmatches.com/contribution\n"
+        f"— L3V3L Team"
     )
 
 
