@@ -1185,7 +1185,7 @@ const ContributionManagement = () => {
                   </div>
                 ) : (
                   <div className="sms-preview">
-                    <p>Hi {reminderModal.bulk ? '<First Name>' : (reminderModal.user.fullName?.split(' ')[0] || 'Member')}! 💝 Your contribution helps keep L3V3L MATCHES running. Support us today: https://l3v3lmatches.com/contribution — Thanks, L3V3L Team</p>
+                    <p>Hi {reminderModal.bulk ? '<First Name>' : (reminderModal.user.fullName?.split(' ')[0] || 'Member')}! Hope your partner-search journey is going beautifully. 💝<br/><br/>Thank you for being part of our community. Your contribution plays a big role in keeping L3V3L MATCHES growing and improving for everyone.<br/><br/>Support here: https://l3v3lmatches.com/contribution<br/>— L3V3L Team</p>
                   </div>
                 )}
               </div>
