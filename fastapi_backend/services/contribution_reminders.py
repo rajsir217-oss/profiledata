@@ -92,7 +92,7 @@ async def get_unpaid_users(db: AsyncIOMotorDatabase, channel: str) -> List[Dict[
     payment_usernames = list(set(payment_usernames))
 
     base_query = {
-        "accountStatus": {"$ne": "deleted"},
+        "accountStatus": "active",
         "role": {"$nin": ["admin", "moderator"]},
         "username": {"$nin": payment_usernames},
     }

@@ -536,7 +536,7 @@ async def get_unpaid_members(
 
         # Build query for users WITHOUT contributions
         unpaid_query = {
-            "accountStatus": {"$ne": "deleted"},
+            "accountStatus": "active",
             "role": {"$nin": ["admin", "moderator"]},
             "username": {"$nin": list(payment_usernames)}
         }
