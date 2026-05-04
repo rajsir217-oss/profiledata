@@ -214,6 +214,92 @@ async def typing(sid, data):
             'isTyping': is_typing
         }, room=target_sid)
 
+# =========================================================================
+# Messenger-specific events (messenger:* namespace on default /)
+# =========================================================================
+
+@sio.on('messenger:typing')
+async def messenger_typing(sid, data):
+    """Handle messenger typing indicator — broadcasts to all other conversation participants."""
+    conversation_id = data.get('conversationId')
+    is_typing = data.get('isTyping', True)
+
+    if sid not in user_sessions:
+        return
+    from_username = user_sessions[sid]
+
+    try:
+        from main import db
+        from bson import ObjectId
+        conv = await db.messenger_conversations.find_one({"_id": ObjectId(conversation_id)})
+        if not conv:
+            return
+        for p in conv.get("participants", []):
+            recipient = p.get("username")
+            if recipient and recipient != from_username and recipient in online_users:
+                await sio.emit('messenger:typing', {
+                    'conversationId': conversation_id,
+                    'username': from_username,
+                    'isTyping': is_typing,
+                }, room=online_users[recipient])
+    except Exception as e:
+        logger.warning(f"⚠️ messenger:typing error: {e}")
+
+
+@sio.on('messenger:mark_delivered')
+async def messenger_mark_delivered(sid, data):
+    """Client reports messages as delivered."""
+    message_ids = data.get('messageIds', [])
+    if sid not in user_sessions or not message_ids:
+        return
+    username = user_sessions[sid]
+    try:
+        from services.messenger_service import update_message_status
+        from main import db
+        await update_message_status(db, message_ids, "delivered", username)
+        # Notify senders
+        await _notify_status_change(db, message_ids, "delivered", username)
+    except Exception as e:
+        logger.warning(f"⚠️ messenger:mark_delivered error: {e}")
+
+
+@sio.on('messenger:mark_read')
+async def messenger_mark_read(sid, data):
+    """Client reports messages as read."""
+    message_ids = data.get('messageIds', [])
+    if sid not in user_sessions or not message_ids:
+        return
+    username = user_sessions[sid]
+    try:
+        from services.messenger_service import update_message_status
+        from main import db
+        await update_message_status(db, message_ids, "read", username)
+        # Notify senders
+        await _notify_status_change(db, message_ids, "read", username)
+    except Exception as e:
+        logger.warning(f"⚠️ messenger:mark_read error: {e}")
+
+
+async def _notify_status_change(db, message_ids, status, reader_username):
+    """Notify message senders about delivery/read status changes."""
+    from bson import ObjectId
+    oids = [ObjectId(mid) for mid in message_ids]
+    messages = await db.messenger_messages.find(
+        {"_id": {"$in": oids}},
+        {"senderUsername": 1},
+    ).to_list(len(oids))
+
+    senders = set(m["senderUsername"] for m in messages if m["senderUsername"] != reader_username)
+    for sender in senders:
+        if sender in online_users:
+            await sio.emit('messenger:message_status', {
+                'messageIds': message_ids,
+                'status': status,
+                'updatedBy': reader_username,
+                'timestamp': datetime.utcnow().isoformat(),
+            }, room=online_users[sender])
+
+
 @sio.event
 async def get_online_users(sid, data):
     """Get list of online users with profile info"""

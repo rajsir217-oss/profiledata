@@ -524,7 +524,7 @@ async def login(
         # Prepare user data (remove sensitive info)
         user_data = {
             "username": user["username"],
-            "email": user["email"],
+            "email": user.get("email") or user.get("contactEmail"),
             "firstName": user.get("firstName"),
             "lastName": user.get("lastName"),
             "role": user.get("role_name"),
@@ -754,7 +754,7 @@ async def get_current_user(
     # Remove sensitive data
     user_data = {
         "username": current_user.get("username"),
-        "email": current_user.get("email"),
+        "email": current_user.get("email") or current_user.get("contactEmail"),
         "firstName": current_user.get("firstName"),
         "lastName": current_user.get("lastName"),
         "role": current_user.get("role_name"),
