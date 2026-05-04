@@ -1,0 +1,104 @@
+/**
+ * L3V3L Messenger — Web Entry Point
+ * Uses @react-navigation/stack (JS-based) instead of native-stack.
+ */
+
+import React, { useEffect } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+
+import useAuthStore from './src/stores/authStore';
+import messengerSocket from './src/services/socketService';
+
+import LoginScreen from './src/screens/LoginScreen';
+import ConversationListScreen from './src/screens/ConversationListScreen';
+import ChatScreen from './src/screens/ChatScreen';
+import NewChatScreen from './src/screens/NewChatScreen';
+
+const Stack = createStackNavigator();
+
+function App() {
+  const { token, isLoading, restore } = useAuthStore();
+
+  useEffect(() => {
+    restore();
+  }, []);
+
+  useEffect(() => {
+    if (token) {
+      messengerSocket.connect();
+    } else {
+      messengerSocket.disconnect();
+    }
+    return () => messengerSocket.disconnect();
+  }, [token]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#fff" />
+        <Text style={styles.loadingText}>L3V3L Messenger</Text>
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      {token ? (
+        <Stack.Navigator>
+          <Stack.Screen
+            name="Conversations"
+            component={ConversationListScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Chat"
+            component={ChatScreen}
+            options={({ route }) => ({
+              title: route.params?.title || 'Chat',
+              headerStyle: { backgroundColor: '#6C3FA0' },
+              headerTintColor: '#fff',
+              headerTitleStyle: { fontWeight: '600' },
+            })}
+          />
+          <Stack.Screen
+            name="NewChat"
+            component={NewChatScreen}
+            options={{
+              title: 'New Chat',
+              headerStyle: { backgroundColor: '#6C3FA0' },
+              headerTintColor: '#fff',
+              headerTitleStyle: { fontWeight: '600' },
+            }}
+          />
+        </Stack.Navigator>
+      ) : (
+        <Stack.Navigator>
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ headerShown: false }}
+          />
+        </Stack.Navigator>
+      )}
+    </NavigationContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#6C3FA0',
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 18,
+    marginTop: 16,
+    fontWeight: '600',
+  },
+});
+
+export default App;
