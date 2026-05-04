@@ -1,0 +1,10 @@
+/**
+ * React 19 client shim - re-exports createRoot and hydrateRoot.
+ * Avoids subpath import issues with webpack + React 18 in parent node_modules.
+ */
+
+// Use CommonJS require to bypass webpack ESM resolution
+const client = require('/Users/rajsiripuram02/opt/appsrc/profiledata/frontend/node_modules/react-dom/client');
+
+module.exports.createRoot = client.createRoot;
+module.exports.hydrateRoot = client.hydrateRoot;
