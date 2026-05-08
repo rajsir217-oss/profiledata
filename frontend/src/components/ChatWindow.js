@@ -33,11 +33,15 @@ const QUICK_REPLY_TEMPLATES = [
   ]}
 ];
 
-const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted, onBack, conversationStatus, onCloseConversation }) => {
+const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted, onBack, conversationStatus, onCloseConversation, isGroupChat, groupInfo }) => {
   const messagesEndRef = useRef(null);
   const [messageText, setMessageText] = useState('');
   const [deletingMessage, setDeletingMessage] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  
+  // Check if current user is admin or moderator
+  const userRole = localStorage.getItem('userRole');
+  const isAdminOrModerator = userRole === 'admin' || userRole === 'moderator';
   const [deleteError, setDeleteError] = useState(null);
   const [headerImageError, setHeaderImageError] = useState(false);
   const [messageImageErrors, setMessageImageErrors] = useState({});
@@ -53,6 +57,12 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const [showStopTip, setShowStopTip] = useState(false);
   const [acknowledgingConversation, setAcknowledgingConversation] = useState(false);
   const notInterestedRef = useRef(null);
+  
+  // US Vedika group chat states
+  const [showPublicRecipientModal, setShowPublicRecipientModal] = useState(false);
+  const [publicRecipients, setPublicRecipients] = useState([]);
+  const [includeInvitation, setIncludeInvitation] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
 
   const scrollToBottom = () => {
     // Use block: 'nearest' to prevent page scroll, only scroll within the messages container
@@ -256,6 +266,24 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const handleSend = (e) => {
     e.preventDefault();
     if (messageText.trim()) {
+      // Check for @{email} mentions for US Vedika (only for admins/moderators)
+      const emailRegex = /@([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+      const emailMatches = [...messageText.matchAll(emailRegex)];
+      
+      if (emailMatches.length > 0 && isGroupChat && isAdminOrModerator) {
+        // Extract emails and clean the message
+        const emails = emailMatches.map(match => ({
+          email: match[1],
+          displayName: match[1].split('@')[0]
+        }));
+        const cleanMessage = messageText.replace(emailRegex, '').trim();
+        
+        setPublicRecipients(emails);
+        setShowPublicRecipientModal(true);
+        setMessageText(cleanMessage);
+        return;
+      }
+      
       onSendMessage(messageText.trim());
       setMessageText('');
     }
@@ -296,7 +324,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
     setDeleteConfirm(null);
   };
 
-  if (!otherUser) {
+  if (!otherUser && !isGroupChat) {
     return (
       <div className="chat-window">
         <div className="no-chat-selected">
@@ -319,69 +347,87 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
           </button>
         )}
         <div className="chat-user-info">
-          <div 
-            className="chat-avatar-container"
-            onClick={() => window.open(`/profile/${otherUser.username}`, '_blank')}
-            style={{ cursor: 'pointer' }}
-            title={`View ${otherUser.firstName || otherUser.username}'s profile`}
-          >
-            {getProfilePicUrl(otherUser) && !headerImageError ? (
-              <img 
-                src={getProfilePicUrl(otherUser)} 
-                alt={otherUser.username} 
-                className="chat-avatar"
-                onError={() => setHeaderImageError(true)}
-              />
-            ) : (
-              <div className="chat-avatar-placeholder">
-                {otherUser.firstName?.[0] || otherUser.username?.[0]?.toUpperCase() || '?'}
+          {isGroupChat ? (
+            // Group Chat Header
+            <div className="chat-group-info">
+              <div className="chat-group-avatar">
+                🇺🇸
               </div>
-            )}
-          </div>
-          <div className="chat-user-details">
-            <h4>
-              {otherUser.firstName || otherUser.username}
-              {/* Profile Creator Badge */}
-              {otherUser.profileCreatedBy && (
-                <ProfileCreatorBadge 
-                  creatorType={otherUser.profileCreatedBy}
-                  size="small"
-                  showLabel={true}
-                  showIcon={true}
+              <div className="chat-user-details">
+                <h4>{groupInfo?.groupName || 'US Vedika Group'}</h4>
+                <p className="chat-user-subtitle">
+                  Portal Members + External Users via @{email}
+                </p>
+              </div>
+            </div>
+          ) : (
+            // 1:1 Chat Header
+            <div 
+              className="chat-avatar-container"
+              onClick={() => window.open(`/profile/${otherUser.username}`, '_blank')}
+              style={{ cursor: 'pointer' }}
+              title={`View ${otherUser.firstName || otherUser.username}'s profile`}
+            >
+              {getProfilePicUrl(otherUser) && !headerImageError ? (
+                <img 
+                  src={getProfilePicUrl(otherUser)} 
+                  alt={otherUser.username} 
+                  className="chat-avatar"
+                  onError={() => setHeaderImageError(true)}
                 />
+              ) : (
+                <div className="chat-avatar-placeholder">
+                  {otherUser.firstName?.[0] || otherUser.username?.[0]?.toUpperCase() || '?'}
+                </div>
               )}
-              {/* Pause Status Badge */}
-              {otherUser.accountStatus === 'paused' && (
-                <span className="pause-badge-header" title="User is on a break">
-                  ⏸️ PAUSED
-                </span>
-              )}
-            </h4>
-            <p className="chat-user-subtitle">
-              {console.log('🔍 ChatWindow otherUser fields:', { height: otherUser.height, heightInches: otherUser.heightInches, age: otherUser.age, birthYear: otherUser.birthYear, birthMonth: otherUser.birthMonth, eatingPreference: otherUser.eatingPreference, location: otherUser.location, keys: Object.keys(otherUser).join(', ') })}
-              {otherUser.location || 'Location not specified'}
-              {(() => {
-                const h = otherUser.height || (otherUser.heightInches ? `${Math.floor(otherUser.heightInches / 12)}'${otherUser.heightInches % 12}"` : null);
-                return h ? <span className="chat-detail-separator"> · {h}</span> : null;
-              })()}
-              {(() => {
-                let age = otherUser.age;
-                if (!age && otherUser.birthYear) {
-                  const now = new Date();
-                  age = now.getFullYear() - parseInt(otherUser.birthYear);
-                  if (otherUser.birthMonth && (now.getMonth() + 1) < parseInt(otherUser.birthMonth)) age--;
-                }
-                return age ? <span className="chat-detail-separator"> · {age}yrs</span> : null;
-              })()}
-              {otherUser.eatingPreference && otherUser.eatingPreference !== 'None' && (
-                <span className="chat-detail-separator"> · {otherUser.eatingPreference}</span>
-              )}
-            </p>
-          </div>
+            </div>
+          )}
+          {!isGroupChat && (
+            <div className="chat-user-details">
+              <h4>
+                {otherUser.firstName || otherUser.username}
+                {/* Profile Creator Badge */}
+                {otherUser.profileCreatedBy && (
+                  <ProfileCreatorBadge 
+                    creatorType={otherUser.profileCreatedBy}
+                    size="small"
+                    showLabel={true}
+                    showIcon={true}
+                  />
+                )}
+                {/* Pause Status Badge */}
+                {otherUser.accountStatus === 'paused' && (
+                  <span className="pause-badge-header" title="User is on a break">
+                    ⏸️ PAUSED
+                  </span>
+                )}
+              </h4>
+              <p className="chat-user-subtitle">
+                {console.log('🔍 ChatWindow otherUser fields:', { height: otherUser.height, heightInches: otherUser.heightInches, age: otherUser.age, birthYear: otherUser.birthYear, birthMonth: otherUser.birthMonth, eatingPreference: otherUser.eatingPreference, location: otherUser.location, keys: Object.keys(otherUser).join(', ') })}
+                {otherUser.location || 'Location not specified'}
+                {(() => {
+                  const h = otherUser.height || (otherUser.heightInches ? `${Math.floor(otherUser.heightInches / 12)}'${otherUser.heightInches % 12}"` : null);
+                  return h ? <span className="chat-detail-separator"> · {h}</span> : null;
+                })()}
+                {(() => {
+                  let age = otherUser.age;
+                  if (!age && otherUser.birthYear) {
+                    const now = new Date();
+                    age = now.getFullYear() - parseInt(otherUser.birthYear);
+                    if (otherUser.birthMonth && (now.getMonth() + 1) < parseInt(otherUser.birthMonth)) age--;
+                  }
+                  return age ? <span className="chat-detail-separator"> · {age}yrs</span> : null;
+                })()}
+                {otherUser.eatingPreference && otherUser.eatingPreference !== 'None' && (
+                  <span className="chat-detail-separator"> · {otherUser.eatingPreference}</span>
+                )}
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Chat Actions - only when conversation is active (not already closed/blocked) */}
-        {conversationStatus?.status !== 'closed' && !blockStatus.iBlockedThem && !blockStatus.theyBlockedMe && (
+        {/* Chat Actions - only for 1:1 chats */}
+        {!isGroupChat && conversationStatus?.status !== 'closed' && !blockStatus.iBlockedThem && !blockStatus.theyBlockedMe && (
           <div className="chat-header-actions" ref={notInterestedRef}>
             {/* Stay in Touch button */}
             <button
@@ -448,6 +494,17 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
               </div>
             )}
           </div>
+        )}
+
+        {/* Mute toggle for group chats */}
+        {isGroupChat && (
+          <button
+            className="chat-mute-btn"
+            onClick={() => setIsMuted(!isMuted)}
+            title={isMuted ? 'Unmute notifications' : 'Mute notifications'}
+          >
+            {isMuted ? '🔇' : '🔔'}
+          </button>
         )}
       </div>
 
@@ -590,20 +647,23 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
           </div>
         ) : (
           messages.map((msg, index) => {
-            const isOwnMessage = (msg.fromUsername || msg.from_username) === currentUsername;
-            const showAvatar = index === 0 || (messages[index - 1].fromUsername || messages[index - 1].from_username) !== (msg.fromUsername || msg.from_username);
+            const isOwnMessage = (msg.fromUsername || msg.from_username || msg.senderUsername) === currentUsername;
+            const showAvatar = index === 0 || (messages[index - 1].fromUsername || messages[index - 1].from_username || messages[index - 1].senderUsername) !== (msg.fromUsername || msg.from_username || msg.senderUsername);
             const messageId = msg._id || msg.id;
             const isConfirmingDelete = deleteConfirm === messageId;
             const isDeleting = deletingMessage === messageId;
+            const isPublicEmail = msg.senderType === 'public_email';
             
             return (
               <div
                 key={messageId || index}
-                className={`message-bubble-container ${isOwnMessage ? 'own' : 'other'} ${isDeleting ? 'deleting' : ''}`}
+                className={`message-bubble-container ${isOwnMessage ? 'own' : 'other'} ${isDeleting ? 'deleting' : ''} ${isPublicEmail ? 'public-email' : ''}`}
               >
                 {!isOwnMessage && showAvatar && (
                   <div className="message-avatar">
-                    {getProfilePicUrl(otherUser) && !messageImageErrors[index] ? (
+                    {isGroupChat && isPublicEmail ? (
+                      <div className="avatar-small">📧</div>
+                    ) : getProfilePicUrl(otherUser) && !messageImageErrors[index] ? (
                       <img 
                         src={getProfilePicUrl(otherUser)} 
                         alt={otherUser.username}
@@ -618,7 +678,10 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
                 )}
                 {!isOwnMessage && !showAvatar && <div className="message-avatar-spacer" />}
                 
-                <div className={`message-bubble ${isOwnMessage ? 'own' : 'other'}`}>
+                <div className={`message-bubble ${isOwnMessage ? 'own' : 'other'} ${isPublicEmail ? 'public-email-bubble' : ''}`}>
+                  {isPublicEmail && (
+                    <div className="public-email-badge">📧 Public Email Reply</div>
+                  )}
                   <div className="message-content">
                     <p>{msg.content || msg.message}</p>
                     <span className="message-time">{formatTime(msg.createdAt || msg.timestamp)}</span>
@@ -749,7 +812,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={otherUser.accountStatus === 'paused' ? 'User is paused - messages disabled' : 'Type a message...'}
+              placeholder={isGroupChat && isAdminOrModerator ? 'Type a message... Use @{email} to invite via email' : (isGroupChat ? 'Type a message...' : (otherUser.accountStatus === 'paused' ? 'User is paused - messages disabled' : 'Type a message...'))}
               className="message-input"
               maxLength={1000}
               disabled={otherUser.accountStatus === 'paused'}
@@ -762,6 +825,68 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
               <span className="send-text">Send </span><span className="send-icon">➤</span>
             </button>
           </form>
+        </div>
+      )}
+
+      {/* Public Recipient Modal for US Vedika */}
+      {showPublicRecipientModal && (
+        <div className="public-recipient-modal-overlay">
+          <div className="public-recipient-modal">
+            <h3>Send to External Participants</h3>
+            <p className="modal-subtext">
+              You're about to send this message to {publicRecipients.length} external participant(s) via email.
+            </p>
+            <div className="recipient-list">
+              {publicRecipients.map((recipient, idx) => (
+                <div key={idx} className="recipient-item">
+                  <span className="recipient-icon">📧</span>
+                  <span className="recipient-email">{recipient.email}</span>
+                </div>
+              ))}
+            </div>
+            <div className="modal-actions">
+              <button
+                className="modal-btn modal-btn-cancel"
+                onClick={() => {
+                  setShowPublicRecipientModal(false);
+                  setPublicRecipients([]);
+                  setMessageText('');
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="modal-btn modal-btn-secondary"
+                onClick={() => {
+                  onSendMessage(messageText.trim(), {
+                    publicRecipients,
+                    deliveryMode: 'email',
+                    includeInvitation: false
+                  });
+                  setShowPublicRecipientModal(false);
+                  setPublicRecipients([]);
+                  setMessageText('');
+                }}
+              >
+                Send Message Only
+              </button>
+              <button
+                className="modal-btn modal-btn-primary"
+                onClick={() => {
+                  onSendMessage(messageText.trim(), {
+                    publicRecipients,
+                    deliveryMode: 'both',
+                    includeInvitation: true
+                  });
+                  setShowPublicRecipientModal(false);
+                  setPublicRecipients([]);
+                  setMessageText('');
+                }}
+              >
+                Send Message + Invitation
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

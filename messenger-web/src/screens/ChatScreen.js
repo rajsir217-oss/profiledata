@@ -9,6 +9,11 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [error, setError] = useState(null);
+  // US Vedika public group states
+  const [showPublicRecipientModal, setShowPublicRecipientModal] = useState(false);
+  const [publicRecipients, setPublicRecipients] = useState([]);
+  const [includeInvitation, setIncludeInvitation] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -43,8 +48,54 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
     }
   };
 
+  // Parse @{email} mentions from message content
+  // Supports both @{email} and @email formats
+  const parsePublicRecipients = (text) => {
+    const recipients = [];
+
+    // Try @{email} format first
+    const curlyBraceRegex = /@\{([^}]+)\}/g;
+    let match;
+    while ((match = curlyBraceRegex.exec(text)) !== null) {
+      const content = match[1];
+      // Parse "Name <email>" or just "email"
+      const emailMatch = content.match(/(?:([^<]+)<)?([^>]+)>?/);
+      if (emailMatch) {
+        const displayName = emailMatch[1]?.trim();
+        const email = emailMatch[2]?.trim();
+        if (email && email.includes('@')) {
+          recipients.push({
+            email,
+            displayName: displayName || email,
+          });
+        }
+      }
+    }
+
+    // Also support simple @email format (without curly braces)
+    const simpleEmailRegex = /@([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+    while ((match = simpleEmailRegex.exec(text)) !== null) {
+      const email = match[1];
+      recipients.push({
+        email,
+        displayName: email.split('@')[0],
+      });
+    }
+
+    return recipients;
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
+
+    // Check for public recipients in US Vedika (public_group)
+    const recipients = parsePublicRecipients(newMessage);
+    if (recipients.length > 0 && !isLegacy) {
+      // Show modal for public recipients
+      setPublicRecipients(recipients);
+      setShowPublicRecipientModal(true);
+      return;
+    }
 
     setSending(true);
     try {
@@ -75,6 +126,33 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
     }
   };
 
+  const sendWithPublicRecipients = async (deliveryMode) => {
+    setShowPublicRecipientModal(false);
+    setSending(true);
+    try {
+      console.log('📤 Sending message with public recipients:', publicRecipients);
+      const api = useAuthStore.getState().getApi();
+      const res = await api.post(`/api/messenger/conversations/${id}/messages`, {
+        conversationId: id,
+        contentType: 'text',
+        content: newMessage.trim(),
+        publicRecipients,
+        deliveryMode,
+        includeInvitation,
+      });
+      console.log('✅ Message sent successfully:', res.data);
+      setNewMessage('');
+      setPublicRecipients([]);
+      await loadMessages();
+    } catch (e) {
+      console.error('❌ Failed to send message:', e);
+      console.error('❌ Error response:', e.response?.data);
+      setError('Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -85,20 +163,21 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
         <View style={styles.headerInfo}>
           <Text style={styles.headerTitle} numberOfLines={1}>
             {profile && (profile.firstName || profile.lastName)
-              ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
+              ? `${profile.firstName} ${profile.lastName}`.trim()
               : name}
           </Text>
-          {profile && !isGroup && (
-            <Text style={styles.headerMeta} numberOfLines={1}>
-              {[
-                profile.age ? `${profile.age}y` : null,
-                profile.height || null,
-                profile.profession || null,
-                profile.location || null,
-              ].filter(Boolean).join(' · ')}
-            </Text>
-          )}
+          {isGroup && <Text style={styles.headerSubtitle}>Group Chat</Text>}
         </View>
+        {isGroup && (
+          <TouchableOpacity
+            style={styles.muteButton}
+            onPress={() => setIsMuted(!isMuted)}
+          >
+            <Text style={styles.muteButtonText}>
+              {isMuted ? '🔇' : '🔔'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Messages */}
@@ -124,11 +203,14 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
           ) : (
             messages.map((msg) => {
               const isOwn = msg.senderUsername === user.username || msg.fromUsername === user.username;
+              const isPublicEmail = msg.senderType === 'public_email';
               const senderName = isGroup && !isOwn ? (msg.senderUsername || msg.fromUsername || 'Unknown') : null;
               return (
                 <View key={msg.id} style={[styles.messageRow, isOwn && styles.messageRowOwn]}>
-                  <View style={[styles.messageBubble, isOwn && styles.messageBubbleOwn]}>
-                    {isGroup && senderName && !isOwn && (
+                  <View style={[styles.messageBubble, isOwn && styles.messageBubbleOwn, isPublicEmail && styles.messageBubblePublic]}>
+                    {isPublicEmail ? (
+                      <Text style={styles.publicEmailBadge}>📧 {msg.publicEmail || msg.senderUsername}</Text>
+                    ) : isGroup && senderName && !isOwn && (
                       <Text style={styles.senderName}>{senderName}</Text>
                     )}
                     <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
@@ -172,6 +254,61 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Public Recipient Modal */}
+      {showPublicRecipientModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>📧 Messaging Non-Members</Text>
+            <Text style={styles.modalText}>
+              This message will be delivered by email to:
+            </Text>
+            {publicRecipients.map((recipient, index) => (
+              <Text key={index} style={styles.recipientText}>
+                • {recipient.displayName} ({recipient.email})
+              </Text>
+            ))}
+            <Text style={styles.modalSubtext}>Choose how to send:</Text>
+
+            {/* Send + Invite Button */}
+            <TouchableOpacity
+              style={styles.modalButtonPrimary}
+              onPress={() => sendWithPublicRecipients('both')}
+            >
+              <Text style={styles.modalButtonTextPrimary}>
+                ✉️ Send + Invite
+              </Text>
+              <Text style={styles.modalButtonSubtext}>
+                Email includes "Join L3V3L" button
+              </Text>
+            </TouchableOpacity>
+
+            {/* Send Only Button */}
+            <TouchableOpacity
+              style={styles.modalButtonSecondary}
+              onPress={() => sendWithPublicRecipients('email')}
+            >
+              <Text style={styles.modalButtonTextSecondary}>
+                📨 Send Message Only
+              </Text>
+              <Text style={styles.modalButtonSubtext}>
+                Email only - no invitation
+              </Text>
+            </TouchableOpacity>
+
+            {/* Cancel Button */}
+            <TouchableOpacity
+              style={styles.modalButtonCancel}
+              onPress={() => {
+                setShowPublicRecipientModal(false);
+                setPublicRecipients([]);
+              }}
+            >
+              <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -262,6 +399,21 @@ const styles = StyleSheet.create({
     color: '#e94560',
     marginBottom: 4,
   },
+  publicEmailBadge: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6366f1',
+    marginBottom: 4,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  messageBubblePublic: {
+    backgroundColor: '#1e1e3f',
+    borderColor: '#6366f1',
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -298,5 +450,107 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
+  },
+  // Modal styles
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContainer: {
+    backgroundColor: '#16213e',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: '#0f3460',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#e0e0e0',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  recipientText: {
+    fontSize: 14,
+    color: '#e94560',
+    marginLeft: 12,
+  },
+  headerInfo: {
+    flex: 1,
+    flexDirection: 'column',
+    marginLeft: 12,
+  },
+  muteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  muteButtonText: {
+    fontSize: 20,
+  },
+  modalSubtext: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  modalButtonPrimary: {
+    backgroundColor: '#10b981',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  modalButtonTextPrimary: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  modalButtonSecondary: {
+    backgroundColor: '#6366f1',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  modalButtonTextSecondary: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  modalButtonSubtext: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+  },
+  modalButtonCancel: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#6b7280',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalButtonTextCancel: {
+    color: '#9ca3af',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

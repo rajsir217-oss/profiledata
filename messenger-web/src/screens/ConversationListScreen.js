@@ -15,6 +15,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [messagesExpanded, setMessagesExpanded] = useState(true);
   const [selectedChat, setSelectedChat] = useState(null);
   const [portalGroup, setPortalGroup] = useState(null);
+  const [usVedikaGroup, setUsVedikaGroup] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
 
   const {
@@ -152,6 +153,24 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         console.warn('⚠️ Failed to load Portal Members group:', e.message);
       }
 
+      // Fetch US Vedika group (auto-create if needed)
+      console.log('🇺🇸 Fetching US Vedika group...');
+      let usVedikaGroupResp = null;
+      try {
+        const res = await api.get('/api/messenger/us-vedika/group');
+        usVedikaGroupResp = res.data?.conversation;
+        if (usVedikaGroupResp) {
+          usVedikaGroupResp.id = usVedikaGroupResp.id || usVedikaGroupResp._id;
+        }
+        console.log('✅ US Vedika group:', usVedikaGroupResp?.id);
+        setUsVedikaGroup(usVedikaGroupResp);
+      } catch (e) {
+        console.warn('⚠️ Failed to load US Vedika group:', e.message);
+        console.warn('⚠️ Error details:', e.response?.data || e.response);
+        // US Vedika might not exist yet or user doesn't have permission
+        // This is OK - the menu item will be disabled or show a message
+      }
+
       // Combine: exclude portal group (it has its own top-level menu item)
       const combinedMap = new Map();
       messengerConvs.forEach(c => {
@@ -231,6 +250,22 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           isGroup: true,
           isLegacy: false,
         });
+      }
+      return;
+    }
+    if (id === 'us_vedika') {
+      console.log('🇺🇸 US Vedika clicked, group:', usVedikaGroup);
+      if (usVedikaGroup) {
+        setSelectedChat({
+          id: usVedikaGroup.id,
+          name: usVedikaGroup.groupName,
+          isGroup: true,
+          isLegacy: false,
+        });
+      } else {
+        console.warn('⚠️ US Vedika group not loaded yet - check console for API error');
+        // Try to fetch the group again
+        loadAllConversations();
       }
       return;
     }

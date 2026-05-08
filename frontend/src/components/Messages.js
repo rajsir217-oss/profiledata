@@ -10,6 +10,7 @@ import './Messages.css';
 const Messages = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [otherUser, setOtherUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -151,12 +152,60 @@ const Messages = () => {
   const loadConversations = async (unattendedOverride) => {
     console.log('📥 Messages.js: Loading conversations for:', currentUsername);
     try {
-      const url = `/messages/conversations`;
-      console.log('📡 Messages.js: Making request to:', url);
-      const response = await api.get(url);
-      console.log('✅ Messages.js: Response received:', response.data);
-      console.log('📊 Messages.js: Conversations count:', response.data.conversations?.length || 0);
+      // Try to load from messenger API first (includes US Vedika group)
+      let url = `/messenger/conversations`;
+      console.log('📡 Messages.js: Making request to messenger API:', url);
+      let response = await api.get(url);
+      console.log('✅ Messages.js: Messenger API response received:', response.data);
+      
       let convos = response.data.conversations || [];
+      
+      // Try to get or create US Vedika group if not in conversations
+      try {
+        const usVedikaResponse = await api.get('/messenger/us-vedika/group');
+        if (usVedikaResponse.data.success) {
+          const usVedikaConv = usVedikaResponse.data.conversation;
+          // Check if US Vedika is already in the list
+          const hasUsVedika = convos.some(c => c.id === usVedikaConv.id || c.groupName === 'US Vedika');
+          if (!hasUsVedika) {
+            console.log('🇺🇸 Adding US Vedika group to conversations');
+            convos.unshift({
+              id: usVedikaConv.id,
+              username: usVedikaConv.id, // Use conversation ID as username for selection
+              groupName: usVedikaConv.groupName || 'US Vedika',
+              type: usVedikaConv.type || 'public_group',
+              lastMessage: usVedikaConv.lastMessage || null,
+              lastMessageTime: usVedikaConv.lastMessageAt || usVedikaConv.createdAt,
+              unreadCount: 0
+            });
+          }
+        }
+      } catch (usVedikaError) {
+        console.warn('⚠️ Could not load US Vedika group:', usVedikaError.message);
+      }
+      
+      // If no conversations from messenger API, fall back to old messages API
+      if (convos.length === 0) {
+        console.log('📡 Messages.js: No conversations from messenger API, falling back to messages API');
+        url = `/messages/conversations`;
+        response = await api.get(url);
+        console.log('✅ Messages.js: Messages API response received:', response.data);
+        
+        // Transform old format to new format
+        const oldConvos = response.data || [];
+        convos = oldConvos.map(conv => ({
+          id: conv._id || conv.username,
+          username: conv.username,
+          firstName: conv.firstName,
+          lastName: conv.lastName,
+          lastMessage: conv.lastMessage?.message || conv.lastMessage,
+          lastMessageTime: conv.lastMessage?.createdAt || conv.lastMessageTime,
+          unreadCount: conv.unreadCount || 0,
+          type: 'direct' // Old API only supports 1:1
+        }));
+      }
+      
+      console.log('📊 Messages.js: Conversations count:', convos.length);
       
       // Sort conversations by urgency level (use fresh unattended data if provided)
       convos = sortConversationsByUrgency(convos, unattendedOverride);
@@ -250,20 +299,40 @@ const Messages = () => {
     }
   };
 
-  const handleSelectUser = async (username) => {
-    setSelectedUser(username);
-    selectedUserRef.current = username;
+  const handleSelectUser = async (usernameOrConversationId) => {
+    setSelectedUser(usernameOrConversationId);
+    selectedUserRef.current = usernameOrConversationId;
     setMessages([]);
     setOtherUser(null);
     setConversationStatus(null);
 
     try {
-      const response = await api.get(`/messages/conversation/${username}?username=${currentUsername}`);
-      setMessages(response.data.messages || []);
-      setOtherUser(response.data.otherUser);
+      // Check if this is a group conversation (starts with conversation ID prefix or has group info)
+      const conversation = conversations.find(c => c.id === usernameOrConversationId || c.username === usernameOrConversationId);
       
-      // Load conversation status
-      await loadConversationStatus(username);
+      if (conversation && (conversation.type === 'group' || conversation.type === 'public_group')) {
+        // Handle group chat (US Vedika)
+        setSelectedConversation(conversation);
+        
+        // Load messages using messenger API for group chats
+        const response = await api.get(`/messenger/conversations/${conversation.id}/messages`);
+        setMessages(response.data.messages || []);
+        setOtherUser({
+          username: conversation.groupName || 'Group Chat',
+          firstName: conversation.groupName || 'Group',
+          lastName: 'Chat',
+          isGroup: true
+        });
+      } else {
+        // Handle 1:1 conversation
+        setSelectedConversation(null);
+        const response = await api.get(`/messages/conversation/${usernameOrConversationId}?username=${currentUsername}`);
+        setMessages(response.data.messages || []);
+        setOtherUser(response.data.otherUser);
+        
+        // Load conversation status
+        await loadConversationStatus(usernameOrConversationId);
+      }
     } catch (err) {
       console.error('Error loading conversation:', err);
       await loadConversations();
@@ -310,33 +379,61 @@ const Messages = () => {
     setMessages([]);
   };
 
-  const handleSendMessage = async (content) => {
+  const handleSendMessage = async (content, options = {}) => {
     try {
-      const response = await api.post(`/messages/send?username=${currentUsername}`, {
-        toUsername: selectedUser,
-        content: content.trim()
-      });
-      setMessages(prev => [...prev, response.data.data]);
-      
-      // Also send via WebSocket for real-time delivery (only if connected)
-      try {
-        if (socketService.isConnected()) {
-          socketService.sendMessage(selectedUser, content.trim());
-          console.log('✅ Message sent via WebSocket for real-time delivery');
-        } else {
-          console.log('📡 WebSocket not connected, message saved to DB only');
+      // Check if this is a group chat (US Vedika)
+      if (selectedConversation && (selectedConversation.type === 'group' || selectedConversation.type === 'public_group')) {
+        // Send to group chat using messenger API
+        const payload = {
+          senderUsername: currentUsername,
+          content: content.trim()
+        };
+        
+        // Add public recipients if provided (for US Vedika)
+        if (options.publicRecipients && options.publicRecipients.length > 0) {
+          payload.publicRecipients = options.publicRecipients;
+          payload.deliveryMode = options.deliveryMode || 'both';
+          payload.includeInvitation = options.includeInvitation !== false;
         }
-      } catch (wsError) {
-        console.warn('⚠️ WebSocket send failed, but message saved to DB:', wsError.message);
+        
+        const response = await api.post(`/messenger/conversations/${selectedConversation.id}/messages`, payload);
+        setMessages(prev => [...prev, response.data.message]);
+        
+        // Show success toast
+        const toastService = (await import('../services/toastService')).default;
+        if (options.publicRecipients && options.publicRecipients.length > 0) {
+          toastService.success(`Message sent to ${options.publicRecipients.length} participant(s) via email!`);
+        } else {
+          toastService.success('Message sent successfully!');
+        }
+      } else {
+        // Send to 1:1 conversation using old messages API
+        const response = await api.post(`/messages/send?username=${currentUsername}`, {
+          toUsername: selectedUser,
+          content: content.trim()
+        });
+        setMessages(prev => [...prev, response.data.data]);
+        
+        // Also send via WebSocket for real-time delivery (only if connected)
+        try {
+          if (socketService.isConnected()) {
+            socketService.sendMessage(selectedUser, content.trim());
+            console.log('✅ Message sent via WebSocket for real-time delivery');
+          } else {
+            console.log('📡 WebSocket not connected, message saved to DB only');
+          }
+        } catch (wsError) {
+          console.warn('⚠️ WebSocket send failed, but message saved to DB:', wsError.message);
+        }
+        
+        // Refresh unattended data first, then reload conversations with fresh urgency data
+        const freshUnattended = await loadUnattendedChats();
+        await loadConversations(freshUnattended);
+        
+        // Show success toast
+        const toastService = (await import('../services/toastService')).default;
+        toastService.success('Message sent successfully!');
       }
-      
-      // Refresh unattended data first, then reload conversations with fresh urgency data
-      const freshUnattended = await loadUnattendedChats();
-      await loadConversations(freshUnattended);
-      
-      // Show success toast
-      const toastService = (await import('../services/toastService')).default;
-      toastService.success('Message sent successfully!');
     } catch (error) {
       console.error('Error sending message:', error);
       const toastService = (await import('../services/toastService')).default;
@@ -474,6 +571,8 @@ const Messages = () => {
           onBack={handleBackToList}
           conversationStatus={conversationStatus}
           onCloseConversation={handleCloseConversation}
+          isGroupChat={!!selectedConversation}
+          groupInfo={selectedConversation}
         />
       </div>
     </div>

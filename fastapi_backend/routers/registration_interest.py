@@ -46,6 +46,10 @@ class RegistrationInterestCreate(BaseModel):
     residencyStatus: str = Field(..., pattern="^(us_citizen|green_card)$")
     referredBy: Optional[ReferredByInfo] = None
     howDidYouHear: Optional[str] = Field(None, max_length=200)
+    # US Vedika public group fields
+    source: Optional[str] = None  # "us_vedika_invite"
+    sourceConversationId: Optional[str] = None
+    invitedBy: Optional[str] = None  # member who sent the invite
 
 
 class RegistrationInterestResponse(BaseModel):
@@ -124,7 +128,11 @@ async def submit_registration_interest(
         "ipAddress": request.client.host if request else None,
         "userAgent": request.headers.get("user-agent") if request else None,
         "createdAt": now,
-        "updatedAt": now
+        "updatedAt": now,
+        # US Vedika public group fields
+        "source": data.source,
+        "sourceConversationId": ObjectId(data.sourceConversationId) if data.sourceConversationId else None,
+        "invitedBy": data.invitedBy,
     }
 
     result = await db.registration_interests.insert_one(doc)

@@ -355,3 +355,120 @@ async def _unread_count(
         "status": {"$ne": "read"},
         "isDeleted": False,
     })
+
+
+# ---------------------------------------------------------------------------
+# US Vedika Public Group Integration
+# ---------------------------------------------------------------------------
+
+async def link_us_vedika_history(
+    db: AsyncIOMotorDatabase,
+    email: str,
+    username: str,
+    registration_interest_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Post-registration hook to merge US Vedika public message history to new username.
+    Called when a user who was invited via US Vedika completes registration.
+    
+    Args:
+        db: Database instance
+        email: The email used during registration (matches publicParticipant.email)
+        username: The new username of the registered user
+        registration_interest_id: Optional link to the registration_interest document
+    
+    Returns:
+        Summary of changes made (messages updated, conversations updated)
+    """
+    logger.info(f"🔗 Linking US Vedika history for {email} -> {username}")
+    
+    now = datetime.utcnow()
+    messages_updated = 0
+    conversations_updated = 0
+    
+    # Find US Vedika public_group conversation
+    us_vedika_conv = await db.messenger_conversations.find_one({
+        "type": "public_group",
+        "groupName": "US Vedika"
+    })
+    
+    if not us_vedika_conv:
+        logger.warning("⚠️ US Vedika conversation not found")
+        return {"success": False, "error": "US Vedika conversation not found"}
+    
+    conv_id = str(us_vedika_conv["_id"])
+    
+    # Update all messages with senderType=public_email and matching email
+    result = await db.messenger_messages.update_many(
+        {
+            "senderType": "public_email",
+            "publicEmail": email.lower()
+        },
+        {
+            "$set": {
+                "senderUsername": username,
+                "senderType": "member",  # Now a full member
+                "convertedAt": now,
+                "updatedAt": now,
+            }
+        }
+    )
+    messages_updated = result.modified_count
+    logger.info(f"✅ Updated {messages_updated} public email messages to username {username}")
+    
+    # Update publicParticipants in US Vedika conversation
+    result = await db.messenger_conversations.update_one(
+        {
+            "_id": ObjectId(conv_id),
+            "publicParticipants.email": email.lower()
+        },
+        {
+            "$set": {
+                "publicParticipants.$.status": "registered",
+                "publicParticipants.$.convertedUsername": username,
+                "publicParticipants.$.convertedAt": now,
+            },
+            "$set": {"updatedAt": now}
+        }
+    )
+    if result.modified_count > 0:
+        conversations_updated = 1
+        logger.info(f"✅ Updated publicParticipant status to registered for {email}")
+    
+    # Link registration_interest if provided
+    if registration_interest_id:
+        await db.registration_interests.update_one(
+            {"_id": ObjectId(registration_interest_id)},
+            {
+                "$set": {
+                    "linkedUsername": username,
+                    "linkedAt": now,
+                }
+            }
+        )
+        logger.info(f"✅ Linked registration interest {registration_interest_id} to {username}")
+    
+    # Add user as a participant to US Vedika if not already
+    existing_participant = any(p.get("username") == username for p in us_vedika_conv.get("participants", []))
+    if not existing_participant:
+        await db.messenger_conversations.update_one(
+            {"_id": ObjectId(conv_id)},
+            {
+                "$push": {
+                    "participants": {
+                        "username": username,
+                        "role": "member",
+                        "joinedAt": now,
+                    }
+                },
+                "$set": {"updatedAt": now}
+            }
+        )
+        logger.info(f"✅ Added {username} as participant to US Vedika")
+    
+    return {
+        "success": True,
+        "messagesUpdated": messages_updated,
+        "conversationsUpdated": conversations_updated,
+        "conversationId": conv_id,
+    }

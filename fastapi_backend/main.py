@@ -332,6 +332,7 @@ if env == "production":
         frontend_url,
         "https://l3v3lmatches.com",
         "https://www.l3v3lmatches.com",
+        "https://messenger.l3v3lmatches.com",
         "https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app",
         "https://matrimonial-backend-7cxoxmouuq-uc.a.run.app",
         "http://localhost",              # Android Capacitor app
@@ -348,6 +349,8 @@ else:
         "http://localhost:3001",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
+        "http://127.0.0.1:3030",  # messenger-web local dev
+        "http://localhost:3030",  # messenger-web local dev
         "http://192.168.1.246:3000",  # Mac local IP
     ]
     # Regex for dev to catch any localhost variations

@@ -19,8 +19,8 @@ const CONFIG = {
       : 'http://localhost:8000',
   },
   production: {
-    BASE_URL: 'https://l3v3lmatches.com',
-    WS_URL: 'https://l3v3lmatches.com',
+    BASE_URL: 'https://api.l3v3lmatches.com',
+    WS_URL: 'https://api.l3v3lmatches.com',
   },
 };
 

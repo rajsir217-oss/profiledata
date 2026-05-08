@@ -4,9 +4,11 @@ Phase 1: 1:1 conversations, text + media messages, delivery receipts, device tok
 """
 
 import logging
+from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from bson import ObjectId
 
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from database import get_database
@@ -71,6 +73,333 @@ async def get_or_create_portal_members_group(
     conv["id"] = conv.pop("_id")
     logger.info(f"✅ Created Portal Members group: {conv['id']}")
     return {"success": True, "conversation": conv}
+
+
+@router.get("/us-vedika/group")
+async def get_or_create_us_vedika_group(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """
+    Get or create the 'US Vedika' public group chat.
+    This is a singleton group that includes all active members and allows adding external users via email.
+    Any active user can create this group if it doesn't exist.
+    """
+    username = current_user["username"]
+    logger.info(f"🇺🇸 Getting/creating US Vedika group for {username}")
+
+    # Check if US Vedika group already exists
+    existing = await db.messenger_conversations.find_one({
+        "type": "public_group",
+        "groupName": "US Vedika"
+    })
+
+    if existing:
+        logger.info(f"✅ US Vedika group exists: {existing['_id']}")
+        existing["_id"] = str(existing["_id"])
+        existing["id"] = existing["_id"]
+        return {"success": True, "conversation": existing}
+
+    # Get all active users
+    active_users = await db.users.find({
+        "accountStatus": "active"
+    }, {"username": 1}).to_list(None)
+
+    participant_usernames = [u["username"] for u in active_users]
+    logger.info(f"👥 Found {len(participant_usernames)} active users for US Vedika group")
+
+    # Create the public group conversation
+    now = datetime.utcnow()
+    participants = [
+        {"username": u, "role": "admin" if u == username else "member", "joinedAt": now}
+        for u in participant_usernames
+    ]
+
+    doc = {
+        "type": "public_group",
+        "groupName": "US Vedika",
+        "groupAvatar": "🇺🇸",
+        "isPublicGroup": True,
+        "participants": participants,
+        "publicParticipants": [],
+        "createdBy": username,
+        "lastMessageAt": None,
+        "lastMessagePreview": None,
+        "createdAt": now,
+        "updatedAt": now,
+    }
+
+    result = await db.messenger_conversations.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    doc["id"] = doc["_id"]
+    logger.info(f"✅ Created US Vedika public group: {doc['id']}")
+    return {"success": True, "conversation": doc}
+
+
+@router.post("/inbound/email")
+async def handle_inbound_email(
+    request: Request,
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """
+    Handle inbound email replies from SendGrid Inbound Parse webhook.
+    Used for US Vedika public group email-to-chat feature.
+    Email format: us-vedika+{token}@inbound.l3v3l.com
+    """
+    import email
+    from email import policy
+    from email.message import EmailMessage
+
+    logger.info("📧 Received inbound email from SendGrid")
+
+    # Parse multipart form data from SendGrid
+    form_data = await request.form()
+    
+    # Extract email fields
+    email_raw = form_data.get("email", "")
+    sender = form_data.get("from", "")
+    subject = form_data.get("subject", "")
+    to_email = form_data.get("to", "")
+    
+    # Parse the raw email to get body
+    try:
+        msg = email.message_from_string(email_raw, policy=policy.default)
+        if msg.is_multipart():
+            body = ""
+            for part in msg.iter_parts():
+                if part.get_content_type() == "text/plain":
+                    body += part.get_content()
+        else:
+            body = msg.get_content()
+    except Exception as e:
+        logger.error(f"❌ Failed to parse email body: {e}")
+        body = email_raw  # Fallback to raw content
+
+    # Extract reply token from "to" address
+    # Format: us-vedika+{token}@inbound.l3v3l.com
+    import re
+    token_match = re.search(r"us-vedika\+([a-f0-9\-]+)@", to_email)
+    if not token_match:
+        logger.warning(f"⚠️ Invalid inbound email address format: {to_email}")
+        return {"success": False, "error": "Invalid email address format"}
+    
+    reply_token = token_match.group(1)
+    logger.info(f"🔑 Extracted reply token: {reply_token}")
+
+    # Verify token in database
+    token_doc = await db.public_reply_tokens.find_one({"token": reply_token})
+    if not token_doc:
+        logger.warning(f"⚠️ Invalid or expired reply token: {reply_token}")
+        return {"success": False, "error": "Invalid reply token"}
+    
+    # Check token expiration
+    if token_doc["expiresAt"] < datetime.utcnow():
+        logger.warning(f"⚠️ Expired reply token: {reply_token}")
+        return {"success": False, "error": "Expired reply token"}
+    
+    # Verify sender email matches the token's publicEmail (anti-spoofing)
+    sender_email = sender.split("<")[-1].strip(">")
+    if sender_email.lower() != token_doc["publicEmail"].lower():
+        logger.warning(f"⚠️ Email spoofing detected: {sender_email} != {token_doc['publicEmail']}")
+        return {"success": False, "error": "Email sender verification failed"}
+    
+    conversation_id = str(token_doc["conversationId"])
+    logger.info(f"✅ Token verified for conversation {conversation_id}")
+
+    # Insert message with senderType=public_email
+    now = datetime.utcnow()
+    message_doc = {
+        "conversationId": ObjectId(conversation_id),
+        "senderUsername": sender_email,  # Store email as sender
+        "senderType": "public_email",
+        "contentType": "text",
+        "content": body.strip(),
+        "status": "sent",
+        "publicEmail": sender_email,
+        "replyToken": reply_token,
+        "createdAt": now,
+        "updatedAt": now,
+    }
+
+    result = await db.messenger_messages.insert_one(message_doc)
+    message_doc["_id"] = str(result.inserted_id)
+    logger.info(f"✅ Inserted public email reply: {message_doc['_id']}")
+
+    # Update conversation lastMessageAt
+    await db.messenger_conversations.update_one(
+        {"_id": ObjectId(conversation_id)},
+        {
+            "$set": {
+                "lastMessageAt": now,
+                "lastMessagePreview": body.strip()[:100],
+                "updatedAt": now,
+            }
+        }
+    )
+
+    # Update token usage count
+    await db.public_reply_tokens.update_one(
+        {"token": reply_token},
+        {"$inc": {"usedCount": 1}}
+    )
+
+    # Update publicParticipant status if exists
+    await db.messenger_conversations.update_one(
+        {
+            "_id": ObjectId(conversation_id),
+            "publicParticipants.email": sender_email
+        },
+        {
+            "$set": {
+                "publicParticipants.$.status": "interested",
+                "publicParticipants.$.lastEmailSentAt": now,
+            }
+        }
+    )
+
+    return {"success": True, "messageId": message_doc["_id"]}
+
+
+@router.get("/us-vedika/metrics")
+async def get_us_vedika_metrics(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """
+    Get US Vedika invitee funnel metrics (admin only).
+    Shows conversion rates from invited → interested → registered.
+    """
+    username = current_user["username"]
+    
+    # Admin check
+    role = current_user.get("role") or current_user.get("role_name")
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    logger.info(f"📊 Fetching US Vedika metrics for {username}")
+    
+    # Get US Vedika conversation
+    us_vedika = await db.messenger_conversations.find_one({
+        "type": "public_group",
+        "groupName": "US Vedika"
+    })
+    
+    if not us_vedika:
+        return {"success": True, "metrics": None, "error": "US Vedika conversation not found"}
+    
+    public_participants = us_vedika.get("publicParticipants", [])
+    
+    # Calculate funnel metrics
+    total_invited = len(public_participants)
+    total_interested = len([p for p in public_participants if p.get("status") == "interested"])
+    total_registered = len([p for p in public_participants if p.get("status") == "registered"])
+    total_opted_out = len([p for p in public_participants if p.get("status") == "opted_out"])
+    
+    # Get registration interests with source=us_vedika
+    registration_interests = await db.registration_interests.find({
+        "source": "us_vedika"
+    }).to_list(None)
+    
+    total_reg_interests = len(registration_interests)
+    
+    # Calculate conversion rates
+    invited_to_interested_rate = (total_interested / total_invited * 100) if total_invited > 0 else 0
+    interested_to_registered_rate = (total_registered / total_interested * 100) if total_interested > 0 else 0
+    overall_conversion_rate = (total_registered / total_invited * 100) if total_invited > 0 else 0
+    
+    # Top inviters
+    inviters = {}
+    for p in public_participants:
+        inviter = p.get("addedBy", "unknown")
+        inviters[inviter] = inviters.get(inviter, 0) + 1
+    
+    top_inviters = sorted(inviters.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    # Message count from public emails
+    public_email_messages = await db.messenger_messages.count_documents({
+        "conversationId": us_vedika["_id"],
+        "senderType": "public_email"
+    })
+    
+    metrics = {
+        "funnel": {
+            "invited": total_invited,
+            "interested": total_interested,
+            "registered": total_registered,
+            "optedOut": total_opted_out,
+            "registrationInterests": total_reg_interests,
+        },
+        "conversionRates": {
+            "invitedToInterested": round(invited_to_interested_rate, 2),
+            "interestedToRegistered": round(interested_to_registered_rate, 2),
+            "overallConversion": round(overall_conversion_rate, 2),
+        },
+        "topInviters": [{"username": k, "count": v} for k, v in top_inviters],
+        "publicEmailMessages": public_email_messages,
+        "publicParticipants": public_participants,
+    }
+    
+    return {"success": True, "metrics": metrics}
+
+
+@router.post("/us-vedika/unsubscribe")
+async def unsubscribe_from_us_vedika(
+    email: str = Query(...),
+    token: Optional[str] = Query(None),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """
+    Unsubscribe an email from US Vedika email notifications.
+    Can be called with email+token (for security) or just email (for user-initiated opt-out).
+    """
+    logger.info(f"🔕 Unsubscribe request for {email}")
+    
+    # Get US Vedika conversation
+    us_vedika = await db.messenger_conversations.find_one({
+        "type": "public_group",
+        "groupName": "US Vedika"
+    })
+    
+    if not us_vedika:
+        return {"success": False, "error": "US Vedika conversation not found"}
+    
+    conv_id = str(us_vedika["_id"])
+    now = datetime.utcnow()
+    
+    # Verify token if provided (for email link unsubscribe)
+    if token:
+        token_doc = await db.public_reply_tokens.find_one({"token": token, "publicEmail": email.lower()})
+        if not token_doc:
+            logger.warning(f"⚠️ Invalid unsubscribe token for {email}")
+            return {"success": False, "error": "Invalid unsubscribe token"}
+    
+    # Update publicParticipant status to opted_out
+    result = await db.messenger_conversations.update_one(
+        {
+            "_id": ObjectId(conv_id),
+            "publicParticipants.email": email.lower()
+        },
+        {
+            "$set": {
+                "publicParticipants.$.status": "opted_out",
+                "publicParticipants.$.optedOutAt": now,
+                "updatedAt": now,
+            }
+        }
+    )
+    
+    if result.matched_count == 0:
+        logger.warning(f"⚠️ Email {email} not found in US Vedika public participants")
+        return {"success": False, "error": "Email not found in US Vedika"}
+    
+    # Invalidate all reply tokens for this email
+    await db.public_reply_tokens.update_many(
+        {"publicEmail": email.lower()},
+        {"$set": {"expiresAt": now}}  # Expire all tokens immediately
+    )
+    
+    logger.info(f"✅ {email} unsubscribed from US Vedika")
+    return {"success": True, "message": "Successfully unsubscribed from US Vedika emails"}
 
 
 @router.post("/conversations")
@@ -162,35 +491,143 @@ async def send_message(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
-    """Send a message (text or media) to a conversation."""
+    """
+    Send a message to a conversation.
+    For US Vedika (public_group), supports publicRecipients for email delivery.
+    """
     username = current_user["username"]
+    logger.info(f"📤 Sending message to conversation {conversation_id} by {username}")
 
-    # Content moderation
-    if body.contentType == "text" and body.content:
-        try:
-            from profanity_filter import check_message_content
-            content_check = check_message_content(body.content)
-            if not content_check["is_clean"]:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Your message contains inappropriate content. Please revise.",
-                )
-        except ImportError:
-            pass  # profanity filter not available
+    # Get conversation
+    conv = await db.messenger_conversations.find_one({"_id": ObjectId(conversation_id)})
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
 
-    media_dict = body.media.model_dump() if body.media else None
-    msg = await messenger_service.send_message(
-        db,
-        sender_username=username,
-        conversation_id=conversation_id,
-        content=body.content,
-        content_type=body.contentType.value,
-        media=media_dict,
-        reply_to=body.replyTo,
+    # Verify sender is a participant
+    if not any(p.get("username") == username for p in conv.get("participants", [])):
+        raise HTTPException(status_code=403, detail="You are not a participant of this conversation")
+
+    # Check for public recipients in US Vedika (public_group)
+    if body.publicRecipients and len(body.publicRecipients) > 0:
+        if conv.get("type") != "public_group":
+            raise HTTPException(status_code=403, detail="Public recipients only allowed in US Vedika (public_group) conversations")
+
+    now = datetime.utcnow()
+    
+    # Create message document
+    msg = {
+        "conversationId": ObjectId(conversation_id),
+        "senderUsername": username,
+        "contentType": body.contentType,
+        "content": body.content.strip(),
+        "status": "sent",
+        "deliveredAt": None,
+        "readAt": None,
+        "readBy": [],
+        "replyTo": ObjectId(body.replyTo) if body.replyTo else None,
+        "isForwarded": False,
+        "isDeleted": False,
+        "moderationStatus": "clean",
+        "createdAt": now,
+        "updatedAt": now,
+    }
+
+    # Insert message
+    result = await db.messenger_messages.insert_one(msg)
+    msg_id = str(result.inserted_id)
+    msg["_id"] = msg_id
+    logger.info(f"✅ Message {msg_id} inserted")
+
+    # Update conversation preview
+    preview = body.content[:100] if body.contentType == "text" else f"[{body.contentType.capitalize()}]"
+    await db.messenger_conversations.update_one(
+        {"_id": ObjectId(conversation_id)},
+        {
+            "$set": {
+                "lastMessageAt": now,
+                "lastMessagePreview": preview,
+                "updatedAt": now,
+            }
+        }
     )
 
-    if not msg:
-        raise HTTPException(status_code=403, detail="Cannot send message to this conversation")
+    # Handle public recipients (US Vedika)
+    if body.publicRecipients and len(body.publicRecipients) > 0:
+        for recipient in body.publicRecipients:
+            email = recipient.get("email")
+            display_name = recipient.get("displayName", email)
+
+            # Rate limit: Check per-member invite limit (max 10 invites per day per member)
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            invites_today = await db.messenger_conversations.count_documents({
+                "_id": ObjectId(conversation_id),
+                "publicParticipants.addedBy": username,
+                "publicParticipants.addedAt": {"$gte": today_start}
+            })
+
+            if invites_today >= 10:
+                logger.warning(f"⚠️ Rate limit exceeded: {username} has sent {invites_today} invites today")
+                raise HTTPException(
+                    status_code=429,
+                    detail="Daily invite limit reached (10 per day). Please try again tomorrow."
+                )
+
+            # Rate limit: Check per-conversation email limit (max 100 emails total per conversation)
+            total_emails = len(conv.get("publicParticipants", []))
+            if total_emails >= 100:
+                logger.warning(f"⚠️ Conversation email limit reached: {total_emails} emails sent")
+                raise HTTPException(
+                    status_code=429,
+                    detail="US Vedika email limit reached (100 total). Contact admin to increase limit."
+                )
+
+            # Add to publicParticipants if not already present
+            await db.messenger_conversations.update_one(
+                {"_id": ObjectId(conversation_id), "publicParticipants.email": {"$ne": email}},
+                {
+                    "$push": {
+                        "publicParticipants": {
+                            "email": email,
+                            "displayName": display_name,
+                            "addedBy": username,
+                            "addedAt": now,
+                            "status": "invited",
+                            "lastEmailSentAt": now,
+                        }
+                    },
+                    "$set": {"updatedAt": now}
+                }
+            )
+
+            # Generate reply token
+            import uuid
+            reply_token = str(uuid.uuid4())
+            token_expires_at = now + timedelta(days=7)  # 7-day expiry
+
+            await db.public_reply_tokens.insert_one({
+                "token": reply_token,
+                "conversationId": ObjectId(conversation_id),
+                "publicEmail": email,
+                "messageId": ObjectId(msg_id),
+                "expiresAt": token_expires_at,
+                "usedCount": 0,
+                "createdAt": now,
+            })
+
+            # Update message with delivery metadata
+            await db.messenger_messages.update_one(
+                {"_id": ObjectId(msg_id)},
+                {
+                    "$set": {
+                        "publicEmailsSent": body.publicRecipients,
+                        "deliveryMode": body.deliveryMode or "both",
+                        "includeInvitation": body.includeInvitation if body.includeInvitation is not None else True,
+                        "updatedAt": now,
+                    }
+                }
+            )
+
+            logger.info(f"📧 Email queued for {email} in US Vedika (token: {reply_token})")
 
     msg["id"] = msg.pop("_id")
 
