@@ -7,6 +7,11 @@ import { formatShortDateTime } from '../utils/timeFormatter';
 import './MessageList.css';
 
 const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsername, unattendedData, onQuickResponse }) => {
+  // Check if a conversation is a group chat
+  const isGroupChat = (conv) => {
+    return conv.type === 'group' || conv.type === 'public_group' || !!conv.groupName;
+  };
+
   // Get urgency info for a conversation
   const getUrgencyInfo = (username) => {
     if (!unattendedData?.conversations) return null;
@@ -28,7 +33,12 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
   const [imageErrors, setImageErrors] = useState({});
   
   // Get initials from first and last name
-  const getInitials = (userProfile, username) => {
+  const getInitials = (userProfile, username, isGroup) => {
+    if (isGroup) {
+      // For group chats, use first letter of group name
+      const groupName = userProfile?.groupName || 'Group';
+      return groupName[0].toUpperCase();
+    }
     const firstName = userProfile?.firstName || '';
     const lastName = userProfile?.lastName || '';
     if (firstName && lastName) {
@@ -76,18 +86,24 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
           </div>
         ) : (
           conversations.map((conv) => {
+            const isGroup = isGroupChat(conv);
             const urgencyClass = getUrgencyClass(conv.username);
             const urgencyInfo = getUrgencyInfo(conv.username);
             
             return (
               <div
-                key={conv.username}
-                className={`conversation-item ${selectedUser === conv.username ? 'active' : ''} ${urgencyClass}`}
-                onClick={() => onSelectUser(conv.username)}
+                key={conv.id || conv.username}
+                className={`conversation-item ${selectedUser === (conv.id || conv.username) ? 'active' : ''} ${isGroup ? 'group-chat' : ''} ${urgencyClass}`}
+                onClick={() => onSelectUser(conv.id || conv.username)}
               >
                 {/* Avatar - shows profile pic or initials */}
                 <div className="conversation-avatar">
-                  {getProfilePicUrl(conv.userProfile) && !imageErrors[conv.username] ? (
+                  {isGroup ? (
+                    // Group chat avatar
+                    <div className="avatar-placeholder group-avatar">
+                      🇺🇸
+                    </div>
+                  ) : getProfilePicUrl(conv.userProfile) && !imageErrors[conv.username] ? (
                     <img 
                       src={getProfilePicUrl(conv.userProfile)} 
                       alt={conv.username}
@@ -95,7 +111,7 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                     />
                   ) : (
                     <div className="avatar-placeholder">
-                      {getInitials(conv.userProfile, conv.username)}
+                      {getInitials(conv.userProfile, conv.username, isGroup)}
                     </div>
                   )}
                   {conv.unreadCount > 0 && (
@@ -107,8 +123,8 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                 <div className="conversation-info">
                   <div className="conversation-header">
                     <span className="conversation-name">
-                      {getDisplayName(conv.userProfile) || conv.username}
-                      {conv.userProfile?.profileCreatedBy && (
+                      {isGroup ? (conv.groupName || 'Group Chat') : (getDisplayName(conv.userProfile) || conv.username)}
+                      {!isGroup && conv.userProfile?.profileCreatedBy && (
                         <ProfileCreatorBadge 
                           creatorType={conv.userProfile.profileCreatedBy}
                           size="small"
@@ -116,8 +132,11 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                           showIcon={true}
                         />
                       )}
-                      {conv.userProfile?.accountStatus === 'paused' && (
+                      {!isGroup && conv.userProfile?.accountStatus === 'paused' && (
                         <span className="pause-badge" title="User is on a break">⏸️</span>
+                      )}
+                      {isGroup && (
+                        <span className="group-badge">👥 Group</span>
                       )}
                     </span>
                     <div className="conversation-meta">
@@ -136,14 +155,16 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                   </p>
                 </div>
                 
-                {/* View Profile Button */}
-                <button 
-                  className="view-profile-btn"
-                  onClick={(e) => handleViewProfile(e, conv.username)}
-                  title="View Profile"
-                >
-                  👁️
-                </button>
+                {/* View Profile Button - only for 1:1 chats */}
+                {!isGroup && (
+                  <button 
+                    className="view-profile-btn"
+                    onClick={(e) => handleViewProfile(e, conv.username)}
+                    title="View Profile"
+                  >
+                    👁️
+                  </button>
+                )}
               </div>
             );
           })

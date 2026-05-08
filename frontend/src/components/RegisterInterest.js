@@ -25,6 +25,11 @@ const RegisterInterest = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  
+  // US Vedika invitation params
+  const [source, setSource] = useState(null);
+  const [sourceConversationId, setSourceConversationId] = useState(null);
+  const [invitedBy, setInvitedBy] = useState(null);
 
   // ESC key to go back
   useEffect(() => {
@@ -34,6 +39,27 @@ const RegisterInterest = () => {
     document.addEventListener('keydown', handleEsc);
     return () => document.removeEventListener('keydown', handleEsc);
   }, [navigate]);
+
+  // Parse query params for US Vedika invitation
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get('email');
+    const sourceParam = params.get('source');
+    const cidParam = params.get('cid');
+    const invitedByParam = params.get('invitedBy');
+    const tokenParam = params.get('token'); // for future validation
+
+    if (emailParam) {
+      setFormData(prev => ({ ...prev, email: emailParam }));
+    }
+    
+    if (sourceParam === 'us_vedika') {
+      setSource(sourceParam);
+      setSourceConversationId(cidParam);
+      setInvitedBy(invitedByParam);
+      logger.info('US Vedika invitation detected', { source: sourceParam, cid: cidParam, invitedBy: invitedByParam });
+    }
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -108,7 +134,11 @@ const RegisterInterest = () => {
         } : null,
         howDidYouHear: formData.howDidYouHear === 'other'
           ? (formData.howDidYouHearOther.trim() || 'Other')
-          : (formData.howDidYouHear || null)
+          : (formData.howDidYouHear || null),
+        // US Vedika invitation params
+        source: source || null,
+        sourceConversationId: sourceConversationId || null,
+        invitedBy: invitedBy || null,
       };
 
       await axios.post(`${getBackendUrl()}/api/registration-interest`, payload);

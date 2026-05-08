@@ -1393,11 +1393,11 @@
     max-width: 80%;
     padding: 8px 12px;
     border-radius: 16px;
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .message-bubble p {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .message-time {
@@ -1405,18 +1405,18 @@
   }
 
   .message-avatar {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
   }
 
   .avatar-small {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
   }
 
   .message-avatar-spacer {
-    width: 28px;
+    width: 24px;
   }
   
   /* Make delete button always visible on mobile (no hover) */
