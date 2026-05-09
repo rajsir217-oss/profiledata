@@ -16,6 +16,7 @@ import {
 import useAuthStore from '../stores/authStore';
 import useMessengerStore from '../stores/messengerStore';
 import { API_BASE_URL } from '../config/api';
+import { getProfilePicUrl } from '../utils/imageHelper';
 
 export default function NewChatScreen({ navigation }) {
   const [query, setQuery] = useState('');
@@ -55,7 +56,7 @@ export default function NewChatScreen({ navigation }) {
   const renderUser = ({ item }) => {
     const displayName =
       `${item.firstName || ''} ${item.lastName || ''}`.trim() || item.username;
-    const img = item.images?.[0] || null;
+    const img = getProfilePicUrl(item) || null;
 
     return (
       <TouchableOpacity style={styles.userItem} onPress={() => startChat(item)}>

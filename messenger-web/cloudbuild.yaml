@@ -1,0 +1,29 @@
+# Cloud Build config for L3V3L Messenger (React Native Web).
+#
+# Used because the build context must be the REPO ROOT (messenger-web depends
+# on ../messenger/src files), and `gcloud builds submit DIR --tag IMAGE` doesn't
+# allow specifying a Dockerfile outside DIR.
+#
+# Invoke with:
+#   gcloud builds submit . \
+#     --config messenger-web/cloudbuild.yaml \
+#     --substitutions=_IMAGE_URI=gcr.io/PROJECT/SERVICE:TAG
+
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'messenger-web/Dockerfile.prod'
+      - '-t'
+      - '${_IMAGE_URI}'
+      - '.'
+
+images:
+  - '${_IMAGE_URI}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+timeout: '900s'

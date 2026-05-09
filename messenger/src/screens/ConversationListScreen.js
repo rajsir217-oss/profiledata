@@ -16,6 +16,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import useAuthStore from '../stores/authStore';
 import useMessengerStore from '../stores/messengerStore';
+import { getProfilePicUrl } from '../utils/imageHelper';
 
 dayjs.extend(relativeTime);
 
@@ -50,7 +51,7 @@ export default function ConversationListScreen({ navigation }) {
       ? dayjs(item.lastMessageAt).fromNow()
       : '';
 
-    const profileImg = other.profileImage;
+    const profileImg = getProfilePicUrl(other);
 
     return (
       <TouchableOpacity

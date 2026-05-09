@@ -1,0 +1,22 @@
+# Dependencies & build artifacts
+node_modules
+dist
+build
+
+# Local env / secrets
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# Editor / OS noise
+.DS_Store
+.vscode
+.idea
+*.log
+npm-debug.log*
+
+# Source control
+.git
+.gitignore
