@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import logger from '../utils/logger';
 import { useContribution } from '../contexts/ContributionContext';
 import useAuth from '../hooks/useAuth';
+import socketService from '../services/socketService';
+import OnlineUsersDropdown from './OnlineUsersDropdown';
 import './PlatformActivityBar.css';
 
 const PERIODS = [
@@ -32,6 +34,13 @@ const PlatformActivityBar = () => {
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [, setTick] = useState(0); // Forces re-render so 'Updated Xm ago' stays live
+
+  // Realtime online users (moved from TopBar)
+  const [onlineCount, setOnlineCount] = useState(1);
+  const [showOnlineDropdown, setShowOnlineDropdown] = useState(false);
+  const onlineRef = useRef(null);
+  const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
+  const isPrivilegedRole = userRole === 'admin' || userRole === 'moderator';
 
   const { isLoggedIn } = useAuth();
 
@@ -95,6 +104,35 @@ const PlatformActivityBar = () => {
     };
   }, []);
 
+  // Subscribe to realtime online count updates
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const handleOnlineCountUpdate = (data) => {
+      setOnlineCount(data.count || 0);
+    };
+    socketService.on('online_count_update', handleOnlineCountUpdate);
+    // Seed with current value
+    try {
+      const initial = socketService.getOnlineCount?.();
+      if (typeof initial === 'number') setOnlineCount(initial);
+    } catch (_e) { /* noop */ }
+    return () => {
+      socketService.off('online_count_update', handleOnlineCountUpdate);
+    };
+  }, [isLoggedIn]);
+
+  // Close online dropdown on click outside
+  useEffect(() => {
+    if (!showOnlineDropdown) return;
+    const handleClickOutside = (e) => {
+      if (onlineRef.current && !onlineRef.current.contains(e.target)) {
+        setShowOnlineDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showOnlineDropdown]);
+
   useEffect(() => {
     localStorage.setItem('platformStatsPeriod', period);
   }, [period]);
@@ -118,9 +156,35 @@ const PlatformActivityBar = () => {
     return `${diff}m ago`;
   };
 
+  // Reusable online indicator (used in both collapsed & expanded states)
+  const renderOnlineIndicator = () => (
+    <div className="pab-online-container" ref={onlineRef}>
+      <button
+        type="button"
+        className={`pab-online-btn ${isPrivilegedRole ? 'pab-online-clickable' : ''}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (isPrivilegedRole) setShowOnlineDropdown(v => !v);
+        }}
+        title={`${onlineCount} member${onlineCount !== 1 ? 's' : ''} online`}
+      >
+        <span className="pab-online-dot" />
+        <span className="pab-online-count">{onlineCount}</span>
+        <span className="pab-online-label">Online</span>
+      </button>
+      {isPrivilegedRole && (
+        <OnlineUsersDropdown
+          isOpen={showOnlineDropdown}
+          onClose={() => setShowOnlineDropdown(false)}
+        />
+      )}
+    </div>
+  );
+
   if (collapsed) {
     return (
       <div className="pab-bar pab-collapsed" onClick={() => setCollapsed(false)}>
+        {renderOnlineIndicator()}
         <span className="pab-collapsed-label">📊 Platform Pulse</span>
         <button className="pab-toggle" onClick={(e) => { e.stopPropagation(); setCollapsed(false); }} title="Expand">
           ▲
@@ -156,6 +220,7 @@ const PlatformActivityBar = () => {
         </div>
       )}
       <div className="pab-row">
+        {renderOnlineIndicator()}
         <div className="pab-period-tabs">
           {PERIODS.map(p => (
             <button

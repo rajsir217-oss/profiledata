@@ -45,6 +45,7 @@ class NotificationTrigger(str, Enum):
     NEW_MESSAGE = "new_message"
     MESSAGE_READ = "message_read"
     CONVERSATION_COLD = "conversation_cold"
+    US_VEDIKA_MESSAGE = "us_vedika_message"  # External email invitation from US Vedika public group
     
     # Privacy/PII
     PII_REQUEST = "pii_request"

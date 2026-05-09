@@ -88,6 +88,30 @@ export const getFrontendUrl = () => {
 };
 
 /**
+ * Get the messenger app URL (separate subdomain for the React Native Web messenger).
+ * Used by the main app to link out to the standalone messenger.
+ * @returns {string} Messenger URL
+ */
+export const getMessengerUrl = () => {
+  if (process.env.REACT_APP_MESSENGER_URL) {
+    return process.env.REACT_APP_MESSENGER_URL;
+  }
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'www.l3v3lmatches.com' || hostname === 'l3v3lmatches.com') {
+      return 'https://messenger.l3v3lmatches.com';
+    }
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3030';
+    }
+  }
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://messenger.l3v3lmatches.com';
+  }
+  return 'http://localhost:3030';
+};
+
+/**
  * API Endpoints configuration
  * Centralized list of all API endpoints used across the app
  * 

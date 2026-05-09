@@ -1439,7 +1439,35 @@ async def register_user(
     
     # Welcome email is handled by email_verification_service.send_welcome_email()
     # Push notification not queued here — user must opt-in via notification settings
-    
+
+    # 🔗 Auto-link any US Vedika public participant history to this new user
+    # If the user registered via a US Vedika invitation, their contactEmail will match
+    # a publicParticipants entry — promote them from guest to full member.
+    try:
+        if contactEmail:
+            from services.messenger_service import link_us_vedika_history
+            # Try to find a matching registration_interest to link as well
+            interest_doc = await db.registration_interests.find_one({
+                "email": contactEmail.lower(),
+                "source": {"$in": ["us_vedika", "us_vedika_invite"]},
+            })
+            interest_id = str(interest_doc["_id"]) if interest_doc else None
+
+            link_result = await link_us_vedika_history(
+                db=db,
+                email=contactEmail.lower(),
+                username=username,
+                registration_interest_id=interest_id,
+            )
+            if link_result.get("success") and link_result.get("messagesUpdated", 0) > 0:
+                logger.info(
+                    f"🔗 US Vedika history linked for {username}: "
+                    f"{link_result.get('messagesUpdated')} messages, "
+                    f"{link_result.get('conversationsUpdated')} conversations"
+                )
+    except Exception as link_err:
+        logger.warning(f"⚠️ US Vedika auto-link failed (non-fatal): {link_err}")
+
     # Remove password from response
     created_user.pop("password", None)
     created_user.pop("_id", None)
@@ -8608,6 +8636,13 @@ async def get_conversation(
         if not is_admin and not is_visible:
             query["isVisible"] = True
         
+        # Per-user "clear chat" filter — hide messages older than clearedAt
+        sorted_pp = sorted([username, other_username])
+        cs_doc = await db.conversation_status.find_one({"participants": sorted_pp})
+        cleared_for = (cs_doc or {}).get("clearedFor", {}).get(username)
+        if cleared_for:
+            query["createdAt"] = {"$gt": cleared_for}
+
         messages_cursor = db.messages.find(query).sort("createdAt", 1)
         messages = await messages_cursor.to_list(500)
         
@@ -8762,6 +8797,37 @@ async def delete_conversation(
 
 # ===== UNATTENDED CHATS SYSTEM =====
 # NOTE: The /messages/unattended endpoint is defined earlier (before /messages/{username}) to avoid route conflicts
+
+@router.post("/messages/conversation/{other_username}/clear")
+async def clear_conversation_messages(
+    other_username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Per-user soft "clear chat" for a 1:1 conversation. Records a clearedAt
+    timestamp on conversation_status for the current user; subsequent fetches
+    filter out any messages older than that timestamp from this user's view.
+    The other participant is unaffected.
+    """
+    username = current_user["username"]
+    sorted_participants = sorted([username, other_username])
+    now = datetime.utcnow()
+    await db.conversation_status.update_one(
+        {"participants": sorted_participants},
+        {
+            "$set": {
+                f"clearedFor.{username}": now,
+                "updatedAt": now,
+                "participants": sorted_participants,
+            },
+            "$setOnInsert": {"createdAt": now},
+        },
+        upsert=True,
+    )
+    logger.info(f"🧹 {username} cleared 1:1 chat with {other_username}")
+    return {"success": True, "clearedAt": now.isoformat()}
+
 
 @router.post("/messages/conversation/{other_username}/close")
 async def close_conversation(
@@ -11189,12 +11255,21 @@ async def check_images_access(
 async def get_online_count():
     """Get count of currently online users"""
     from redis_manager import get_redis_manager
-    
+
     redis = get_redis_manager()
     users = redis.get_online_users()
     count = len(users)
     logger.info(f"Online users count: {count}")
     return {"onlineCount": count}
+
+@router.get("/active-members/count")
+async def get_active_members_count(
+    db = Depends(get_database)
+):
+    """Get count of active members (accountStatus = 'active')"""
+    total_active = await db.users.count_documents({"accountStatus": "active"})
+    logger.info(f"Active members count: {total_active}")
+    return {"activeCount": total_active}
 
 @router.get("/online-status/users")
 async def get_online_users(

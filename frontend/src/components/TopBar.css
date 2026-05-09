@@ -518,6 +518,35 @@
   padding: 0;
 }
 
+/* Messenger App Launcher button - opens standalone messenger in new tab */
+.btn-messenger-app {
+  position: relative;
+  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  border: none;
+  color: white;
+  border-radius: 12px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.btn-messenger-app:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.5);
+  filter: brightness(1.08);
+}
+
+.btn-messenger-app:active {
+  transform: scale(0.95);
+}
+
 .btn-messages:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
@@ -1473,6 +1502,7 @@
   }
   
   .btn-messages,
+  .btn-messenger-app,
   .btn-refer-friend,
   .btn-admin-actions,
   .btn-support-response {

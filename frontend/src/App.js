@@ -9,6 +9,7 @@ import Login from './components/Login';
 import ForgotPassword from './components/ForgotPassword';
 import LandingPage from './components/LandingPage';
 import RegisterInterest from './components/RegisterInterest';
+import PublicReply from './components/PublicReply';
 import VerifyEmail from './components/VerifyEmail';
 import Profile from './components/Profile';
 import ProfileRedirect from './components/ProfileRedirect';
@@ -129,7 +130,7 @@ const applyTheme = (themeId) => {
 // Auth Guard Component - checks token before rendering protected content
 function AuthGuard({ children }) {
   const location = useLocation();
-  const publicRoutes = ['/', '/login', '/register', '/register2', '/register-interest', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/refund', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
+  const publicRoutes = ['/', '/login', '/register', '/register2', '/register-interest', '/messenger/public-reply', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/refund', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
   const isPublicRoute = publicRoutes.some(route => location.pathname === route || location.pathname.startsWith(route + '/'));
   const token = localStorage.getItem('token');
   
@@ -151,7 +152,7 @@ function AppContent() {
   const location = useLocation();
   
   // Routes where sidebar and topbar should be hidden
-  const hideNavigation = ['/', '/login', '/register', '/register2', '/register-interest', '/verify-email', '/verify-email-sent'].includes(location.pathname);
+  const hideNavigation = ['/', '/login', '/register', '/register2', '/register-interest', '/verify-email', '/verify-email-sent'].includes(location.pathname) || location.pathname.startsWith('/messenger/public-reply');
 
   // Fetch current user profile for profile completion check
   useEffect(() => {
@@ -368,6 +369,7 @@ function AppContent() {
               <Route path="/register" element={<Navigate to="/register2" replace />} />
               <Route path="/register2" element={<Register2 />} />
               <Route path="/register-interest" element={<RegisterInterest />} />
+              <Route path="/messenger/public-reply/:token" element={<PublicReply />} />
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/verify-email" element={<VerifyEmail />} />

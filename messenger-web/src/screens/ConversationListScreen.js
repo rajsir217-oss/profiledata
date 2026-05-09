@@ -1,9 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image, Linking } from 'react-native';
 import useMessengerStore from '@messenger/stores/messengerStore';
 import useAuthStore from '@messenger/stores/authStore';
 import { API_BASE_URL } from '@messenger/config/api';
 import ChatScreen from './ChatScreen';
+import OnlineDot from '../components/OnlineDot';
+import useOnlinePresence from '../hooks/useOnlinePresence';
+
+// Messenger-web app version (shown in the About section of the profile panel)
+const APP_VERSION = '0.1.0';
+
+// Main matrimonial app URL — profile editing lives there, not in messenger-web.
+const getMainAppUrl = () => {
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname;
+    if (h === 'messenger.l3v3lmatches.com') return 'https://www.l3v3lmatches.com';
+    if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3000';
+  }
+  return process.env.NODE_ENV === 'production'
+    ? 'https://www.l3v3lmatches.com'
+    : 'http://localhost:3000';
+};
 
 export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout }) {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
@@ -17,6 +34,13 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [portalGroup, setPortalGroup] = useState(null);
   const [usVedikaGroup, setUsVedikaGroup] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  // Blocked users (shown on profile tab)
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [blockedLoading, setBlockedLoading] = useState(false);
+  const [blockedError, setBlockedError] = useState(null);
+  const [unblockingUser, setUnblockingUser] = useState(null); // username currently being unblocked
+  // Active members count for Portal Members menu item badge
+  const [activeMembersCount, setActiveMembersCount] = useState(null);
 
   const {
     conversations,
@@ -26,11 +50,29 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
   const { user } = useAuthStore();
 
+  // Real-time-ish online presence (polled every 30s). Used to render
+  // small green/gray dots on user avatars across the messenger UI.
+  const { isOnline } = useOnlinePresence();
+
   // Fetch conversations on mount and when tab changes
   useEffect(() => {
     loadAllConversations();
     loadUserProfile();
+    loadActiveMembersCount();
   }, []);
+
+  // Load active members count for Portal Members badge
+  const loadActiveMembersCount = async () => {
+    try {
+      const api = useAuthStore.getState().getApi();
+      const res = await api.get('/api/users/active-members/count');
+      const count = res.data?.activeCount || 0;
+      setActiveMembersCount(count);
+    } catch (e) {
+      console.warn('⚠️ Failed to load active members count:', e?.message);
+      // Silently fail — badge just won't show
+    }
+  };
 
   const loadUserProfile = async () => {
     if (!user?.username) return;
@@ -44,6 +86,50 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       console.warn('⚠️ Failed to load user profile:', e.message);
     }
   };
+
+  // Load the current user's blocked/excluded users (shown on the profile tab)
+  const loadBlockedUsers = async () => {
+    if (!user?.username) return;
+    setBlockedLoading(true);
+    setBlockedError(null);
+    try {
+      const api = useAuthStore.getState().getApi();
+      const res = await api.get(`/api/users/exclusions/${user.username}`);
+      setBlockedUsers(res.data?.exclusions || []);
+    } catch (e) {
+      console.warn('⚠️ Failed to load blocked users:', e.message);
+      setBlockedError('Failed to load blocked users');
+      setBlockedUsers([]);
+    } finally {
+      setBlockedLoading(false);
+    }
+  };
+
+  // Remove an exclusion (unblock)
+  const handleUnblock = async (targetUsername) => {
+    if (!user?.username || !targetUsername) return;
+    setUnblockingUser(targetUsername);
+    try {
+      const api = useAuthStore.getState().getApi();
+      await api.delete(
+        `/api/users/exclusions/${encodeURIComponent(targetUsername)}?username=${encodeURIComponent(user.username)}`
+      );
+      setBlockedUsers((prev) => prev.filter((u) => u.username !== targetUsername));
+    } catch (e) {
+      console.warn('⚠️ Failed to unblock user:', e.message);
+      setBlockedError(`Failed to unblock ${targetUsername}`);
+    } finally {
+      setUnblockingUser(null);
+    }
+  };
+
+  // Load blocked users the first time the profile tab is opened
+  useEffect(() => {
+    if (activeTab === 'profile' && !selectedChat && blockedUsers.length === 0 && !blockedLoading) {
+      loadBlockedUsers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, selectedChat]);
 
   // Helper: calc age from dob string (YYYY-MM-DD or similar)
   const calcAge = (dob) => {
@@ -199,20 +285,25 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const groupConversations = allConversations.filter(c => c.type === 'group');
   const directConversations = allConversations.filter(c => c.type !== 'group');
 
-  // Helper: get display name for a conversation (L3V3L Messenger structure)
+  // Helper: get display name for a conversation (L3V3L Messenger structure).
+  // Returns `username` for direct chats so callers can do online-presence lookups.
   const getConvDisplay = (conv) => {
     // Group chat
     if (conv.type === 'group' && conv.groupName) {
-      return { name: conv.groupName, isGroup: true };
+      return { name: conv.groupName, isGroup: true, username: null };
     }
     // Legacy direct chat
     if (conv.type === 'direct_legacy') {
-      return { name: conv.otherUsername || 'Unknown', isGroup: false };
+      return {
+        name: conv.otherUsername || 'Unknown',
+        isGroup: false,
+        username: conv.otherUsername || null,
+      };
     }
     // Direct chat - find other participant
     const other = conv.participants?.find(p => p.username !== user?.username);
     const name = other?.username || 'Unknown';
-    return { name, isGroup: false };
+    return { name, isGroup: false, username: other?.username || null };
   };
 
   // Helper: format timestamp
@@ -237,7 +328,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const menuItems = [
     { id: 'profile', label: displayName, subLabel: user?.username || 'Your profile', icon: '👤', isProfile: true },
     { id: 'us_vedika', label: 'US Vedika', subLabel: 'Group chat', icon: '👥' },
-    { id: 'portal_members', label: 'Portal Members', subLabel: 'All active members', icon: '🦋' },
+    { id: 'portal_members', label: 'Portal Members', subLabel: 'All active members', icon: '🦋', count: activeMembersCount },
     { id: 'messages', label: 'My Messages', subLabel: 'Direct conversations', icon: '💬' },
   ];
 
@@ -359,9 +450,11 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                       const key = conv._id || conv.id || index;
                       const isLegacy = conv.type === 'direct_legacy';
                       return (
-                        <TouchableOpacity key={key} style={styles.conversationItem} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy })}>
+                        <TouchableOpacity key={key} style={styles.conversationItem} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy, username: display.username })}>
                           <View style={styles.convAvatar}>
                             <Text style={styles.convAvatarText}>{display.name.charAt(0).toUpperCase()}</Text>
+                            {/* Online presence dot — direct chats only */}
+                            {display.username && <OnlineDot online={isOnline(display.username)} />}
                           </View>
                           <View style={styles.convInfo}>
                             <View style={styles.convHeader}>
@@ -389,6 +482,142 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           </ScrollView>
         );
 
+      case 'profile': {
+        const mainAppUrl = getMainAppUrl();
+        const helpUrl = `${mainAppUrl}/help`;
+        const contactUrl = `${mainAppUrl}/contact`;
+        const editProfileUrl = `${mainAppUrl}/edit-profile`;
+        const openLink = (url) => {
+          if (typeof window !== 'undefined' && window.open) {
+            window.open(url, '_blank', 'noopener');
+          } else {
+            Linking.openURL(url).catch(() => {});
+          }
+        };
+        const displayName = userProfile
+          ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.username
+          : (user?.username || 'Your profile');
+        return (
+          <ScrollView style={styles.profileContainer} contentContainerStyle={styles.profileContent}>
+            {/* ---- Header ---- */}
+            <View style={styles.profileHeader}>
+              {profilePicUrl ? (
+                <Image source={{ uri: profilePicUrl }} style={styles.profileAvatar} />
+              ) : (
+                <View style={[styles.profileAvatar, styles.profileAvatarFallback]}>
+                  <Text style={styles.profileAvatarInitial}>
+                    {(displayName?.[0] || '?').toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.profileHeaderText}>
+                <Text style={styles.profileName}>{displayName}</Text>
+                <Text style={styles.profileUsername}>@{user?.username}</Text>
+              </View>
+            </View>
+
+            {/* ---- Edit profile ---- */}
+            <TouchableOpacity
+              style={[styles.profileActionRow, styles.profilePrimaryAction]}
+              onPress={() => openLink(editProfileUrl)}
+            >
+              <Text style={styles.profileActionIcon}>✏️</Text>
+              <Text style={styles.profileActionLabel}>Edit profile</Text>
+              <Text style={styles.profileActionHint}>↗</Text>
+            </TouchableOpacity>
+            <Text style={styles.profileActionHintSubtle}>
+              Opens the main app in a new tab
+            </Text>
+
+            {/* ---- Blocked users ---- */}
+            <View style={styles.profileSection}>
+              <Text style={styles.profileSectionTitle}>
+                Blocked users{blockedUsers.length > 0 ? ` (${blockedUsers.length})` : ''}
+              </Text>
+
+              {blockedLoading && (
+                <View style={styles.profileInlineLoader}>
+                  <ActivityIndicator size="small" color="#e94560" />
+                  <Text style={styles.profileLoaderText}>Loading…</Text>
+                </View>
+              )}
+
+              {!blockedLoading && blockedError && (
+                <View style={styles.profileErrorBox}>
+                  <Text style={styles.profileErrorText}>{blockedError}</Text>
+                  <TouchableOpacity onPress={loadBlockedUsers}>
+                    <Text style={styles.profileRetryLink}>Retry</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {!blockedLoading && !blockedError && blockedUsers.length === 0 && (
+                <Text style={styles.profileEmptyText}>
+                  You haven’t blocked anyone.
+                </Text>
+              )}
+
+              {!blockedLoading && blockedUsers.map((u) => {
+                const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username;
+                const avatarUrl = getProfilePicUrl(u);
+                const isBusy = unblockingUser === u.username;
+                return (
+                  <View key={u.username} style={styles.blockedRow}>
+                    <View style={styles.blockedAvatarWrap}>
+                      {avatarUrl ? (
+                        <Image source={{ uri: avatarUrl }} style={styles.blockedAvatar} />
+                      ) : (
+                        <View style={[styles.blockedAvatar, styles.blockedAvatarFallback]}>
+                          <Text style={styles.blockedAvatarInitial}>
+                            {(name?.[0] || '?').toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+                      <OnlineDot online={isOnline(u.username)} size={11} />
+                    </View>
+                    <View style={styles.blockedInfo}>
+                      <Text style={styles.blockedName} numberOfLines={1}>{name}</Text>
+                      <Text style={styles.blockedUsername} numberOfLines={1}>@{u.username}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.unblockButton, isBusy && styles.unblockButtonBusy]}
+                      onPress={() => handleUnblock(u.username)}
+                      disabled={isBusy}
+                    >
+                      <Text style={styles.unblockButtonText}>
+                        {isBusy ? 'Unblocking…' : 'Unblock'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* ---- About ---- */}
+            <View style={styles.profileSection}>
+              <Text style={styles.profileSectionTitle}>About</Text>
+              <View style={styles.aboutRow}>
+                <Text style={styles.aboutLabel}>Version</Text>
+                <Text style={styles.aboutValue}>{APP_VERSION}</Text>
+              </View>
+              <TouchableOpacity style={styles.aboutRow} onPress={() => openLink(helpUrl)}>
+                <Text style={styles.aboutLabel}>Help</Text>
+                <Text style={styles.aboutLink}>Open ↗</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.aboutRow} onPress={() => openLink(contactUrl)}>
+                <Text style={styles.aboutLabel}>Contact</Text>
+                <Text style={styles.aboutLink}>Open ↗</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* ---- Sign out ---- */}
+            <TouchableOpacity style={styles.signOutButton} onPress={onLogout}>
+              <Text style={styles.signOutButtonText}>🚪  Sign out</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        );
+      }
+
       default:
         return (
           <View style={styles.contentPlaceholder}>
@@ -403,7 +632,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>L3V3L Matches Messenger</Text>
+        <Text style={styles.headerTitle}>🦋 L3V3L Matches Messenger</Text>
       </View>
 
       {/* Main Content */}
@@ -448,9 +677,16 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                   )}
                   {sidebarExpanded && (
                     <View style={styles.menuTextContainer}>
-                      <Text style={[styles.menuLabel, activeTab === item.id && styles.menuLabelActive]}>
-                        {item.label}
-                      </Text>
+                      <View style={styles.menuLabelRow}>
+                        <Text style={[styles.menuLabel, activeTab === item.id && styles.menuLabelActive]}>
+                          {item.label}
+                        </Text>
+                        {item.count !== null && item.count !== undefined && (
+                          <View style={styles.menuCountBadge}>
+                            <Text style={styles.menuCountText}>{item.count}</Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={styles.menuSubLabel}>{item.subLabel}</Text>
                     </View>
                   )}
@@ -481,13 +717,23 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                         p.location || null,
                       ].filter(Boolean);
                       const metaLine = metaParts.join(' · ');
+                      const profilePicUrl = getProfilePicUrl(conv.profile);
                       return (
                         <TouchableOpacity
                           key={key}
                           style={styles.subMenuItem}
-                          onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy, profile: conv.profile })}
+                          onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy, profile: conv.profile, username: display.username })}
                         >
-                          <Text style={styles.subMenuIcon}>{display.isGroup ? '🦋' : '👤'}</Text>
+                          <View style={styles.subMenuIconWrap}>
+                            {!display.isGroup && profilePicUrl ? (
+                              <Image source={{ uri: profilePicUrl }} style={styles.subMenuProfilePic} />
+                            ) : (
+                              <Text style={styles.subMenuIcon}>{display.isGroup ? '🦋' : '👤'}</Text>
+                            )}
+                            {display.username && (
+                              <OnlineDot online={isOnline(display.username)} size={9} />
+                            )}
+                          </View>
                           <View style={styles.subMenuTextWrap}>
                             <Text style={styles.subMenuLabel} numberOfLines={1}>
                               {fullName || display.name}
@@ -545,6 +791,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
             <ChatScreen
               key={selectedChat.id}
               {...selectedChat}
+              isOnline={isOnline}
               onBack={() => setSelectedChat(null)}
             />
           ) : (
@@ -555,7 +802,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
       {/* Bottom Footer */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>L3V3L Matches Messenger</Text>
+        <Text style={styles.footerText}>🦋 L3V3L Matches Messenger</Text>
       </View>
     </View>
   );
@@ -697,6 +944,10 @@ const styles = StyleSheet.create({
   menuTextContainer: {
     flex: 1,
   },
+  menuLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   menuLabel: {
     fontSize: 15,
     color: '#fff',
@@ -706,6 +957,18 @@ const styles = StyleSheet.create({
   menuLabelActive: {
     color: '#e94560',
     fontWeight: '700',
+  },
+  menuCountBadge: {
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: '#e94560',
+  },
+  menuCountText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
   },
   menuSubLabel: {
     fontSize: 12,
@@ -729,9 +992,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 6,
   },
+  subMenuIconWrap: {
+    position: 'relative', // anchor for absolutely positioned <OnlineDot />
+    marginRight: 8,
+    minWidth: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   subMenuIcon: {
     fontSize: 14,
-    marginRight: 8,
+  },
+  subMenuProfilePic: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
   subMenuTextWrap: {
     flex: 1,
@@ -914,6 +1188,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    position: 'relative', // anchor for absolutely positioned <OnlineDot />
   },
   convAvatarText: {
     color: '#fff',
@@ -970,5 +1245,239 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     color: '#666',
+  },
+
+  // ---- Profile panel (right side when "Your profile" is active) ----
+  profileContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+  },
+  profileContent: {
+    padding: 24,
+    paddingBottom: 48,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: '#16213e',
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#1f2a4d',
+  },
+  profileAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: '#e94560',
+  },
+  profileAvatarFallback: {
+    backgroundColor: '#0f3460',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAvatarInitial: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  profileHeaderText: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  profileName: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  profileUsername: {
+    color: '#8892b0',
+    fontSize: 13,
+    marginTop: 2,
+  },
+
+  profileActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: '#16213e',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1f2a4d',
+  },
+  profilePrimaryAction: {
+    marginBottom: 4,
+  },
+  profileActionIcon: {
+    fontSize: 18,
+    marginRight: 12,
+  },
+  profileActionLabel: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    flex: 1,
+  },
+  profileActionHint: {
+    color: '#8892b0',
+    fontSize: 14,
+  },
+  profileActionHintSubtle: {
+    color: '#6b7490',
+    fontSize: 12,
+    marginLeft: 16,
+    marginBottom: 20,
+  },
+
+  profileSection: {
+    backgroundColor: '#16213e',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#1f2a4d',
+  },
+  profileSectionTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  profileEmptyText: {
+    color: '#8892b0',
+    fontSize: 14,
+    fontStyle: 'italic',
+    paddingVertical: 8,
+  },
+  profileInlineLoader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  profileLoaderText: {
+    color: '#8892b0',
+    fontSize: 13,
+    marginLeft: 8,
+  },
+  profileErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  profileErrorText: {
+    color: '#f87171',
+    fontSize: 13,
+  },
+  profileRetryLink: {
+    color: '#e94560',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 12,
+  },
+
+  // Blocked-user row
+  blockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1f2a4d',
+  },
+  blockedAvatarWrap: {
+    position: 'relative', // anchor for absolutely positioned <OnlineDot />
+    width: 40,
+    height: 40,
+  },
+  blockedAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  blockedAvatarFallback: {
+    backgroundColor: '#0f3460',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  blockedAvatarInitial: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  blockedInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  blockedName: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  blockedUsername: {
+    color: '#8892b0',
+    fontSize: 12,
+    marginTop: 1,
+  },
+  unblockButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#e94560',
+  },
+  unblockButtonBusy: {
+    opacity: 0.5,
+  },
+  unblockButtonText: {
+    color: '#e94560',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  // About rows
+  aboutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1f2a4d',
+  },
+  aboutLabel: {
+    color: '#cbd5e1',
+    fontSize: 14,
+  },
+  aboutValue: {
+    color: '#8892b0',
+    fontSize: 13,
+  },
+  aboutLink: {
+    color: '#e94560',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // Sign-out button
+  signOutButton: {
+    marginTop: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: '#dc2626',
+    alignItems: 'center',
+  },
+  signOutButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

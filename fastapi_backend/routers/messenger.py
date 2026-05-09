@@ -4,7 +4,7 @@ Phase 1: 1:1 conversations, text + media messages, delivery receipts, device tok
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -484,6 +484,33 @@ async def list_messages(
     }
 
 
+@router.post("/conversations/{conversation_id}/clear")
+async def clear_conversation(
+    conversation_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """
+    Per-user soft "clear chat": hide all existing messages from THIS user's view
+    by recording a clearedAt timestamp on the conversation. Other participants are
+    unaffected. New messages sent after this point will still appear.
+    """
+    username = current_user["username"]
+    conv = await db.messenger_conversations.find_one({"_id": ObjectId(conversation_id)})
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    if not any(p.get("username") == username for p in conv.get("participants", [])):
+        raise HTTPException(status_code=403, detail="You are not a participant of this conversation")
+
+    now = datetime.utcnow()
+    await db.messenger_conversations.update_one(
+        {"_id": ObjectId(conversation_id)},
+        {"$set": {f"clearedFor.{username}": now, "updatedAt": now}},
+    )
+    logger.info(f"🧹 {username} cleared chat for conversation {conversation_id}")
+    return {"success": True, "clearedAt": now}
+
+
 @router.post("/conversations/{conversation_id}/messages")
 async def send_message(
     conversation_id: str,
@@ -627,9 +654,149 @@ async def send_message(
                 }
             )
 
-            logger.info(f"📧 Email queued for {email} in US Vedika (token: {reply_token})")
+            # Queue actual email send via notification_queue (picked up by email_notifier job)
+            try:
+                from config import settings as _settings
+                # Resolve sender display name
+                sender_user = await db.users.find_one(
+                    {"username": username},
+                    {"firstName": 1, "lastName": 1, "_id": 0},
+                )
+                sender_name = (
+                    f"{(sender_user or {}).get('firstName', '')} {(sender_user or {}).get('lastName', '')}".strip()
+                    or username
+                )
 
-    msg["id"] = msg.pop("_id")
+                from urllib.parse import quote as _quote
+                reply_url = f"{_settings.frontend_url}/messenger/public-reply/{reply_token}"
+
+                include_invitation = (
+                    body.includeInvitation if body.includeInvitation is not None else True
+                )
+
+                # ----------------------------------------------------------
+                # Build the "Create Free Profile" link.
+                # SEMANTICS:
+                #   • includeInvitation=True  ("Send + Invite") → member is
+                #     explicitly vouching for this recipient. Use the real
+                #     InvitationService funnel (no admin gating).
+                #   • includeInvitation=False ("Send Message Only") → no
+                #     vouching. Recipient can still self-apply later via the
+                #     soft register-interest path (rendered from the public
+                #     reply page footer, not in this email).
+                # ----------------------------------------------------------
+                register_url = None
+                invitation_id_for_log = None
+                if include_invitation:
+                    # Skip if recipient is already a registered user
+                    existing_user = await db.users.find_one(
+                        {"$or": [
+                            {"email": email.lower()},
+                            {"contactEmail": email.lower()},
+                        ]},
+                        {"username": 1, "_id": 0},
+                    )
+                    if existing_user:
+                        logger.info(
+                            f"ℹ️ Recipient {email} is already user '{existing_user.get('username')}'; "
+                            f"skipping invitation creation"
+                        )
+                        include_invitation = False  # template will hide CTA
+                    else:
+                        from services.invitation_service import InvitationService
+                        from models.invitation_models import InvitationCreate, InvitationChannel
+                        inv_service = InvitationService(db)
+                        invitation_token = None
+                        try:
+                            new_inv = await inv_service.create_invitation(
+                                invitation_data=InvitationCreate(
+                                    name=display_name or email,
+                                    email=email,
+                                    channel=InvitationChannel.EMAIL,
+                                    sendImmediately=False,  # we embed token in this same email
+                                    promoCode="PUBLIC",
+                                ),
+                                invited_by=username,
+                            )
+                            invitation_token = new_inv.invitationToken
+                            invitation_id_for_log = new_inv.id
+                            # Stamp source/conversation linkage for analytics +
+                            # later use by link_us_vedika_history()
+                            await db.invitations.update_one(
+                                {"_id": ObjectId(new_inv.id)},
+                                {"$set": {
+                                    "source": "us_vedika",
+                                    "sourceConversationId": ObjectId(conversation_id),
+                                    "sourceMessageId": ObjectId(msg_id),
+                                    "verificationPath": "referral",
+                                }},
+                            )
+                            logger.info(f"✉️ Invitation {new_inv.id} created for {email} (invitedBy={username})")
+                        except ValueError:
+                            # Active invitation already exists for this email — reuse its token.
+                            existing_inv = await db.invitations.find_one(
+                                {"email": email, "archived": False}
+                            )
+                            if existing_inv:
+                                invitation_token = existing_inv.get("invitationToken")
+                                invitation_id_for_log = str(existing_inv["_id"])
+                                logger.info(
+                                    f"♻️ Reusing existing invitation {existing_inv['_id']} for {email}"
+                                )
+
+                        if invitation_token:
+                            register_url = (
+                                f"{_settings.frontend_url}/register2"
+                                f"?invitation={invitation_token}"
+                                f"&email={_quote(email)}"
+                                f"&promo=PUBLIC"
+                            )
+                        else:
+                            # Couldn't create or find an invitation — fall back to interest funnel
+                            logger.warning(f"⚠️ No invitation token for {email}; falling back to register-interest")
+                            register_url = (
+                                f"{_settings.frontend_url}/register-interest"
+                                f"?source=us_vedika"
+                                f"&cid={conversation_id}"
+                                f"&invitedBy={_quote(username)}"
+                                f"&email={_quote(email)}"
+                            )
+
+                queue_doc = {
+                    "username": username,  # sender (for logging/lineage); recipientEmail overrides lookup
+                    "trigger": "us_vedika_message",
+                    "priority": "medium",
+                    "channels": ["email"],
+                    "templateData": {
+                        "recipientEmail": email,
+                        "recipientName": display_name,
+                        "senderName": sender_name,
+                        "senderUsername": username,
+                        "messageContent": body.content or "",
+                        "replyUrl": reply_url,
+                        "registerUrl": register_url,
+                        "frontendUrl": _settings.frontend_url,
+                        "includeInvitation": include_invitation,
+                        "conversationId": str(conversation_id),
+                        "messageId": str(msg_id),
+                    },
+                    "status": "pending",
+                    "scheduledFor": None,
+                    "attempts": 0,
+                    "lastAttempt": None,
+                    "error": None,
+                    "createdAt": now,
+                    "updatedAt": now,
+                }
+                await db.notification_queue.insert_one(queue_doc)
+                logger.info(f"📧 Email queued in notification_queue for {email} (token: {reply_token}, invitation={include_invitation})")
+            except Exception as queue_err:
+                logger.error(f"❌ Failed to queue email for {email}: {queue_err}")
+
+    msg["id"] = str(msg.pop("_id"))
+    msg["conversationId"] = str(msg["conversationId"])
+    if msg.get("replyTo"):
+        msg["replyTo"] = str(msg["replyTo"])
 
     # Real-time delivery via Socket.IO
     try:
@@ -674,6 +841,170 @@ async def update_message_status(
         db, body.messageIds, body.status.value, current_user["username"]
     )
     return {"success": True, "updatedCount": count}
+
+
+# =========================================================================
+# Public Reply (US Vedika external email recipients — no auth)
+# =========================================================================
+
+MAX_PUBLIC_REPLY_USES = 20  # allow multiple replies within the 7-day window
+
+
+@router.get("/public-reply/{token}")
+async def get_public_reply_context(
+    token: str,
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """
+    Validate a public reply token and return the conversation context for the
+    reply page. No authentication required — the token itself is the credential.
+    """
+    token_doc = await db.public_reply_tokens.find_one({"token": token})
+    if not token_doc:
+        raise HTTPException(status_code=404, detail="Invalid or unknown reply link")
+
+    # Expiry check
+    expires_at = token_doc.get("expiresAt")
+    if expires_at and expires_at < datetime.utcnow():
+        raise HTTPException(status_code=410, detail="This reply link has expired")
+
+    if token_doc.get("usedCount", 0) >= MAX_PUBLIC_REPLY_USES:
+        raise HTTPException(status_code=410, detail="This reply link has reached its use limit")
+
+    # Load conversation & original message
+    conv = await db.messenger_conversations.find_one({"_id": token_doc["conversationId"]})
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation no longer exists")
+
+    original_msg = await db.messenger_messages.find_one({"_id": token_doc["messageId"]})
+
+    # Resolve sender display name for original message
+    sender_username = (original_msg or {}).get("senderUsername")
+    sender_name = sender_username
+    if sender_username:
+        sender_user = await db.users.find_one(
+            {"username": sender_username},
+            {"firstName": 1, "lastName": 1, "_id": 0},
+        )
+        if sender_user:
+            sender_name = (
+                f"{sender_user.get('firstName', '')} {sender_user.get('lastName', '')}".strip()
+                or sender_username
+            )
+
+    return {
+        "success": True,
+        "publicEmail": token_doc["publicEmail"],
+        "groupName": conv.get("groupName") or "US Vedika",
+        "originalMessage": {
+            "senderName": sender_name,
+            "content": (original_msg or {}).get("content", ""),
+            "createdAt": (original_msg or {}).get("createdAt"),
+        } if original_msg else None,
+        "expiresAt": expires_at,
+        "usedCount": token_doc.get("usedCount", 0),
+        "maxUses": MAX_PUBLIC_REPLY_USES,
+    }
+
+
+@router.post("/public-reply/{token}")
+async def post_public_reply(
+    token: str,
+    body: dict,
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """
+    Post a reply from an external (non-member) email recipient into the US
+    Vedika public group conversation. The token (emailed to the recipient)
+    authorises the reply; no login is required.
+    """
+    content = (body or {}).get("content", "").strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Reply content is required")
+    if len(content) > 4000:
+        raise HTTPException(status_code=400, detail="Reply is too long (max 4000 chars)")
+
+    token_doc = await db.public_reply_tokens.find_one({"token": token})
+    if not token_doc:
+        raise HTTPException(status_code=404, detail="Invalid or unknown reply link")
+
+    expires_at = token_doc.get("expiresAt")
+    if expires_at and expires_at < datetime.utcnow():
+        raise HTTPException(status_code=410, detail="This reply link has expired")
+
+    if token_doc.get("usedCount", 0) >= MAX_PUBLIC_REPLY_USES:
+        raise HTTPException(status_code=410, detail="This reply link has reached its use limit")
+
+    conversation_id = token_doc["conversationId"]
+    public_email = token_doc["publicEmail"].lower()
+    now = datetime.utcnow()
+
+    # Insert reply as a public_email message
+    msg_doc = {
+        "conversationId": conversation_id,
+        "senderUsername": None,        # no portal user
+        "senderType": "public_email",  # matches link_us_vedika_history() semantics
+        "publicEmail": public_email,
+        "contentType": "text",
+        "content": content,
+        "status": "sent",
+        "deliveredAt": None,
+        "readAt": None,
+        "readBy": [],
+        "replyTo": token_doc.get("messageId"),
+        "isForwarded": False,
+        "isDeleted": False,
+        "moderationStatus": "pending",  # external content — flag for review
+        "createdAt": now,
+        "updatedAt": now,
+    }
+    result = await db.messenger_messages.insert_one(msg_doc)
+    msg_id = str(result.inserted_id)
+
+    # Update conversation preview
+    await db.messenger_conversations.update_one(
+        {"_id": conversation_id},
+        {
+            "$set": {
+                "lastMessageAt": now,
+                "lastMessagePreview": f"[Guest {public_email}] {content[:80]}",
+                "updatedAt": now,
+            }
+        },
+    )
+
+    # Mark publicParticipant as replied
+    await db.messenger_conversations.update_one(
+        {"_id": conversation_id, "publicParticipants.email": public_email},
+        {
+            "$set": {
+                "publicParticipants.$.lastReplyAt": now,
+                "publicParticipants.$.status": "replied",
+                "updatedAt": now,
+            }
+        },
+    )
+
+    # Increment token usage
+    await db.public_reply_tokens.update_one(
+        {"token": token},
+        {"$inc": {"usedCount": 1}, "$set": {"lastUsedAt": now}},
+    )
+
+    # Real-time broadcast to conversation participants
+    try:
+        broadcast_msg = {
+            **msg_doc,
+            "_id": msg_id,
+            "conversationId": str(conversation_id),
+            "replyTo": str(msg_doc["replyTo"]) if msg_doc.get("replyTo") else None,
+        }
+        await _notify_realtime(db, str(conversation_id), public_email, broadcast_msg)
+    except Exception as e:
+        logger.warning(f"⚠️ Real-time broadcast of public reply failed: {e}")
+
+    logger.info(f"✉️ Public reply posted by {public_email} to conversation {conversation_id} (msg {msg_id})")
+    return {"success": True, "messageId": msg_id}
 
 
 # =========================================================================

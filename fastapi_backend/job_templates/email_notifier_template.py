@@ -163,6 +163,10 @@ class EmailNotifierTemplate(JobTemplate):
                     if params.get("testMode") and params.get("testEmail"):
                         recipient_email = params["testEmail"]
                         context.log("info", f"🧪 Test mode - using email: {recipient_email}")
+                    elif notification.templateData and notification.templateData.get("recipientEmail"):
+                        # External recipient (e.g., US Vedika public group invitations) - skip user lookup
+                        recipient_email = notification.templateData["recipientEmail"]
+                        context.log("info", f"📨 External recipient: {recipient_email[:3]}***@{recipient_email.split('@')[1] if '@' in recipient_email else '***'}")
                     else:
                         context.log("info", f"Looking up email for user: {notification.username}")
                         user = await context.db.users.find_one({"username": notification.username})

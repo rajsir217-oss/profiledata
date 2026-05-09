@@ -15,7 +15,15 @@ export default function App() {
   const [chatParams, setChatParams] = useState(null);
 
   useEffect(() => {
-    restore();
+    // Bootstrap auth: try SSO from URL (?token=...) first, then fall back
+    // to restoring any persisted session from AsyncStorage.
+    const bootstrap = async () => {
+      const ssoSucceeded = await useAuthStore.getState().ssoFromUrl();
+      if (!ssoSucceeded) {
+        await restore();
+      }
+    };
+    bootstrap();
   }, []);
 
   useEffect(() => {
