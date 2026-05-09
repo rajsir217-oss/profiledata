@@ -3,6 +3,11 @@ import { ActivityIndicator, View } from 'react-native';
 
 import useAuthStore from '@messenger/stores/authStore';
 import messengerSocket from '@messenger/services/socketService';
+import { setTokenGetter } from '@messenger/utils/imageHelper';
+
+// Wire imageHelper to the auth store so protected /api/users/media/ URLs
+// receive the current JWT as ?token=...
+setTokenGetter(() => useAuthStore.getState().token);
 
 import LoginScreen from './src/screens/LoginScreen';
 import ConversationListScreen from './src/screens/ConversationListScreen';

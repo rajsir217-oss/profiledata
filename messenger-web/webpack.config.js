@@ -4,8 +4,11 @@ const webpack = require('webpack');
 
 const MESSENGER_SRC = path.resolve(__dirname, '../messenger/src');
 
-module.exports = {
-  mode: 'development',
+module.exports = (env, argv) => {
+  const isProduction = (argv && argv.mode === 'production') || process.env.NODE_ENV === 'production';
+  return {
+  mode: isProduction ? 'production' : 'development',
+  devtool: isProduction ? 'source-map' : 'eval-source-map',
   entry: path.resolve(__dirname, 'index.js'),
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -19,6 +22,7 @@ module.exports = {
       '@messenger/stores': path.resolve(__dirname, '../messenger/src/stores'),
       '@messenger/services': path.resolve(__dirname, '../messenger/src/services'),
       '@messenger/config': path.resolve(__dirname, '../messenger/src/config'),
+      '@messenger/utils': path.resolve(__dirname, '../messenger/src/utils'),
     },
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     modules: [
@@ -62,8 +66,10 @@ module.exports = {
   },
   plugins: [
     new webpack.DefinePlugin({
-      __DEV__: JSON.stringify(true),
-      process: { env: {} },
+      __DEV__: JSON.stringify(!isProduction),
+      'process.env': JSON.stringify({
+        NODE_ENV: isProduction ? 'production' : 'development',
+      }),
     }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'web/index.html'),
@@ -77,4 +83,5 @@ module.exports = {
       directory: path.resolve(__dirname, 'web'),
     },
   },
+  };
 };
