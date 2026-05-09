@@ -2,7 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import useAuthStore from '@messenger/stores/authStore';
 
-export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBack }) {
+// Status pill metadata for invited public-email recipients (US Vedika).
+// `status` values come from the backend's publicParticipants[].status field
+// and are enriched onto each message's publicEmailsSent[] in messenger_service.
+const PUBLIC_EMAIL_STATUS_META = {
+  invited:    { label: 'Pending activation', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
+  interested: { label: 'Interested',         color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+  replied:    { label: 'Replied',            color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)' },
+  opted_out:  { label: 'Unsubscribed',       color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)' },
+};
+const getPublicEmailStatusMeta = (status) =>
+  PUBLIC_EMAIL_STATUS_META[status] || PUBLIC_EMAIL_STATUS_META.invited;
+
+export default function ChatScreen({ id, name, isGroup, isLegacy, profile, username, isOnline, onBack }) {
   const { user } = useAuthStore();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,6 +26,29 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
   const [publicRecipients, setPublicRecipients] = useState([]);
   const [includeInvitation, setIncludeInvitation] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
+  // Clear chat
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearingChat, setClearingChat] = useState(false);
+
+  const handleClearChat = async () => {
+    setClearingChat(true);
+    try {
+      const api = useAuthStore.getState().getApi();
+      if (isLegacy) {
+        await api.post(`/api/users/messages/conversation/${name}/clear`);
+      } else {
+        await api.post(`/api/messenger/conversations/${id}/clear`);
+      }
+      setShowClearConfirm(false);
+      setMessages([]);
+      console.log('🧹 Chat cleared from view');
+    } catch (e) {
+      console.error('❌ Failed to clear chat:', e);
+      setError(e?.response?.data?.detail || 'Failed to clear chat');
+    } finally {
+      setClearingChat(false);
+    }
+  };
 
   useEffect(() => {
     if (id) {
@@ -166,7 +201,26 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
               ? `${profile.firstName} ${profile.lastName}`.trim()
               : name}
           </Text>
-          {isGroup && <Text style={styles.headerSubtitle}>Group Chat</Text>}
+          {isGroup ? (
+            <Text style={styles.headerSubtitle}>Group Chat</Text>
+          ) : username && typeof isOnline === 'function' ? (
+            <View style={styles.headerStatusRow}>
+              <View
+                style={[
+                  styles.headerStatusInlineDot,
+                  isOnline(username) && styles.headerStatusInlineDotOnline,
+                ]}
+              />
+              <Text
+                style={[
+                  styles.headerSubtitle,
+                  isOnline(username) && styles.headerSubtitleOnline,
+                ]}
+              >
+                {isOnline(username) ? 'Online' : 'Offline'}
+              </Text>
+            </View>
+          ) : null}
         </View>
         {isGroup && (
           <TouchableOpacity
@@ -178,6 +232,13 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
             </Text>
           </TouchableOpacity>
         )}
+        {/* Clear Chat button — visible for ALL conversation types (1:1, group, public_group) */}
+        <TouchableOpacity
+          style={styles.clearButton}
+          onPress={() => setShowClearConfirm(true)}
+        >
+          <Text style={styles.clearButtonText}>🗑️</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Messages */}
@@ -205,6 +266,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
               const isOwn = msg.senderUsername === user.username || msg.fromUsername === user.username;
               const isPublicEmail = msg.senderType === 'public_email';
               const senderName = isGroup && !isOwn ? (msg.senderUsername || msg.fromUsername || 'Unknown') : null;
+              const publicEmailsSent = Array.isArray(msg.publicEmailsSent) ? msg.publicEmailsSent : [];
               return (
                 <View key={msg.id} style={[styles.messageRow, isOwn && styles.messageRowOwn]}>
                   <View style={[styles.messageBubble, isOwn && styles.messageBubbleOwn, isPublicEmail && styles.messageBubblePublic]}>
@@ -216,6 +278,42 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
                     <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
                       {msg.content}
                     </Text>
+
+                    {/* US Vedika invitation recipients — show current activation
+                        status for each @{email} that was invited via this message. */}
+                    {publicEmailsSent.length > 0 && (
+                      <View style={styles.recipientsList}>
+                        <Text style={styles.recipientsListTitle}>
+                          Invited recipient{publicEmailsSent.length > 1 ? 's' : ''}
+                        </Text>
+                        {publicEmailsSent.map((r, idx) => {
+                          const meta = getPublicEmailStatusMeta(r.status);
+                          return (
+                            <View
+                              key={`${r.email}-${idx}`}
+                              style={styles.recipientRow}
+                            >
+                              <Text style={styles.recipientEmail} numberOfLines={1}>
+                                📧 {r.displayName && r.displayName !== r.email
+                                  ? `${r.displayName} <${r.email}>`
+                                  : r.email}
+                              </Text>
+                              <View
+                                style={[
+                                  styles.recipientStatusPill,
+                                  { backgroundColor: meta.bg, borderColor: meta.color },
+                                ]}
+                              >
+                                <Text style={[styles.recipientStatusText, { color: meta.color }]}>
+                                  {meta.label}
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+
                     <Text style={styles.messageTime}>
                       {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Text>
@@ -254,6 +352,40 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, onBac
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Clear Chat Confirmation Modal */}
+      {showClearConfirm && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>🧹 Clear Chat?</Text>
+            <Text style={styles.modalText}>
+              This will hide all current messages from your view only.
+              {isGroup ? ' Other participants will still see them.' : ' The other person will still see the messages on their side.'}
+            </Text>
+            <Text style={styles.modalText}>
+              New messages will continue to appear normally.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalButtonPrimary}
+              onPress={handleClearChat}
+              disabled={clearingChat}
+            >
+              <Text style={styles.modalButtonTextPrimary}>
+                {clearingChat ? 'Clearing...' : 'Yes, Clear Chat'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalButtonCancel}
+              onPress={() => setShowClearConfirm(false)}
+              disabled={clearingChat}
+            >
+              <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Public Recipient Modal */}
       {showPublicRecipientModal && (
@@ -329,6 +461,61 @@ const styles = StyleSheet.create({
   headerInfo: { flex: 1, flexDirection: 'column' },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
   headerMeta: { fontSize: 11, color: '#888', marginTop: 2 },
+  headerSubtitle: { fontSize: 11, color: '#888' },
+  headerSubtitleOnline: { color: '#22c55e' },
+  headerStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+  },
+  headerStatusInlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#6b7280',
+    marginRight: 6,
+  },
+  headerStatusInlineDotOnline: {
+    backgroundColor: '#22c55e',
+  },
+
+  // Invited-recipient list (US Vedika @{email} status)
+  recipientsList: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  recipientsListTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#a3a3c2',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  recipientRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  recipientEmail: {
+    flex: 1,
+    fontSize: 12,
+    color: '#cbd5e1',
+    marginRight: 8,
+  },
+  recipientStatusPill: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  recipientStatusText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
   messagesContainer: { flex: 1 },
   messagesContent: { padding: 16, flexGrow: 1 },
   loadingContainer: {
@@ -502,6 +689,17 @@ const styles = StyleSheet.create({
   },
   muteButtonText: {
     fontSize: 20,
+  },
+  clearButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(233, 69, 96, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(233, 69, 96, 0.4)',
+    marginLeft: 8,
+  },
+  clearButtonText: {
+    fontSize: 18,
   },
   modalSubtext: {
     fontSize: 14,

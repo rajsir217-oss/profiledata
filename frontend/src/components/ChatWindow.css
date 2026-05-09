@@ -227,6 +227,92 @@
   transform: none;
 }
 
+/* Mute (bell) button — group chats */
+.chat-mute-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fbbf24;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.chat-mute-btn:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: #fbbf24;
+  transform: scale(1.08);
+}
+
+/* Clear Chat (broom) button — both 1:1 and group chats */
+.chat-clear-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.chat-clear-btn:hover {
+  background: var(--primary-color, #667eea);
+  border-color: var(--primary-color, #667eea);
+  color: white;
+  transform: scale(1.08);
+}
+
+.chat-clear-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Group-chat actions cluster — keep dropdowns positioned correctly */
+.chat-group-actions {
+  position: relative;
+}
+
+/* Clear Chat confirmation dropdown — same look as Not Interested */
+.clear-chat-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  background: var(--card-background, white);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  padding: 16px;
+  animation: niDropIn 0.15s ease;
+}
+
+@media (max-width: 768px) {
+  .chat-mute-btn,
+  .chat-clear-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+
+  .clear-chat-dropdown {
+    width: 260px;
+    right: -8px;
+    padding: 12px;
+  }
+}
+
 /* Stop tip bubble — to the LEFT of the ✋ button, arrow points right */
 .stop-tip-bubble {
   position: absolute;

@@ -2,12 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api, { createApiInstance } from '../api';
 import socketService from '../services/socketService';
-import { getApiUrl } from '../config/apiConfig';
+import { getApiUrl, getMessengerUrl } from '../config/apiConfig';
 // eslint-disable-next-line no-unused-vars
 import { getImageUrl, getProfilePicUrl } from '../utils/urlHelper';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
-import OnlineUsersDropdown from './OnlineUsersDropdown';
 import Logo from './Logo';
 import InfoTicker from './InfoTicker';
 import EventCountdown from './EventCountdown';
@@ -25,11 +24,9 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const [userRole, setUserRole] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showMessagesDropdown, setShowMessagesDropdown] = useState(false);
-  const [showOnlineDropdown, setShowOnlineDropdown] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [violations, setViolations] = useState(null);
-  const [onlineCount, setOnlineCount] = useState(1); // Default 1 (current user is online)
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [adminPendingCounts, setAdminPendingCounts] = useState(null); // Unified admin pending counts
   const [showAdminActions, setShowAdminActions] = useState(false); // Admin Action Center dropdown
@@ -276,18 +273,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     };
   }, [currentUser]);
 
-  // Listen for online count updates (original implementation)
-  useEffect(() => {
-    const handleOnlineCountUpdate = (data) => {
-      setOnlineCount(data.count || 0);
-    };
-
-    socketService.on('online_count_update', handleOnlineCountUpdate);
-    
-    return () => {
-      socketService.off('online_count_update', handleOnlineCountUpdate);
-    };
-  }, []);
+  // Online count listener moved to PlatformActivityBar (footer)
 
   // eslint-disable-next-line no-unused-vars
   const handleLogout = async () => {
@@ -622,6 +608,53 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
             </button>
           )}
           
+          {/* Messenger App Launcher - opens standalone messenger in mobile-sized popup window with SSO */}
+          <button
+            className="btn-messenger-app"
+            onClick={() => {
+              const token = localStorage.getItem('token');
+              const username = localStorage.getItem('username');
+              const baseUrl = getMessengerUrl();
+              // Pass token + username via URL so messenger can auto-login.
+              // Token is consumed and removed from URL on the messenger side.
+              const params = new URLSearchParams();
+              if (token) params.set('token', token);
+              if (username) params.set('u', username);
+              const url = params.toString() ? `${baseUrl}/?${params.toString()}` : baseUrl;
+
+              // Mobile-app-sized popup window (iPhone-ish dimensions).
+              // Named target 'l3v3lMessenger' ensures repeat clicks focus the existing window.
+              const width = 420;
+              const height = 820;
+              const left = Math.max(0, (window.screen.availWidth - width) - 40);
+              const top = Math.max(0, (window.screen.availHeight - height) / 2);
+              const features = [
+                `width=${width}`,
+                `height=${height}`,
+                `left=${left}`,
+                `top=${top}`,
+                'menubar=no',
+                'toolbar=no',
+                'location=no',
+                'status=no',
+                'resizable=yes',
+                'scrollbars=yes',
+                'noopener=no', // we want named-window focus behavior
+              ].join(',');
+
+              const popup = window.open(url, 'l3v3lMessenger', features);
+              if (popup) {
+                popup.focus();
+              } else {
+                // Popup blocked — fallback to new tab
+                window.open(url, '_blank', 'noopener,noreferrer');
+              }
+            }}
+            title="Open Messenger"
+          >
+            💌
+          </button>
+
           {/* Messages Icon with Dropdown */}
           <div className="messages-icon-container">
             <button 
@@ -661,26 +694,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
             />
           </div>
           
-          {/* Online member count — clean number badge */}
-          <div className="online-indicator-container">
-            <button 
-              className={`btn-online-count ${userRole === 'admin' || userRole === 'moderator' ? 'clickable' : ''}`}
-              onClick={() => {
-                if (userRole === 'admin' || userRole === 'moderator') {
-                  setShowOnlineDropdown(!showOnlineDropdown);
-                }
-              }}
-              title={`${onlineCount} member${onlineCount !== 1 ? 's' : ''} online`}
-            >
-              {onlineCount}
-            </button>
-            {(userRole === 'admin' || userRole === 'moderator') && (
-              <OnlineUsersDropdown
-                isOpen={showOnlineDropdown}
-                onClose={() => setShowOnlineDropdown(false)}
-              />
-            )}
-          </div>
+          {/* Online member count moved to PlatformActivityBar (footer) */}
 
           {/* User Avatar Dropdown */}
           {isLoggedIn && (

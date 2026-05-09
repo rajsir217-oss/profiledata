@@ -190,7 +190,15 @@ async def get_messages(
     if before:
         query["_id"] = {"$lt": ObjectId(before)}
 
-    total = await db.messenger_messages.count_documents({"conversationId": ObjectId(conversation_id)})
+    # Per-user "clear chat" filter — hide messages older than the user's clearedAt timestamp
+    cleared_for = (conv.get("clearedFor") or {}).get(username)
+    if cleared_for:
+        query["createdAt"] = {"$gt": cleared_for}
+
+    count_query: Dict[str, Any] = {"conversationId": ObjectId(conversation_id)}
+    if cleared_for:
+        count_query["createdAt"] = {"$gt": cleared_for}
+    total = await db.messenger_messages.count_documents(count_query)
     cursor = (
         db.messenger_messages.find(query)
         .sort("_id", -1)  # newest first
@@ -200,11 +208,48 @@ async def get_messages(
     has_more = len(messages) > limit
     messages = messages[:limit]
 
+    # Build a case-insensitive email -> participant lookup for enriching
+    # publicEmailsSent on invitation messages with their CURRENT status
+    # (invited / interested / replied / opted_out, etc.)
+    public_participants = conv.get("publicParticipants") or []
+    participants_by_email = {
+        (p.get("email") or "").lower(): p
+        for p in public_participants
+        if p.get("email")
+    }
+
     for m in messages:
         m["_id"] = str(m["_id"])
         m["conversationId"] = str(m["conversationId"])
         if m.get("replyTo"):
             m["replyTo"] = str(m["replyTo"])
+
+        # Enrich publicEmailsSent (US Vedika invitation messages) with the
+        # CURRENT status of each invited email so the client can render
+        # "Pending activation" / "Interested" / "Replied" / "Opted out"
+        # badges inline under the message bubble.
+        emails_sent = m.get("publicEmailsSent")
+        if isinstance(emails_sent, list) and emails_sent:
+            enriched = []
+            for r in emails_sent:
+                if not isinstance(r, dict):
+                    continue
+                email = (r.get("email") or "").strip()
+                key = email.lower()
+                p = participants_by_email.get(key) or {}
+                # Default to 'invited' (i.e. pending activation) if the
+                # participant doc was somehow not added (race / cleanup).
+                status = p.get("status") or "invited"
+                enriched.append({
+                    "email": email,
+                    "displayName": r.get("displayName") or p.get("displayName") or email,
+                    "status": status,
+                    "addedAt": p.get("addedAt"),
+                    "lastEmailSentAt": p.get("lastEmailSentAt"),
+                    "lastReplyAt": p.get("lastReplyAt"),
+                    "optedOutAt": p.get("optedOutAt"),
+                })
+            m["publicEmailsSent"] = enriched
 
     # Return in chronological order (oldest first) for display
     messages.reverse()

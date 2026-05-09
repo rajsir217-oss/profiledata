@@ -25,6 +25,179 @@
   overflow: hidden;
 }
 
+/* Online users indicator (moved from TopBar) */
+.pab-online-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Flip the OnlineUsersDropdown upward when anchored inside the footer.
+   Use position: fixed so the dropdown escapes .pab-row's overflow:hidden,
+   and disable the default slide-in animation which forces translateX(-50%). */
+.pab-online-container .online-users-dropdown {
+  position: fixed !important;
+  top: auto !important;
+  bottom: 60px !important;
+  left: 60px !important;
+  right: auto !important;
+  width: min(480px, calc(100vw - 80px)) !important;
+  transform: none !important;
+  animation: none !important;
+  max-height: 70vh;
+  z-index: 1100;
+}
+
+/* === GRID LAYOUT for online users (footer dropdown context) === */
+.pab-online-container .online-users-list {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)) !important;
+  gap: 8px !important;
+  padding: 12px !important;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.pab-online-container .online-user-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 6px !important;
+  padding: 10px 6px !important;
+  border-radius: 10px !important;
+  background: var(--hover-background, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-color);
+  text-align: center;
+  min-height: 110px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.pab-online-container .online-user-item:hover {
+  background: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.pab-online-container .online-user-item:hover .user-name,
+.pab-online-container .online-user-item:hover .user-meta,
+.pab-online-container .online-user-item:hover .view-profile-arrow {
+  color: white !important;
+}
+
+.pab-online-container .user-avatar {
+  width: 44px !important;
+  height: 44px !important;
+}
+
+.pab-online-container .user-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pab-online-container .user-name {
+  display: block !important;
+  color: var(--text-color) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pab-online-container .user-meta {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--text-secondary, #888);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pab-online-container .user-badge {
+  font-size: 9px !important;
+  padding: 1px 6px !important;
+}
+
+/* Hide the row "view profile" eye icon — entire card is clickable in grid mode */
+.pab-online-container .view-profile-arrow {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+  .pab-online-container .online-users-dropdown {
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+  }
+}
+
+.pab-online-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--hover-background, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: default;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.pab-online-btn.pab-online-clickable {
+  cursor: pointer;
+}
+
+.pab-online-btn.pab-online-clickable:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.pab-online-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+  animation: pab-online-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pab-online-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+.pab-online-count {
+  font-weight: 700;
+}
+
+.pab-online-label {
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  .pab-online-label {
+    display: none;
+  }
+}
+
 /* Collapsed state */
 .pab-collapsed {
   padding: 3px 16px;
@@ -32,6 +205,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 
 .pab-collapsed:hover {

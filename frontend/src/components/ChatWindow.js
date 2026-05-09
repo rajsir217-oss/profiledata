@@ -356,7 +356,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
               <div className="chat-user-details">
                 <h4>{groupInfo?.groupName || 'US Vedika Group'}</h4>
                 <p className="chat-user-subtitle">
-                  Portal Members + External Users via @{email}
+                  Portal Members + External Users via @{'{email}'}
                 </p>
               </div>
             </div>

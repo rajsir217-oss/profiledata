@@ -9,7 +9,8 @@ const LoginScreen = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuthStore();
+  const { login, error: storeError } = useAuthStore();
+  const displayError = error || storeError;
 
   // MFA State
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -21,6 +22,10 @@ const LoginScreen = () => {
   const handleChange = (field, value) => {
     setForm({ ...form, [field]: value });
     setError('');
+    // Clear the store-level (session-expired) error once the user starts typing
+    if (storeError) {
+      useAuthStore.setState({ error: null });
+    }
   };
 
   const handleSubmit = async () => {
@@ -138,7 +143,7 @@ const LoginScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {error && <Text style={styles.error}>{error}</Text>}
+            {displayError && <Text style={styles.error}>{displayError}</Text>}
 
             <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign In</Text>}
@@ -166,7 +171,7 @@ const LoginScreen = () => {
               />
             </View>
 
-            {error && <Text style={styles.error}>{error}</Text>}
+            {displayError && <Text style={styles.error}>{displayError}</Text>}
 
             <TouchableOpacity style={styles.button} onPress={handleMfaVerify} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Verify</Text>}
