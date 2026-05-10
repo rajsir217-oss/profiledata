@@ -576,10 +576,18 @@ async def get_protected_media(
     allowed_origins = [
         settings.frontend_url,
         settings.backend_url,
+        # Production main app
+        "https://l3v3lmatches.com",
+        "https://www.l3v3lmatches.com",
+        # Production messenger (separate Cloud Run service / subdomain)
+        "https://messenger.l3v3lmatches.com",
+        # Local dev
         "http://localhost:3000",
         "http://localhost:8000",
+        "http://localhost:3030",   # messenger-web dev server
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8000",
+        "http://127.0.0.1:3030",
         # Capacitor Android app origins
         "https://localhost",
         "http://localhost",
