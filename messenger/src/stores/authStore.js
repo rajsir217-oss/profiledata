@@ -86,6 +86,11 @@ const useAuthStore = create((set, get) => ({
 
   /**
    * Login with existing L3V3L MATCHES credentials.
+   *
+   * Returns:
+   *   { ok: true }                                                — logged in
+   *   { ok: false, mfaRequired: true, mfa_channel, contact_masked } — MFA needed
+   *   { ok: false, error: <msg> }                                 — failed
    */
   login: async (username, password, captchaToken = null, mfaCode = null) => {
     set({ error: null, isLoading: true });
@@ -111,14 +116,26 @@ const useAuthStore = create((set, get) => ({
       ]);
 
       set({ token: access_token, user, isLoading: false, error: null });
-      return true;
+      return { ok: true };
     } catch (e) {
-      const msg =
-        e.response?.data?.detail ||
-        e.response?.data?.message ||
-        'Login failed. Check your credentials.';
+      // Detect MFA_REQUIRED: backend returns 403 with detail "MFA_REQUIRED"
+      // and metadata (mfa_channel, contact_masked). Surface that to the UI
+      // so it can transition to the OTP entry screen.
+      const status = e.response?.status;
+      const data = e.response?.data || {};
+      if (status === 403 && data.detail === 'MFA_REQUIRED') {
+        set({ isLoading: false, error: null });
+        return {
+          ok: false,
+          mfaRequired: true,
+          mfa_channel: data.mfa_channel || 'email',
+          contact_masked: data.contact_masked || '',
+        };
+      }
+
+      const msg = data.detail || data.message || 'Login failed. Check your credentials.';
       set({ error: msg, isLoading: false });
-      return false;
+      return { ok: false, error: msg };
     }
   },
 

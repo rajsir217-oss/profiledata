@@ -806,25 +806,53 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
           >
             ⚡
           </button>
-          <form onSubmit={handleSend} className="message-input-form">
-            <input
-              type="text"
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={isGroupChat && isAdminOrModerator ? 'Type a message... Use @{email} to invite via email' : (isGroupChat ? 'Type a message...' : (otherUser.accountStatus === 'paused' ? 'User is paused - messages disabled' : 'Type a message...'))}
-              className="message-input"
-              maxLength={1000}
-              disabled={otherUser.accountStatus === 'paused'}
-            />
-            <button
-              type="submit"
-              className="send-button"
-              disabled={!messageText.trim() || otherUser.accountStatus === 'paused'}
-            >
-              <span className="send-text">Send </span><span className="send-icon">➤</span>
-            </button>
-          </form>
+          {(() => {
+            // Detect @{email} or @email mentions to drive Send-button UX:
+            //   • admin/mod  → relabel "Review ▶" so the user knows the
+            //     external-recipient modal will open instead of an ordinary send
+            //   • non-admin  → disable Send with a tooltip explaining why
+            const emailMentionRegex = /@\{?[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\}?/;
+            const hasEmailMention = isGroupChat && emailMentionRegex.test(messageText);
+            const isInviteFlow = hasEmailMention && isAdminOrModerator;
+            const isBlockedInvite = hasEmailMention && !isAdminOrModerator;
+            const sendDisabled =
+              !messageText.trim()
+              || otherUser.accountStatus === 'paused'
+              || isBlockedInvite;
+
+            return (
+              <form onSubmit={handleSend} className="message-input-form">
+                <input
+                  type="text"
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={isGroupChat && isAdminOrModerator ? 'Type a message... Use @{email} to invite via email' : (isGroupChat ? 'Type a message...' : (otherUser.accountStatus === 'paused' ? 'User is paused - messages disabled' : 'Type a message...'))}
+                  className="message-input"
+                  maxLength={1000}
+                  disabled={otherUser.accountStatus === 'paused'}
+                />
+                <button
+                  type="submit"
+                  className={`send-button${isInviteFlow ? ' send-button-invite' : ''}`}
+                  disabled={sendDisabled}
+                  title={
+                    isBlockedInvite
+                      ? 'Only admins/moderators can invite by email (@{email})'
+                      : isInviteFlow
+                        ? 'Review external recipients before sending'
+                        : 'Send message'
+                  }
+                >
+                  {isInviteFlow ? (
+                    <><span className="send-text">Review </span><span className="send-icon">▶</span></>
+                  ) : (
+                    <><span className="send-text">Send </span><span className="send-icon">➤</span></>
+                  )}
+                </button>
+              </form>
+            );
+          })()}
         </div>
       )}
 
@@ -855,18 +883,13 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
               >
                 Cancel
               </button>
+              {/* "Send Message Only" is disabled — every external recipient
+                  must go through the invitation funnel. Kept visible (greyed)
+                  to make the constraint explicit rather than hiding the option. */}
               <button
                 className="modal-btn modal-btn-secondary"
-                onClick={() => {
-                  onSendMessage(messageText.trim(), {
-                    publicRecipients,
-                    deliveryMode: 'email',
-                    includeInvitation: false
-                  });
-                  setShowPublicRecipientModal(false);
-                  setPublicRecipients([]);
-                  setMessageText('');
-                }}
+                disabled
+                title='Disabled — please use "Send Message + Invitation"'
               >
                 Send Message Only
               </button>

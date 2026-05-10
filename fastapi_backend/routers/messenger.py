@@ -539,6 +539,19 @@ async def send_message(
         if conv.get("type") != "public_group":
             raise HTTPException(status_code=403, detail="Public recipients only allowed in US Vedika (public_group) conversations")
 
+        # Only admins/moderators can send public-recipient (email) invites.
+        # The frontend already gates the modal behind `isAdminOrModerator`, but
+        # we defend in depth here so a crafted request can't bypass that.
+        sender_role = current_user.get("role") or current_user.get("role_name")
+        if sender_role not in ("admin", "moderator"):
+            logger.warning(
+                f"🚫 Blocked @email invite by non-admin: user={username} role={sender_role}"
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="Only administrators or moderators can invite external participants by email",
+            )
+
     now = datetime.utcnow()
     
     # Create message document
@@ -779,6 +792,10 @@ async def send_message(
                         "includeInvitation": include_invitation,
                         "conversationId": str(conversation_id),
                         "messageId": str(msg_id),
+                        # Carry invitation id so the email_notifier job can flip
+                        # the invitation's emailStatus to SENT/FAILED on actual
+                        # delivery (vs. the optimistic update we do below).
+                        "invitationId": invitation_id_for_log,
                     },
                     "status": "pending",
                     "scheduledFor": None,
@@ -790,6 +807,25 @@ async def send_message(
                 }
                 await db.notification_queue.insert_one(queue_doc)
                 logger.info(f"📧 Email queued in notification_queue for {email} (token: {reply_token}, invitation={include_invitation})")
+
+                # Optimistically mark the invitation as SENT so the
+                # InvitationManager UI in the main app doesn't show a
+                # forever-"pending" row. The email_notifier job will flip it to
+                # FAILED later if delivery actually fails (it has invitationId
+                # in templateData above).
+                if invitation_id_for_log:
+                    try:
+                        from services.invitation_service import InvitationService
+                        from models.invitation_models import InvitationChannel, InvitationStatus
+                        await InvitationService(db).update_invitation_status(
+                            invitation_id_for_log,
+                            InvitationChannel.EMAIL,
+                            InvitationStatus.SENT,
+                        )
+                    except Exception as status_err:
+                        logger.warning(
+                            f"⚠️ Failed to mark invitation {invitation_id_for_log} as SENT: {status_err}"
+                        )
             except Exception as queue_err:
                 logger.error(f"❌ Failed to queue email for {email}: {queue_err}")
 

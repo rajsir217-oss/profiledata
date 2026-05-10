@@ -101,6 +101,11 @@ class Settings(BaseSettings):
     registration_open: Optional[bool] = False  # False = invitation-only, True = public registration
     face_detection_enabled: Optional[bool] = True  # Validate uploaded images contain a human face
     face_detection_confidence: Optional[float] = 0.7  # Minimum confidence for face detection (0.0-1.0)
+    # When True, reject the upload if both Vision API + OpenCV are unavailable.
+    # When False (default in production where Vision creds may not be mounted),
+    # log a warning and allow the upload through. Prevents legitimate users
+    # from being blocked by a transient detection-backend outage.
+    face_detection_strict_mode: Optional[bool] = False
     
     # ==========================================================================
     # PROFILE PICTURE VISIBILITY SETTING

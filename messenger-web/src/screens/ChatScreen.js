@@ -415,16 +415,21 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
               </Text>
             </TouchableOpacity>
 
-            {/* Send Only Button */}
+            {/* Send Only Button — DISABLED.
+                We require every external recipient to be onboarded via the
+                "Send + Invite" path so the funnel/lineage stays intact.
+                Keeping the button visible (greyed) explains the constraint
+                rather than silently removing the option. */}
             <TouchableOpacity
-              style={styles.modalButtonSecondary}
-              onPress={() => sendWithPublicRecipients('email')}
+              style={[styles.modalButtonSecondary, styles.modalButtonDisabled]}
+              disabled={true}
+              activeOpacity={1}
             >
               <Text style={styles.modalButtonTextSecondary}>
                 📨 Send Message Only
               </Text>
               <Text style={styles.modalButtonSubtext}>
-                Email only - no invitation
+                Disabled — please use "Send + Invite"
               </Text>
             </TouchableOpacity>
 
@@ -727,6 +732,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginBottom: 10,
+  },
+  modalButtonDisabled: {
+    opacity: 0.45,
+    backgroundColor: '#4b5563',
   },
   modalButtonTextSecondary: {
     color: '#fff',

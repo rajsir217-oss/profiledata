@@ -302,12 +302,21 @@ def validate_human_image(image_bytes: bytes) -> Tuple[bool, str]:
         return result, message
     logger.warning(f"⚠️ OpenCV also unavailable ({message})")
 
-    # --- Strategy 3: Both unavailable → REJECT ---
-    logger.error("❌ No face detection backend available – rejecting upload")
-    return False, (
-        "Face detection is temporarily unavailable. "
-        "Please try again in a few minutes or contact support."
+    # --- Strategy 3: Both unavailable ---
+    # In strict mode, reject. Otherwise, allow the upload through and log a
+    # warning so legitimate users aren't blocked by a transient detection
+    # backend outage (e.g., Vision creds not mounted in a Cloud Run revision).
+    if getattr(settings, "face_detection_strict_mode", False):
+        logger.error("❌ No face detection backend available – rejecting upload (strict mode)")
+        return False, (
+            "Face detection is temporarily unavailable. "
+            "Please try again in a few minutes or contact support."
+        )
+    logger.warning(
+        "⚠️ No face detection backend available – allowing upload "
+        "(strict mode disabled). Set face_detection_strict_mode=true to reject."
     )
+    return True, "Face detection unavailable; upload allowed"
 
 
 async def validate_uploaded_images(files_with_bytes: list) -> Tuple[list, list]:

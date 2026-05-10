@@ -36,13 +36,14 @@ class ActivityType(str, Enum):
     L3V3L_MATCHES_VIEWED = "l3v3l_matches_viewed"
     MATCH_SCORE_CALCULATED = "match_score_calculated"
     
-    # Messaging (6)
+    # Messaging (7)
     MESSAGE_SENT = "message_sent"
     MESSAGE_READ = "message_read"
     CONVERSATION_STARTED = "conversation_started"
     CONVERSATION_ARCHIVED = "conversation_archived"
     MESSAGE_DELETED = "message_deleted"
     MESSAGES_PAGE_VIEWED = "messages_page_viewed"
+    MESSENGER_OPENED = "messenger_opened"
     
     # Search & Discovery (6)
     SEARCH_PERFORMED = "search_performed"
