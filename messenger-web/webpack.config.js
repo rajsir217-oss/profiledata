@@ -67,6 +67,16 @@ module.exports = (env, argv) => {
   plugins: [
     new webpack.DefinePlugin({
       __DEV__: JSON.stringify(!isProduction),
+      // Use dotted keys so webpack replaces `process.env.X` directly with
+      // string literals (not the whole `process.env` object).
+      // Critical: react / react-native-web / react-dom check NODE_ENV at
+      // runtime and behave very differently in dev vs prod. Replacing the
+      // whole `process.env` with `JSON.stringify({...})` substitutes a
+      // STRING value, making `.NODE_ENV` return undefined and breaking
+      // image rendering (Image component never transitions out of IDLE state).
+      'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
+      // Fallback so libraries that probe other env vars at runtime don't
+      // throw ReferenceError. Only used when the dotted keys above don't match.
       'process.env': JSON.stringify({
         NODE_ENV: isProduction ? 'production' : 'development',
       }),
