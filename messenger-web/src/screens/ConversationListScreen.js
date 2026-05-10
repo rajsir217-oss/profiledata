@@ -200,26 +200,57 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         console.log('✅ Main app 1:1 conversations:', directConvs.length);
 
         // Enrich each direct conversation with the other user's profile metadata
-        await Promise.all(directConvs.map(async (conv) => {
-          try {
-            const profileRes = await api.get(`/api/users/profile/${conv.otherUsername}?requester=${user?.username}`);
-            const p = profileRes.data?.user || profileRes.data || {};
-            conv.profile = {
-              firstName: p.firstName,
-              lastName: p.lastName,
-              age: p.age || calcAge(p.dob),
-              height: p.height,
-              profession: p.profession || p.occupation,
-              location: p.location || [p.city, p.state, p.country].filter(Boolean).join(', '),
-              imageVisibility: p.imageVisibility,
-              images: p.images,
-              profileImage: p.profileImage,
-            };
-          } catch (e) {
-            // Ignore per-user profile fetch failures
+        // Use the bulk endpoint to fetch all profiles in a single round-trip
+        // (was N sequential requests = slow on large conversation lists).
+        try {
+          const usernamesToFetch = directConvs
+            .map((c) => c.otherUsername)
+            .filter(Boolean);
+          if (usernamesToFetch.length > 0) {
+            const bulkRes = await api.post('/api/users/profiles/bulk', {
+              usernames: usernamesToFetch,
+            });
+            const profiles = bulkRes.data?.profiles || {};
+            directConvs.forEach((conv) => {
+              const p = profiles[conv.otherUsername];
+              if (!p) return;
+              conv.profile = {
+                firstName: p.firstName,
+                lastName: p.lastName,
+                age: p.age,
+                height: p.height,
+                profession: p.profession || p.occupation,
+                location: p.location,
+                imageVisibility: p.imageVisibility,
+                images: p.images,
+                profileImage: p.profileImage,
+              };
+            });
+            console.log(`✅ Bulk-enriched ${Object.keys(profiles).length}/${usernamesToFetch.length} direct conversations`);
           }
-        }));
-        console.log('✅ Enriched direct conversations with profile metadata');
+        } catch (e) {
+          // Fall back to per-user fetches if bulk endpoint isn't deployed yet.
+          console.warn('⚠️ Bulk profile fetch failed, falling back to per-user:', e.message);
+          await Promise.all(directConvs.map(async (conv) => {
+            try {
+              const profileRes = await api.get(`/api/users/profile/${conv.otherUsername}?requester=${user?.username}`);
+              const p = profileRes.data?.user || profileRes.data || {};
+              conv.profile = {
+                firstName: p.firstName,
+                lastName: p.lastName,
+                age: p.age || calcAge(p.dob),
+                height: p.height,
+                profession: p.profession || p.occupation,
+                location: p.location || [p.city, p.state, p.country].filter(Boolean).join(', '),
+                imageVisibility: p.imageVisibility,
+                images: p.images,
+                profileImage: p.profileImage,
+              };
+            } catch (err) {
+              // Ignore per-user profile fetch failures
+            }
+          }));
+        }
       } catch (e) {
         console.warn('⚠️ Failed to load main app conversations:', e.message);
       }

@@ -14,6 +14,7 @@ import { getFirstName, getShortName } from '../utils/userDisplay';
 import { useContribution } from '../contexts/ContributionContext';
 import logger from '../utils/logger';
 import { loadWhitelabelConfig } from '../utils/whitelabelConfig';
+import useActivityLogger from '../hooks/useActivityLogger';
 import './TopBar.css';
 
 const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
@@ -48,6 +49,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     : null;
   const totalUnattended = urgencyCounts.critical + urgencyCounts.high + urgencyCounts.medium + urgencyCounts.pending;
   const navigate = useNavigate();
+  const { logActivity, ActivityType } = useActivityLogger();
 
   // Load branding config
   useEffect(() => {
@@ -615,6 +617,15 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
               const token = localStorage.getItem('token');
               const username = localStorage.getItem('username');
               const baseUrl = getMessengerUrl();
+              // Track that the user opened the messenger from the main app.
+              // Fire-and-forget; failures must not block the launcher.
+              try {
+                logActivity(ActivityType.MESSENGER_OPENED, {
+                  source: 'topbar',
+                  target_url: baseUrl,
+                  has_sso_token: !!token,
+                });
+              } catch (_) { /* noop */ }
               // Pass token + username via URL so messenger can auto-login.
               // Token is consumed and removed from URL on the messenger side.
               const params = new URLSearchParams();

@@ -36,6 +36,7 @@ export const ActivityType = {
   
   // Messaging
   MESSAGES_PAGE_VIEWED: 'messages_page_viewed',
+  MESSENGER_OPENED: 'messenger_opened',
   
   // System
   PAGE_VISITED: 'page_visited',

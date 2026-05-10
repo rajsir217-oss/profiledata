@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import useAuthStore from '@messenger/stores/authStore';
+import { API_BASE_URL } from '@messenger/config/api';
 
 const LoginScreen = () => {
   const [form, setForm] = useState({ username: '', password: '' });
@@ -38,15 +39,27 @@ const LoginScreen = () => {
     setError('');
 
     try {
-      const success = await login(
+      const result = await login(
         form.username.trim(),
         form.password.trim(),
         'XXXX.DUMMY.TOKEN.XXXX'  // Dummy CAPTCHA token for dev (messenger-web)
       );
 
-      if (!success) {
-        setError('Invalid username or password');
+      if (result?.ok) return; // Auth state will route us to chats.
+
+      // Backend says MFA is required → transition UI to OTP entry screen
+      // and trigger code delivery to the user's email/SMS.
+      if (result?.mfaRequired) {
+        setMfaChannel(result.mfa_channel || 'email');
+        setContactMasked(result.contact_masked || '');
+        setMfaRequired(true);
+        setError('');
+        // Auto-send the first OTP. The user can also tap "Resend Code".
+        await sendMfaCode();
+        return;
       }
+
+      setError(result?.error || 'Invalid username or password');
     } catch (e) {
       setError(e.message || 'Login failed. Check your credentials.');
     } finally {
@@ -57,7 +70,9 @@ const LoginScreen = () => {
   const sendMfaCode = async () => {
     try {
       setResendingCode(true);
-      const response = await fetch('http://localhost:8000/api/auth/mfa/send-code', {
+      // Use API_BASE_URL so this works in dev (localhost), prod (api.l3v3lmatches.com),
+      // and on Android emulator (10.0.2.2). Hard-coding localhost broke prod.
+      const response = await fetch(`${API_BASE_URL}/api/auth/mfa/send-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: form.username.trim() })
@@ -85,16 +100,15 @@ const LoginScreen = () => {
     setError('');
 
     try {
-      const success = await login(
+      const result = await login(
         form.username.trim(),
         form.password.trim(),
         'XXXX.DUMMY.TOKEN.XXXX',  // Dummy CAPTCHA token
         mfaCode.trim()
       );
 
-      if (!success) {
-        setError('Invalid verification code');
-      }
+      if (result?.ok) return;
+      setError(result?.error || 'Invalid verification code');
     } catch (e) {
       setError(e.message || 'Verification failed');
     } finally {

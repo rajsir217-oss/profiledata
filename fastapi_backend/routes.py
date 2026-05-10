@@ -3139,6 +3139,96 @@ async def update_user_profile(
             detail=f"Failed to update profile: {str(e)}"
         )
 
+# ===== BULK PROFILE LOOKUP =====
+# Used by the messenger conversation list to enrich N direct chats with one
+# round-trip instead of N. Returns slim profiles (firstName, lastName, images,
+# imageVisibility, location/age preview) — NOT a full profile fetch.
+
+@router.post("/profiles/bulk")
+async def get_profiles_bulk(
+    body: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database),
+):
+    """Look up multiple user profiles in one request. Slim payload.
+
+    Body:
+      { "usernames": ["alice", "bob", ...] }
+    Returns:
+      { "profiles": { "alice": {...}, "bob": {...} } }
+    Missing usernames are simply omitted from the result.
+    """
+    usernames = body.get("usernames") or []
+    if not isinstance(usernames, list):
+        raise HTTPException(status_code=400, detail="usernames must be a list")
+
+    # Cap to avoid abuse / huge $in queries
+    usernames = [u for u in usernames if isinstance(u, str) and u][:200]
+    if not usernames:
+        return {"profiles": {}}
+
+    # Case-insensitive match — usernames may be stored either way in DB
+    lower_set = list({u.lower() for u in usernames})
+
+    cursor = db.users.find(
+        {"$or": [
+            {"username": {"$in": usernames}},
+            {"username": {"$in": lower_set}},
+        ]},
+        {
+            "_id": 0,
+            "username": 1,
+            "firstName": 1,
+            "lastName": 1,
+            "images": 1,
+            "publicImages": 1,
+            "profileImage": 1,
+            "imageVisibility": 1,
+            "city": 1,
+            "state": 1,
+            "country": 1,
+            "location": 1,
+            "birthYear": 1,
+            "height": 1,
+            "heightInches": 1,
+            "accountStatus": 1,
+        },
+    )
+
+    profiles: Dict[str, Any] = {}
+    async for u in cursor:
+        uname = u.get("username")
+        if not uname:
+            continue
+        # Compute age from birthYear (approx; cheaper than per-user date math)
+        age = None
+        try:
+            by = u.get("birthYear")
+            if by:
+                age = max(0, datetime.utcnow().year - int(by))
+        except Exception:
+            age = None
+        location = u.get("location") or ", ".join([
+            x for x in [u.get("city"), u.get("state"), u.get("country")] if x
+        ])
+        profiles[uname] = {
+            "username": uname,
+            "firstName": u.get("firstName") or "",
+            "lastName": u.get("lastName") or "",
+            "images": u.get("images") or [],
+            "publicImages": u.get("publicImages") or [],
+            "profileImage": u.get("profileImage"),
+            "imageVisibility": u.get("imageVisibility") or {},
+            "location": location,
+            "age": age,
+            "height": u.get("height"),
+            "heightInches": u.get("heightInches"),
+            "accountStatus": u.get("accountStatus"),
+        }
+
+    return {"profiles": profiles}
+
+
 # ===== PHOTO AUTO-SAVE ENDPOINTS =====
 
 @router.post("/profile/{username}/upload-photos")
