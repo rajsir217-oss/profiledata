@@ -6,12 +6,13 @@ Phase 1: 1:1 conversations, text + media messages, delivery receipts, device tok
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File, Query, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from database import get_database
+from crypto_utils import get_encryptor
 from models.messenger_models import (
     ConversationCreate,
     MessageCreate,
@@ -24,6 +25,23 @@ from services import messenger_media_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/messenger", tags=["messenger"])
+
+
+def _decrypt_contact_info(value: str) -> str:
+    """Decrypt contact info (email/phone) if encrypted"""
+    if not value:
+        return value
+
+    # Check if it looks encrypted (Fernet encrypted values start with gAAAAA)
+    if isinstance(value, str) and value.startswith("gAAAAA"):
+        try:
+            encryptor = get_encryptor()
+            return encryptor.decrypt(value)
+        except Exception as e:
+            logger.warning(f"Failed to decrypt contact info: {str(e)}")
+            return value
+
+    return value
 
 
 # =========================================================================
@@ -484,6 +502,64 @@ async def list_messages(
     }
 
 
+@router.put("/conversations/{conversation_id}/retention")
+async def set_conversation_retention(
+    conversation_id: str,
+    body: dict,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """
+    Configure message retention (TTL) for a conversation.
+
+    Body: { "retentionHours": int | null }
+        • null / 0 → retention OFF (messages live forever).
+        • positive int → new messages auto-delete `retentionHours` after send.
+
+    Existing messages are NOT retroactively expired — only future sends pick
+    up the new TTL. This is intentional so an admin enabling retention doesn't
+    accidentally nuke years of history.
+
+    Authorization: app-level admins/moderators only (same gate as @{email}
+    invites). Per-conversation admin promotion isn't wired up yet; revisit
+    if/when groups gain their own moderation roles.
+    """
+    username = current_user["username"]
+    role = current_user.get("role") or current_user.get("role_name")
+    if role not in ("admin", "moderator"):
+        raise HTTPException(
+            status_code=403,
+            detail="Only administrators or moderators can change message retention",
+        )
+
+    raw = body.get("retentionHours") if isinstance(body, dict) else None
+    if raw in (None, 0, "0", ""):
+        retention = None
+    else:
+        try:
+            retention = int(raw)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="retentionHours must be an integer")
+        # Sanity-clamp to avoid wild values landing in the index.
+        if retention < 1 or retention > 24 * 365:
+            raise HTTPException(status_code=400, detail="retentionHours out of range (1..8760)")
+
+    conv = await db.messenger_conversations.find_one({"_id": ObjectId(conversation_id)})
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    if not any(p.get("username") == username for p in conv.get("participants", [])):
+        raise HTTPException(status_code=403, detail="You are not a participant of this conversation")
+
+    update = {"messageRetentionHours": retention, "updatedAt": datetime.utcnow()}
+    await db.messenger_conversations.update_one(
+        {"_id": ObjectId(conversation_id)}, {"$set": update}
+    )
+    logger.info(
+        f"⏱️ Retention set on {conversation_id} by {username}: {retention} hour(s)"
+    )
+    return {"success": True, "retentionHours": retention}
+
+
 @router.post("/conversations/{conversation_id}/clear")
 async def clear_conversation(
     conversation_id: str,
@@ -511,6 +587,153 @@ async def clear_conversation(
     return {"success": True, "clearedAt": now}
 
 
+@router.post("/conversations/{conversation_id}/check-recipients")
+async def check_public_recipients(
+    conversation_id: str,
+    body: dict = Body(..., example={"emails": ["alice@x.com", "bob@y.com"]}),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Pre-flight check for `@{email}` mentions in a US Vedika message.
+
+    For each email, returns:
+      • isMember + memberUsername — true if the email maps to an active user
+      • hasActiveInvitation + invitationStatus/sentAt — true if an unarchived
+        invitation already exists for this email
+      • alreadyInConversation + lastSentAt — true if the email is already in
+        this conversation's publicParticipants
+
+    Also returns `senderCanInvite` so the UI can disable the Send button for
+    non-admin/moderator users (the actual enforcement lives in send_message).
+
+    Used by messenger-web ChatScreen to render status bubbles under each
+    recipient before the user commits to sending.
+    """
+    username = current_user["username"]
+    sender_role = current_user.get("role") or current_user.get("role_name")
+    sender_can_invite = sender_role in ("admin", "moderator")
+
+    # Validate the conversation + participation up front so we don't leak
+    # publicParticipants membership across conversations.
+    try:
+        conv = await db.messenger_conversations.find_one({"_id": ObjectId(conversation_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid conversation id")
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    if not any(p.get("username") == username for p in conv.get("participants", [])):
+        raise HTTPException(status_code=403, detail="You are not a participant of this conversation")
+
+    raw_emails = body.get("emails") or []
+    if not isinstance(raw_emails, list):
+        raise HTTPException(status_code=400, detail="emails must be a list")
+
+    # Normalize + dedupe (cap to prevent abuse)
+    emails = []
+    seen = set()
+    for e in raw_emails[:50]:
+        if not isinstance(e, str):
+            continue
+        norm = e.strip().lower()
+        if not norm or "@" not in norm or norm in seen:
+            continue
+        seen.add(norm)
+        emails.append(norm)
+
+    if not emails:
+        return {
+            "senderCanInvite": sender_can_invite,
+            "senderRole": sender_role,
+            "recipients": [],
+        }
+
+    # ---- Look up existing members (login email OR contactEmail) ----
+    # Email fields may be encrypted (gAAAAA prefix). We fetch all users with
+    # any email/contactEmail and decrypt before comparison. This is less
+    # efficient than a direct indexed query but necessary for encrypted PII.
+    # TODO: add a plaintext searchable email hash index for faster lookups.
+    member_cursor = db.users.find(
+        {"$or": [
+            {"email": {"$exists": True, "$ne": None}},
+            {"contactEmail": {"$exists": True, "$ne": None}},
+        ]},
+        {"_id": 0, "username": 1, "email": 1, "contactEmail": 1, "status.status": 1},
+    )
+    members_by_email: dict = {}
+    async for u in member_cursor:
+        # Decrypt both email fields before comparison
+        for key in ("email", "contactEmail"):
+            encrypted = u.get(key)
+            if not encrypted:
+                continue
+            decrypted = _decrypt_contact_info(encrypted)
+            if not decrypted:
+                continue
+            v = decrypted.strip().lower()
+            if v and v in seen:
+                members_by_email[v] = u
+
+    # ---- Look up active invitations (not archived) ----
+    # Invitations.email may also be encrypted. Fetch all and decrypt.
+    # We track BOTH the most recent invitation (for status/timestamp display)
+    # and the total count per email (for duplicate-throttling at the UI layer).
+    inv_cursor = db.invitations.find(
+        {"archived": {"$ne": True}},
+        {"_id": 0, "email": 1, "emailStatus": 1, "createdAt": 1, "updatedAt": 1, "status": 1},
+    )
+    invitations_by_email: dict = {}
+    invitation_count_by_email: dict = {}
+    async for inv in inv_cursor:
+        encrypted = inv.get("email")
+        if not encrypted:
+            continue
+        decrypted = _decrypt_contact_info(encrypted)
+        if not decrypted:
+            continue
+        v = decrypted.strip().lower()
+        if v and v in seen:
+            invitation_count_by_email[v] = invitation_count_by_email.get(v, 0) + 1
+            # Prefer the most recently updated row when multiple exist
+            existing = invitations_by_email.get(v)
+            if not existing or (inv.get("updatedAt") or inv.get("createdAt")) > (existing.get("updatedAt") or existing.get("createdAt")):
+                invitations_by_email[v] = inv
+
+    # ---- Look up existing publicParticipants in THIS conversation ----
+    participants_by_email: dict = {}
+    for pp in (conv.get("publicParticipants") or []):
+        v = (pp.get("email") or "").strip().lower()
+        if v in seen:
+            participants_by_email[v] = pp
+
+    # ---- Assemble per-recipient response ----
+    results = []
+    for email in emails:
+        m = members_by_email.get(email)
+        inv = invitations_by_email.get(email)
+        pp = participants_by_email.get(email)
+
+        results.append({
+            "email": email,
+            "isMember": bool(m),
+            "memberUsername": (m or {}).get("username"),
+            "hasActiveInvitation": bool(inv),
+            "invitationStatus": (inv or {}).get("emailStatus") or (inv or {}).get("status"),
+            "invitationSentAt": (inv or {}).get("updatedAt") or (inv or {}).get("createdAt"),
+            # Total un-archived invitations to this email. Frontend uses this to
+            # throttle repeat invites (e.g. block at >= 2 and direct admin to
+            # the main-app invitation queue to manage the existing record).
+            "invitationCount": invitation_count_by_email.get(email, 0),
+            "alreadyInConversation": bool(pp),
+            "lastSentAt": (pp or {}).get("lastEmailSentAt") or (pp or {}).get("addedAt"),
+        })
+
+    return {
+        "senderCanInvite": sender_can_invite,
+        "senderRole": sender_role,
+        "recipients": results,
+    }
+
+
 @router.post("/conversations/{conversation_id}/messages")
 async def send_message(
     conversation_id: str,
@@ -534,10 +757,29 @@ async def send_message(
     if not any(p.get("username") == username for p in conv.get("participants", [])):
         raise HTTPException(status_code=403, detail="You are not a participant of this conversation")
 
-    # Check for public recipients in US Vedika (public_group)
+    # Check for public recipients (US Vedika OR Portal Members)
+    # ------------------------------------------------------------------
+    # Conversations that support inviting non-members via @{email}:
+    #   • US Vedika      — type="public_group", groupName="US Vedika"  (legacy)
+    #   • Portal Members — type="group",        groupName="Portal Members"
+    # Both go through the same publicRecipients pipeline below; only the
+    # invitation `source`/`trigger` analytics labels differ (see source_label).
+    # TODO: replace the name-based gate with an `allowsPublicRecipients` flag
+    # on the conversation document once we have more than two such groups.
+    is_us_vedika = conv.get("type") == "public_group" and conv.get("groupName") == "US Vedika"
+    is_portal_members = conv.get("type") == "group" and conv.get("groupName") == "Portal Members"
+    allows_public_recipients = is_us_vedika or is_portal_members
+
+    # Analytics/funnel label propagated into invitations + email queue + register-interest URL
+    source_label = "us_vedika" if is_us_vedika else ("portal_members" if is_portal_members else "messenger_group")
+    trigger_label = f"{source_label}_message"
+
     if body.publicRecipients and len(body.publicRecipients) > 0:
-        if conv.get("type") != "public_group":
-            raise HTTPException(status_code=403, detail="Public recipients only allowed in US Vedika (public_group) conversations")
+        if not allows_public_recipients:
+            raise HTTPException(
+                status_code=403,
+                detail="Public recipients are only allowed in the Portal Members or US Vedika group",
+            )
 
         # Only admins/moderators can send public-recipient (email) invites.
         # The frontend already gates the modal behind `isAdminOrModerator`, but
@@ -572,6 +814,19 @@ async def send_message(
         "updatedAt": now,
     }
 
+    # Persist rich card snapshot for PROFILE_CARD messages so the card stays
+    # immutable even if the sender later edits their profile.
+    if body.contentType == "profile_card" and body.cardSnapshot:
+        msg["cardSnapshot"] = body.cardSnapshot
+
+    # Per-conversation TTL — stamp expireAt so the messenger_messages.expireAt
+    # TTL index hard-deletes this row after the configured window. Off (None)
+    # means no expireAt is set and the message lives forever. Existing
+    # messages are NOT retroactively touched (see PUT /retention docstring).
+    retention_hours = conv.get("messageRetentionHours")
+    if isinstance(retention_hours, int) and retention_hours > 0:
+        msg["expireAt"] = now + timedelta(hours=retention_hours)
+
     # Insert message
     result = await db.messenger_messages.insert_one(msg)
     msg_id = str(result.inserted_id)
@@ -579,7 +834,12 @@ async def send_message(
     logger.info(f"✅ Message {msg_id} inserted")
 
     # Update conversation preview
-    preview = body.content[:100] if body.contentType == "text" else f"[{body.contentType.capitalize()}]"
+    if body.contentType == "profile_card":
+        preview = "📇 Shared profile card"
+    elif body.contentType == "text":
+        preview = body.content[:100]
+    else:
+        preview = f"[{body.contentType.capitalize()}]"
     await db.messenger_conversations.update_one(
         {"_id": ObjectId(conversation_id)},
         {
@@ -734,11 +994,12 @@ async def send_message(
                             invitation_token = new_inv.invitationToken
                             invitation_id_for_log = new_inv.id
                             # Stamp source/conversation linkage for analytics +
-                            # later use by link_us_vedika_history()
+                            # later use by funnel-history linkers.
+                            # source_label distinguishes Portal Members vs US Vedika invites.
                             await db.invitations.update_one(
                                 {"_id": ObjectId(new_inv.id)},
                                 {"$set": {
-                                    "source": "us_vedika",
+                                    "source": source_label,
                                     "sourceConversationId": ObjectId(conversation_id),
                                     "sourceMessageId": ObjectId(msg_id),
                                     "verificationPath": "referral",
@@ -769,7 +1030,7 @@ async def send_message(
                             logger.warning(f"⚠️ No invitation token for {email}; falling back to register-interest")
                             register_url = (
                                 f"{_settings.frontend_url}/register-interest"
-                                f"?source=us_vedika"
+                                f"?source={source_label}"
                                 f"&cid={conversation_id}"
                                 f"&invitedBy={_quote(username)}"
                                 f"&email={_quote(email)}"
@@ -777,7 +1038,7 @@ async def send_message(
 
                 queue_doc = {
                     "username": username,  # sender (for logging/lineage); recipientEmail overrides lookup
-                    "trigger": "us_vedika_message",
+                    "trigger": trigger_label,
                     "priority": "medium",
                     "channels": ["email"],
                     "templateData": {

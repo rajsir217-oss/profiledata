@@ -61,6 +61,27 @@ export const getFrontendUrl = () => {
 };
 
 /**
+ * Get the main app (web frontend) URL where user profiles live.
+ * Used to open /profile/:username in a new tab from messenger-web.
+ * @returns {string} Main app URL
+ */
+export const getMainAppUrl = () => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'messenger.l3v3lmatches.com') {
+      return 'https://l3v3lmatches.com';
+    }
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3000';
+    }
+  }
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://l3v3lmatches.com';
+  }
+  return 'http://localhost:3000';
+};
+
+/**
  * API Endpoints configuration for messenger
  */
 export const API_ENDPOINTS = {
