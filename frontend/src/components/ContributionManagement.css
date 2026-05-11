@@ -57,6 +57,37 @@
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
+/* Spacing between the icon and label inside header action buttons.
+   On mobile, the label is hidden and the icon stays. */
+.add-payment-btn .btn-icon {
+  display: inline-block;
+}
+
+.add-payment-btn .btn-label {
+  display: inline-block;
+  margin-left: 6px;
+}
+
+/* Mobile (≤600px): collapse header action buttons to icon-only squares.
+   Labels are hidden but kept in the DOM for screen readers; the visual
+   tooltip comes from the button's `title` attribute. */
+@media (max-width: 600px) {
+  .add-payment-btn {
+    padding: 8px 10px;
+    font-size: 16px;
+    min-width: 36px;
+  }
+
+  .add-payment-btn .btn-label {
+    display: none;
+  }
+
+  .add-payment-btn .btn-icon {
+    margin: 0;
+    font-size: 16px;
+  }
+}
+
 /* Error Message */
 .error-message {
   background: rgba(239, 68, 68, 0.1);
