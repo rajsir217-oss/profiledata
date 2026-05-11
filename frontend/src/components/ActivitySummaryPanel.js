@@ -1,13 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { getBackendUrl } from '../config/apiConfig';
 import './ActivitySummaryPanel.css';
 
 const ActivitySummaryPanel = ({ username, onClose }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Reminder send state — 'email' | 'sms' while in flight, null otherwise.
+  // `reminderToast` shows a transient success/error message under the buttons.
+  const [reminderSending, setReminderSending] = useState(null);
+  const [reminderToast, setReminderToast] = useState(null);
   const navigate = useNavigate();
+
+  // Fire a single contribution reminder (email or SMS) to this profile's user.
+  // Backend endpoint is admin/moderator gated and uses the same shared service
+  // as the bulk scheduler jobs, so behavior matches the recurring reminders.
+  const sendContributionReminder = async (channel) => {
+    if (!username || reminderSending) return;
+    setReminderSending(channel);
+    setReminderToast(null);
+    try {
+      const res = await api.post(
+        `${getBackendUrl()}/api/contributions/admin/send-reminder`,
+        { username, channel },
+      );
+      const ok = res?.data?.success !== false;
+      setReminderToast({
+        type: ok ? 'success' : 'error',
+        text: ok
+          ? `${channel === 'email' ? '📧 Email' : '📱 SMS'} reminder sent to @${username}`
+          : (res?.data?.message || 'Failed to send reminder'),
+      });
+    } catch (e) {
+      const detail = e?.response?.data?.detail || e?.message || 'Failed to send reminder';
+      setReminderToast({ type: 'error', text: detail });
+    } finally {
+      setReminderSending(null);
+      // Auto-clear the toast after 4s so the panel doesn't accumulate stale msgs.
+      setTimeout(() => setReminderToast(null), 4000);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -324,7 +358,37 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
 
           {/* Contributions */}
           <div className="activity-section">
-            <h4>💝 Contributions</h4>
+            <div className="activity-section-header">
+              <h4>💝 Contributions</h4>
+              {/* Tiny inline reminder buttons — admin/moderator only on the
+                  backend; rendered for everyone here but the API rejects with
+                  403 if the caller isn't privileged (caught by the toast). */}
+              <div className="contribution-reminder-actions">
+                <button
+                  type="button"
+                  className="reminder-mini-btn"
+                  title="Send unpaid contribution reminder via email"
+                  disabled={reminderSending !== null}
+                  onClick={() => sendContributionReminder('email')}
+                >
+                  {reminderSending === 'email' ? '⏳' : '📧'}
+                </button>
+                <button
+                  type="button"
+                  className="reminder-mini-btn"
+                  title="Send unpaid contribution reminder via SMS"
+                  disabled={reminderSending !== null}
+                  onClick={() => sendContributionReminder('sms')}
+                >
+                  {reminderSending === 'sms' ? '⏳' : '📱'}
+                </button>
+              </div>
+            </div>
+            {reminderToast ? (
+              <div className={`reminder-toast reminder-toast-${reminderToast.type}`}>
+                {reminderToast.text}
+              </div>
+            ) : null}
             <div className="activity-stats-row">
               <div className="activity-stat">
                 <span className="stat-number">${(d.contributions?.totalAmount || 0).toFixed(2)}</span>
