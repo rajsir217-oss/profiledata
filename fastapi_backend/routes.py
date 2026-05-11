@@ -74,6 +74,28 @@ def _decrypt_contact_info(value: str) -> str:
     
     return value
 
+
+def _maybe_decrypt_message(value):
+    """
+    Decrypt a legacy `messages.content` value if it's a Fernet ciphertext.
+
+    Older code paths (since removed) wrote message bodies through the PII
+    encryptor. New writes are plaintext, so the collection now holds a mix.
+    The conversation list and chat-history endpoints all need to render text,
+    not "gAAAAA…" tokens — call this on every content read.
+
+    Non-strings, empty values, or non-Fernet payloads are returned unchanged.
+    """
+    if not isinstance(value, str) or not value:
+        return value
+    if not value.startswith("gAAAAA"):
+        return value
+    try:
+        return get_encryptor().decrypt(value)
+    except Exception as e:
+        logger.warning(f"Failed to decrypt legacy message content: {e}")
+        return value
+
 # Cloudflare Turnstile CAPTCHA verification
 async def verify_turnstile(token: str) -> bool:
     """
@@ -3208,7 +3230,11 @@ async def get_profiles_bulk(
                 age = max(0, datetime.utcnow().year - int(by))
         except Exception:
             age = None
-        location = u.get("location") or ", ".join([
+        # `location` is in PIIEncryption.ENCRYPTED_FIELDS, so reading it raw
+        # from the DB yields a Fernet ciphertext (gAAAAA…). Decrypt before
+        # joining/returning so the messenger sidebar shows the real city.
+        raw_location = _decrypt_contact_info(u.get("location"))
+        location = raw_location or ", ".join([
             x for x in [u.get("city"), u.get("state"), u.get("country")] if x
         ])
         profiles[uname] = {
@@ -7754,7 +7780,9 @@ async def get_conversations_enhanced(
             conv_data = {
                 "username": other_username,
                 "userProfile": user,
-                "lastMessage": conv["lastMessage"].get("content", ""),
+                # Legacy messages may carry a Fernet-encrypted content field
+                # from a removed encrypt-on-write path; new writes are plaintext.
+                "lastMessage": _maybe_decrypt_message(conv["lastMessage"].get("content", "")),
                 "lastMessageTime": last_msg_time,
                 "unreadCount": conv["unreadCount"],
                 "isVisible": is_visible
@@ -8351,7 +8379,7 @@ async def get_recent_conversations(
                     "firstName": user.get("firstName", ""),
                     "lastName": user.get("lastName", ""),
                     "avatar": get_full_image_url(avatar_path) if avatar_path else None,
-                    "lastMessage": conv["lastMessage"].get("content", ""),
+                    "lastMessage": _maybe_decrypt_message(conv["lastMessage"].get("content", "")),
                     "timestamp": conv["lastMessage"].get("createdAt", ""),
                     "unreadCount": conv.get("unreadCount", 0),
                     "isOnline": is_online
@@ -8752,10 +8780,13 @@ async def get_conversation(
                     {"$set": {"isRead": True, "readAt": datetime.utcnow()}}
                 )
         
-        # Convert ObjectId to string
+        # Convert ObjectId to string + decrypt any legacy Fernet-encrypted content
+        # (new sends store plaintext; old rows may still be encrypted).
         for msg in messages:
             msg['id'] = str(msg.pop('_id', ''))
             msg['createdAt'] = msg['createdAt'].isoformat() if isinstance(msg['createdAt'], datetime) else msg['createdAt']
+            if 'content' in msg:
+                msg['content'] = _maybe_decrypt_message(msg.get('content', ''))
 
         # Get other user's profile
         other_user_query = {"username": other_username}

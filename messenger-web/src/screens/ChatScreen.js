@@ -222,10 +222,9 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   const [retentionHours, setRetentionHours] = useState(null);
   const [showRetentionModal, setShowRetentionModal] = useState(false);
   const [savingRetention, setSavingRetention] = useState(false);
-  const isAdminOrModerator = (() => {
-    const r = useAuthStore.getState().user?.role;
-    return r === 'admin' || r === 'moderator';
-  })();
+  // Derived from the reactive `user` from useAuthStore so role changes
+  // (re-login, role promotion) flip the UI without a full reload.
+  const isAdminOrModerator = user?.role === 'admin' || user?.role === 'moderator';
   // Clear chat
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearingChat, setClearingChat] = useState(false);
