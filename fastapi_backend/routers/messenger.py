@@ -1370,21 +1370,45 @@ async def _enrich_participants(
     conv: dict,
     current_username: str,
 ):
-    """Add basic profile info for each participant (avatar, name)."""
-    for p in conv.get("participants", []):
+    """
+    Add basic profile info (firstName/lastName/profileImage) to each participant.
+
+    OPTIMIZED: previously this ran N sequential `find_one` calls, which on
+    Portal Members (~600 participants) meant ~600 round-trips and 10–20s of
+    latency on every chat-open. Now we issue ONE batched `$in` query and join
+    the results back in memory — single round-trip regardless of group size.
+    """
+    participants = conv.get("participants", []) or []
+    usernames = [p.get("username") for p in participants if p.get("username")]
+    if not usernames:
+        return
+
+    cursor = db.users.find(
+        {"username": {"$in": usernames}},
+        {
+            "_id": 0,
+            "username": 1,
+            "firstName": 1,
+            "lastName": 1,
+            "images": 1,
+            "publicImages": 1,
+            "imageVisibility": 1,
+            "profileImage": 1,
+        },
+    )
+    by_username = {u["username"]: u async for u in cursor if u.get("username")}
+
+    for p in participants:
         uname = p.get("username")
         if not uname:
             continue
-        user = await db.users.find_one(
-            {"username": uname},
-            {"firstName": 1, "lastName": 1, "images": 1, "publicImages": 1, "imageVisibility": 1, "profileImage": 1, "_id": 0},
-        )
-        if user:
-            p["firstName"] = user.get("firstName", "")
-            p["lastName"] = user.get("lastName", "")
-            # Profile pic — reuse existing image visibility logic
-            images = user.get("images", [])
-            p["profileImage"] = images[0] if images else None
+        user = by_username.get(uname)
+        if not user:
+            continue
+        p["firstName"] = user.get("firstName", "")
+        p["lastName"] = user.get("lastName", "")
+        images = user.get("images", [])
+        p["profileImage"] = images[0] if images else None
 
 
 async def _notify_realtime(
