@@ -251,20 +251,39 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️ Virtual Meets index creation failed (non-critical): {e}")
 
-    # Messenger TTL index — hard-deletes messages whose expireAt has passed.
-    # `expireAfterSeconds=0` means "delete when the field's value is in the
-    # past". The field is set on send only when the parent conversation has a
-    # non-null messageRetentionHours; messages without expireAt live forever.
+    # Messenger indexes — TTL + conversationId hot-path index.
     try:
+        # Compound (conversationId asc, _id desc) — primary index for the
+        # message-list query: `find({conversationId: X}).sort({_id: -1})`.
+        # Also accelerates the per-page count_documents call. Without this,
+        # every chat-history fetch falls back to a COLLSCAN.
+        await db.messenger_messages.create_index(
+            [("conversationId", 1), ("_id", -1)],
+            background=True,
+            name="conversationId_id_desc",
+        )
+        # TTL index — hard-deletes messages whose expireAt has passed.
+        # `expireAfterSeconds=0` means "delete when the field's value is in
+        # the past". The field is only set on send when the parent
+        # conversation has a non-null messageRetentionHours; messages without
+        # expireAt live forever.
         await db.messenger_messages.create_index(
             [("expireAt", 1)],
             expireAfterSeconds=0,
             background=True,
             name="ttl_expireAt",
         )
-        logger.info("✅ Messenger TTL index (expireAt) created")
+        # Conversation list query: list_conversations does
+        # `find({"participants.username": X}).sort({lastMessageAt: -1})`.
+        # Compound index here covers the participant filter + recency sort.
+        await db.messenger_conversations.create_index(
+            [("participants.username", 1), ("lastMessageAt", -1)],
+            background=True,
+            name="participants_lastMessageAt_desc",
+        )
+        logger.info("✅ Messenger indexes (conversationId, TTL, participants) created")
     except Exception as e:
-        logger.warning(f"⚠️ Messenger TTL index creation failed (non-critical): {e}")
+        logger.warning(f"⚠️ Messenger index creation failed (non-critical): {e}")
 
     # Eagerly initialize face detection backends so they're ready before requests arrive.
     # Strategy: Vision API (primary) → OpenCV (fallback) → reject if both unavailable.
