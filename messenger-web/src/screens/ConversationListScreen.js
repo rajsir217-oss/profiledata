@@ -32,7 +32,9 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [messagesExpanded, setMessagesExpanded] = useState(true);
   const [selectedChat, setSelectedChat] = useState(null);
   const [portalGroup, setPortalGroup] = useState(null);
-  const [usVedikaGroup, setUsVedikaGroup] = useState(null);
+  // US Vedika group is hidden in messenger-web (Portal Members is the canonical
+  // @{email}-invite group now). Backend endpoints remain live for analytics and
+  // existing invitations. See routes /api/messenger/us-vedika/*.
   const [userProfile, setUserProfile] = useState(null);
   // Blocked users (shown on profile tab)
   const [blockedUsers, setBlockedUsers] = useState([]);
@@ -60,6 +62,25 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     loadUserProfile();
     loadActiveMembersCount();
   }, []);
+
+  // Default landing: auto-select Portal Members group as soon as it's loaded.
+  // We only auto-select once (when nothing is selected yet) so navigating away
+  // and back doesn't override the user's explicit choice.
+  const [didAutoSelectPortal, setDidAutoSelectPortal] = useState(false);
+  useEffect(() => {
+    if (didAutoSelectPortal) return;
+    if (selectedChat) return;
+    if (!portalGroup?.id) return;
+    setSelectedChat({
+      id: portalGroup.id,
+      name: portalGroup.groupName || 'Portal Members',
+      isGroup: true,
+      isLegacy: false,
+    });
+    // Highlight the Portal Members entry in the left sidebar.
+    setActiveTab('portal_members');
+    setDidAutoSelectPortal(true);
+  }, [portalGroup, selectedChat, didAutoSelectPortal]);
 
   // Load active members count for Portal Members badge
   const loadActiveMembersCount = async () => {
@@ -270,29 +291,17 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         console.warn('⚠️ Failed to load Portal Members group:', e.message);
       }
 
-      // Fetch US Vedika group (auto-create if needed)
-      console.log('🇺🇸 Fetching US Vedika group...');
-      let usVedikaGroupResp = null;
-      try {
-        const res = await api.get('/api/messenger/us-vedika/group');
-        usVedikaGroupResp = res.data?.conversation;
-        if (usVedikaGroupResp) {
-          usVedikaGroupResp.id = usVedikaGroupResp.id || usVedikaGroupResp._id;
-        }
-        console.log('✅ US Vedika group:', usVedikaGroupResp?.id);
-        setUsVedikaGroup(usVedikaGroupResp);
-      } catch (e) {
-        console.warn('⚠️ Failed to load US Vedika group:', e.message);
-        console.warn('⚠️ Error details:', e.response?.data || e.response);
-        // US Vedika might not exist yet or user doesn't have permission
-        // This is OK - the menu item will be disabled or show a message
-      }
+      // US Vedika fetch removed: group is hidden in messenger-web. Backend
+      // still exposes /api/messenger/us-vedika/* for analytics + legacy data.
 
-      // Combine: exclude portal group (it has its own top-level menu item)
+      // Combine: exclude portal group (shown separately) AND any US Vedika
+      // public_group that might come through the messenger conversations list.
       const combinedMap = new Map();
       messengerConvs.forEach(c => {
         // Skip Portal Members group (shown separately)
         if (c.type === 'group' && c.groupName === 'Portal Members') return;
+        // Skip US Vedika — hidden in this app
+        if (c.type === 'public_group' || c.groupName === 'US Vedika') return;
         combinedMap.set(c.id, c);
       });
       directConvs.forEach(c => combinedMap.set(c.id, c));
@@ -356,9 +365,9 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const profilePicUrl = getProfilePicUrl(userProfile);
 
   // Menu items - messenger specific
+  // US Vedika removed: Portal Members is now the canonical @{email}-invite group.
   const menuItems = [
     { id: 'profile', label: displayName, subLabel: user?.username || 'Your profile', icon: '👤', isProfile: true },
-    { id: 'us_vedika', label: 'US Vedika', subLabel: 'Group chat', icon: '👥' },
     { id: 'portal_members', label: 'Portal Members', subLabel: 'All active members', icon: '🦋', count: activeMembersCount },
     { id: 'messages', label: 'My Messages', subLabel: 'Direct conversations', icon: '💬' },
   ];
@@ -373,24 +382,10 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           isLegacy: false,
         });
       }
+      setActiveTab('portal_members');
       return;
     }
-    if (id === 'us_vedika') {
-      console.log('🇺🇸 US Vedika clicked, group:', usVedikaGroup);
-      if (usVedikaGroup) {
-        setSelectedChat({
-          id: usVedikaGroup.id,
-          name: usVedikaGroup.groupName,
-          isGroup: true,
-          isLegacy: false,
-        });
-      } else {
-        console.warn('⚠️ US Vedika group not loaded yet - check console for API error');
-        // Try to fetch the group again
-        loadAllConversations();
-      }
-      return;
-    }
+    // US Vedika handler removed (menu item hidden).
     // Clear any open chat so the right panel shows the menu item's content
     setSelectedChat(null);
     setActiveTab(id);
@@ -824,6 +819,19 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
               {...selectedChat}
               isOnline={isOnline}
               onBack={() => setSelectedChat(null)}
+              onOpenDirectChat={(uname) => {
+                // Open a legacy 1:1 chat with the tapped username. Mirrors the
+                // shape used by the direct-conversations list (line ~191):
+                //   id: 'direct:<username>', isLegacy: true.
+                if (!uname) return;
+                setSelectedChat({
+                  id: `direct:${uname}`,
+                  name: uname,
+                  isGroup: false,
+                  isLegacy: true,
+                  username: uname,
+                });
+              }}
             />
           ) : (
             renderContent()

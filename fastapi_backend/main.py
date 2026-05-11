@@ -251,6 +251,21 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️ Virtual Meets index creation failed (non-critical): {e}")
 
+    # Messenger TTL index — hard-deletes messages whose expireAt has passed.
+    # `expireAfterSeconds=0` means "delete when the field's value is in the
+    # past". The field is set on send only when the parent conversation has a
+    # non-null messageRetentionHours; messages without expireAt live forever.
+    try:
+        await db.messenger_messages.create_index(
+            [("expireAt", 1)],
+            expireAfterSeconds=0,
+            background=True,
+            name="ttl_expireAt",
+        )
+        logger.info("✅ Messenger TTL index (expireAt) created")
+    except Exception as e:
+        logger.warning(f"⚠️ Messenger TTL index creation failed (non-critical): {e}")
+
     # Eagerly initialize face detection backends so they're ready before requests arrive.
     # Strategy: Vision API (primary) → OpenCV (fallback) → reject if both unavailable.
     if settings.face_detection_enabled:

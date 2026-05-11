@@ -1,6 +1,165 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import useAuthStore from '@messenger/stores/authStore';
+import { API_BASE_URL } from '@messenger/config/api';
+import { getMainAppUrl } from '../config/apiConfig';
+
+// Quick Messages catalog. Only "introduction" is shipped today; future
+// categories (interest, more-info, next-steps, follow-up, decline) will be
+// added back here once their behaviors are designed.
+const QUICK_MESSAGE_CATEGORIES = [
+  { id: 'introduction', label: 'Introduction', icon: '🙋', enabled: true },
+];
+
+// Helper: calc age from a dob string OR a (year, month) pair. The main app
+// stores birth as separate `birthMonth` / `birthYear` fields (no day), so we
+// approximate the age from year+month (1st of month).
+const calcAge = (dob, birthYear, birthMonth) => {
+  let d = null;
+  if (dob) {
+    const parsed = new Date(dob);
+    if (!Number.isNaN(parsed.getTime())) d = parsed;
+  } else if (birthYear) {
+    const m = Number(birthMonth) || 1;
+    const y = Number(birthYear);
+    if (y > 1900 && y < 2200) d = new Date(Date.UTC(y, m - 1, 1));
+  }
+  if (!d) return null;
+  const diff = Date.now() - d.getTime();
+  const age = new Date(diff).getUTCFullYear() - 1970;
+  return age > 0 && age < 130 ? age : null;
+};
+
+// Build an authenticated URL for a profile image path. Mirrors the helper in
+// ConversationListScreen so the card renders the same picture as the sidebar.
+const buildImageUrl = (path) => {
+  if (!path) return null;
+  const token = useAuthStore.getState().token;
+  const fullUrl = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
+  if (token && !fullUrl.includes('token=')) {
+    const sep = fullUrl.includes('?') ? '&' : '?';
+    return `${fullUrl}${sep}token=${encodeURIComponent(token)}`;
+  }
+  return fullUrl;
+};
+
+// Rich profile-card renderer for contentType="profile_card" messages.
+// Mirrors the layout in Image 1 of the spec: avatar at top, name + meta pills,
+// then Education History, Work Experience, and a free-form "looking for" blurb.
+// `card` is the immutable snapshot persisted on the message document.
+function ProfileCard({ card, isOwn, onUsernameClick }) {
+  if (!card) return null;
+  // Pills mirror the main-app card: age · DOB (MM/YYYY) · height. Prefer the
+  // pre-formatted `dobLabel` (built from birthMonth/birthYear) and only fall
+  // back to a runtime format if an ISO `dob` string is present.
+  let dobPill = null;
+  if (card.dobLabel) {
+    dobPill = `📅 ${card.dobLabel}`;
+  } else if (card.dob) {
+    const parsed = new Date(card.dob);
+    if (!Number.isNaN(parsed.getTime())) {
+      dobPill = `📅 ${parsed.toLocaleDateString('en-US', { month: '2-digit', year: 'numeric' })}`;
+    }
+  }
+  const pills = [
+    card.age ? `👋 ${card.age} yrs` : null,
+    dobPill,
+    card.height ? `📏 ${card.height}` : null,
+  ].filter(Boolean);
+  // Subline shows just the user's location (city) — `education` / `occupation`
+  // would duplicate what's already in the Education History / Work Experience
+  // sections below, and the underlying profile schema doesn't have flat
+  // top-level versions of those fields anyway.
+  const subline = card.location || '';
+  return (
+    <View style={[cardStyles.card, isOwn && cardStyles.cardOwn]}>
+      <View style={cardStyles.headerRow}>
+        {card.avatarUrl ? (
+          <Image source={{ uri: card.avatarUrl }} style={cardStyles.avatar} />
+        ) : (
+          <View style={[cardStyles.avatar, cardStyles.avatarFallback]}>
+            <Text style={cardStyles.avatarFallbackText}>
+              {(card.fullName || card.username || '?').charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View style={cardStyles.headerText}>
+          <TouchableOpacity
+            onPress={() => card.username && onUsernameClick && onUsernameClick(card.username)}
+            activeOpacity={card.username ? 0.7 : 1}
+          >
+            <Text style={cardStyles.name}>{card.fullName || card.username}</Text>
+          </TouchableOpacity>
+          {pills.length > 0 && (
+            <View style={cardStyles.pillRow}>
+              {pills.map((p, i) => (
+                <View key={i} style={cardStyles.pill}>
+                  <Text style={cardStyles.pillText}>{p}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          {subline ? (
+            <View style={cardStyles.subPill}>
+              <Text style={cardStyles.subPillText}>{subline}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      {Array.isArray(card.educationHistory) && card.educationHistory.length > 0 && (
+        <View style={cardStyles.section}>
+          <Text style={cardStyles.sectionTitle}>🎓 Education History</Text>
+          {card.educationHistory.map((e, i) => {
+            // Schema (Register2/EducationHistory.js): { level, degree, institution }
+            // Display matches main app Profile.js: "Level - Degree" with institution below.
+            const title = e.level && e.degree
+              ? `${e.level} – ${e.degree}`
+              : (e.level || e.degree || e.qualification || '');
+            const where = e.institution || e.school || (Array.isArray(e.schools) ? e.schools.join(' & ') : '');
+            return (
+              <View key={i} style={cardStyles.row}>
+                {title ? <Text style={cardStyles.rowTitle}>{title}</Text> : null}
+                {where ? <Text style={cardStyles.rowText}>{where}</Text> : null}
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {Array.isArray(card.workExperience) && card.workExperience.length > 0 && (
+        <View style={cardStyles.section}>
+          <Text style={cardStyles.sectionTitle}>💼 Work Experience</Text>
+          {card.workExperience.map((w, i) => {
+            // Schema (Register2/WorkExperience.js): { status: 'current'|'past'|'other',
+            //   workType, description, location }
+            // Display matches main app Profile.js exactly.
+            const isCurrent = w.status === 'current' || w.current === true || w.isCurrent === true;
+            const isPast = w.status === 'past';
+            const heading = isCurrent
+              ? '🟢 Current Position'
+              : isPast
+                ? '⚪ Past Position'
+                : (w.role || w.title || w.position || 'Position');
+            const desc = w.description || w.role || w.title || w.company || '';
+            const loc = w.location || '';
+            return (
+              <View key={i} style={cardStyles.row}>
+                <Text style={cardStyles.rowTitle}>{heading}</Text>
+                {desc ? <Text style={cardStyles.rowText}>{desc}</Text> : null}
+                {loc ? <Text style={cardStyles.rowText}>📍 {loc}</Text> : null}
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {card.message ? (
+        <Text style={cardStyles.message}>{card.message}</Text>
+      ) : null}
+    </View>
+  );
+}
 
 // Status pill metadata for invited public-email recipients (US Vedika).
 // `status` values come from the backend's publicParticipants[].status field
@@ -14,21 +173,186 @@ const PUBLIC_EMAIL_STATUS_META = {
 const getPublicEmailStatusMeta = (status) =>
   PUBLIC_EMAIL_STATUS_META[status] || PUBLIC_EMAIL_STATUS_META.invited;
 
-export default function ChatScreen({ id, name, isGroup, isLegacy, profile, username, isOnline, onBack }) {
+// Short, human-readable relative time (e.g. "3d ago", "just now") used in the
+// recipient-status bubbles. Falls back to an empty string for invalid input.
+const formatRelative = (when) => {
+  if (!when) return '';
+  const t = typeof when === 'string' ? Date.parse(when) : (when instanceof Date ? when.getTime() : when);
+  if (!t || Number.isNaN(t)) return '';
+  const diff = Date.now() - t;
+  if (diff < 0) return 'just now';
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return 'just now';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  const mo = Math.floor(day / 30);
+  if (mo < 12) return `${mo}mo ago`;
+  return `${Math.floor(mo / 12)}y ago`;
+};
+
+export default function ChatScreen({ id, name, isGroup, isLegacy, profile, username, isOnline, onBack, onOpenDirectChat }) {
   const { user } = useAuthStore();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [error, setError] = useState(null);
+  // Send errors are kept separate from load errors so they don't blow away
+  // the chat view. They appear as an inline banner above the composer.
+  const [sendError, setSendError] = useState(null);
   // US Vedika public group states
   const [showPublicRecipientModal, setShowPublicRecipientModal] = useState(false);
   const [publicRecipients, setPublicRecipients] = useState([]);
   const [includeInvitation, setIncludeInvitation] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
+  // Pre-flight check results for @{email} recipients. Populated by
+  // /api/messenger/conversations/{id}/check-recipients when the modal opens.
+  //   recipientChecks: { [email]: { isMember, memberUsername, hasActiveInvitation,
+  //     invitationStatus, invitationSentAt, alreadyInConversation, lastSentAt } }
+  //   senderCanInvite: false → disable Send + Invite and show a banner.
+  const [recipientChecks, setRecipientChecks] = useState({});
+  const [senderCanInvite, setSenderCanInvite] = useState(true);
+  const [checkingRecipients, setCheckingRecipients] = useState(false);
+  // Per-conversation message retention (TTL). null = off. Backend hard-deletes
+  // messages whose expireAt has passed via a TTL index on messenger_messages.
+  // Only app-level admins/moderators can change this.
+  const [retentionHours, setRetentionHours] = useState(null);
+  const [showRetentionModal, setShowRetentionModal] = useState(false);
+  const [savingRetention, setSavingRetention] = useState(false);
+  const isAdminOrModerator = (() => {
+    const r = useAuthStore.getState().user?.role;
+    return r === 'admin' || r === 'moderator';
+  })();
   // Clear chat
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearingChat, setClearingChat] = useState(false);
+  // Username action modal — opened when a user taps a sender's name in a group
+  // chat bubble. Offers View Profile (main app) and Direct Message (1:1 chat).
+  const [usernameModalTarget, setUsernameModalTarget] = useState(null);
+  // Quick Messages popup (⚡ button next to composer). Only "Introduction" is
+  // wired up; the other categories are visible-but-disabled placeholders.
+  const [showQuickMessages, setShowQuickMessages] = useState(false);
+  const [sendingProfileCard, setSendingProfileCard] = useState(false);
+
+  // Build a profile_card snapshot from the current user's profile and POST it
+  // as a rich message into the active conversation. Legacy (main app) 1:1
+  // chats don't support rich types, so we gate the ⚡ button on !isLegacy.
+  const sendProfileCard = async () => {
+    if (!user?.username || isLegacy) return;
+    setShowQuickMessages(false);
+    setSendingProfileCard(true);
+    setSendError(null);
+    try {
+      const api = useAuthStore.getState().getApi();
+      // Fetch the freshest profile so the snapshot reflects the latest edits.
+      const profRes = await api.get(`/api/users/profile/${user.username}?requester=${user.username}`);
+      const p = profRes.data?.user || profRes.data || {};
+      const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.username || user.username;
+      // The main app uses birthMonth / birthYear (no day). Synthesize a label
+      // like "11/1995" for the card pill, plus an ISO-ish dob fallback for
+      // anything that wants a real date.
+      const rawDob = p.dob || p.dateOfBirth || null;
+      const age = calcAge(rawDob, p.birthYear, p.birthMonth);
+      let dobLabel = null;
+      if (rawDob) {
+        const parsed = new Date(rawDob);
+        if (!Number.isNaN(parsed.getTime())) {
+          dobLabel = parsed.toLocaleDateString('en-US', { month: '2-digit', year: 'numeric' });
+        }
+      } else if (p.birthMonth && p.birthYear) {
+        dobLabel = `${String(p.birthMonth).padStart(2, '0')}/${p.birthYear}`;
+      }
+      const avatarPath = p.imageVisibility?.profilePic || p.images?.[0] || p.profileImage || null;
+      // Height is stored in one of three shapes across the codebase:
+      //   1. p.height           — already-formatted string ("5'8\"")
+      //   2. p.heightFeet + p.heightInches (inches 0-11) — Register form shape
+      //   3. p.heightInches alone — total inches int (search results)
+      let heightLabel = null;
+      if (p.height && String(p.height).trim()) {
+        heightLabel = String(p.height).trim();
+      } else if (p.heightFeet) {
+        const inches = Number(p.heightInches) || 0;
+        heightLabel = `${p.heightFeet}'${inches}"`;
+      } else if (p.heightInches && Number(p.heightInches) > 11) {
+        const total = Number(p.heightInches);
+        heightLabel = `${Math.floor(total / 12)}'${total % 12}"`;
+      }
+      // Profile schema (see fastapi_backend/models/user_models.py + Register2.js):
+      //   educationHistory: [{ level, degree, institution }]
+      //   workExperience:   [{ status: 'current'|'past', workType, description, location }]
+      //   partnerPreference: free-text "what I'm looking for" blurb
+      //   customPartnerPreference: admin/user override (preferred when present)
+      const snapshot = {
+        username: p.username || user.username,
+        fullName,
+        avatarUrl: buildImageUrl(avatarPath),
+        age,
+        dob: rawDob,
+        dobLabel,
+        height: heightLabel,
+        // Just the city — Education / Work are shown in their own sections.
+        location: p.location || p.currentLocation || null,
+        // Persist arrays exactly as stored — the renderer knows the schema.
+        educationHistory: Array.isArray(p.educationHistory) ? p.educationHistory : [],
+        workExperience: Array.isArray(p.workExperience) ? p.workExperience : [],
+        // Static blurb at the bottom of the Introduction card. The wording is
+        // gendered against the profile holder so it reads correctly to the
+        // recipient: a male profile is "looking for a bride for our son",
+        // a female profile is "looking for a groom for our daughter".
+        // Falls back to a neutral phrasing if gender is missing/unknown.
+        message: (() => {
+          const g = String(p.gender || '').trim().toLowerCase();
+          if (g === 'male' || g === 'm' || g === 'man') {
+            return 'Looking for a suitable bride for our son — please review the profile for details and Contact me. Thanks';
+          }
+          if (g === 'female' || g === 'f' || g === 'woman') {
+            return 'Looking for a suitable groom for our daughter — please review the profile for details and Contact me. Thanks';
+          }
+          return 'Looking for a suitable match — please review the profile for details and Contact me. Thanks';
+        })(),
+      };
+      await api.post(`/api/messenger/conversations/${id}/messages`, {
+        conversationId: id,
+        contentType: 'profile_card',
+        content: snapshot.message || '',
+        cardSnapshot: snapshot,
+      });
+      await loadMessages();
+    } catch (e) {
+      console.error('❌ Failed to send profile card:', e);
+      const detail = e?.response?.data?.detail;
+      setSendError(typeof detail === 'string' && detail ? detail : 'Failed to send profile card');
+    } finally {
+      setSendingProfileCard(false);
+    }
+  };
+
+  const handleUsernameClick = (uname) => {
+    if (!uname || uname === user.username) return; // ignore own name / empty
+    setUsernameModalTarget(uname);
+  };
+
+  const handleViewProfile = () => {
+    const uname = usernameModalTarget;
+    setUsernameModalTarget(null);
+    if (!uname) return;
+    const url = `${getMainAppUrl()}/profile/${encodeURIComponent(uname)}`;
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleDirectMessage = () => {
+    const uname = usernameModalTarget;
+    setUsernameModalTarget(null);
+    if (!uname) return;
+    if (typeof onOpenDirectChat === 'function') {
+      onOpenDirectChat(uname);
+    }
+  };
 
   const handleClearChat = async () => {
     setClearingChat(true);
@@ -53,8 +377,44 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   useEffect(() => {
     if (id) {
       loadMessages();
+      // Fetch the conversation doc once to read messageRetentionHours so the
+      // ⏱️ clock button shows the current value. Cheap GET; non-fatal on error.
+      if (!isLegacy) {
+        (async () => {
+          try {
+            const api = useAuthStore.getState().getApi();
+            const res = await api.get(`/api/messenger/conversations/${id}`);
+            const r = res?.data?.conversation?.messageRetentionHours;
+            setRetentionHours(typeof r === 'number' && r > 0 ? r : null);
+          } catch (e) {
+            console.warn('⚠️ Failed to load conversation retention:', e?.message);
+          }
+        })();
+      }
     }
-  }, [id]);
+  }, [id, isLegacy]);
+
+  // Persist a new retention setting (admin/moderator only). `hours` may be
+  // null to turn TTL off, or a positive integer to enable auto-delete.
+  const saveRetention = async (hours) => {
+    if (!isAdminOrModerator || isLegacy) return;
+    setSavingRetention(true);
+    try {
+      const api = useAuthStore.getState().getApi();
+      const res = await api.put(`/api/messenger/conversations/${id}/retention`, {
+        retentionHours: hours,
+      });
+      setRetentionHours(res?.data?.retentionHours ?? null);
+      setShowRetentionModal(false);
+    } catch (e) {
+      console.error('❌ Failed to save retention:', e);
+      const detail = e?.response?.data?.detail;
+      setSendError(typeof detail === 'string' ? detail : 'Failed to update retention');
+      setShowRetentionModal(false);
+    } finally {
+      setSavingRetention(false);
+    }
+  };
 
   const loadMessages = async () => {
     setLoading(true);
@@ -120,16 +480,57 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     return recipients;
   };
 
+  // Run the pre-flight check that powers the status bubbles in the modal.
+  // Tolerant to backend errors: we still open the modal so the user can decide,
+  // but bubbles won't render. The actual send is still server-enforced.
+  const runRecipientCheck = async (recipients) => {
+    setRecipientChecks({});
+    setCheckingRecipients(true);
+    try {
+      const api = useAuthStore.getState().getApi();
+      const res = await api.post(
+        `/api/messenger/conversations/${id}/check-recipients`,
+        { emails: recipients.map((r) => r.email) },
+      );
+      const byEmail = {};
+      for (const r of (res.data?.recipients || [])) {
+        byEmail[(r.email || '').toLowerCase()] = r;
+      }
+      setRecipientChecks(byEmail);
+      // Trust the server's role evaluation rather than re-deriving from local
+      // auth state — keeps the UI consistent with the backend gate.
+      setSenderCanInvite(res.data?.senderCanInvite !== false);
+    } catch (e) {
+      console.warn('⚠️ check-recipients failed, modal will render without bubbles:', e?.message);
+      // Fail-open on bubbles but fail-closed on role if the user has no role.
+      const localRole = useAuthStore.getState().user?.role;
+      setSenderCanInvite(localRole === 'admin' || localRole === 'moderator');
+    } finally {
+      setCheckingRecipients(false);
+    }
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    // Check for public recipients in US Vedika (public_group)
-    const recipients = parsePublicRecipients(newMessage);
-    if (recipients.length > 0 && !isLegacy) {
-      // Show modal for public recipients
-      setPublicRecipients(recipients);
-      setShowPublicRecipientModal(true);
-      return;
+    // Check for public recipients (US Vedika / Portal Members @{email} flow).
+    // Only admins/moderators can invite via @{email}; for everyone else the
+    // token is treated as plain text — no modal, no parsing, no actionable
+    // recipient. The backend also enforces the role gate (defense in depth);
+    // this client-side check is a UX cleanup so non-privileged users don't see
+    // a modal that would just be blocked anyway.
+    const role = useAuthStore.getState().user?.role;
+    const canInvite = role === 'admin' || role === 'moderator';
+
+    if (canInvite && !isLegacy) {
+      const recipients = parsePublicRecipients(newMessage);
+      if (recipients.length > 0) {
+        // Show modal for public recipients + kick off pre-flight in parallel
+        setPublicRecipients(recipients);
+        setShowPublicRecipientModal(true);
+        runRecipientCheck(recipients); // fire-and-forget; updates state when done
+        return;
+      }
     }
 
     setSending(true);
@@ -155,7 +556,11 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     } catch (e) {
       console.error('❌ Failed to send message:', e);
       console.error('❌ Error response:', e.response?.data);
-      setError('Failed to send message');
+      // Surface the backend's detail string so users (and you) can see WHY
+      // a 403/400 was raised — e.g. paused account, exclusion, profanity.
+      const detail = e?.response?.data?.detail;
+      setSendError(typeof detail === 'string' && detail ? detail : 'Failed to send message');
+      // Keep `newMessage` populated so the user can tap Send again to retry.
     } finally {
       setSending(false);
     }
@@ -163,6 +568,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
 
   const sendWithPublicRecipients = async (deliveryMode) => {
     setShowPublicRecipientModal(false);
+    setRecipientChecks({});
     setSending(true);
     try {
       console.log('📤 Sending message with public recipients:', publicRecipients);
@@ -182,7 +588,8 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     } catch (e) {
       console.error('❌ Failed to send message:', e);
       console.error('❌ Error response:', e.response?.data);
-      setError('Failed to send message');
+      const detail = e?.response?.data?.detail;
+      setSendError(typeof detail === 'string' && detail ? detail : 'Failed to send message');
     } finally {
       setSending(false);
     }
@@ -222,23 +629,34 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
             </View>
           ) : null}
         </View>
-        {isGroup && (
+        {/* ⏱️ Retention button — shows current TTL (e.g. "24h"); opens picker.
+            Admin/moderator only. Hidden on legacy main-app chats since retention
+            is a messenger-only feature. */}
+        {!isLegacy && isAdminOrModerator && (
           <TouchableOpacity
-            style={styles.muteButton}
-            onPress={() => setIsMuted(!isMuted)}
+            style={styles.iconButton}
+            onPress={() => setShowRetentionModal(true)}
+            disabled={savingRetention}
           >
-            <Text style={styles.muteButtonText}>
-              {isMuted ? '🔇' : '🔔'}
-            </Text>
+            <Text style={styles.iconButtonText}>⏱️</Text>
+            {retentionHours ? (
+              <Text style={styles.iconButtonBadge}>
+                {retentionHours >= 24 && retentionHours % 24 === 0
+                  ? `${retentionHours / 24}d`
+                  : `${retentionHours}h`}
+              </Text>
+            ) : null}
           </TouchableOpacity>
         )}
-        {/* Clear Chat button — visible for ALL conversation types (1:1, group, public_group) */}
-        <TouchableOpacity
-          style={styles.clearButton}
-          onPress={() => setShowClearConfirm(true)}
-        >
-          <Text style={styles.clearButtonText}>🗑️</Text>
-        </TouchableOpacity>
+        {/* Clear Chat — admin/moderator only (destructive action) */}
+        {isAdminOrModerator && (
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setShowClearConfirm(true)}
+          >
+            <Text style={styles.iconButtonText}>🗑️</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Messages */}
@@ -273,11 +691,23 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                     {isPublicEmail ? (
                       <Text style={styles.publicEmailBadge}>📧 {msg.publicEmail || msg.senderUsername}</Text>
                     ) : isGroup && senderName && !isOwn && (
-                      <Text style={styles.senderName}>{senderName}</Text>
+                      <TouchableOpacity onPress={() => handleUsernameClick(senderName)}>
+                        <Text style={styles.senderName}>{senderName}</Text>
+                      </TouchableOpacity>
                     )}
-                    <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
-                      {msg.content}
-                    </Text>
+                    {msg.contentType === 'profile_card' && msg.cardSnapshot ? (
+                      <ProfileCard
+                        card={msg.cardSnapshot}
+                        isOwn={isOwn}
+                        onUsernameClick={handleUsernameClick}
+                      />
+                    ) : (
+                      msg.content ? (
+                        <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
+                          {msg.content}
+                        </Text>
+                      ) : null
+                    )}
 
                     {/* US Vedika invitation recipients — show current activation
                         status for each @{email} that was invited via this message. */}
@@ -330,11 +760,36 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
+        {/* Inline send-error banner — shown when the most recent send failed.
+            Keeps the chat view intact and lets the user fix or retry without
+            losing what they typed. Tap "Dismiss" to clear; editing the input
+            also clears the banner so a fresh attempt feels clean. */}
+        {sendError && (
+          <View style={styles.sendErrorBanner}>
+            <Text style={styles.sendErrorText} numberOfLines={3}>{sendError}</Text>
+            <TouchableOpacity onPress={() => setSendError(null)} style={styles.sendErrorDismiss}>
+              <Text style={styles.sendErrorDismissText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={styles.inputContainer}>
+          {/* ⚡ Quick Messages — hidden for legacy 1:1 chats since they don't
+              support rich content types like profile_card. */}
+          {!isLegacy && (
+            <TouchableOpacity
+              style={styles.quickBtn}
+              onPress={() => setShowQuickMessages(true)}
+              disabled={sendingProfileCard}
+            >
+              {sendingProfileCard
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.quickBtnText}>⚡</Text>}
+            </TouchableOpacity>
+          )}
           <TextInput
             style={styles.input}
             value={newMessage}
-            onChangeText={setNewMessage}
+            onChangeText={(t) => { setNewMessage(t); if (sendError) setSendError(null); }}
             placeholder="Type a message..."
             placeholderTextColor="#888"
             multiline
@@ -352,6 +807,84 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Quick Messages picker — opens from the ⚡ button. Only "Introduction"
+          is wired up to a real action (sends a profile_card). The others are
+          visible placeholders so users see the planned set. */}
+      {showQuickMessages && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>⚡ Quick Messages</Text>
+            <View style={styles.quickGrid}>
+              {QUICK_MESSAGE_CATEGORIES.map((c) => (
+                <TouchableOpacity
+                  key={c.id}
+                  style={[styles.quickChip, !c.enabled && styles.quickChipDisabled]}
+                  onPress={() => {
+                    if (!c.enabled) return;
+                    if (c.id === 'introduction') sendProfileCard();
+                  }}
+                  disabled={!c.enabled}
+                  activeOpacity={c.enabled ? 0.7 : 1}
+                >
+                  <Text style={styles.quickChipText}>
+                    {c.icon} {c.label}{!c.enabled ? '  ·  soon' : ''}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.modalButtonCancel}
+              onPress={() => setShowQuickMessages(false)}
+            >
+              <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Retention picker — Off / 24h / 48h / 7d. Hits PUT /retention which
+          is gated on admin/moderator server-side; the UI is also gated above. */}
+      {showRetentionModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>⏱️ Message Retention</Text>
+            <Text style={styles.modalText}>
+              New messages will auto-delete after the chosen window. Existing
+              messages keep their original lifetime.
+            </Text>
+            <View style={styles.quickGrid}>
+              {[
+                { label: 'Off',     value: null },
+                { label: '24 hours', value: 24 },
+                { label: '48 hours', value: 48 },
+                { label: '7 days',   value: 24 * 7 },
+              ].map((opt) => {
+                const selected = (retentionHours || null) === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.label}
+                    style={[styles.quickChip, selected && styles.quickChipSelected]}
+                    onPress={() => saveRetention(opt.value)}
+                    disabled={savingRetention}
+                  >
+                    <Text style={styles.quickChipText}>
+                      {selected ? '✓ ' : ''}{opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <TouchableOpacity
+              style={styles.modalButtonCancel}
+              onPress={() => setShowRetentionModal(false)}
+              disabled={savingRetention}
+            >
+              <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Clear Chat Confirmation Modal */}
       {showClearConfirm && (
@@ -387,33 +920,182 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         </View>
       )}
 
+      {/* Username Action Modal — appears when a sender's name is tapped in
+          a group chat bubble. Offers View Profile (opens main app /profile/:username
+          in a new tab) and Direct Message (opens a 1:1 chat with that user). */}
+      {usernameModalTarget && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>👤 @{usernameModalTarget}</Text>
+            <Text style={styles.modalText}>What would you like to do?</Text>
+
+            <TouchableOpacity
+              style={styles.modalButtonPrimary}
+              onPress={handleViewProfile}
+            >
+              <Text style={styles.modalButtonTextPrimary}>👁  View Profile</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalButtonPrimary}
+              onPress={handleDirectMessage}
+            >
+              <Text style={styles.modalButtonTextPrimary}>💬  Direct Message</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalButtonCancel}
+              onPress={() => setUsernameModalTarget(null)}
+            >
+              <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Public Recipient Modal */}
       {showPublicRecipientModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>📧 Messaging Non-Members</Text>
+
+            {/* Role-based block banner (only admins/moderators can invite) */}
+            {!senderCanInvite && (
+              <View style={styles.modalRoleBanner}>
+                <Text style={styles.modalRoleBannerText}>
+                  🚫 Only administrators or moderators can invite external participants by email.
+                </Text>
+              </View>
+            )}
+
             <Text style={styles.modalText}>
               This message will be delivered by email to:
             </Text>
-            {publicRecipients.map((recipient, index) => (
-              <Text key={index} style={styles.recipientText}>
-                • {recipient.displayName} ({recipient.email})
-              </Text>
-            ))}
+
+            {/* Recipient list with status bubbles per email */}
+            {publicRecipients.map((recipient, index) => {
+              const check = recipientChecks[recipient.email.toLowerCase()];
+              const invCount = check?.invitationCount || 0;
+              // Throttle: 2+ existing invitations means the admin should manage
+              // the recipient via the main-app invitation queue, not re-invite.
+              const isThrottled = invCount >= 2;
+              return (
+                <View key={index} style={styles.recipientRow}>
+                  <Text style={styles.recipientText}>
+                    • {recipient.displayName} ({recipient.email})
+                  </Text>
+                  {/* Status bubbles — only render once the pre-flight has resolved. */}
+                  {check && (
+                    <View style={styles.bubbleRow}>
+                      {check.isMember && (
+                        <View style={[styles.statusBubble, styles.bubbleMember]}>
+                          <Text style={styles.statusBubbleText}>
+                            ✅ Existing member{check.memberUsername ? `: @${check.memberUsername}` : ''}
+                          </Text>
+                        </View>
+                      )}
+                      {check.alreadyInConversation && (
+                        <View style={[styles.statusBubble, styles.bubbleAlreadySent]}>
+                          <Text style={styles.statusBubbleText}>
+                            📨 Already in this conversation{check.lastSentAt ? ` · ${formatRelative(check.lastSentAt)}` : ''}
+                          </Text>
+                        </View>
+                      )}
+                      {check.hasActiveInvitation && (
+                        <View style={[styles.statusBubble, styles.bubbleInvited]}>
+                          <Text style={styles.statusBubbleText}>
+                            ✉️ Invited{invCount > 1 ? ` · ${invCount}×` : ''}{check.invitationStatus ? ` (${check.invitationStatus})` : ''}{check.invitationSentAt ? ` · ${formatRelative(check.invitationSentAt)}` : ''}
+                          </Text>
+                        </View>
+                      )}
+                      {isThrottled && (
+                        <View style={[styles.statusBubble, styles.bubbleThrottled]}>
+                          <Text style={styles.statusBubbleText}>
+                            ⛔ Throttled — manage in invitation queue
+                          </Text>
+                        </View>
+                      )}
+                      {!check.isMember && !check.alreadyInConversation && !check.hasActiveInvitation && (
+                        <View style={[styles.statusBubble, styles.bubbleNew]}>
+                          <Text style={styles.statusBubbleText}>🆕 New recipient</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+
+            {checkingRecipients && (
+              <Text style={styles.checkingText}>Checking recipients…</Text>
+            )}
+
+            {/* Throttle banner — shown when ANY recipient has 2+ prior invitations.
+                Hard-blocks Send + Invite and routes the admin to the main app's
+                invitation queue where they can resend / archive / convert. */}
+            {(() => {
+              const throttled = publicRecipients.filter((r) => {
+                const c = recipientChecks[r.email.toLowerCase()];
+                return c && (c.invitationCount || 0) >= 2;
+              });
+              if (throttled.length === 0) return null;
+              return (
+                <View style={styles.modalRoleBanner}>
+                  <Text style={styles.modalRoleBannerText}>
+                    ⛔ {throttled.length === 1
+                      ? `${throttled[0].email} has already been invited 2+ times.`
+                      : `${throttled.length} recipients have already been invited 2+ times.`}{' '}
+                    Please check the Invitation Queue in the main app to resend,
+                    archive, or convert the existing invitation.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.inviteQueueLinkBtn}
+                    onPress={() => {
+                      if (typeof window !== 'undefined') {
+                        window.open(`${getMainAppUrl()}/invitations`, '_blank', 'noopener,noreferrer');
+                      }
+                    }}
+                  >
+                    <Text style={styles.inviteQueueLinkText}>Open Invitation Queue ↗</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })()}
+
             <Text style={styles.modalSubtext}>Choose how to send:</Text>
 
-            {/* Send + Invite Button */}
-            <TouchableOpacity
-              style={styles.modalButtonPrimary}
-              onPress={() => sendWithPublicRecipients('both')}
-            >
-              <Text style={styles.modalButtonTextPrimary}>
-                ✉️ Send + Invite
-              </Text>
-              <Text style={styles.modalButtonSubtext}>
-                Email includes "Join L3V3L" button
-              </Text>
-            </TouchableOpacity>
+            {/* Send + Invite Button — disabled if:
+                  • sender lacks the admin/moderator role, OR
+                  • any recipient has 2+ prior invitations (throttle). */}
+            {(() => {
+              const anyThrottled = publicRecipients.some((r) => {
+                const c = recipientChecks[r.email.toLowerCase()];
+                return c && (c.invitationCount || 0) >= 2;
+              });
+              const canSend = senderCanInvite && !anyThrottled;
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.modalButtonPrimary,
+                    !canSend && styles.modalButtonDisabled,
+                  ]}
+                  onPress={() => canSend && sendWithPublicRecipients('both')}
+                  disabled={!canSend}
+                  activeOpacity={canSend ? 0.7 : 1}
+                >
+                  <Text style={styles.modalButtonTextPrimary}>
+                    ✉️ Send + Invite
+                  </Text>
+                  <Text style={styles.modalButtonSubtext}>
+                    {!senderCanInvite
+                      ? 'Requires admin or moderator role'
+                      : anyThrottled
+                        ? 'Blocked — manage existing invitation in main app'
+                        : 'Email includes "Join L3V3L" button'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })()}
 
             {/* Send Only Button — DISABLED.
                 We require every external recipient to be onboarded via the
@@ -439,6 +1121,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
               onPress={() => {
                 setShowPublicRecipientModal(false);
                 setPublicRecipients([]);
+                setRecipientChecks({});
               }}
             >
               <Text style={styles.modalButtonTextCancel}>Cancel</Text>
@@ -606,6 +1289,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e1e3f',
     borderColor: '#6366f1',
   },
+  sendErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  sendErrorText: {
+    flex: 1,
+    color: '#fca5a5',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  sendErrorDismiss: {
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  sendErrorDismissText: {
+    color: '#fca5a5',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -682,29 +1393,117 @@ const styles = StyleSheet.create({
     color: '#e94560',
     marginLeft: 12,
   },
+  recipientRow: {
+    marginBottom: 8,
+  },
+  bubbleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginLeft: 18,
+    marginTop: 4,
+  },
+  statusBubble: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginRight: 6,
+    marginBottom: 4,
+    borderWidth: 1,
+  },
+  statusBubbleText: {
+    fontSize: 11,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  // Green — recipient is already a registered member
+  bubbleMember: {
+    backgroundColor: 'rgba(34, 197, 94, 0.18)',
+    borderColor: 'rgba(34, 197, 94, 0.55)',
+  },
+  // Amber — duplicate in this conversation
+  bubbleAlreadySent: {
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    borderColor: 'rgba(245, 158, 11, 0.55)',
+  },
+  // Blue — invitation already in flight
+  bubbleInvited: {
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
+    borderColor: 'rgba(59, 130, 246, 0.55)',
+  },
+  // Neutral — net-new recipient
+  bubbleNew: {
+    backgroundColor: 'rgba(148, 163, 184, 0.15)',
+    borderColor: 'rgba(148, 163, 184, 0.45)',
+  },
+  // Red — recipient has 2+ prior invitations; admin must use main app queue
+  bubbleThrottled: {
+    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+    borderColor: 'rgba(239, 68, 68, 0.55)',
+  },
+  // Link-style button inside the throttle banner that opens the main app
+  // /invitations page in a new tab.
+  inviteQueueLinkBtn: {
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.55)',
+    alignSelf: 'flex-start',
+  },
+  inviteQueueLinkText: {
+    color: '#fca5a5',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  checkingText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginLeft: 18,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  modalRoleBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.5)',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  modalRoleBannerText: {
+    color: '#fca5a5',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   headerInfo: {
     flex: 1,
     flexDirection: 'column',
     marginLeft: 12,
   },
-  muteButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  muteButtonText: {
-    fontSize: 20,
-  },
-  clearButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(233, 69, 96, 0.15)',
+  // Shared tiny header icon button (⏱️ retention, 🗑️ clear chat).
+  // Kept small so the chat header stays compact on narrow screens.
+  iconButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(233, 69, 96, 0.4)',
-    marginLeft: 8,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    marginLeft: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  clearButtonText: {
-    fontSize: 18,
+  iconButtonText: {
+    fontSize: 13,
+    lineHeight: 16,
+  },
+  iconButtonBadge: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#bfdbfe',
+    marginLeft: 4,
   },
   modalSubtext: {
     fontSize: 14,
@@ -759,5 +1558,170 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontSize: 14,
     fontWeight: '600',
+  },
+  // ⚡ Quick Messages button on the composer.
+  quickBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#0f3460',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#1e3a5f',
+  },
+  quickBtnText: {
+    fontSize: 18,
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  quickChip: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: 'rgba(99, 102, 241, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.55)',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  quickChipDisabled: {
+    backgroundColor: 'rgba(148, 163, 184, 0.10)',
+    borderColor: 'rgba(148, 163, 184, 0.35)',
+    opacity: 0.6,
+  },
+  quickChipSelected: {
+    backgroundColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: 'rgba(16, 185, 129, 0.7)',
+  },
+  quickChipText: {
+    color: '#e5e7eb',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});
+
+// Profile-card styles. Kept separate from the main `styles` sheet so the card
+// is self-contained and easy to extract into its own component later.
+const cardStyles = StyleSheet.create({
+  card: {
+    backgroundColor: '#0f1a33',
+    borderWidth: 1,
+    borderColor: '#1e3a5f',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 4,
+    minWidth: 260,
+  },
+  cardOwn: {
+    backgroundColor: '#102043',
+    borderColor: '#1e3a5f',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: 12,
+    backgroundColor: '#1e3a5f',
+  },
+  avatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarFallbackText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  headerText: {
+    flex: 1,
+  },
+  name: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 6,
+  },
+  pill: {
+    backgroundColor: 'rgba(59, 130, 246, 0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.45)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    marginRight: 4,
+    marginBottom: 4,
+  },
+  pillText: {
+    color: '#bfdbfe',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  subPill: {
+    backgroundColor: 'rgba(99, 102, 241, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.45)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    alignSelf: 'flex-start',
+  },
+  subPillText: {
+    color: '#c7d2fe',
+    fontSize: 12,
+  },
+  section: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  sectionTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  row: {
+    marginTop: 6,
+  },
+  rowTitle: {
+    color: '#60a5fa',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  rowText: {
+    color: '#cbd5e1',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  message: {
+    marginTop: 12,
+    color: '#e5e7eb',
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
 });

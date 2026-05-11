@@ -28,6 +28,11 @@ class ContentType(str, Enum):
     AUDIO = "audio"
     DOCUMENT = "document"
     LOCATION = "location"
+    # Rich card carrying a snapshot of the sender's profile at send time.
+    # The payload lives in MessageCreate.cardSnapshot and is persisted on the
+    # message document under the same key so the card remains immutable even
+    # if the sender later edits their profile.
+    PROFILE_CARD = "profile_card"
 
 
 class MessageStatus(str, Enum):
@@ -117,6 +122,10 @@ class MessageCreate(BaseModel):
     content: str = ""  # text body or caption
     media: Optional[MediaPayload] = None
     replyTo: Optional[str] = None  # message _id being replied to
+    # Rich card payload (used with contentType=PROFILE_CARD). Persisted as-is
+    # on the message document so the card stays immutable even if the sender
+    # later edits their profile.
+    cardSnapshot: Optional[Dict[str, Any]] = None
     # US Vedika public group extensions
     publicRecipients: Optional[List[Dict[str, Any]]] = None  # [{"email": "...", "displayName": "..."}]
     deliveryMode: Optional[str] = None  # "inapp" | "email" | "both"
