@@ -698,7 +698,18 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                       <ProfileCard
                         card={msg.cardSnapshot}
                         isOwn={isOwn}
-                        onUsernameClick={handleUsernameClick}
+                        onUsernameClick={(uname) => {
+                          // Tapping the profile name on the card jumps straight
+                          // to the main app's /profile/:username page in a new
+                          // tab. Skips the View-Profile/Direct-Message chooser
+                          // modal that group-chat sender names use, since on a
+                          // profile card the intent is unambiguous.
+                          if (!uname) return;
+                          const url = `${getMainAppUrl()}/profile/${encodeURIComponent(uname)}`;
+                          if (typeof window !== 'undefined') {
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                          }
+                        }}
                       />
                     ) : (
                       msg.content ? (
