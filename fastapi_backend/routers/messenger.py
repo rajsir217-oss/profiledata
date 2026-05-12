@@ -1166,7 +1166,8 @@ async def send_message(
 
     # Push notification for offline recipients
     try:
-        await _send_push(db, conversation_id, username, msg)
+        if conv.get("type") == "direct":
+            await _send_push(db, conversation_id, username, msg)
     except Exception as e:
         logger.warning(f"⚠️ Push notification failed: {e}")
 
