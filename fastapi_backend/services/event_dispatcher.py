@@ -7,8 +7,10 @@ import json
 import logging
 import asyncio
 from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime
+from datetime import datetime, date
 from enum import Enum
+
+from bson import ObjectId
 
 from redis_manager import get_redis_manager
 from services.notification_service import NotificationService
@@ -960,29 +962,259 @@ class EventDispatcher:
                 message = "Your profile has been approved and is now active. You can now access all features and start connecting with matches!"
             
             logger.info(f"📧 Queueing '{trigger}' for {target} with firstname={firstname}, lastname={lastname}")
-            
-            await self.notification_service.queue_notification(
-                username=target,
-                trigger=trigger,
-                channels=["email"],  # Email only for admin status changes
-                template_data={
-                    "username": target,
-                    "profileId": metadata.get("profileId", ""),
-                    "firstname": firstname,
-                    "lastname": lastname,
-                    "full_name": full_name,
-                    "status": "active",
-                    "old_status": old_status,
-                    "message": message
-                },
-                priority="high",
-                lineage_token=lineage_token,
-                force_send=True  # Admin status notifications bypass user preference checks
-            )
-            logger.info(f"✅ Queued '{trigger}' notification for {target} (lineage: {lineage_token})")
+
+            should_send_email = metadata.get("notification_should_send_email", True)
+
+            if should_send_email:
+                await self.notification_service.queue_notification(
+                    username=target,
+                    trigger=trigger,
+                    channels=["email"],  # Email only for admin status changes
+                    template_data={
+                        "username": target,
+                        "profileId": metadata.get("profileId", ""),
+                        "firstname": firstname,
+                        "lastname": lastname,
+                        "full_name": full_name,
+                        "status": "active",
+                        "old_status": old_status,
+                        "message": message
+                    },
+                    priority="high",
+                    lineage_token=lineage_token,
+                    force_send=True  # Admin status notifications bypass user preference checks
+                )
+                logger.info(f"✅ Queued '{trigger}' notification for {target} (lineage: {lineage_token})")
+            else:
+                logger.info(
+                    f"ℹ️ Skipping email notification for user_approved: target={target} trigger={trigger} (lineage: {lineage_token})"
+                )
+
+            await self._post_activation_intro_to_portal_members(target, old_status)
             
         except Exception as e:
             logger.error(f"❌ Error handling user_approved: {e}", exc_info=True)
+
+    async def _post_activation_intro_to_portal_members(self, activated_username: str, old_status: str = "") -> None:
+        """Post a system 'Introduction' profile card message to the Portal Members group."""
+        if not activated_username:
+            return
+
+        try:
+            from websocket_manager import online_users, sio
+        except Exception as e:
+            logger.warning(f"⚠️ Activation intro: dependencies unavailable: {e}")
+            return
+
+        now = datetime.utcnow()
+
+        conv = await self.db.messenger_conversations.find_one(
+            {"type": "group", "groupName": "Portal Members"}
+        )
+
+        if not conv:
+            active_users = await self.db.users.find(
+                {"accountStatus": "active"},
+                {"username": 1},
+            ).to_list(None)
+            participant_usernames = [u.get("username") for u in active_users if u.get("username")]
+
+            participants = [
+                {"username": u, "role": "member", "joinedAt": now}
+                for u in participant_usernames
+            ]
+
+            doc = {
+                "type": "group",
+                "participants": participants,
+                "groupName": "Portal Members",
+                "groupAvatar": "🦋",
+                "createdBy": "L3V3LMatchAgent",
+                "lastMessageAt": None,
+                "lastMessagePreview": None,
+                "createdAt": now,
+                "updatedAt": now,
+            }
+            result = await self.db.messenger_conversations.insert_one(doc)
+            conv_oid = result.inserted_id
+        else:
+            conv_oid = conv.get("_id")
+
+        if not conv_oid:
+            return
+
+        if not isinstance(conv_oid, ObjectId):
+            try:
+                conv_oid = ObjectId(str(conv_oid))
+            except Exception:
+                return
+
+        await self.db.messenger_conversations.update_one(
+            {"_id": conv_oid, "participants.username": {"$ne": activated_username}},
+            {
+                "$push": {
+                    "participants": {
+                        "username": activated_username,
+                        "role": "member",
+                        "joinedAt": now,
+                    }
+                },
+                "$set": {"updatedAt": now},
+            },
+        )
+
+        user = await self.db.users.find_one({"username": activated_username}) or {}
+        first = user.get("firstName") or user.get("firstname") or ""
+        last = user.get("lastName") or user.get("lastname") or ""
+        full_name = (f"{first} {last}").strip() or activated_username
+
+        raw_dob = user.get("dob") or user.get("dateOfBirth") or None
+        birth_year = user.get("birthYear")
+        birth_month = user.get("birthMonth")
+
+        age = None
+        if raw_dob and isinstance(raw_dob, str):
+            try:
+                parsed = datetime.fromisoformat(raw_dob.replace("Z", "+00:00")).date()
+                today = date.today()
+                age = today.year - parsed.year
+                if (today.month, today.day) < (parsed.month, parsed.day):
+                    age -= 1
+            except Exception:
+                age = None
+        if age is None:
+            age = calculate_age(birth_month, birth_year)
+
+        dob_label = None
+        if raw_dob and isinstance(raw_dob, str):
+            try:
+                parsed_dt = datetime.fromisoformat(raw_dob.replace("Z", "+00:00"))
+                dob_label = parsed_dt.strftime("%m/%Y")
+            except Exception:
+                dob_label = None
+        if not dob_label and birth_month and birth_year:
+            try:
+                dob_label = f"{str(birth_month).zfill(2)}/{int(birth_year)}"
+            except Exception:
+                dob_label = None
+
+        image_visibility = user.get("imageVisibility") or {}
+        images = user.get("images") or []
+        avatar_path = (
+            image_visibility.get("profilePic")
+            or (images[0] if images else None)
+            or user.get("profileImage")
+        )
+
+        height_label = None
+        height_val = user.get("height")
+        if height_val and str(height_val).strip():
+            height_label = str(height_val).strip()
+        elif user.get("heightFeet"):
+            inches = int(user.get("heightInches") or 0)
+            height_label = f"{user.get('heightFeet')}'{inches}\""
+        elif user.get("heightInches"):
+            try:
+                total = int(user.get("heightInches"))
+                if total > 11:
+                    height_label = f"{total // 12}'{total % 12}\""
+            except Exception:
+                height_label = None
+
+        location = user.get("location") or user.get("currentLocation")
+        if not location:
+            location = ", ".join(
+                [v for v in [user.get("city"), user.get("state"), user.get("country")] if v]
+            ) or None
+
+        gender = str(user.get("gender") or "").strip().lower()
+        if gender in ("male", "m", "man"):
+            intro_message = "Looking for a suitable bride for our son — please review the profile for details and Contact me. Thanks"
+        elif gender in ("female", "f", "woman"):
+            intro_message = "Looking for a suitable groom for our daughter — please review the profile for details and Contact me. Thanks"
+        else:
+            intro_message = "Looking for a suitable match — please review the profile for details and Contact me. Thanks"
+
+        is_reactivation = str(old_status or "").strip().lower() in ("suspended", "paused", "banned")
+        system_label = "Reactivated" if is_reactivation else "Newly activated"
+        system_tag = "reactivated" if is_reactivation else "newly_activated"
+
+        snapshot = {
+            "username": activated_username,
+            "fullName": full_name,
+            "avatarUrl": avatar_path,
+            "age": age,
+            "dob": raw_dob,
+            "dobLabel": dob_label,
+            "height": height_label,
+            "location": location,
+            "educationHistory": user.get("educationHistory") if isinstance(user.get("educationHistory"), list) else [],
+            "workExperience": user.get("workExperience") if isinstance(user.get("workExperience"), list) else [],
+            "message": intro_message,
+            "systemLabel": system_label,
+            "systemTag": system_tag,
+        }
+
+        msg = {
+            "conversationId": conv_oid,
+            "senderUsername": "L3V3LMatchAgent",
+            "contentType": "profile_card",
+            "content": intro_message,
+            "status": "sent",
+            "deliveredAt": None,
+            "readAt": None,
+            "readBy": [],
+            "replyTo": None,
+            "isForwarded": False,
+            "isDeleted": False,
+            "moderationStatus": "clean",
+            "createdAt": now,
+            "updatedAt": now,
+            "cardSnapshot": snapshot,
+        }
+
+        result = await self.db.messenger_messages.insert_one(msg)
+        msg_id = str(result.inserted_id)
+
+        await self.db.messenger_conversations.update_one(
+            {"_id": conv_oid},
+            {
+                "$set": {
+                    "lastMessageAt": now,
+                    "lastMessagePreview": "📇 Reactivated profile" if is_reactivation else "📇 Newly activated profile",
+                    "updatedAt": now,
+                }
+            },
+        )
+
+        conv_fresh = await self.db.messenger_conversations.find_one({"_id": conv_oid}) or {}
+        payload = {
+            "id": msg_id,
+            "conversationId": str(conv_oid),
+            "senderUsername": "L3V3LMatchAgent",
+            "contentType": "profile_card",
+            "content": intro_message,
+            "status": "sent",
+            "createdAt": now.isoformat(),
+            "updatedAt": now.isoformat(),
+            "isForwarded": False,
+            "isDeleted": False,
+            "replyTo": None,
+            "cardSnapshot": snapshot,
+        }
+
+        for p in (conv_fresh.get("participants") or []):
+            recipient = p.get("username")
+            if recipient and recipient in online_users:
+                await sio.emit(
+                    "messenger:new_message",
+                    {"conversationId": str(conv_oid), "message": payload},
+                    room=online_users[recipient],
+                )
+
+        logger.info(
+            f"✅ Activation intro posted in Portal Members for {activated_username}: message={msg_id}"
+        )
     
     async def _handle_user_suspended(self, event_data: Dict):
         """Handle user_suspended event"""

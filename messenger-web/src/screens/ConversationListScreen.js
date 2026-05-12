@@ -77,7 +77,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
   // Real-time-ish online presence (polled every 30s). Used to render
   // small green/gray dots on user avatars across the messenger UI.
-  const { isOnline } = useOnlinePresence();
+  const { isOnline, onlineSet } = useOnlinePresence();
 
   // Fetch conversations on mount and when tab changes
   useEffect(() => {
@@ -724,7 +724,12 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🦋 L3V3L Matches Messenger</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerTitle}>🦋 L3V3L Matches Messenger</Text>
+          <Text style={styles.headerSubtitle}>
+            {`${onlineSet?.size || 0} online`}
+          </Text>
+        </View>
         <TouchableOpacity
           style={styles.headerMainAppBtn}
           onPress={() => openMainAppWithSso('/dashboard')}
@@ -931,14 +936,24 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#0f3460',
-    height: 56,
+    minHeight: 56,
   },
   headerTitle: {
-    flex: 1,
     fontSize: 17,
     fontWeight: '600',
     color: '#e94560',
     letterSpacing: 0.5,
+  },
+  headerTitleWrap: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  headerSubtitle: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '500',
+    opacity: 0.85,
+    marginTop: 2,
   },
   headerMainAppBtn: {
     paddingVertical: 6,

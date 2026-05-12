@@ -49,6 +49,9 @@ const buildImageUrl = (path) => {
 // `card` is the immutable snapshot persisted on the message document.
 function ProfileCard({ card, isOwn, onUsernameClick }) {
   if (!card) return null;
+  const avatarUri = card.avatarUrl
+    ? (String(card.avatarUrl).startsWith('http') ? card.avatarUrl : buildImageUrl(card.avatarUrl))
+    : null;
   // Pills mirror the main-app card: age · DOB (MM/YYYY) · height. Prefer the
   // pre-formatted `dobLabel` (built from birthMonth/birthYear) and only fall
   // back to a runtime format if an ISO `dob` string is present.
@@ -74,8 +77,8 @@ function ProfileCard({ card, isOwn, onUsernameClick }) {
   return (
     <View style={[cardStyles.card, isOwn && cardStyles.cardOwn]}>
       <View style={cardStyles.headerRow}>
-        {card.avatarUrl ? (
-          <Image source={{ uri: card.avatarUrl }} style={cardStyles.avatar} />
+        {avatarUri ? (
+          <Image source={{ uri: avatarUri }} style={cardStyles.avatar} />
         ) : (
           <View style={[cardStyles.avatar, cardStyles.avatarFallback]}>
             <Text style={cardStyles.avatarFallbackText}>
@@ -686,6 +689,11 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
             messages.map((msg) => {
               const isOwn = msg.senderUsername === user.username || msg.fromUsername === user.username;
               const isPublicEmail = msg.senderType === 'public_email';
+              const isActivationIntro =
+                msg.senderUsername === 'L3V3LMatchAgent' &&
+                msg.contentType === 'profile_card' &&
+                msg.cardSnapshot &&
+                (msg.cardSnapshot.systemTag === 'newly_activated' || msg.cardSnapshot.systemTag === 'reactivated');
               const senderName = isGroup && !isOwn ? (msg.senderUsername || msg.fromUsername || 'Unknown') : null;
               const publicEmailsSent = Array.isArray(msg.publicEmailsSent) ? msg.publicEmailsSent : [];
               return (
@@ -693,6 +701,15 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                   <View style={[styles.messageBubble, isOwn && styles.messageBubbleOwn, isPublicEmail && styles.messageBubblePublic]}>
                     {isPublicEmail ? (
                       <Text style={styles.publicEmailBadge}>📧 {msg.publicEmail || msg.senderUsername}</Text>
+                    ) : isActivationIntro ? (
+                      <View style={styles.systemIntroHeader}>
+                        <Text style={styles.systemSender}>{msg.senderUsername}</Text>
+                        <View style={styles.systemBadge}>
+                          <Text style={styles.systemBadgeText}>
+                            {msg.cardSnapshot.systemLabel || 'Newly activated'}
+                          </Text>
+                        </View>
+                      </View>
                     ) : isGroup && senderName && !isOwn && (
                       <TouchableOpacity onPress={() => handleUsernameClick(senderName)}>
                         <Text style={styles.senderName}>{senderName}</Text>
@@ -1287,6 +1304,31 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#e94560',
     marginBottom: 4,
+  },
+  systemIntroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 6,
+  },
+  systemSender: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#e94560',
+    marginRight: 8,
+  },
+  systemBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  systemBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#34d399',
   },
   publicEmailBadge: {
     fontSize: 11,

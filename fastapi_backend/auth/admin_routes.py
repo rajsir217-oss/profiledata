@@ -729,8 +729,10 @@ async def update_user_status(
         # Check if this status change should trigger a notification
         # This is configurable via notification_config/notification_triggers.py
         notification_config = should_notify_status_change(old_status_value, new_account_status)
-        
-        if notification_config["should_notify"]:
+
+        should_dispatch_event = notification_config["should_notify"] or new_account_status == "active"
+
+        if should_dispatch_event:
             event_dispatcher = EventDispatcher(db)
             
             # Map new status to event type
@@ -770,10 +772,11 @@ async def update_user_status(
                     "new_status": new_account_status,
                     "reason": request.reason,
                     "status_transition": f"{old_status_value} → {new_account_status}",
-                    "notification_trigger": notification_config["trigger"],
+                    "notification_trigger": notification_config.get("trigger") or "status_approved",
+                    "notification_should_send_email": notification_config["should_notify"],
                     "lineage_token": lineage_token  # Track workflow end-to-end
                 },
-                priority=notification_config["priority"]
+                priority=notification_config.get("priority") or "medium"
             )
         else:
             logger.info(f"ℹ️ Status change {old_status_value} → {new_account_status} does not trigger notification (disabled in config)")
