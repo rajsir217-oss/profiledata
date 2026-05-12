@@ -382,7 +382,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         (async () => {
           try {
             const api = useAuthStore.getState().getApi();
-            const res = await api.get(`/api/messenger/conversations/${id}`);
+            const res = await api.get(`/api/messenger/conversations/${id}?lite=true&include_unread_count=false`);
             const r = res?.data?.conversation?.messageRetentionHours;
             setRetentionHours(typeof r === 'number' && r > 0 ? r : null);
           } catch (e) {

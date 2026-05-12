@@ -273,6 +273,11 @@ async def lifespan(app: FastAPI):
             background=True,
             name="ttl_expireAt",
         )
+        await db.messenger_messages.create_index(
+            [("conversationId", 1), ("senderUsername", 1), ("status", 1), ("isDeleted", 1)],
+            background=True,
+            name="unread_count_optimization",
+        )
         # Conversation list query: list_conversations does
         # `find({"participants.username": X}).sort({lastMessageAt: -1})`.
         # Compound index here covers the participant filter + recency sort.
@@ -281,7 +286,7 @@ async def lifespan(app: FastAPI):
             background=True,
             name="participants_lastMessageAt_desc",
         )
-        logger.info("✅ Messenger indexes (conversationId, TTL, participants) created")
+        logger.info("✅ Messenger indexes (conversationId, TTL, participants, unread_count) created")
     except Exception as e:
         logger.warning(f"⚠️ Messenger index creation failed (non-critical): {e}")
 

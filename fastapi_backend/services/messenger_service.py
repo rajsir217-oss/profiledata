@@ -71,9 +71,26 @@ async def get_conversations(
     username: str,
     page: int = 1,
     limit: int = 50,
+    exclude_group_name: Optional[str] = None,
 ) -> Tuple[List[Dict[str, Any]], int]:
     """Get paginated conversations for a user, sorted by last message time."""
-    query = {"participants.username": username}
+    try:
+        from redis_manager import get_redis_manager
+        redis = get_redis_manager()
+        group_suffix = exclude_group_name or "all"
+        cache_key = f"conversation_list:{username}:{page}:{group_suffix}"
+        cached = redis.redis_client.get(cache_key)
+        if cached:
+            import json
+            data = json.loads(cached)
+            logger.debug(f"✅ Cache hit for conversation list: {cache_key}")
+            return data["conversations"], data["total"]
+    except Exception as e:
+        logger.warning(f"⚠️ Redis cache check failed: {e}")
+    
+    query: Dict[str, Any] = {"participants.username": username}
+    if exclude_group_name:
+        query["groupName"] = {"$ne": exclude_group_name}
     total = await db.messenger_conversations.count_documents(query)
 
     cursor = (
@@ -84,10 +101,38 @@ async def get_conversations(
     )
     conversations = await cursor.to_list(length=limit)
 
-    # Stringify ObjectIds and compute unread counts
     for conv in conversations:
         conv["_id"] = str(conv["_id"])
-        conv["unreadCount"] = await _unread_count(db, str(conv["_id"]), username)
+
+    if conversations:
+        conv_ids = [ObjectId(c["_id"]) for c in conversations]
+        pipeline = [
+            {"$match": {
+                "conversationId": {"$in": conv_ids},
+                "senderUsername": {"$ne": username},
+                "status": {"$ne": "read"},
+                "isDeleted": False,
+            }},
+            {"$group": {"_id": "$conversationId", "count": {"$sum": 1}}}
+        ]
+        unread_results = await db.messenger_messages.aggregate(pipeline).to_list(None)
+        unread_by_conv = {str(r["_id"]): r["count"] for r in unread_results}
+
+        for conv in conversations:
+            conv["unreadCount"] = unread_by_conv.get(str(conv["_id"]), 0)
+
+    try:
+        from redis_manager import get_redis_manager
+        redis = get_redis_manager()
+        from fastapi.encoders import jsonable_encoder
+        import json
+        group_suffix = exclude_group_name or "all"
+        cache_key = f"conversation_list:{username}:{page}:{group_suffix}"
+        payload = jsonable_encoder({"conversations": conversations, "total": total})
+        redis.redis_client.setex(cache_key, 30, json.dumps(payload))
+        logger.debug(f"💾 Cached conversation list: {cache_key}")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to cache conversation list: {e}")
 
     return conversations, total
 
@@ -96,15 +141,24 @@ async def get_conversation(
     db: AsyncIOMotorDatabase,
     conversation_id: str,
     username: str,
+    lite: bool = False,
+    include_unread_count: bool = True,
 ) -> Optional[Dict[str, Any]]:
     """Get a single conversation if the user is a participant."""
-    conv = await db.messenger_conversations.find_one({"_id": ObjectId(conversation_id)})
+    query = {"_id": ObjectId(conversation_id), "participants.username": username}
+    projection = None
+    if lite:
+        projection = {
+            "participants": 0,
+            "publicParticipants": 0,
+        }
+
+    conv = await db.messenger_conversations.find_one(query, projection)
     if not conv:
         return None
-    if not any(p.get("username") == username for p in conv.get("participants", [])):
-        return None
     conv["_id"] = str(conv["_id"])
-    conv["unreadCount"] = await _unread_count(db, conv["_id"], username)
+    if include_unread_count:
+        conv["unreadCount"] = await _unread_count(db, conv["_id"], username)
     return conv
 
 
@@ -182,8 +236,15 @@ async def get_messages(
     Returns (messages, total, has_more).
     """
     # Verify participant
-    conv = await db.messenger_conversations.find_one({"_id": ObjectId(conversation_id)})
-    if not conv or not any(p.get("username") == username for p in conv.get("participants", [])):
+    conv = await db.messenger_conversations.find_one(
+        {"_id": ObjectId(conversation_id), "participants.username": username},
+        {
+            "participants": 0,
+            "clearedFor": 1,
+            "publicParticipants": 1,
+        },
+    )
+    if not conv:
         return [], 0, False
 
     query: Dict[str, Any] = {"conversationId": ObjectId(conversation_id)}
