@@ -183,27 +183,53 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const loadAllConversations = async () => {
     setError(null);
     setIsLoading(true);
+
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const cacheKey = `conversation_list:${user?.username || 'unknown'}`;
+        const cached = window.localStorage.getItem(cacheKey);
+        if (cached) {
+          const { conversations, timestamp } = JSON.parse(cached);
+          const age = Date.now() - timestamp;
+          if (age < 5 * 60 * 1000) {
+            console.log('✅ Loaded conversations from localStorage cache (age:', Math.round(age/1000), 's)');
+            setAllConversations(conversations);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Failed to load from localStorage:', e.message);
+    }
+
     try {
       const api = useAuthStore.getState().getApi();
+
+      const [messengerRes, legacyRes, portalRes] = await Promise.allSettled([
+        api.get('/api/messenger/conversations'),
+        api.get('/api/users/messages/conversations'),
+        api.get('/api/messenger/portal-members-group'),
+      ]);
 
       // Fetch L3V3L Messenger conversations (groups + new direct chats)
       console.log('📬 Fetching L3V3L Messenger conversations...');
       let messengerConvs = [];
-      try {
-        const res = await api.get('/api/messenger/conversations');
+      if (messengerRes.status === 'fulfilled') {
+        const res = messengerRes.value;
         messengerConvs = res.data?.conversations || res.data || [];
-        // Normalize: ensure id field
         messengerConvs = messengerConvs.map(c => ({ ...c, id: c.id || c._id }));
         console.log('✅ Messenger conversations:', messengerConvs.length);
-      } catch (e) {
-        console.warn('⚠️ Failed to load messenger conversations:', e.message);
+      } else {
+        console.warn('⚠️ Failed to load messenger conversations:', messengerRes.reason?.message);
       }
 
       // Fetch main app 1:1 conversations (legacy direct messages)
       console.log('📬 Fetching main app 1:1 conversations...');
       let directConvs = [];
       try {
-        const res = await api.get('/api/users/messages/conversations');
+        if (legacyRes.status !== 'fulfilled') {
+          throw legacyRes.reason;
+        }
+        const res = legacyRes.value;
         const raw = Array.isArray(res.data) ? res.data : res.data?.conversations || [];
         // Normalize main app conversations to the L3V3L shape
         directConvs = raw.map(c => ({
@@ -280,7 +306,10 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       console.log('🌐 Fetching Portal Members group...');
       let portalGroupResp = null;
       try {
-        const res = await api.get('/api/messenger/portal-members-group');
+        if (portalRes.status !== 'fulfilled') {
+          throw portalRes.reason;
+        }
+        const res = portalRes.value;
         portalGroupResp = res.data?.conversation;
         if (portalGroupResp) {
           portalGroupResp.id = portalGroupResp.id || portalGroupResp._id;
@@ -309,6 +338,20 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       const combined = Array.from(combinedMap.values());
       console.log('✅ My Messages conversations:', combined.length);
       setAllConversations(combined);
+      
+      // Cache the result in localStorage
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const cacheKey = `conversation_list:${user?.username || 'unknown'}`;
+          window.localStorage.setItem(cacheKey, JSON.stringify({
+            conversations: combined,
+            timestamp: Date.now(),
+          }));
+          console.log('💾 Cached conversation list in localStorage');
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to cache conversation list:', e.message);
+      }
     } catch (e) {
       console.error('❌ Failed to load conversations:', e);
       setError('Failed to load conversations');

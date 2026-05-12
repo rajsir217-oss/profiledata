@@ -59,6 +59,37 @@ async def get_or_create_portal_members_group(
     username = current_user["username"]
     logger.info(f"🌐 Getting/creating Portal Members group for {username}")
 
+    def _portal_group_summary(conv: dict) -> dict:
+        participants = conv.get("participants", []) or []
+        _id = conv.get("_id")
+        _id_str = str(_id) if _id is not None else None
+        last_message_at = conv.get("lastMessageAt")
+        if hasattr(last_message_at, "isoformat"):
+            last_message_at = last_message_at.isoformat()
+        return {
+            "_id": _id_str,
+            "id": _id_str,
+            "type": conv.get("type"),
+            "groupName": conv.get("groupName"),
+            "groupAvatar": conv.get("groupAvatar"),
+            "lastMessageAt": last_message_at,
+            "lastMessagePreview": conv.get("lastMessagePreview"),
+            "participantsCount": len(participants),
+        }
+
+    try:
+        from redis_manager import get_redis_manager
+        redis = get_redis_manager()
+        cache_key = "portal_members_group"
+        cached = redis.redis_client.get(cache_key)
+        if cached:
+            import json
+            existing = json.loads(cached)
+            logger.info(f"✅ Cache hit for Portal Members group: {existing.get('_id')}")
+            return {"success": True, "conversation": existing}
+    except Exception as e:
+        logger.warning(f"⚠️ Redis cache check failed: {e}")
+
     # Check if Portal Members group already exists
     existing = await db.messenger_conversations.find_one({
         "type": "group",
@@ -67,9 +98,19 @@ async def get_or_create_portal_members_group(
 
     if existing:
         logger.info(f"✅ Portal Members group exists: {existing['_id']}")
-        existing["_id"] = str(existing["_id"])
-        existing["id"] = existing["_id"]
-        return {"success": True, "conversation": existing}
+        summary = _portal_group_summary(existing)
+
+        try:
+            from redis_manager import get_redis_manager
+            redis = get_redis_manager()
+            import json
+            cache_key = "portal_members_group"
+            redis.redis_client.setex(cache_key, 300, json.dumps(summary))
+            logger.debug(f"💾 Cached Portal Members group: {cache_key}")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to cache Portal Members group: {e}")
+        
+        return {"success": True, "conversation": summary}
 
     # Get all active users
     active_users = await db.users.find({
@@ -88,9 +129,21 @@ async def get_or_create_portal_members_group(
         group_name="Portal Members",
         group_avatar="🦋",
     )
-    conv["id"] = conv.pop("_id")
-    logger.info(f"✅ Created Portal Members group: {conv['id']}")
-    return {"success": True, "conversation": conv}
+    conv["_id"] = conv.get("_id") or conv.get("id")
+    summary = _portal_group_summary(conv)
+    logger.info(f"✅ Created Portal Members group: {summary['id']}")
+    
+    try:
+        from redis_manager import get_redis_manager
+        redis = get_redis_manager()
+        import json
+        cache_key = "portal_members_group"
+        redis.redis_client.setex(cache_key, 300, json.dumps(summary))
+        logger.debug(f"💾 Cached newly created Portal Members group: {cache_key}")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to cache Portal Members group: {e}")
+    
+    return {"success": True, "conversation": summary}
 
 
 @router.get("/us-vedika/group")
@@ -449,12 +502,11 @@ async def list_conversations(
 ):
     """List conversations for the current user (paginated, sorted by lastMessageAt)."""
     username = current_user["username"]
-    conversations, total = await messenger_service.get_conversations(db, username, page, limit)
-
-    # Enrich with participant profile info
+    conversations, total = await messenger_service.get_conversations(
+        db, username, page, limit, exclude_group_name="Portal Members"
+    )
     for conv in conversations:
         conv["id"] = conv.pop("_id")
-        await _enrich_participants(db, conv, username)
 
     return {"success": True, "conversations": conversations, "total": total, "page": page}
 
@@ -462,15 +514,26 @@ async def list_conversations(
 @router.get("/conversations/{conversation_id}")
 async def get_conversation(
     conversation_id: str,
+    lite: bool = Query(False),
+    include_unread_count: bool = Query(True),
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     """Get a single conversation by ID."""
-    conv = await messenger_service.get_conversation(db, conversation_id, current_user["username"])
+    conv = await messenger_service.get_conversation(
+        db,
+        conversation_id,
+        current_user["username"],
+        lite=lite,
+        include_unread_count=include_unread_count,
+    )
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     conv["id"] = conv.pop("_id")
-    await _enrich_participants(db, conv, current_user["username"])
+    if not lite:
+        participants = conv.get("participants", []) or []
+        if conv.get("groupName") != "Portal Members" and len(participants) <= 50:
+            await _enrich_participants(db, conv, current_user["username"])
     return {"success": True, "conversation": conv}
 
 
@@ -1383,20 +1446,50 @@ async def _enrich_participants(
     if not usernames:
         return
 
-    cursor = db.users.find(
-        {"username": {"$in": usernames}},
-        {
-            "_id": 0,
-            "username": 1,
-            "firstName": 1,
-            "lastName": 1,
-            "images": 1,
-            "publicImages": 1,
-            "imageVisibility": 1,
-            "profileImage": 1,
-        },
-    )
-    by_username = {u["username"]: u async for u in cursor if u.get("username")}
+    from redis_manager import get_redis_manager
+    import json
+    redis = get_redis_manager()
+    cached_profiles = {}
+    uncached_usernames = []
+    
+    try:
+        for uname in usernames:
+            cache_key = f"participant_profile:{uname}"
+            cached = redis.redis_client.get(cache_key)
+            if cached:
+                cached_profiles[uname] = json.loads(cached)
+            else:
+                uncached_usernames.append(uname)
+    except Exception as e:
+        logger.warning(f"⚠️ Redis cache check failed for participant profiles: {e}")
+        uncached_usernames = usernames
+
+    by_username = {}
+    if uncached_usernames:
+        cursor = db.users.find(
+            {"username": {"$in": uncached_usernames}},
+            {
+                "_id": 0,
+                "username": 1,
+                "firstName": 1,
+                "lastName": 1,
+                "images": 1,
+                "publicImages": 1,
+                "imageVisibility": 1,
+                "profileImage": 1,
+            },
+        )
+        for user in await cursor.to_list(None):
+            uname = user.get("username")
+            if uname:
+                by_username[uname] = user
+                try:
+                    cache_key = f"participant_profile:{uname}"
+                    redis.redis_client.setex(cache_key, 300, json.dumps(user))
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to cache participant profile {uname}: {e}")
+
+    by_username.update(cached_profiles)
 
     for p in participants:
         uname = p.get("username")
