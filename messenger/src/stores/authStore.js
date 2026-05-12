@@ -10,6 +10,90 @@ import { API_BASE_URL } from '../config/api';
 
 const TOKEN_KEY = '@l3v3l_messenger_token';
 const USER_KEY = '@l3v3l_messenger_user';
+const INTRO_CARD_KEY = '@l3v3l_messenger_intro_card';
+
+const INTRO_CARD_TTL_MS = 30 * 60 * 1000;
+
+const calcAge = (dob, birthYear, birthMonth) => {
+  let d = null;
+  if (dob) {
+    const parsed = new Date(dob);
+    if (!Number.isNaN(parsed.getTime())) d = parsed;
+  } else if (birthYear) {
+    const m = Number(birthMonth) || 1;
+    const y = Number(birthYear);
+    if (y > 1900 && y < 2200) d = new Date(Date.UTC(y, m - 1, 1));
+  }
+  if (!d) return null;
+  const diff = Date.now() - d.getTime();
+  const age = new Date(diff).getUTCFullYear() - 1970;
+  return age > 0 && age < 130 ? age : null;
+};
+
+const buildImageUrl = (path, token) => {
+  if (!path) return null;
+  const fullUrl = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
+  if (token && !fullUrl.includes('token=')) {
+    const sep = fullUrl.includes('?') ? '&' : '?';
+    return `${fullUrl}${sep}token=${encodeURIComponent(token)}`;
+  }
+  return fullUrl;
+};
+
+const buildIntroductionCardSnapshot = (profile, token, fallbackUsername) => {
+  const p = profile || {};
+  const username = p.username || fallbackUsername;
+  const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim() || username;
+  const rawDob = p.dob || p.dateOfBirth || null;
+  const age = calcAge(rawDob, p.birthYear, p.birthMonth);
+  let dobLabel = null;
+  if (rawDob) {
+    const parsed = new Date(rawDob);
+    if (!Number.isNaN(parsed.getTime())) {
+      dobLabel = parsed.toLocaleDateString('en-US', { month: '2-digit', year: 'numeric' });
+    }
+  } else if (p.birthMonth && p.birthYear) {
+    dobLabel = `${String(p.birthMonth).padStart(2, '0')}/${p.birthYear}`;
+  }
+
+  const avatarPath = p.imageVisibility?.profilePic || p.images?.[0] || p.profileImage || null;
+
+  let heightLabel = null;
+  if (p.height && String(p.height).trim()) {
+    heightLabel = String(p.height).trim();
+  } else if (p.heightFeet) {
+    const inches = Number(p.heightInches) || 0;
+    heightLabel = `${p.heightFeet}'${inches}"`;
+  } else if (p.heightInches && Number(p.heightInches) > 11) {
+    const total = Number(p.heightInches);
+    heightLabel = `${Math.floor(total / 12)}'${total % 12}"`;
+  }
+
+  const message = (() => {
+    const g = String(p.gender || '').trim().toLowerCase();
+    if (g === 'male' || g === 'm' || g === 'man') {
+      return 'Looking for a suitable bride for our son — please review the profile for details and Contact me. Thanks';
+    }
+    if (g === 'female' || g === 'f' || g === 'woman') {
+      return 'Looking for a suitable groom for our daughter — please review the profile for details and Contact me. Thanks';
+    }
+    return 'Looking for a suitable match — please review the profile for details and Contact me. Thanks';
+  })();
+
+  return {
+    username,
+    fullName,
+    avatarUrl: buildImageUrl(avatarPath, token),
+    age,
+    dob: rawDob,
+    dobLabel,
+    height: heightLabel,
+    location: p.location || p.currentLocation || null,
+    educationHistory: Array.isArray(p.educationHistory) ? p.educationHistory : [],
+    workExperience: Array.isArray(p.workExperience) ? p.workExperience : [],
+    message,
+  };
+};
 
 const useAuthStore = create((set, get) => ({
   token: null,
@@ -17,18 +101,32 @@ const useAuthStore = create((set, get) => ({
   isLoading: true,  // true while restoring session from storage
   error: null,
 
+  introCardSnapshot: null,
+  introCardFetchedAt: null,
+
   /**
    * Restore persisted session on app launch.
    */
   restore: async () => {
     try {
-      const [token, userJson] = await Promise.all([
+      const [token, userJson, introCardJson] = await Promise.all([
         AsyncStorage.getItem(TOKEN_KEY),
         AsyncStorage.getItem(USER_KEY),
+        AsyncStorage.getItem(INTRO_CARD_KEY),
       ]);
       if (token && userJson) {
         const user = JSON.parse(userJson);
-        set({ token, user, isLoading: false, error: null });
+        let introCardSnapshot = null;
+        let introCardFetchedAt = null;
+        if (introCardJson) {
+          try {
+            const parsed = JSON.parse(introCardJson);
+            introCardSnapshot = parsed?.snapshot || null;
+            introCardFetchedAt = parsed?.fetchedAt || null;
+          } catch (_) {}
+        }
+        set({ token, user, introCardSnapshot, introCardFetchedAt, isLoading: false, error: null });
+        get().prefetchIntroCard({ force: false });
       } else {
         set({ isLoading: false });
       }
@@ -68,6 +166,7 @@ const useAuthStore = create((set, get) => ({
       ]);
 
       set({ token: ssoToken, user, isLoading: false, error: null });
+      get().prefetchIntroCard({ force: false });
 
       // Strip the token from the URL — security & cleanliness.
       try {
@@ -116,6 +215,7 @@ const useAuthStore = create((set, get) => ({
       ]);
 
       set({ token: access_token, user, isLoading: false, error: null });
+      get().prefetchIntroCard({ force: true });
       return { ok: true };
     } catch (e) {
       // Detect MFA_REQUIRED: backend returns 403 with detail "MFA_REQUIRED"
@@ -146,8 +246,35 @@ const useAuthStore = create((set, get) => ({
     await Promise.all([
       AsyncStorage.removeItem(TOKEN_KEY),
       AsyncStorage.removeItem(USER_KEY),
+      AsyncStorage.removeItem(INTRO_CARD_KEY),
     ]);
-    set({ token: null, user: null, error: null });
+    set({ token: null, user: null, error: null, introCardSnapshot: null, introCardFetchedAt: null });
+  },
+
+  prefetchIntroCard: async ({ force = false } = {}) => {
+    const { token, user, introCardSnapshot, introCardFetchedAt } = get();
+    if (!token || !user?.username) return null;
+
+    if (!force && introCardSnapshot && introCardFetchedAt) {
+      const ageMs = Date.now() - Number(introCardFetchedAt);
+      if (Number.isFinite(ageMs) && ageMs >= 0 && ageMs < INTRO_CARD_TTL_MS) {
+        return introCardSnapshot;
+      }
+    }
+
+    try {
+      const api = get().getApi();
+      const profRes = await api.get(`/api/users/profile/${user.username}?requester=${user.username}`);
+      const profile = profRes.data?.user || profRes.data || {};
+      const snapshot = buildIntroductionCardSnapshot(profile, token, user.username);
+      const fetchedAt = Date.now();
+
+      set({ introCardSnapshot: snapshot, introCardFetchedAt: fetchedAt });
+      await AsyncStorage.setItem(INTRO_CARD_KEY, JSON.stringify({ snapshot, fetchedAt }));
+      return snapshot;
+    } catch (_) {
+      return null;
+    }
   },
 
   /**
