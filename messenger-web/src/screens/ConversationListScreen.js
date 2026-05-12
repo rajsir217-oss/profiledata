@@ -6,20 +6,14 @@ import { API_BASE_URL } from '@messenger/config/api';
 import ChatScreen from './ChatScreen';
 import OnlineDot from '../components/OnlineDot';
 import useOnlinePresence from '../hooks/useOnlinePresence';
+import { getMainAppUrl as getMainAppUrlFromConfig } from '../config/apiConfig';
 
 // Messenger-web app version (shown in the About section of the profile panel)
 const APP_VERSION = '0.1.0';
 
 // Main matrimonial app URL — profile editing lives there, not in messenger-web.
 const getMainAppUrl = () => {
-  if (typeof window !== 'undefined') {
-    const h = window.location.hostname;
-    if (h === 'messenger.l3v3lmatches.com') return 'https://www.l3v3lmatches.com';
-    if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3000';
-  }
-  return process.env.NODE_ENV === 'production'
-    ? 'https://www.l3v3lmatches.com'
-    : 'http://localhost:3000';
+  return getMainAppUrlFromConfig();
 };
 
 export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout }) {
@@ -51,6 +45,35 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   } = useMessengerStore();
 
   const { user } = useAuthStore();
+
+  const openMainAppWithSso = async (redirectPath = '/dashboard') => {
+    const mainAppUrl = getMainAppUrl();
+    const redirect = typeof redirectPath === 'string' && redirectPath.startsWith('/') ? redirectPath : '/dashboard';
+    const fallbackUrl = `${mainAppUrl}/login?redirect=${encodeURIComponent(redirect)}`;
+
+    try {
+      const api = useAuthStore.getState().getApi();
+      const res = await api.post('/api/auth/sso/issue');
+      const code = res.data?.code;
+
+      const params = new URLSearchParams();
+      if (code) params.set('sso_code', code);
+      params.set('redirect', redirect);
+      const url = `${mainAppUrl}/login?${params.toString()}`;
+
+      if (typeof window !== 'undefined' && window.open) {
+        window.open(url, '_blank', 'noopener');
+      } else {
+        Linking.openURL(url).catch(() => {});
+      }
+    } catch (e) {
+      if (typeof window !== 'undefined' && window.open) {
+        window.open(fallbackUrl, '_blank', 'noopener');
+      } else {
+        Linking.openURL(fallbackUrl).catch(() => {});
+      }
+    }
+  };
 
   // Real-time-ish online presence (polled every 30s). Used to render
   // small green/gray dots on user avatars across the messenger UI.
@@ -588,7 +611,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
             {/* ---- Edit profile ---- */}
             <TouchableOpacity
               style={[styles.profileActionRow, styles.profilePrimaryAction]}
-              onPress={() => openLink(editProfileUrl)}
+              onPress={() => openMainAppWithSso('/edit-profile')}
             >
               <Text style={styles.profileActionIcon}>✏️</Text>
               <Text style={styles.profileActionLabel}>Edit profile</Text>
@@ -702,6 +725,12 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🦋 L3V3L Matches Messenger</Text>
+        <TouchableOpacity
+          style={styles.headerMainAppBtn}
+          onPress={() => openMainAppWithSso('/dashboard')}
+        >
+          <Text style={styles.headerMainAppText}>🏠 Main App</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Main Content */}
@@ -910,6 +939,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#e94560',
     letterSpacing: 0.5,
+  },
+  headerMainAppBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: '#0f3460',
+    borderWidth: 1,
+    borderColor: '#1a1a3e',
+  },
+  headerMainAppText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
   headerTitleCenter: {
     textAlign: 'center',

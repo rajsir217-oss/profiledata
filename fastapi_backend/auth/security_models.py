@@ -197,6 +197,7 @@ class LoginRequest(BaseModel):
     password: str
     remember_me: bool = False
     mfa_code: Optional[str] = None
+    captchaToken: Optional[str] = None
 
 class LoginResponse(BaseModel):
     """User login response"""

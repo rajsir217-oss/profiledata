@@ -60,6 +60,16 @@ export const getFrontendUrl = () => {
   return 'http://localhost:3000';
 };
 
+export const getTurnstileSiteKey = () => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return '1x00000000000000000000AA';
+    }
+  }
+  return '0x4AAAAAACAeADZnXAaS1tep';
+};
+
 /**
  * Get the main app (web frontend) URL where user profiles live.
  * Used to open /profile/:username in a new tab from messenger-web.
@@ -97,6 +107,7 @@ const apiConfig = {
   getBackendUrl,
   getWsUrl,
   getFrontendUrl,
+  getTurnstileSiteKey,
   API_ENDPOINTS
 };
 

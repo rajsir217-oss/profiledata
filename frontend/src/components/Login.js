@@ -1,6 +1,6 @@
 // frontend/src/components/Login.js
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import api from "../api";
 import socketService from "../services/socketService";
@@ -22,6 +22,7 @@ const Login = () => {
   const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
   const turnstileRef = useRef();
   const navigate = useNavigate();
+  const location = useLocation();
   const pageSEO = getPageSEO('login');
 
   // MFA State
@@ -53,6 +54,64 @@ const Login = () => {
       document.body.style.overflow = 'auto';
     };
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const ssoCode = params.get('sso_code');
+    if (!ssoCode) return;
+
+    const redirectParam = params.get('redirect') || '/dashboard';
+    const safeRedirect = typeof redirectParam === 'string' && redirectParam.startsWith('/') ? redirectParam : '/dashboard';
+
+    const exchange = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const res = await axios.post(
+          `${getBackendUrl()}/api/auth/sso/exchange`,
+          { code: ssoCode },
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+
+        const user = res.data?.user;
+        const accessToken = res.data?.access_token;
+        if (!user?.username || !accessToken) {
+          throw new Error('Invalid SSO exchange response');
+        }
+
+        localStorage.setItem('username', user.username);
+        localStorage.setItem('token', accessToken);
+
+        if (res.data.refresh_token) {
+          localStorage.setItem('refreshToken', res.data.refresh_token);
+        }
+
+        const userStatus = user.accountStatus || 'active';
+        localStorage.setItem('userStatus', userStatus);
+
+        const userRole = user.role_name || user.role || 'free_user';
+        localStorage.setItem('userRole', userRole);
+
+        sessionStorage.removeItem('photoReminderDismissed');
+        sessionManager.init();
+        socketService.connect(user.username);
+        localStorage.removeItem('appTheme');
+
+        window.dispatchEvent(new Event('loginStatusChanged'));
+        window.dispatchEvent(new Event('userLoggedIn'));
+
+        navigate(safeRedirect, { replace: true, state: { user } });
+      } catch (err) {
+        console.error('SSO exchange failed:', err);
+        setError('Single sign-on failed. Please log in.');
+        navigate('/login', { replace: true });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    exchange();
+  }, [location.search, navigate]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -95,7 +154,7 @@ const Login = () => {
       localStorage.setItem('userStatus', userStatus);
       
       // Save user role for admin access control
-      const userRole = res.data.user.role_name || 'free_user';
+      const userRole = res.data.user.role_name || res.data.user.role || 'free_user';
       localStorage.setItem('userRole', userRole);
       console.log('👤 User role saved:', userRole);
       
@@ -124,6 +183,12 @@ const Login = () => {
         // Store warning to display on dashboard
         sessionStorage.setItem('mfa_warning', JSON.stringify(res.data.mfa_warning));
       }
+
+      const urlParams = new URLSearchParams(location.search);
+      const requestedRedirect = urlParams.get('redirect');
+      const safeRequestedRedirect = typeof requestedRedirect === 'string' && requestedRedirect.startsWith('/')
+        ? requestedRedirect
+        : null;
       
       // Check for unattended chats before redirecting
       let redirectPath = '/dashboard';
@@ -155,17 +220,40 @@ const Login = () => {
             medium: unattendedData.mediumCount || 0,
             pending: unattendedData.pendingCount || 0
           }));
-          // Continue to user's preferred home page
-          const homePage = res.data.user.homePage || 'dashboard';
-          localStorage.setItem('homePage', homePage);
-          const homeRoutes = {
-            'dashboard': '/dashboard',
-            'search': '/search',
-            'messages': '/messages'
-          };
-          redirectPath = homeRoutes[homePage] || '/dashboard';
+          if (safeRequestedRedirect) {
+            redirectPath = safeRequestedRedirect;
+          } else {
+            // Continue to user's preferred home page
+            const homePage = res.data.user.homePage || 'dashboard';
+            localStorage.setItem('homePage', homePage);
+            const homeRoutes = {
+              'dashboard': '/dashboard',
+              'search': '/search',
+              'messages': '/messages'
+            };
+            redirectPath = homeRoutes[homePage] || '/dashboard';
+          }
         } else {
-          // Redirect to user's preferred home page (default: dashboard)
+          if (safeRequestedRedirect) {
+            redirectPath = safeRequestedRedirect;
+          } else {
+            // Redirect to user's preferred home page (default: dashboard)
+            const homePage = res.data.user.homePage || 'dashboard';
+            localStorage.setItem('homePage', homePage);
+            const homeRoutes = {
+              'dashboard': '/dashboard',
+              'search': '/search',
+              'messages': '/messages'
+            };
+            redirectPath = homeRoutes[homePage] || '/dashboard';
+          }
+        }
+      } catch (unattendedErr) {
+        console.warn('Could not check unattended chats:', unattendedErr);
+        if (safeRequestedRedirect) {
+          redirectPath = safeRequestedRedirect;
+        } else {
+          // Fall back to user's preferred home page
           const homePage = res.data.user.homePage || 'dashboard';
           localStorage.setItem('homePage', homePage);
           const homeRoutes = {
@@ -175,17 +263,6 @@ const Login = () => {
           };
           redirectPath = homeRoutes[homePage] || '/dashboard';
         }
-      } catch (unattendedErr) {
-        console.warn('Could not check unattended chats:', unattendedErr);
-        // Fall back to user's preferred home page
-        const homePage = res.data.user.homePage || 'dashboard';
-        localStorage.setItem('homePage', homePage);
-        const homeRoutes = {
-          'dashboard': '/dashboard',
-          'search': '/search',
-          'messages': '/messages'
-        };
-        redirectPath = homeRoutes[homePage] || '/dashboard';
       }
       
       navigate(redirectPath, { state: { user: res.data.user } });
