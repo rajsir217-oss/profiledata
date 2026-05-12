@@ -34,7 +34,9 @@ export default function useOnlinePresence({ pollMs = POLL_MS, enabled = true } =
     try {
       const api = useAuthStore.getState().getApi();
       const res = await api.get('/api/users/online-status/users');
-      const list = Array.isArray(res.data?.users) ? res.data.users : [];
+      const list = Array.isArray(res.data?.users)
+        ? res.data.users
+        : (Array.isArray(res.data?.onlineUsers) ? res.data.onlineUsers : []);
       const next = new Set(list.map((u) => u?.username).filter(Boolean));
       if (aliveRef.current) {
         setOnlineSet(next);

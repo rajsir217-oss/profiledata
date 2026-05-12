@@ -21,6 +21,7 @@ const Login = () => {
   const [captchaError, setCaptchaError] = useState(false);
   const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
   const turnstileRef = useRef();
+  const ssoExchangeGuardRef = useRef({ code: null });
   const navigate = useNavigate();
   const location = useLocation();
   const pageSEO = getPageSEO('login');
@@ -59,6 +60,9 @@ const Login = () => {
     const params = new URLSearchParams(location.search);
     const ssoCode = params.get('sso_code');
     if (!ssoCode) return;
+
+    if (ssoExchangeGuardRef.current.code === ssoCode) return;
+    ssoExchangeGuardRef.current.code = ssoCode;
 
     const redirectParam = params.get('redirect') || '/dashboard';
     const safeRedirect = typeof redirectParam === 'string' && redirectParam.startsWith('/') ? redirectParam : '/dashboard';
