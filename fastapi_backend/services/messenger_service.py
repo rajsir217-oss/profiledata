@@ -239,7 +239,6 @@ async def get_messages(
     conv = await db.messenger_conversations.find_one(
         {"_id": ObjectId(conversation_id), "participants.username": username},
         {
-            "participants": 0,
             "clearedFor": 1,
             "publicParticipants": 1,
         },
