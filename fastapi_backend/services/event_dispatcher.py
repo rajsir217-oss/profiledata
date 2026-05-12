@@ -1064,6 +1064,12 @@ class EventDispatcher:
         )
 
         user = await self.db.users.find_one({"username": activated_username}) or {}
+        try:
+            from crypto_utils import get_encryptor
+            encryptor = get_encryptor()
+            user = encryptor.decrypt_user_pii(user)
+        except Exception as e:
+            logger.warning(f"⚠️ Activation intro: failed to decrypt PII for {activated_username}: {e}")
         first = user.get("firstName") or user.get("firstname") or ""
         last = user.get("lastName") or user.get("lastname") or ""
         full_name = (f"{first} {last}").strip() or activated_username

@@ -209,12 +209,13 @@ const useAuthStore = create((set, get) => ({
       const { access_token, user } = res.data;
       if (!access_token) throw new Error('No token received');
 
-      await Promise.all([
-        AsyncStorage.setItem(TOKEN_KEY, access_token),
-        AsyncStorage.setItem(USER_KEY, JSON.stringify(user)),
-      ]);
-
       set({ token: access_token, user, isLoading: false, error: null });
+      try {
+        await Promise.all([
+          AsyncStorage.setItem(TOKEN_KEY, access_token),
+          AsyncStorage.setItem(USER_KEY, JSON.stringify(user)),
+        ]);
+      } catch (_) {}
       get().prefetchIntroCard({ force: true });
       return { ok: true };
     } catch (e) {
@@ -222,7 +223,15 @@ const useAuthStore = create((set, get) => ({
       // and metadata (mfa_channel, contact_masked). Surface that to the UI
       // so it can transition to the OTP entry screen.
       const status = e.response?.status;
-      const data = e.response?.data || {};
+      const rawData = e.response?.data;
+      let data = rawData || {};
+      if (typeof rawData === 'string') {
+        try {
+          data = JSON.parse(rawData);
+        } catch (_) {
+          data = { detail: rawData };
+        }
+      }
       if (status === 403 && data.detail === 'MFA_REQUIRED') {
         set({ isLoading: false, error: null });
         return {
@@ -233,7 +242,7 @@ const useAuthStore = create((set, get) => ({
         };
       }
 
-      const msg = data.detail || data.message || 'Login failed. Check your credentials.';
+      const msg = data.detail || data.message || `Login failed (${status || 'unknown'}).`;
       set({ error: msg, isLoading: false });
       return { ok: false, error: msg };
     }

@@ -20,6 +20,7 @@ const LoginScreen = () => {
   const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
   const turnstileRef = useRef();
 
+  const isDevelopment = process.env.NODE_ENV !== 'production';
   const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   const canBypassCaptcha = captchaError && captchaRetryCount >= 3;
 
@@ -53,7 +54,7 @@ const LoginScreen = () => {
       return;
     }
 
-    if (!isLocalhost && !captchaToken && !canBypassCaptcha) {
+    if (!isDevelopment && !isLocalhost && !captchaToken && !canBypassCaptcha) {
       setError('Please complete the security check');
       return;
     }
@@ -62,7 +63,7 @@ const LoginScreen = () => {
     setError('');
 
     try {
-      const captchaTokenForBackend = isLocalhost
+      const captchaTokenForBackend = (isDevelopment || isLocalhost)
         ? 'XXXX.DUMMY.TOKEN.XXXX'
         : (captchaToken || null);
 
@@ -225,7 +226,7 @@ const LoginScreen = () => {
             </TouchableOpacity>
 
             <View style={styles.captchaContainer}>
-              {captchaError ? (
+              {isDevelopment ? null : (captchaError ? (
                 <View style={styles.captchaErrorBox}>
                   <Text style={styles.captchaErrorTitle}>Security check unavailable</Text>
                   {captchaRetryCount < 3 ? (
@@ -245,7 +246,7 @@ const LoginScreen = () => {
                   onExpire={handleCaptchaExpire}
                   theme="light"
                 />
-              )}
+              ))}
             </View>
 
             {displayError && <Text style={styles.error}>{displayError}</Text>}
@@ -253,7 +254,7 @@ const LoginScreen = () => {
             <TouchableOpacity
               style={styles.button}
               onPress={handleSubmit}
-              disabled={loading || (!isLocalhost && !captchaToken && !canBypassCaptcha)}
+              disabled={loading || (!isDevelopment && !isLocalhost && !captchaToken && !canBypassCaptcha)}
             >
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign In</Text>}
             </TouchableOpacity>

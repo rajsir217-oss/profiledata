@@ -67,7 +67,7 @@ async def verify_turnstile_token(token: str) -> bool:
 
     try:
         async with httpx.AsyncClient() as client:
-            verify_response = await client.post(verify_url, json=verify_data, timeout=10.0)
+            verify_response = await client.post(verify_url, data=verify_data, timeout=10.0)
             result = verify_response.json()
             return bool(result.get("success"))
     except Exception as e:
@@ -325,13 +325,28 @@ async def login(
                 status_code=403,
                 detail=f"Account is locked until {locked_until}. Please try again later."
             )
-        
+
         # Check if account is active
-        if status_info.get("status") not in [USER_STATUS["ACTIVE"], USER_STATUS["PENDING_VERIFICATION"]]:
-            raise HTTPException(status_code=403, detail=f"Account is {status_info.get('status')}")
+        # Prefer unified accountStatus (new schema), fallback to legacy status.status.
+        account_status = (user.get("accountStatus") or "").strip().lower()
+        legacy_status = (status_info.get("status") or "").strip().lower()
+        effective_status = account_status or legacy_status
+
+        allowed_statuses = {
+            USER_STATUS["ACTIVE"],
+            USER_STATUS["PENDING_VERIFICATION"],
+            "pending_email_verification",
+            "pending_admin_approval",
+            "pending_verification",
+        }
+
+        # If no status field exists at all (older docs), fail-open for login.
+        # Endpoints can still enforce accountStatus as needed.
+        if effective_status and effective_status not in allowed_statuses:
+            raise HTTPException(status_code=403, detail=f"Account is {effective_status}")
         
         # Verify password
-        password_hash = security.get("password_hash")
+        password_hash = security.get("password_hash") or user.get("password")
         if not PasswordManager.verify_password(login_request.password, password_hash):
             # Increment failed attempts
             failed_attempts = security.get("failed_login_attempts", 0) + 1
