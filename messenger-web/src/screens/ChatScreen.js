@@ -245,74 +245,78 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     setSendingProfileCard(true);
     setSendError(null);
     try {
-      const api = useAuthStore.getState().getApi();
-      // Fetch the freshest profile so the snapshot reflects the latest edits.
-      const profRes = await api.get(`/api/users/profile/${user.username}?requester=${user.username}`);
-      const p = profRes.data?.user || profRes.data || {};
-      const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.username || user.username;
-      // The main app uses birthMonth / birthYear (no day). Synthesize a label
-      // like "11/1995" for the card pill, plus an ISO-ish dob fallback for
-      // anything that wants a real date.
-      const rawDob = p.dob || p.dateOfBirth || null;
-      const age = calcAge(rawDob, p.birthYear, p.birthMonth);
-      let dobLabel = null;
-      if (rawDob) {
-        const parsed = new Date(rawDob);
-        if (!Number.isNaN(parsed.getTime())) {
-          dobLabel = parsed.toLocaleDateString('en-US', { month: '2-digit', year: 'numeric' });
+      const store = useAuthStore.getState();
+      const api = store.getApi();
+      let snapshot = await store.prefetchIntroCard({ force: false });
+      if (!snapshot) {
+        // Fetch the freshest profile so the snapshot reflects the latest edits.
+        const profRes = await api.get(`/api/users/profile/${user.username}?requester=${user.username}`);
+        const p = profRes.data?.user || profRes.data || {};
+        const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.username || user.username;
+        // The main app uses birthMonth / birthYear (no day). Synthesize a label
+        // like "11/1995" for the card pill, plus an ISO-ish dob fallback for
+        // anything that wants a real date.
+        const rawDob = p.dob || p.dateOfBirth || null;
+        const age = calcAge(rawDob, p.birthYear, p.birthMonth);
+        let dobLabel = null;
+        if (rawDob) {
+          const parsed = new Date(rawDob);
+          if (!Number.isNaN(parsed.getTime())) {
+            dobLabel = parsed.toLocaleDateString('en-US', { month: '2-digit', year: 'numeric' });
+          }
+        } else if (p.birthMonth && p.birthYear) {
+          dobLabel = `${String(p.birthMonth).padStart(2, '0')}/${p.birthYear}`;
         }
-      } else if (p.birthMonth && p.birthYear) {
-        dobLabel = `${String(p.birthMonth).padStart(2, '0')}/${p.birthYear}`;
+        const avatarPath = p.imageVisibility?.profilePic || p.images?.[0] || p.profileImage || null;
+        // Height is stored in one of three shapes across the codebase:
+        //   1. p.height           — already-formatted string ("5'8\"")
+        //   2. p.heightFeet + p.heightInches (inches 0-11) — Register form shape
+        //   3. p.heightInches alone — total inches int (search results)
+        let heightLabel = null;
+        if (p.height && String(p.height).trim()) {
+          heightLabel = String(p.height).trim();
+        } else if (p.heightFeet) {
+          const inches = Number(p.heightInches) || 0;
+          heightLabel = `${p.heightFeet}'${inches}"`;
+        } else if (p.heightInches && Number(p.heightInches) > 11) {
+          const total = Number(p.heightInches);
+          heightLabel = `${Math.floor(total / 12)}'${total % 12}"`;
+        }
+        // Profile schema (see fastapi_backend/models/user_models.py + Register2.js):
+        //   educationHistory: [{ level, degree, institution }]
+        //   workExperience:   [{ status: 'current'|'past', workType, description, location }]
+        //   partnerPreference: free-text "what I'm looking for" blurb
+        //   customPartnerPreference: admin/user override (preferred when present)
+        snapshot = {
+          username: p.username || user.username,
+          fullName,
+          avatarUrl: buildImageUrl(avatarPath),
+          age,
+          dob: rawDob,
+          dobLabel,
+          height: heightLabel,
+          // Just the city — Education / Work are shown in their own sections.
+          location: p.location || p.currentLocation || null,
+          // Persist arrays exactly as stored — the renderer knows the schema.
+          educationHistory: Array.isArray(p.educationHistory) ? p.educationHistory : [],
+          workExperience: Array.isArray(p.workExperience) ? p.workExperience : [],
+          // Static blurb at the bottom of the Introduction card. The wording is
+          // gendered against the profile holder so it reads correctly to the
+          // recipient: a male profile is "looking for a bride for our son",
+          // a female profile is "looking for a groom for our daughter".
+          // Falls back to a neutral phrasing if gender is missing/unknown.
+          message: (() => {
+            const g = String(p.gender || '').trim().toLowerCase();
+            if (g === 'male' || g === 'm' || g === 'man') {
+              return 'Looking for a suitable bride for our son — please review the profile for details and Contact me. Thanks';
+            }
+            if (g === 'female' || g === 'f' || g === 'woman') {
+              return 'Looking for a suitable groom for our daughter — please review the profile for details and Contact me. Thanks';
+            }
+            return 'Looking for a suitable match — please review the profile for details and Contact me. Thanks';
+          })(),
+        };
       }
-      const avatarPath = p.imageVisibility?.profilePic || p.images?.[0] || p.profileImage || null;
-      // Height is stored in one of three shapes across the codebase:
-      //   1. p.height           — already-formatted string ("5'8\"")
-      //   2. p.heightFeet + p.heightInches (inches 0-11) — Register form shape
-      //   3. p.heightInches alone — total inches int (search results)
-      let heightLabel = null;
-      if (p.height && String(p.height).trim()) {
-        heightLabel = String(p.height).trim();
-      } else if (p.heightFeet) {
-        const inches = Number(p.heightInches) || 0;
-        heightLabel = `${p.heightFeet}'${inches}"`;
-      } else if (p.heightInches && Number(p.heightInches) > 11) {
-        const total = Number(p.heightInches);
-        heightLabel = `${Math.floor(total / 12)}'${total % 12}"`;
-      }
-      // Profile schema (see fastapi_backend/models/user_models.py + Register2.js):
-      //   educationHistory: [{ level, degree, institution }]
-      //   workExperience:   [{ status: 'current'|'past', workType, description, location }]
-      //   partnerPreference: free-text "what I'm looking for" blurb
-      //   customPartnerPreference: admin/user override (preferred when present)
-      const snapshot = {
-        username: p.username || user.username,
-        fullName,
-        avatarUrl: buildImageUrl(avatarPath),
-        age,
-        dob: rawDob,
-        dobLabel,
-        height: heightLabel,
-        // Just the city — Education / Work are shown in their own sections.
-        location: p.location || p.currentLocation || null,
-        // Persist arrays exactly as stored — the renderer knows the schema.
-        educationHistory: Array.isArray(p.educationHistory) ? p.educationHistory : [],
-        workExperience: Array.isArray(p.workExperience) ? p.workExperience : [],
-        // Static blurb at the bottom of the Introduction card. The wording is
-        // gendered against the profile holder so it reads correctly to the
-        // recipient: a male profile is "looking for a bride for our son",
-        // a female profile is "looking for a groom for our daughter".
-        // Falls back to a neutral phrasing if gender is missing/unknown.
-        message: (() => {
-          const g = String(p.gender || '').trim().toLowerCase();
-          if (g === 'male' || g === 'm' || g === 'man') {
-            return 'Looking for a suitable bride for our son — please review the profile for details and Contact me. Thanks';
-          }
-          if (g === 'female' || g === 'f' || g === 'woman') {
-            return 'Looking for a suitable groom for our daughter — please review the profile for details and Contact me. Thanks';
-          }
-          return 'Looking for a suitable match — please review the profile for details and Contact me. Thanks';
-        })(),
-      };
       await api.post(`/api/messenger/conversations/${id}/messages`, {
         conversationId: id,
         contentType: 'profile_card',
