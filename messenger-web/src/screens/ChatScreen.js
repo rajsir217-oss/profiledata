@@ -320,13 +320,23 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           })(),
         };
       }
-      await api.post(`/api/messenger/conversations/${id}/messages`, {
+      const res = await api.post(`/api/messenger/conversations/${id}/messages`, {
         conversationId: id,
         contentType: 'profile_card',
         content: snapshot.message || '',
         cardSnapshot: snapshot,
       });
-      await loadMessages();
+
+      const created = res?.data?.message;
+      if (created) {
+        setMessages((prev) => {
+          const next = Array.isArray(prev) ? [...prev] : [];
+          next.push(created);
+          return next;
+        });
+      } else {
+        await loadMessages();
+      }
     } catch (e) {
       console.error('❌ Failed to send profile card:', e);
       const detail = e?.response?.data?.detail;
