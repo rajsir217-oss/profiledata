@@ -7,10 +7,15 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from datetime import datetime, timedelta
 from typing import Optional
 from bson import ObjectId
+from pydantic import BaseModel
+from pymongo import ReturnDocument
+import hashlib
+import secrets
 import sys
 import os
 import logging
 import re
+import httpx
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -30,8 +35,11 @@ from .authorization import PermissionChecker
 from services.activity_logger import get_activity_logger
 from models.activity_models import ActivityType
 from middleware.rate_limiter import limiter, RATE_LIMITS
+from config import Settings
 
 logger = logging.getLogger(__name__)
+
+settings = Settings()
 
 # Helper function for case-insensitive username lookup
 def get_username_query(username: str):
@@ -39,6 +47,41 @@ def get_username_query(username: str):
     return {"username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}}
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+
+async def verify_turnstile_token(token: str) -> bool:
+    if not token:
+        return False
+
+    if token == "XXXX.DUMMY.TOKEN.XXXX":
+        return settings.env != "production"
+
+    if not settings.turnstile_secret_key:
+        return True
+
+    verify_url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+    verify_data = {
+        "secret": settings.turnstile_secret_key,
+        "response": token,
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            verify_response = await client.post(verify_url, json=verify_data, timeout=10.0)
+            result = verify_response.json()
+            return bool(result.get("success"))
+    except Exception as e:
+        logger.error(f"Turnstile verification error: {e}")
+        return True
+
+
+class SsoExchangeRequest(BaseModel):
+    code: str
+
+
+class SsoIssueResponse(BaseModel):
+    code: str
+    expires_in: int
 
 
 def _decrypt_contact_info(value: str) -> str:
@@ -245,6 +288,16 @@ async def login(
 ):
     """User login"""
     try:
+        if login_request.mfa_code:
+            pass
+        elif login_request.captchaToken:
+            captcha_ok = await verify_turnstile_token(login_request.captchaToken)
+            if not captcha_ok:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="CAPTCHA verification failed. Please try again."
+                )
+
         # Get user (case-insensitive lookup)
         user = await db.users.find_one(get_username_query(login_request.username))
         
@@ -764,6 +817,156 @@ async def get_current_user(
     }
     
     return user_data
+
+
+@router.post("/sso/issue", response_model=SsoIssueResponse)
+async def issue_sso_code(
+    http_request: Request,
+    current_user: dict = Depends(get_current_user_dependency),
+    db = Depends(get_database)
+):
+    try:
+        username = current_user.get("username")
+        if not username:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
+
+        try:
+            await db.sso_codes.create_index("expiresAt", expireAfterSeconds=0)
+            await db.sso_codes.create_index("codeHash", unique=True)
+        except Exception:
+            pass
+
+        raw_code = secrets.token_urlsafe(32)
+        code_hash = hashlib.sha256(raw_code.encode("utf-8")).hexdigest()
+        now = datetime.utcnow()
+        expires_in = 90
+        expires_at = now + timedelta(seconds=expires_in)
+
+        await db.sso_codes.insert_one({
+            "codeHash": code_hash,
+            "username": username,
+            "issuedAt": now,
+            "expiresAt": expires_at,
+            "usedAt": None,
+            "issuedIp": http_request.client.host,
+            "issuedUserAgent": http_request.headers.get("user-agent"),
+        })
+
+        return SsoIssueResponse(code=raw_code, expires_in=expires_in)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"SSO issue error: {e}")
+        raise HTTPException(status_code=500, detail="Could not issue SSO code")
+
+
+@router.post("/sso/exchange", response_model=dict)
+async def exchange_sso_code(
+    payload: SsoExchangeRequest,
+    http_request: Request,
+    db = Depends(get_database)
+):
+    try:
+        code = (payload.code or "").strip()
+        if not code:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing code")
+
+        now = datetime.utcnow()
+        code_hash = hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+        code_doc = await db.sso_codes.find_one_and_update(
+            {
+                "codeHash": code_hash,
+                "expiresAt": {"$gt": now},
+                "usedAt": None,
+            },
+            {
+                "$set": {
+                    "usedAt": now,
+                    "usedIp": http_request.client.host,
+                    "usedUserAgent": http_request.headers.get("user-agent"),
+                }
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+
+        if not code_doc:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired code")
+
+        username = code_doc.get("username")
+        if not username:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid code")
+
+        user = await db.users.find_one(get_username_query(username))
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
+        tokens = create_token_pair(user, remember_me=False)
+
+        session_expires_delta = timedelta(days=7)
+        await db.sessions.insert_one({
+            "user_id": str(user.get("_id")),
+            "username": user.get("username"),
+            "token": tokens.get("access_token"),
+            "refresh_token": tokens.get("refresh_token"),
+            "session_type": "web",
+            "ip_address": http_request.client.host,
+            "user_agent": http_request.headers.get("user-agent"),
+            "created_at": now,
+            "expires_at": now + session_expires_delta,
+            "last_activity": now,
+            "revoked": False,
+            "auth_method": "sso_code",
+        })
+
+        await db.users.update_one(
+            {"_id": user.get("_id")},
+            {
+                "$set": {
+                    "security.last_login_at": now,
+                    "security.last_login_ip": http_request.client.host,
+                    "status.is_online": True,
+                    "status.last_seen": now,
+                }
+            },
+        )
+
+        try:
+            await AuditLogger.log_event(
+                db=db,
+                user_id=str(user.get("_id")),
+                username=user.get("username"),
+                action="sso_exchange_success",
+                resource="auth",
+                status="success",
+                ip_address=http_request.client.host,
+                user_agent=http_request.headers.get("user-agent"),
+            )
+        except Exception:
+            pass
+
+        user_data = {
+            "username": user.get("username"),
+            "email": user.get("email") or user.get("contactEmail"),
+            "firstName": user.get("firstName"),
+            "lastName": user.get("lastName"),
+            "role": user.get("role_name"),
+            "role_name": user.get("role_name"),
+        }
+
+        return {
+            "access_token": tokens.get("access_token"),
+            "refresh_token": tokens.get("refresh_token"),
+            "token_type": tokens.get("token_type", "bearer"),
+            "expires_in": tokens.get("expires_in"),
+            "user": user_data,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"SSO exchange error: {e}")
+        raise HTTPException(status_code=500, detail="Could not exchange SSO code")
 
 # ===== CHANGE PASSWORD =====
 

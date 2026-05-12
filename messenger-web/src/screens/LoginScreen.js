@@ -1,9 +1,11 @@
 // messenger-web/src/screens/LoginScreen.js
 // Adapted from main app Login.js for react-native-web
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import Turnstile from 'react-turnstile';
 import useAuthStore from '@messenger/stores/authStore';
 import { API_BASE_URL } from '@messenger/config/api';
+import { getMainAppUrl, getTurnstileSiteKey } from '../config/apiConfig';
 
 const LoginScreen = () => {
   const [form, setForm] = useState({ username: '', password: '' });
@@ -12,6 +14,14 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { login, error: storeError } = useAuthStore();
   const displayError = error || storeError;
+
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const [captchaError, setCaptchaError] = useState(false);
+  const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
+  const turnstileRef = useRef();
+
+  const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const canBypassCaptcha = captchaError && captchaRetryCount >= 3;
 
   // MFA State
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -29,9 +39,22 @@ const LoginScreen = () => {
     }
   };
 
+  const openMainApp = (path = '') => {
+    const base = getMainAppUrl();
+    const url = path ? `${base}${path.startsWith('/') ? path : `/${path}`}` : base;
+    if (typeof window !== 'undefined' && window.open) {
+      window.open(url, '_blank', 'noopener');
+    }
+  };
+
   const handleSubmit = async () => {
     if (!form.username.trim() || !form.password.trim()) {
       setError('Please enter username and password');
+      return;
+    }
+
+    if (!isLocalhost && !captchaToken && !canBypassCaptcha) {
+      setError('Please complete the security check');
       return;
     }
 
@@ -39,10 +62,14 @@ const LoginScreen = () => {
     setError('');
 
     try {
+      const captchaTokenForBackend = isLocalhost
+        ? 'XXXX.DUMMY.TOKEN.XXXX'
+        : (captchaToken || null);
+
       const result = await login(
         form.username.trim(),
         form.password.trim(),
-        'XXXX.DUMMY.TOKEN.XXXX'  // Dummy CAPTCHA token for dev (messenger-web)
+        captchaTokenForBackend
       );
 
       if (result?.ok) return; // Auth state will route us to chats.
@@ -65,6 +92,32 @@ const LoginScreen = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCaptchaChange = (token) => {
+    setCaptchaToken(token);
+    setCaptchaError(false);
+    setError('');
+  };
+
+  const handleCaptchaError = () => {
+    setCaptchaError(true);
+    setCaptchaRetryCount(prev => prev + 1);
+    setCaptchaToken(null);
+  };
+
+  const handleCaptchaExpire = () => {
+    setCaptchaToken(null);
+  };
+
+  const retryCaptcha = () => {
+    setCaptchaError(false);
+    setCaptchaToken(null);
+    try {
+      if (turnstileRef.current) {
+        turnstileRef.current.reset();
+      }
+    } catch (_) {}
   };
 
   const sendMfaCode = async () => {
@@ -103,7 +156,7 @@ const LoginScreen = () => {
       const result = await login(
         form.username.trim(),
         form.password.trim(),
-        'XXXX.DUMMY.TOKEN.XXXX',  // Dummy CAPTCHA token
+        null,
         mfaCode.trim()
       );
 
@@ -118,12 +171,19 @@ const LoginScreen = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        <Text style={styles.title}>L3V3L Messenger</Text>
+      <View style={styles.page}>
+        <View style={styles.card}>
+          <View style={styles.brandHeader}>
+            <Text style={styles.brandIcon}>🦋</Text>
+            <Text style={styles.brandText}>L3V3L</Text>
+          </View>
+          <Text style={styles.title}>{mfaRequired ? 'Verification Required' : 'Welcome Back!'}</Text>
+          <Text style={styles.subtitle}>
+            {mfaRequired ? `Enter the code sent to your ${mfaChannel || 'email'}` : 'Sign in to continue'}
+          </Text>
 
-        {!mfaRequired ? (
-          /* Regular Login Form */
-          <>
+          {!mfaRequired ? (
+            <>
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
@@ -157,14 +217,52 @@ const LoginScreen = () => {
               </TouchableOpacity>
             </View>
 
+            <TouchableOpacity
+              style={styles.forgotRow}
+              onPress={() => openMainApp('/forgot-password')}
+            >
+              <Text style={styles.forgotText}>Forgot Password?</Text>
+            </TouchableOpacity>
+
+            <View style={styles.captchaContainer}>
+              {captchaError ? (
+                <View style={styles.captchaErrorBox}>
+                  <Text style={styles.captchaErrorTitle}>Security check unavailable</Text>
+                  {captchaRetryCount < 3 ? (
+                    <TouchableOpacity style={styles.captchaRetryBtn} onPress={retryCaptcha}>
+                      <Text style={styles.captchaRetryText}>Retry</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={styles.captchaBypassText}>Proceeding without security check</Text>
+                  )}
+                </View>
+              ) : (
+                <Turnstile
+                  ref={turnstileRef}
+                  sitekey={getTurnstileSiteKey()}
+                  onVerify={handleCaptchaChange}
+                  onError={handleCaptchaError}
+                  onExpire={handleCaptchaExpire}
+                  theme="light"
+                />
+              )}
+            </View>
+
             {displayError && <Text style={styles.error}>{displayError}</Text>}
 
-            <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleSubmit}
+              disabled={loading || (!isLocalhost && !captchaToken && !canBypassCaptcha)}
+            >
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign In</Text>}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.openMainAppBtn} onPress={() => openMainApp('')}>
+              <Text style={styles.openMainAppText}>🏠 Open Main App</Text>
             </TouchableOpacity>
           </>
         ) : (
-          /* MFA Verification Form */
           <>
             <View style={styles.mfaInfo}>
               <Text style={styles.mfaInfoText}>
@@ -202,29 +300,153 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </>
         )}
+        </View>
       </View>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollContainer: { flexGrow: 1, backgroundColor: '#6C3FA0' },
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#6C3FA0' },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#fff', marginBottom: 40 },
-  inputContainer: { width: '100%', marginBottom: 15, position: 'relative' },
-  input: { width: '100%', padding: 15, backgroundColor: '#fff', borderRadius: 8, fontSize: 16 },
-  passwordToggle: { position: 'absolute', right: 15, top: 15 },
-  passwordToggleText: { fontSize: 20 },
-  error: { color: '#ff6b6b', marginBottom: 15, textAlign: 'center' },
-  button: { backgroundColor: '#fff', padding: 15, borderRadius: 8, width: '100%', alignItems: 'center', marginBottom: 10 },
-  buttonText: { color: '#6C3FA0', fontSize: 16, fontWeight: 'bold' },
-  mfaInfo: { backgroundColor: 'rgba(255, 255, 255, 0.1)', padding: 16, borderRadius: 12, marginBottom: 24, width: '100%' },
-  mfaInfoText: { fontSize: 14, color: '#fff', textAlign: 'center' },
-  mfaInfoTextBold: { fontWeight: 'bold' },
-  resendButton: { padding: 10 },
-  resendButtonText: { color: '#fff', fontSize: 14 },
-  backButton: { padding: 10 },
-  backButtonText: { color: '#fff', fontSize: 14 },
+  scrollContainer: {
+    flexGrow: 1,
+    backgroundColor: '#0f0f23',
+    paddingVertical: 24,
+  },
+  page: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: '#1a1a3e',
+  },
+  brandHeader: {
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  brandIcon: {
+    fontSize: 40,
+    lineHeight: 44,
+  },
+  brandText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#e94560',
+    letterSpacing: 2,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#16213e',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  inputContainer: { width: '100%', marginBottom: 14, position: 'relative' },
+  input: {
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    fontSize: 15,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+  },
+  passwordToggle: { position: 'absolute', right: 12, top: 12 },
+  passwordToggleText: { fontSize: 18 },
+  forgotRow: {
+    alignSelf: 'flex-end',
+    marginBottom: 14,
+  },
+  forgotText: {
+    fontSize: 14,
+    color: '#4f46e5',
+    fontWeight: '600',
+  },
+  captchaContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  captchaErrorBox: {
+    width: '100%',
+    maxWidth: 320,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    alignItems: 'center',
+  },
+  captchaErrorTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  captchaRetryBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  captchaRetryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  captchaBypassText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  error: { color: '#ef4444', marginBottom: 14, textAlign: 'center' },
+  button: {
+    backgroundColor: '#16213e',
+    paddingVertical: 14,
+    borderRadius: 999,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  openMainAppBtn: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  openMainAppText: {
+    color: '#111827',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  mfaInfo: {
+    backgroundColor: '#f3f4f6',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 18,
+    width: '100%',
+  },
+  mfaInfoText: { fontSize: 14, color: '#111827', textAlign: 'center' },
+  mfaInfoTextBold: { fontWeight: '800' },
+  resendButton: { paddingVertical: 10, alignItems: 'center' },
+  resendButtonText: { color: '#4f46e5', fontSize: 14, fontWeight: '700' },
+  backButton: { paddingVertical: 10, alignItems: 'center' },
+  backButtonText: { color: '#6b7280', fontSize: 14, fontWeight: '600' },
 });
 
 export default LoginScreen;
