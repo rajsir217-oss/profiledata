@@ -5,7 +5,7 @@ import axios from "axios";
 import api from "../api";
 import socketService from "../services/socketService";
 import sessionManager from "../services/sessionManager";
-import { getBackendUrl } from "../config/apiConfig";
+import { getBackendUrl, getTurnstileSiteKey } from "../config/apiConfig";
 import SEO from "./SEO";
 import { getPageSEO } from "../utils/seo";
 // Using Cloudflare Turnstile instead of reCAPTCHA (100% free, no limits)
@@ -20,6 +20,7 @@ const Login = () => {
   const [captchaToken, setCaptchaToken] = useState(null);
   const [captchaError, setCaptchaError] = useState(false);
   const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
+  const [captchaLoaded, setCaptchaLoaded] = useState(false);
   const turnstileRef = useRef();
   const ssoExchangeGuardRef = useRef({ code: null });
   const navigate = useNavigate();
@@ -305,6 +306,7 @@ const Login = () => {
     console.log("CAPTCHA verified:", token ? "✓" : "✗");
     setCaptchaToken(token);
     setCaptchaError(false);
+    setCaptchaLoaded(true);
     setError(""); // Clear error when CAPTCHA is completed
   };
 
@@ -312,6 +314,8 @@ const Login = () => {
     console.error("CAPTCHA error - Cloudflare Turnstile failed to load");
     setCaptchaError(true);
     setCaptchaRetryCount(prev => prev + 1);
+    setCaptchaToken(null);
+    setCaptchaLoaded(false);
   };
 
   const handleCaptchaExpire = () => {
@@ -321,10 +325,21 @@ const Login = () => {
 
   const retryCaptcha = () => {
     setCaptchaError(false);
+    setCaptchaLoaded(false);
+    setCaptchaToken(null);
     if (turnstileRef.current) {
       turnstileRef.current.reset();
     }
   };
+
+  useEffect(() => {
+    if (mfaRequired || captchaLoaded || captchaError || captchaToken) return;
+    const timer = setTimeout(() => {
+      setCaptchaError(true);
+      setCaptchaRetryCount(prev => prev + 1);
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, [mfaRequired, captchaLoaded, captchaError, captchaToken]);
 
   // Allow bypass after 3 failed captcha attempts (Cloudflare issues)
   const canBypassCaptcha = captchaRetryCount >= 3;
@@ -530,12 +545,9 @@ const Login = () => {
             ) : (
               <Turnstile
                 ref={turnstileRef}
-                sitekey={
-                  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                    ? "1x00000000000000000000AA"  // Test key for localhost (always passes)
-                    : "0x4AAAAAACAeADZnXAaS1tep"   // Production key
-                }
+                sitekey={getTurnstileSiteKey()}
                 onVerify={handleCaptchaChange}
+                onLoad={() => setCaptchaLoaded(true)}
                 onError={handleCaptchaError}
                 onExpire={handleCaptchaExpire}
                 theme="light"

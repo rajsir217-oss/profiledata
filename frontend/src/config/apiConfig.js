@@ -111,6 +111,22 @@ export const getMessengerUrl = () => {
   return 'http://localhost:3030';
 };
 
+export const getTurnstileSiteKey = () => {
+  if (typeof window !== 'undefined' && window.RUNTIME_CONFIG?.TURNSTILE_SITE_KEY) {
+    return window.RUNTIME_CONFIG.TURNSTILE_SITE_KEY;
+  }
+  if (process.env.REACT_APP_TURNSTILE_SITE_KEY) {
+    return process.env.REACT_APP_TURNSTILE_SITE_KEY;
+  }
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return '1x00000000000000000000AA';
+    }
+  }
+  return '0x4AAAAAACAeADZnXAaS1tep';
+};
+
 /**
  * API Endpoints configuration
  * Centralized list of all API endpoints used across the app
@@ -154,6 +170,7 @@ const apiConfig = {
   getBackendUrl,
   getApiUrl,
   getFrontendUrl,
+  getTurnstileSiteKey,
   API_ENDPOINTS
 };
 
