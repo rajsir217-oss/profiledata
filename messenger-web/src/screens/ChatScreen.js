@@ -34,8 +34,10 @@ const calcAge = (dob, birthYear, birthMonth) => {
 // ConversationListScreen so the card renders the same picture as the sidebar.
 const buildImageUrl = (path) => {
   if (!path) return null;
+  if (typeof path !== 'string') return null;
+  const normalized = !path.startsWith('http') && !path.startsWith('/') ? `/${path}` : path;
   const token = useAuthStore.getState().token;
-  const fullUrl = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
+  const fullUrl = normalized.startsWith('http') ? normalized : `${API_BASE_URL}${normalized}`;
   if (token && !fullUrl.includes('token=')) {
     const sep = fullUrl.includes('?') ? '&' : '?';
     return `${fullUrl}${sep}token=${encodeURIComponent(token)}`;
@@ -49,9 +51,7 @@ const buildImageUrl = (path) => {
 // `card` is the immutable snapshot persisted on the message document.
 function ProfileCard({ card, isOwn, onUsernameClick }) {
   if (!card) return null;
-  const avatarUri = card.avatarUrl
-    ? (String(card.avatarUrl).startsWith('http') ? card.avatarUrl : buildImageUrl(card.avatarUrl))
-    : null;
+  const avatarUri = card.avatarUrl ? buildImageUrl(String(card.avatarUrl)) : null;
   // Pills mirror the main-app card: age · DOB (MM/YYYY) · height. Prefer the
   // pre-formatted `dobLabel` (built from birthMonth/birthYear) and only fall
   // back to a runtime format if an ISO `dob` string is present.
