@@ -1989,21 +1989,18 @@ const Profile = ({
               <div className="stat-ribbon-item stat-views">
                 <span className="stat-icon">👁️</span>
                 <span className="stat-value">{kpiStats.profileViews}</span>
-                <div className="ribbon-flag"></div>
               </div>
               
               {/* Shortlisted */}
               <div className="stat-ribbon-item stat-shortlist">
                 <span className="stat-icon">📝</span>
                 <span className="stat-value">{kpiStats.shortlistedBy}</span>
-                <div className="ribbon-flag"></div>
               </div>
               
               {/* Favorites */}
               <div className="stat-ribbon-item stat-favorites">
                 <span className="stat-icon">❤️</span>
                 <span className="stat-value">{kpiStats.favoritedBy}</span>
-                <div className="ribbon-flag"></div>
               </div>
             </div>
           )}

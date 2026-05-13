@@ -1,6 +1,6 @@
 /* Dashboard Container - Full width layout (same as Admin page) */
 .dashboard-container {
-  padding: 20px;
+  padding: 5px;
   width: 100%;
   margin: 0;
   background: var(--background-color);
@@ -411,7 +411,7 @@
 .dashboard-stats-overview.stats-with-poll {
   display: inline-flex;
   flex-wrap: nowrap;
-  gap: var(--spacing-md, 16px);
+  gap: var(--spacing-sm, 10px);
   align-items: stretch;
   justify-content: flex-start;
   width: auto;
@@ -727,43 +727,53 @@
 
 /* Color accent for each stat card type */
 .stat-card-compact.stat-card-primary {
-  border-left: 3px solid var(--primary-color, #667eea);
+  --stat-accent: var(--primary-color);
+  border-left: 3px solid var(--stat-accent);
 }
 
 .stat-card-compact.stat-card-success {
-  border-left: 3px solid var(--success-color, #10b981);
+  --stat-accent: var(--success-color);
+  border-left: 3px solid var(--stat-accent);
 }
 
 .stat-card-compact.stat-card-info {
-  border-left: 3px solid var(--info-color, #3b82f6);
+  --stat-accent: var(--info-color);
+  border-left: 3px solid var(--stat-accent);
 }
 
 .stat-card-compact.stat-card-warning {
-  border-left: 3px solid var(--warning-color, #f59e0b);
+  --stat-accent: var(--warning-color);
+  border-left: 3px solid var(--stat-accent);
 }
 
 .stat-card-compact.stat-card-purple {
-  border-left: 3px solid #8b5cf6;
+  --stat-accent: var(--secondary-color);
+  border-left: 3px solid var(--stat-accent);
 }
 
 .stat-card-compact.stat-card-favorites {
-  border-left: 3px solid #fbbf24;
+  --stat-accent: var(--accent-color);
+  border-left: 3px solid var(--stat-accent);
 }
 
 .stat-card-compact.stat-card-shortlist {
-  border-left: 3px solid #06b6d4;
+  --stat-accent: var(--info-color);
+  border-left: 3px solid var(--stat-accent);
 }
 
 .stat-card-compact.stat-card-favorited-me {
-  border-left: 3px solid #ec4899;
+  --stat-accent: var(--secondary-color);
+  border-left: 3px solid var(--stat-accent);
 }
 
 .stat-card-compact.stat-card-shortlisted-me {
-  border-left: 3px solid #14b8a6;
+  --stat-accent: var(--info-color);
+  border-left: 3px solid var(--stat-accent);
 }
 
 .stat-card-compact.stat-card-saved-search {
-  border-left: 3px solid #8b5cf6;
+  --stat-accent: var(--secondary-color);
+  border-left: 3px solid var(--stat-accent);
 }
 
 .stat-card-compact.stat-card-disabled {
@@ -836,6 +846,79 @@
   color: var(--text-muted, var(--text-secondary));
   font-weight: 400;
   white-space: nowrap;
+}
+
+@media (min-width: 641px) {
+  .dashboard-stats-overview.stats-with-poll {
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 4px;
+  }
+
+  .dashboard-stats-overview.stats-with-poll .stat-card-compact {
+    position: relative;
+    flex: 0 0 auto;
+    width: 68px;
+    min-width: 68px;
+    height: 76px;
+    padding: 8px 8px 10px 8px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+    border-left: none;
+    border-radius: var(--radius-md, 12px);
+    background: color-mix(in srgb, var(--card-background) 50%, var(--stat-accent, var(--primary-color)) 50%);
+    border: 0;
+    box-shadow: var(--shadow-md);
+  }
+
+  .dashboard-stats-overview.stats-with-poll .stat-card-compact::after {
+    content: none;
+  }
+
+  .dashboard-stats-overview.stats-with-poll .stat-card-compact:hover {
+    background: color-mix(in srgb, var(--card-background) 42%, var(--stat-accent, var(--primary-color)) 58%);
+    box-shadow:
+      0 10px 20px color-mix(in srgb, transparent 76%, var(--stat-accent, var(--primary-color)) 24%),
+      0 4px 10px var(--shadow-color, rgba(0, 0, 0, 0.12));
+    transform: translateY(-2px);
+  }
+
+  .dashboard-stats-overview.stats-with-poll .stat-card-compact:hover .stat-icon-compact {
+    background: color-mix(in srgb, var(--background-color) 62%, var(--stat-accent, var(--primary-color)) 38%);
+    filter: brightness(1.08) saturate(1.12);
+  }
+
+  .dashboard-stats-overview.stats-with-poll .stat-icon-compact {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    background: color-mix(in srgb, var(--background-color) 70%, var(--stat-accent, var(--primary-color)) 30%);
+  }
+
+  .dashboard-stats-overview.stats-with-poll .stat-content-compact {
+    flex: 0 0 auto;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .dashboard-stats-overview.stats-with-poll .stat-value-compact {
+    font-size: 18px;
+    font-weight: 800;
+  }
+
+  .dashboard-stats-overview.stats-with-poll .stat-label-compact,
+  .dashboard-stats-overview.stats-with-poll .stat-sublabel-compact {
+    display: none;
+  }
 }
 
 /* Responsive compact cards */
