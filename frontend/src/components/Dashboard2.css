@@ -850,28 +850,36 @@
 
 @media (min-width: 641px) {
   .dashboard-stats-overview.stats-with-poll {
+    position: relative;
     overflow-x: auto;
     overflow-y: visible;
-    padding-bottom: 4px;
+    padding-top: 8px;
+    padding-bottom: 16px;
   }
 
   .dashboard-stats-overview.stats-with-poll .stat-card-compact {
     position: relative;
     flex: 0 0 auto;
-    width: 68px;
-    min-width: 68px;
-    height: 76px;
-    padding: 8px 8px 10px 8px;
+    width: 70px;
+    min-width: 70px;
+    height: 85px;
+    padding: 8px 10px 10px 10px;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 6px;
     text-align: center;
     border-left: none;
-    border-radius: var(--radius-md, 12px);
-    background: color-mix(in srgb, var(--card-background) 50%, var(--stat-accent, var(--primary-color)) 50%);
+    border-radius: 8px 8px 0 0;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--stat-accent, var(--primary-color)) 58%, var(--card-background) 42%) 0%,
+      color-mix(in srgb, var(--stat-accent, var(--primary-color)) 72%, var(--card-background) 28%) 100%
+    );
     border: 0;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 3px 12px var(--shadow-color, rgba(0, 0, 0, 0.15));
+    transition: all 0.3s ease;
+    z-index: 0;
   }
 
   .dashboard-stats-overview.stats-with-poll .stat-card-compact::after {
@@ -879,27 +887,26 @@
   }
 
   .dashboard-stats-overview.stats-with-poll .stat-card-compact:hover {
-    background: color-mix(in srgb, var(--card-background) 42%, var(--stat-accent, var(--primary-color)) 58%);
-    box-shadow:
-      0 10px 20px color-mix(in srgb, transparent 76%, var(--stat-accent, var(--primary-color)) 24%),
-      0 4px 10px var(--shadow-color, rgba(0, 0, 0, 0.12));
-    transform: translateY(-2px);
+    filter: brightness(1.06) saturate(1.08);
+    box-shadow: 0 6px 20px var(--shadow-color, rgba(0, 0, 0, 0.25));
+    transform: translateY(-5px) scale(1.05);
+    z-index: 3;
   }
 
   .dashboard-stats-overview.stats-with-poll .stat-card-compact:hover .stat-icon-compact {
-    background: color-mix(in srgb, var(--background-color) 62%, var(--stat-accent, var(--primary-color)) 38%);
+    background: color-mix(in srgb, var(--background-color) 56%, var(--stat-accent, var(--primary-color)) 44%);
     filter: brightness(1.08) saturate(1.12);
   }
 
   .dashboard-stats-overview.stats-with-poll .stat-icon-compact {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 999px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 16px;
-    background: color-mix(in srgb, var(--background-color) 70%, var(--stat-accent, var(--primary-color)) 30%);
+    background: color-mix(in srgb, var(--background-color) 74%, var(--stat-accent, var(--primary-color)) 26%);
   }
 
   .dashboard-stats-overview.stats-with-poll .stat-content-compact {
