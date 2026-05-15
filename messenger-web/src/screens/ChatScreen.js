@@ -39,8 +39,15 @@ const buildImageUrl = (path) => {
   if (typeof path !== 'string') return null;
   const normalized = !path.startsWith('http') && !path.startsWith('/') ? `/${path}` : path;
   const token = useAuthStore.getState().token;
-  const fullUrl = normalized.startsWith('http') ? normalized : `${API_BASE_URL}${normalized}`;
-  if (token && !fullUrl.includes('token=')) {
+  let fullUrl = normalized.startsWith('http') ? normalized : `${API_BASE_URL}${normalized}`;
+  // Strip any pre-baked token so we always inject the CURRENT one. Legacy
+  // snapshots persisted the JWT in the URL → it would expire ~30 min later.
+  if (fullUrl.includes('token=')) {
+    fullUrl = fullUrl
+      .replace(/([?&])token=[^&]*&?/, '$1')
+      .replace(/[?&]$/, '');
+  }
+  if (token) {
     const sep = fullUrl.includes('?') ? '&' : '?';
     return `${fullUrl}${sep}token=${encodeURIComponent(token)}`;
   }
@@ -328,7 +335,10 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         snapshot = {
           username: p.username || user.username,
           fullName,
-          avatarUrl: buildImageUrl(avatarPath),
+          // Persist the raw path / token-less URL. buildImageUrl() injects
+          // the CURRENT JWT at render time. Baking the token into the
+          // snapshot would expire it ~30 min later → 401 → empty avatar.
+          avatarUrl: avatarPath,
           age,
           dob: rawDob,
           dobLabel,
