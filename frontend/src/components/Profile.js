@@ -335,16 +335,8 @@ const Profile = ({
         
         // Track profile view (only if viewing someone else's profile)
         if (currentUsername && currentUsername !== username) {
-          try {
-            await api.post('/profile-views', {
-              profileUsername: username,
-              viewedByUsername: currentUsername
-            });
-          } catch (viewErr) {
-            // Silently fail - don't block profile loading if tracking fails
-            console.error("Error tracking profile view:", viewErr);
-          }
-
+          // Fetch viewer metrics FIRST so "Last viewed" reflects the PREVIOUS view,
+          // not the one we are about to record.
           try {
             const metricsRes = await api.get(`/profile-views/${username}/viewer-metrics`);
             const data = metricsRes?.data || {};
@@ -354,6 +346,16 @@ const Profile = ({
             });
           } catch (metricsErr) {
             logger.debug('Error loading viewer view metrics:', metricsErr);
+          }
+
+          try {
+            await api.post('/profile-views', {
+              profileUsername: username,
+              viewedByUsername: currentUsername
+            });
+          } catch (viewErr) {
+            // Silently fail - don't block profile loading if tracking fails
+            console.error("Error tracking profile view:", viewErr);
           }
           
           // Fetch current user's profile for PII request validation

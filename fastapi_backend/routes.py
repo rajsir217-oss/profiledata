@@ -268,10 +268,20 @@ def create_access_token(data: dict, expires_delta=None) -> str:
 
 # Helper function to safely serialize datetime
 def safe_datetime_serialize(dt):
-    """Safely serialize datetime to ISO format string"""
+    """Safely serialize datetime to ISO 8601 string with UTC timezone marker.
+
+    Backend stores datetimes via datetime.utcnow() which are naive (no tzinfo).
+    Without an explicit 'Z' / '+00:00', JavaScript's new Date() parses ISO
+    strings as LOCAL time, causing the displayed time to drift by the user's
+    UTC offset. We always emit a UTC-aware ISO string so the frontend can
+    convert to any local timezone correctly.
+    """
     if dt is None:
         return None
     if isinstance(dt, datetime):
+        # Treat naive datetimes as UTC (that's how we store them).
+        if dt.tzinfo is None:
+            return dt.isoformat() + "Z"
         return dt.isoformat()
     if isinstance(dt, str):
         return dt  # Already a string
