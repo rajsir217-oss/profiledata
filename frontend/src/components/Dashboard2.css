@@ -8,6 +8,20 @@
   box-sizing: border-box;
 }
 
+.dashboard-banners {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-banners > * {
+  width: 100%;
+  box-sizing: border-box;
+  clear: both;
+}
+
 /* Override Bootstrap container max-width for dashboard parent */
 .container:has(.dashboard-container) {
   max-width: 98% !important;
@@ -184,8 +198,26 @@
   margin-bottom: 24px;
 }
 
+.invite-friends-banner {
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-left: 6px solid var(--primary-color);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  z-index: 0;
+}
+
 .mfa-notification-content,
 .photo-reminder-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.invite-friends-banner-content {
   display: flex;
   align-items: center;
   gap: 20px;
@@ -197,14 +229,39 @@
   flex-shrink: 0;
 }
 
+.invite-friends-banner-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--card-background) 70%, var(--primary-color) 30%);
+}
+
 .mfa-notification-text,
 .photo-reminder-text {
   flex: 1;
   color: white;
 }
 
+.invite-friends-banner-text {
+  flex: 1;
+  color: var(--text-color);
+}
+
 .mfa-notification-text strong,
 .photo-reminder-text strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+}
+
+.invite-friends-banner-text strong {
   display: block;
   font-size: 18px;
   font-weight: 700;
@@ -220,11 +277,64 @@
   line-height: 1.4;
 }
 
+.invite-friends-banner-text p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 1;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
 .mfa-notification-actions,
 .photo-reminder-actions {
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.invite-friends-banner-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-invite-friends {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 65%, var(--border-color) 35%);
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-on-gradient);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-invite-friends:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-remind-later {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 50px;
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-remind-later:hover {
+  background: var(--hover-background);
+  border-color: color-mix(in srgb, var(--border-color) 55%, var(--primary-color) 45%);
+  transform: translateY(-1px);
 }
 
 /* Shared action button base (Enable MFA / Upload Photos) */
@@ -292,11 +402,22 @@
     flex-direction: column;
     text-align: center;
   }
+
+  .invite-friends-banner-content {
+    flex-direction: column;
+    text-align: center;
+  }
   
   .mfa-notification-actions,
   .photo-reminder-actions {
     width: 100%;
     justify-content: center;
+  }
+
+  .invite-friends-banner-actions {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
   }
 }
 
