@@ -911,6 +911,11 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
             placeholder="Type a message..."
             placeholderTextColor="#888"
             multiline
+            onKeyPress={({ nativeEvent }) => {
+              if (nativeEvent.key === 'Enter' && (nativeEvent.ctrlKey || nativeEvent.metaKey)) {
+                sendMessage();
+              }
+            }}
           />
           <TouchableOpacity
             style={[styles.sendButton, !newMessage.trim() && styles.sendButtonDisabled]}
@@ -1508,6 +1513,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#0f3460',
     marginRight: 8,
+    height: 44,
   },
   sendButton: {
     backgroundColor: '#e94560',
@@ -1515,7 +1521,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 20,
     minWidth: 70,
+    height: 44,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   sendButtonDisabled: {
     backgroundColor: '#333',

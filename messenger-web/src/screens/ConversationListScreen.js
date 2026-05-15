@@ -722,26 +722,9 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>🦋 L3V3L Matches Messenger</Text>
-          <Text style={styles.headerSubtitle}>
-            {`${onlineSet?.size || 0} online`}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.headerMainAppBtn}
-          onPress={() => openMainAppWithSso('/dashboard')}
-        >
-          <Text style={styles.headerMainAppText}>🏠 Main App</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Main Content */}
-      <View style={styles.main}>
-        {/* Sidebar - expanded or collapsed icon strip */}
-        <View style={[styles.sidebar, sidebarExpanded ? styles.sidebarExpanded : styles.sidebarCollapsed]}>
+      {/* Sidebar - full height (top to bottom). The header, content, and
+          footer sit in a right-side column next to it. */}
+      <View style={[styles.sidebar, sidebarExpanded ? styles.sidebarExpanded : styles.sidebarCollapsed]}>
           {/* Toggle header */}
           <TouchableOpacity
             onPress={() => setSidebarExpanded(!sidebarExpanded)}
@@ -886,6 +869,25 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
               <Text style={styles.footerLink}>Contact</Text>
             </View>
           )}
+      </View>
+
+      {/* Right column: header + content + footer all sit to the right of
+          the sidebar, so the sidebar visually spans full height. */}
+      <View style={styles.rightColumn}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.headerTitle}>🦋 L3V3L Matches Messenger</Text>
+            <Text style={styles.headerSubtitle}>
+              {`${onlineSet?.size || 0} online`}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.headerMainAppBtn}
+            onPress={() => openMainAppWithSso('/dashboard')}
+          >
+            <Text style={styles.headerMainAppText}>🏠 Main App</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Content Area */}
@@ -914,18 +916,28 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
             renderContent()
           )}
         </View>
-      </View>
 
-      {/* Bottom Footer */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>🦋 L3V3L Matches Messenger</Text>
+        {/* Bottom Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>🦋 L3V3L Matches Messenger</Text>
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, minHeight: '100vh', backgroundColor: '#1a1a2e' },
+  container: {
+    flex: 1,
+    minHeight: '100vh',
+    backgroundColor: '#1a1a2e',
+    flexDirection: 'row',
+  },
+  rightColumn: {
+    flex: 1,
+    flexDirection: 'column',
+    minHeight: '100vh',
+  },
 
   // Header
   header: {
@@ -998,8 +1010,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f0f23',
     borderRightWidth: 1,
     borderRightColor: '#1a1a3e',
-    paddingTop: 8,
     flexDirection: 'column',
+    minHeight: '100vh',
   },
   sidebarExpanded: {
     width: 280,
