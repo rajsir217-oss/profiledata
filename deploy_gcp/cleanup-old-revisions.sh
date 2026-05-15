@@ -19,7 +19,7 @@ if [[ "$1" == "--all" ]] || [[ "$1" == "-a" ]]; then
 fi
 
 # Services to clean up
-SERVICES=("matrimonial-backend" "matrimonial-frontend")
+SERVICES=("matrimonial-backend" "matrimonial-frontend" "matrimonial-messenger")
 
 echo "============================================="
 echo "🧹 Cloud Run Revision Cleanup"
