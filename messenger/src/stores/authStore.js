@@ -9,10 +9,14 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 
 const TOKEN_KEY = '@l3v3l_messenger_token';
+const REFRESH_TOKEN_KEY = '@l3v3l_messenger_refresh_token';
 const USER_KEY = '@l3v3l_messenger_user';
 const INTRO_CARD_KEY = '@l3v3l_messenger_intro_card';
 
 const INTRO_CARD_TTL_MS = 30 * 60 * 1000;
+
+let keepAliveIntervalId = null;
+let refreshInFlight = null;
 
 const calcAge = (dob, birthYear, birthMonth) => {
   let d = null;
@@ -97,6 +101,7 @@ const buildIntroductionCardSnapshot = (profile, token, fallbackUsername) => {
 
 const useAuthStore = create((set, get) => ({
   token: null,
+  refreshToken: null,
   user: null,       // { username, firstName, lastName, role, ... }
   isLoading: true,  // true while restoring session from storage
   error: null,
@@ -109,8 +114,9 @@ const useAuthStore = create((set, get) => ({
    */
   restore: async () => {
     try {
-      const [token, userJson, introCardJson] = await Promise.all([
+      const [token, refreshToken, userJson, introCardJson] = await Promise.all([
         AsyncStorage.getItem(TOKEN_KEY),
+        AsyncStorage.getItem(REFRESH_TOKEN_KEY),
         AsyncStorage.getItem(USER_KEY),
         AsyncStorage.getItem(INTRO_CARD_KEY),
       ]);
@@ -125,7 +131,8 @@ const useAuthStore = create((set, get) => ({
             introCardFetchedAt = parsed?.fetchedAt || null;
           } catch (_) {}
         }
-        set({ token, user, introCardSnapshot, introCardFetchedAt, isLoading: false, error: null });
+        set({ token, refreshToken, user, introCardSnapshot, introCardFetchedAt, isLoading: false, error: null });
+        get().startKeepAlive();
         get().prefetchIntroCard({ force: false });
       } else {
         set({ isLoading: false });
@@ -165,7 +172,8 @@ const useAuthStore = create((set, get) => ({
         AsyncStorage.setItem(USER_KEY, JSON.stringify(user)),
       ]);
 
-      set({ token: ssoToken, user, isLoading: false, error: null });
+      set({ token: ssoToken, refreshToken: null, user, isLoading: false, error: null });
+      get().startKeepAlive();
       get().prefetchIntroCard({ force: false });
 
       // Strip the token from the URL — security & cleanliness.
@@ -206,16 +214,18 @@ const useAuthStore = create((set, get) => ({
       }
       const res = await axios.post(`${API_BASE_URL}/api/auth/login`, payload);
 
-      const { access_token, user } = res.data;
+      const { access_token, refresh_token, user } = res.data;
       if (!access_token) throw new Error('No token received');
 
-      set({ token: access_token, user, isLoading: false, error: null });
+      set({ token: access_token, refreshToken: refresh_token || null, user, isLoading: false, error: null });
       try {
         await Promise.all([
           AsyncStorage.setItem(TOKEN_KEY, access_token),
+          refresh_token ? AsyncStorage.setItem(REFRESH_TOKEN_KEY, refresh_token) : AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
           AsyncStorage.setItem(USER_KEY, JSON.stringify(user)),
         ]);
       } catch (_) {}
+      get().startKeepAlive();
       get().prefetchIntroCard({ force: true });
       return { ok: true };
     } catch (e) {
@@ -252,12 +262,61 @@ const useAuthStore = create((set, get) => ({
    * Logout — clear everything.
    */
   logout: async () => {
+    get().stopKeepAlive();
     await Promise.all([
       AsyncStorage.removeItem(TOKEN_KEY),
+      AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
       AsyncStorage.removeItem(USER_KEY),
       AsyncStorage.removeItem(INTRO_CARD_KEY),
     ]);
-    set({ token: null, user: null, error: null, introCardSnapshot: null, introCardFetchedAt: null });
+    set({ token: null, refreshToken: null, user: null, error: null, introCardSnapshot: null, introCardFetchedAt: null });
+  },
+
+  startKeepAlive: () => {
+    if (keepAliveIntervalId) return;
+    keepAliveIntervalId = setInterval(async () => {
+      try {
+        await get().refreshAccessToken();
+      } catch (_) {}
+    }, 5 * 60 * 1000);
+  },
+
+  stopKeepAlive: () => {
+    if (keepAliveIntervalId) {
+      clearInterval(keepAliveIntervalId);
+      keepAliveIntervalId = null;
+    }
+  },
+
+  refreshAccessToken: async () => {
+    const refreshToken = get().refreshToken || (await AsyncStorage.getItem(REFRESH_TOKEN_KEY));
+    if (!refreshToken) return null;
+
+    if (refreshInFlight) {
+      return refreshInFlight;
+    }
+
+    refreshInFlight = (async () => {
+      const res = await axios.post(`${API_BASE_URL}/api/auth/refresh-token`, {
+        refresh_token: refreshToken,
+      });
+
+      const newAccessToken = res.data?.access_token;
+      if (!newAccessToken) return null;
+
+      set({ token: newAccessToken, refreshToken, error: null });
+      try {
+        await AsyncStorage.setItem(TOKEN_KEY, newAccessToken);
+        await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      } catch (_) {}
+      return newAccessToken;
+    })();
+
+    try {
+      return await refreshInFlight;
+    } finally {
+      refreshInFlight = null;
+    }
   },
 
   prefetchIntroCard: async ({ force = false } = {}) => {
@@ -302,18 +361,36 @@ const useAuthStore = create((set, get) => ({
       (response) => response,
       async (error) => {
         const status = error?.response?.status;
+        const originalRequest = error?.config;
         // Only treat 401 from authenticated calls as session expiry.
         // (Login endpoint failures are wrong-creds and use raw axios, not this instance.)
         if (status === 401 && get().token) {
+          if (originalRequest && !originalRequest._retry) {
+            originalRequest._retry = true;
+            try {
+              const newToken = await get().refreshAccessToken();
+              if (newToken) {
+                originalRequest.headers = {
+                  ...(originalRequest.headers || {}),
+                  Authorization: `Bearer ${newToken}`,
+                };
+                return instance.request(originalRequest);
+              }
+            } catch (_) {}
+          }
+
           console.warn('🔒 Session expired (401). Logging out and returning to login.');
           try {
             await Promise.all([
               AsyncStorage.removeItem(TOKEN_KEY),
+              AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
               AsyncStorage.removeItem(USER_KEY),
             ]);
           } catch (_) {}
+          get().stopKeepAlive();
           set({
             token: null,
+            refreshToken: null,
             user: null,
             error: 'Your session has expired. Please log in again.',
           });
