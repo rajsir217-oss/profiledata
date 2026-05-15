@@ -1512,7 +1512,7 @@ async def _notify_realtime(
     message: dict,
 ):
     """Send real-time notification to online participants via Socket.IO."""
-    from websocket_manager import online_users, sio
+    from websocket_manager import sio
 
     conv = await db.messenger_conversations.find_one(
         {"_id": __import__("bson").ObjectId(conversation_id)}
@@ -1522,11 +1522,11 @@ async def _notify_realtime(
 
     for p in conv.get("participants", []):
         recipient = p.get("username")
-        if recipient and recipient != sender_username and recipient in online_users:
+        if recipient and recipient != sender_username:
             await sio.emit(
                 "messenger:new_message",
                 {"conversationId": conversation_id, "message": _serialize_for_socket(message)},
-                room=online_users[recipient],
+                room=f"user:{recipient}",
             )
 
 
