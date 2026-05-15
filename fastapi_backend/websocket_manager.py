@@ -118,6 +118,11 @@ async def connect(sid, environ):
     if username:
         online_users[username] = sid
         user_sessions[sid] = username
+
+        try:
+            await sio.enter_room(sid, f"user:{username}")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to join room for user '{username}' (sid: {sid}): {e}")
         
         # Mark user as online in Redis
         redis = get_redis_manager()
@@ -146,6 +151,12 @@ async def disconnect(sid):
     # Remove user from online list
     if sid in user_sessions:
         username = user_sessions[sid]
+
+        try:
+            await sio.leave_room(sid, f"user:{username}")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to leave room for user '{username}' (sid: {sid}): {e}")
+
         if username in online_users and online_users[username] == sid:
             del online_users[username]
         del user_sessions[sid]

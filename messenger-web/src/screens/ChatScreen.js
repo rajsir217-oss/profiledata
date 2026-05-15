@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import useAuthStore from '@messenger/stores/authStore';
+import useMessengerStore from '@messenger/stores/messengerStore';
 import { API_BASE_URL } from '@messenger/config/api';
 import { getMainAppUrl } from '../config/apiConfig';
 
@@ -199,6 +200,8 @@ const formatRelative = (when) => {
 
 export default function ChatScreen({ id, name, isGroup, isLegacy, profile, username, isOnline, onBack, onOpenDirectChat }) {
   const { user } = useAuthStore();
+  const storeMessages = useMessengerStore((state) => (id ? (state.messages[id] || []) : []));
+  const fetchStoreMessages = useMessengerStore((state) => state.fetchMessages);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -238,6 +241,12 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   // wired up; the other categories are visible-but-disabled placeholders.
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [sendingProfileCard, setSendingProfileCard] = useState(false);
+
+  useEffect(() => {
+    if (isLegacy) return;
+    if (!id) return;
+    setMessages(storeMessages);
+  }, [storeMessages, id, isLegacy]);
 
   // Build a profile_card snapshot from the current user's profile and POST it
   // as a rich message into the active conversation. Legacy (main app) 1:1
@@ -443,7 +452,10 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         // Legacy 1:1 main app messages
         res = await api.get(`/api/users/messages/conversation/${name}?username=${user.username}`);
       } else {
-        res = await api.get(`/api/messenger/conversations/${id}/messages`);
+        await fetchStoreMessages(id);
+        setMessages(useMessengerStore.getState().messages[id] || []);
+        setLoading(false);
+        return;
       }
       console.log('✅ API Response:', res.data);
 
