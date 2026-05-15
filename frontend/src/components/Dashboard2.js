@@ -166,6 +166,10 @@ const Dashboard2 = () => {
   
   // Photo reminder notification state
   const [showPhotoReminder, setShowPhotoReminder] = useState(false);
+
+  // Invite friends banner state (post-login)
+  const [showInviteFriendsBanner, setShowInviteFriendsBanner] = useState(false);
+  const [inviteFriendsRemaining, setInviteFriendsRemaining] = useState(null);
   
   // Pause feature state
   const [pauseStatus, setPauseStatus] = useState(null);
@@ -335,10 +339,6 @@ const Dashboard2 = () => {
       return;
     }
     
-    // Profile is loaded inside loadDashboardData → refreshProfile (no separate call needed)
-    checkMfaStatus(currentUser);
-    loadPauseStatus(currentUser);
-    
     // Check for MFA warning from login
     const mfaWarningData = sessionStorage.getItem('mfa_warning');
     if (mfaWarningData) {
@@ -347,12 +347,15 @@ const Dashboard2 = () => {
         // Clear the warning from sessionStorage after reading
         sessionStorage.removeItem('mfa_warning');
       } catch (e) {
-        console.error('Failed to parse MFA warning:', e);
+        logger.error('Failed to parse MFA warning:', e);
       }
     }
     
     // Small delay to ensure token is set after login
     const timer = setTimeout(() => {
+      // Profile is loaded inside loadDashboardData → refreshProfile (no separate call needed)
+      checkMfaStatus(currentUser);
+      loadPauseStatus(currentUser);
       loadDashboardData(currentUser);
     }, 100);
     
@@ -535,6 +538,31 @@ const Dashboard2 = () => {
       const res = await api.get(`/profile/${user}?requester=${user}`);
       setUserProfile(res.data);
       setLastLoginAt(res.data?.security?.last_login_at);
+
+      try {
+        const dismissed = sessionStorage.getItem('inviteFriendsBannerDismissed');
+        if (dismissed !== 'true') {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            return;
+          }
+
+          const inviteStatsRes = await axios.get(
+            `${getBackendUrl()}/api/user-invitations/stats`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          const remaining = inviteStatsRes?.data?.remaining;
+          const remainingInt = Number.isFinite(remaining) ? remaining : parseInt(remaining, 10);
+          const safeRemaining = Number.isFinite(remainingInt) ? remainingInt : 0;
+          setInviteFriendsRemaining(safeRemaining);
+          if (safeRemaining > 0) {
+            setShowInviteFriendsBanner(true);
+          }
+        }
+      } catch (inviteErr) {
+        logger.debug('Invite friends stats unavailable:', inviteErr);
+      }
       
       const photoReminderDismissed = sessionStorage.getItem('photoReminderDismissed');
       const userImages = res.data?.images || [];
@@ -737,9 +765,9 @@ const Dashboard2 = () => {
   const checkMfaStatus = async (username) => {
     // Check if user has dismissed the MFA notification THIS SESSION ONLY
     const dismissed = sessionStorage.getItem('mfaNotificationDismissed');
-    console.log('🔍 MFA Banner Check - Dismissed flag (this session):', dismissed);
+    logger.debug('🔍 MFA Banner Check - Dismissed flag (this session):', dismissed);
     if (dismissed === 'true') {
-      console.log('⏭️ MFA Banner - Dismissed this session, not showing');
+      logger.debug('⏭️ MFA Banner - Dismissed this session, not showing');
       return;
     }
 
@@ -758,18 +786,18 @@ const Dashboard2 = () => {
       );
       
       const mfaStatus = response.data.mfa_enabled;
-      console.log('🔐 MFA Banner Check - MFA enabled:', mfaStatus);
+      logger.debug('🔐 MFA Banner Check - MFA enabled:', mfaStatus);
       
       // Show notification only if MFA is not enabled
       if (!mfaStatus) {
-        console.log('✅ MFA Banner - Showing banner (MFA not enabled)');
+        logger.debug('✅ MFA Banner - Showing banner (MFA not enabled)');
         setShowMfaNotification(true);
       } else {
-        console.log('⏭️ MFA Banner - Not showing (MFA already enabled)');
+        logger.debug('⏭️ MFA Banner - Not showing (MFA already enabled)');
       }
     } catch (err) {
       logger.error('Error checking MFA status:', err);
-      console.error('❌ MFA Banner - Error checking status, not showing');
+      logger.debug('❌ MFA Banner - Error checking status, not showing');
       // Don't show notification if there's an error
     }
   };
@@ -794,6 +822,16 @@ const Dashboard2 = () => {
   const handleUploadPhotos = () => {
     navigate('/edit-profile');
     setShowPhotoReminder(false);
+  };
+
+  const handleInviteFriends = () => {
+    setShowInviteFriendsBanner(false);
+    navigate('/invite-friends', { state: { openModal: true } });
+  };
+
+  const handleRemindInviteFriendsLater = () => {
+    setShowInviteFriendsBanner(false);
+    sessionStorage.setItem('inviteFriendsBannerDismissed', 'true');
   };
 
   // Pause feature functions
@@ -1695,222 +1733,254 @@ const Dashboard2 = () => {
 
   return (
     <div className="dashboard-container">
-      {/* RECONNECT REQUESTS BANNER - Show at top when there are pending requests */}
-      {reconnectRequests.length > 0 && (
-        <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          padding: '16px',
-          borderRadius: '12px',
-          marginBottom: '16px',
-          boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
-        }}>
-          <h3 style={{margin: '0 0 8px 0', fontSize: '16px'}}>🔔 Reconnect Requests ({reconnectRequests.length})</h3>
-          <p style={{margin: '0 0 12px 0', fontSize: '13px', opacity: 0.9}}>
-            Someone you excluded wants to reconnect with you.
-          </p>
-          {reconnectRequests.map(request => (
-            <div key={request._id} style={{
-              background: 'rgba(255,255,255,0.15)',
-              borderRadius: '8px',
-              padding: '12px',
-              marginBottom: '8px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div>
-                <strong>{request.fromName || request.fromUsername}</strong>
-                <div style={{fontSize: '12px', opacity: 0.8}}>
-                  {new Date(request.createdAt).toLocaleDateString()}
+      <div className="dashboard-banners">
+        {/* RECONNECT REQUESTS BANNER - Show at top when there are pending requests */}
+        {reconnectRequests.length > 0 && (
+          <div style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            padding: '16px',
+            borderRadius: '12px',
+            marginBottom: '16px',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
+          }}>
+            <h3 style={{margin: '0 0 8px 0', fontSize: '16px'}}>🔔 Reconnect Requests ({reconnectRequests.length})</h3>
+            <p style={{margin: '0 0 12px 0', fontSize: '13px', opacity: 0.9}}>
+              Someone you excluded wants to reconnect with you.
+            </p>
+            {reconnectRequests.map(request => (
+              <div key={request._id} style={{
+                background: 'rgba(255,255,255,0.15)',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '8px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <strong>{request.fromName || request.fromUsername}</strong>
+                  <div style={{fontSize: '12px', opacity: 0.8}}>
+                    {new Date(request.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+                <div style={{display: 'flex', gap: '8px'}}>
+                  <button
+                    onClick={() => handleReconnectResponse(request._id, 'accept', request.fromUsername)}
+                    disabled={respondingToRequest === request._id}
+                    style={{
+                      background: '#22c55e',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 16px',
+                      cursor: 'pointer',
+                      fontWeight: '500'
+                    }}
+                  >
+                    {respondingToRequest === request._id ? '...' : '✓ Unblock'}
+                  </button>
+                  <button
+                    onClick={() => handleReconnectResponse(request._id, 'decline', request.fromUsername)}
+                    disabled={respondingToRequest === request._id}
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      color: 'white',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: '6px',
+                      padding: '8px 16px',
+                      cursor: 'pointer',
+                      fontWeight: '500'
+                    }}
+                  >
+                    {respondingToRequest === request._id ? '...' : '✕ Decline'}
+                  </button>
                 </div>
               </div>
-              <div style={{display: 'flex', gap: '8px'}}>
-                <button
-                  onClick={() => handleReconnectResponse(request._id, 'accept', request.fromUsername)}
-                  disabled={respondingToRequest === request._id}
-                  style={{
-                    background: '#22c55e',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    fontWeight: '500'
-                  }}
-                >
-                  {respondingToRequest === request._id ? '...' : '✓ Unblock'}
-                </button>
-                <button
-                  onClick={() => handleReconnectResponse(request._id, 'decline', request.fromUsername)}
-                  disabled={respondingToRequest === request._id}
-                  style={{
-                    background: 'rgba(255,255,255,0.2)',
-                    color: 'white',
-                    border: '1px solid rgba(255,255,255,0.3)',
-                    borderRadius: '6px',
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    fontWeight: '500'
-                  }}
-                >
-                  {respondingToRequest === request._id ? '...' : '✕ Decline'}
-                </button>
+            ))}
+          </div>
+        )}
+        
+        {/* MFA Warning Banner */}
+        {mfaWarning && (
+          <div className="mfa-warning-banner" style={{
+            marginTop: '16px',
+            marginBottom: '16px',
+            padding: '16px 20px',
+            background: 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)',
+            border: '2px solid #ffc107',
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(255, 193, 7, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <span style={{ fontSize: '24px' }}>⚠️</span>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#856404', fontSize: '18px', fontWeight: 'bold' }}>
+                  MFA Configuration Incomplete
+                </h4>
+                <p style={{ margin: '0 0 12px 0', color: '#856404', fontSize: '15px', lineHeight: '1.5' }}>
+                  {mfaWarning.message}
+                </p>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => {
+                      navigate('/edit-profile');
+                      setMfaWarning(null);
+                    }}
+                    style={{
+                      padding: '10px 20px',
+                      background: '#ffc107',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#856404',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    📝 Update Profile
+                  </button>
+                  <button
+                    onClick={() => setMfaWarning(null)}
+                    style={{
+                      padding: '10px 20px',
+                      background: 'transparent',
+                      border: '2px solid #ffc107',
+                      borderRadius: '8px',
+                      color: '#856404',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
-      
-      {/* MFA Warning Banner */}
-      {mfaWarning && (
-        <div className="mfa-warning-banner" style={{
-          marginTop: '16px',
-          marginBottom: '16px',
-          padding: '16px 20px',
-          background: 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)',
-          border: '2px solid #ffc107',
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(255, 193, 7, 0.2)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-            <span style={{ fontSize: '24px' }}>⚠️</span>
-            <div style={{ flex: 1 }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#856404', fontSize: '18px', fontWeight: 'bold' }}>
-                MFA Configuration Incomplete
-              </h4>
-              <p style={{ margin: '0 0 12px 0', color: '#856404', fontSize: '15px', lineHeight: '1.5' }}>
-                {mfaWarning.message}
-              </p>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => {
-                    navigate('/edit-profile');
-                    setMfaWarning(null);
-                  }}
-                  style={{
-                    padding: '10px 20px',
-                    background: '#ffc107',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#856404',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                  }}
+          </div>
+        )}
+
+        {/* Pause Status Banner */}
+        {pauseStatus?.isPaused && (
+          <div className="pause-status-banner">
+            <div className="pause-banner-content">
+              <div className="pause-banner-icon">⏸️</div>
+              <div className="pause-banner-text">
+                <strong>Your profile is PAUSED</strong>
+                <p>
+                  You're taking a break. 
+                  {pauseStatus.pausedUntil && (
+                    <> Your profile will automatically unpause on {new Date(pauseStatus.pausedUntil).toLocaleDateString()}.</>
+                  )}
+                  {!pauseStatus.pausedUntil && <> Ready to return?</>}
+                </p>
+              </div>
+              <div className="pause-banner-actions">
+                <button 
+                  className="btn-unpause"
+                  onClick={handleUnpause}
                 >
-                  📝 Update Profile
-                </button>
-                <button
-                  onClick={() => setMfaWarning(null)}
-                  style={{
-                    padding: '10px 20px',
-                    background: 'transparent',
-                    border: '2px solid #ffc107',
-                    borderRadius: '8px',
-                    color: '#856404',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  Dismiss
+                  ▶️ Un-Pause Now
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
+        {/* MFA Enablement Notification Banner */}
+        {showMfaNotification && (
+          <div className="mfa-notification-banner">
+            <div className="mfa-notification-content">
+              <div className="mfa-notification-icon">🔐</div>
+              <div className="mfa-notification-text">
+                <strong>Secure your account with Multi-Factor Authentication</strong>
+                <p>Add an extra layer of security by enabling MFA. It only takes a minute!</p>
+              </div>
+              <div className="mfa-notification-actions">
+                <button 
+                  className="btn-enable-mfa"
+                  onClick={handleEnableMfa}
+                >
+                  Enable MFA
+                </button>
+                <button 
+                  className="btn-dismiss-mfa"
+                  onClick={handleDismissMfaNotification}
+                  title="Don't show this again"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
+        {/* Invite Friends Banner */}
+        {showInviteFriendsBanner && inviteFriendsRemaining !== null && inviteFriendsRemaining > 0 && (
+          <div className="invite-friends-banner">
+            <div className="invite-friends-banner-content">
+              <div className="invite-friends-banner-icon">🎟️</div>
+              <div className="invite-friends-banner-text">
+                <strong>You have {inviteFriendsRemaining} invitation{inviteFriendsRemaining === 1 ? '' : 's'} to send</strong>
+                <p>
+                  Invite your friends or family to create a profile.
+                </p>
+              </div>
+              <div className="invite-friends-banner-actions">
+                <button
+                  className="btn-invite-friends"
+                  onClick={handleInviteFriends}
+                  type="button"
+                >
+                  Invite friends
+                </button>
+                <button
+                  className="btn-remind-later"
+                  onClick={handleRemindInviteFriendsLater}
+                  title="Remind me later"
+                  type="button"
+                >
+                  Remind me later
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
-      {/* Pause Status Banner */}
-      {pauseStatus?.isPaused && (
-        <div className="pause-status-banner">
-          <div className="pause-banner-content">
-            <div className="pause-banner-icon">⏸️</div>
-            <div className="pause-banner-text">
-              <strong>Your profile is PAUSED</strong>
-              <p>
-                You're taking a break. 
-                {pauseStatus.pausedUntil && (
-                  <> Your profile will automatically unpause on {new Date(pauseStatus.pausedUntil).toLocaleDateString()}.</>
+        {/* Photo Upload Reminder Banner */}
+        {showPhotoReminder && (
+          <div className="photo-reminder-banner">
+            <div className="photo-reminder-content">
+              <div className="photo-reminder-icon">📸</div>
+              <div className="photo-reminder-text">
+                <strong>Your profile is hidden from most search results!</strong>
+                <p>Profiles without photos are deprioritized and may be filtered out by other members. Upload at least one photo to appear in search results and get up to 10x more views.
+                {userProfile?.role_name !== 'admin' && userProfile?.role_name !== 'moderator' && userProfile?.username !== 'admin' && (
+                  <><br/><strong style={{ color: '#fff' }}>⚠️ Warning: Your profile will be deactivated after {Math.max(10 - (userProfile?.noPhotoLoginCount || 0), 0)} more login{Math.max(10 - (userProfile?.noPhotoLoginCount || 0), 0) !== 1 ? 's' : ''} without a photo.</strong></>
                 )}
-                {!pauseStatus.pausedUntil && <> Ready to return?</>}
-              </p>
-            </div>
-            <div className="pause-banner-actions">
-              <button 
-                className="btn-unpause"
-                onClick={handleUnpause}
-              >
-                ▶️ Un-Pause Now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MFA Enablement Notification Banner */}
-      {showMfaNotification && (
-        <div className="mfa-notification-banner">
-          <div className="mfa-notification-content">
-            <div className="mfa-notification-icon">🔐</div>
-            <div className="mfa-notification-text">
-              <strong>Secure your account with Multi-Factor Authentication</strong>
-              <p>Add an extra layer of security by enabling MFA. It only takes a minute!</p>
-            </div>
-            <div className="mfa-notification-actions">
-              <button 
-                className="btn-enable-mfa"
-                onClick={handleEnableMfa}
-              >
-                Enable MFA
-              </button>
-              <button 
-                className="btn-dismiss-mfa"
-                onClick={handleDismissMfaNotification}
-                title="Don't show this again"
-              >
-                ✕
-              </button>
+                </p>
+              </div>
+              <div className="photo-reminder-actions">
+                <button 
+                  className="btn-upload-photos"
+                  onClick={handleUploadPhotos}
+                >
+                  Upload Photos
+                </button>
+                <button 
+                  className="btn-dismiss-photo"
+                  onClick={handleDismissPhotoReminder}
+                  title="Don't show this again"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Photo Upload Reminder Banner */}
-      {showPhotoReminder && (
-        <div className="photo-reminder-banner">
-          <div className="photo-reminder-content">
-            <div className="photo-reminder-icon">📸</div>
-            <div className="photo-reminder-text">
-              <strong>Your profile is hidden from most search results!</strong>
-              <p>Profiles without photos are deprioritized and may be filtered out by other members. Upload at least one photo to appear in search results and get up to 10x more views.
-              {userProfile?.role_name !== 'admin' && userProfile?.role_name !== 'moderator' && userProfile?.username !== 'admin' && (
-                <><br/><strong style={{ color: '#fff' }}>⚠️ Warning: Your profile will be deactivated after {Math.max(10 - (userProfile?.noPhotoLoginCount || 0), 0)} more login{Math.max(10 - (userProfile?.noPhotoLoginCount || 0), 0) !== 1 ? 's' : ''} without a photo.</strong></>
-              )}
-              </p>
-            </div>
-            <div className="photo-reminder-actions">
-              <button 
-                className="btn-upload-photos"
-                onClick={handleUploadPhotos}
-              >
-                Upload Photos
-              </button>
-              <button 
-                className="btn-dismiss-photo"
-                onClick={handleDismissPhotoReminder}
-                title="Don't show this again"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Stats Overview Section with inline Poll Widget */}
       <div className="dashboard-stats-overview stats-with-poll">

@@ -20,6 +20,7 @@ import { getWorkingStatus } from "../utils/workStatusHelper";
 import RichTextEditor from "./shared/RichTextEditor";
 import { getAuthenticatedImageUrl } from "../utils/imageUtils";
 import logger from "../utils/logger";
+import { formatFullDateTime } from "../utils/timeFormatter";
 import ActivitySummaryPanel from "./ActivitySummaryPanel";
 import { useContribution } from "../contexts/ContributionContext";
 import "./Profile.css";
@@ -65,6 +66,11 @@ const Profile = ({
     profileViews: 0,
     shortlistedBy: 0,
     favoritedBy: 0
+  });
+
+  const [viewerViewMetrics, setViewerViewMetrics] = useState({
+    lastViewedAt: null,
+    viewCount: 0
   });
   
   // Action states (isExcluded and showMessageModal only - others already exist)
@@ -223,6 +229,26 @@ const Profile = ({
   const [touchEnd, setTouchEnd] = useState(null);
   
   const currentUsername = localStorage.getItem('username');
+
+  const formatPacificDateTime = (dateValue) => {
+    if (!dateValue) return '—';
+    const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+    try {
+      const formatted = date.toLocaleString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'America/Los_Angeles',
+        timeZoneName: 'short'
+      });
+      return formatted.replace(',', '');
+    } catch (e) {
+      return formatFullDateTime(date);
+    }
+  };
   
   // Debug: Log user data when it changes
   useEffect(() => {
@@ -251,6 +277,10 @@ const Profile = ({
         
         const profileData = res.data;
         setUser(profileData);
+
+        if (!currentUsername || currentUsername === username) {
+          setViewerViewMetrics({ lastViewedAt: null, viewCount: 0 });
+        }
         
         // Populate consolidated context data
         if (profileData.kpiStats) {
@@ -313,6 +343,17 @@ const Profile = ({
           } catch (viewErr) {
             // Silently fail - don't block profile loading if tracking fails
             console.error("Error tracking profile view:", viewErr);
+          }
+
+          try {
+            const metricsRes = await api.get(`/profile-views/${username}/viewer-metrics`);
+            const data = metricsRes?.data || {};
+            setViewerViewMetrics({
+              lastViewedAt: data.lastViewedAt || null,
+              viewCount: Number.isFinite(data.viewCount) ? data.viewCount : 0
+            });
+          } catch (metricsErr) {
+            logger.debug('Error loading viewer view metrics:', metricsErr);
           }
           
           // Fetch current user's profile for PII request validation
@@ -2020,57 +2061,64 @@ const Profile = ({
           
           {/* Member View: Photo Gallery (5 slots) */}
           {!isOwnProfile && (
-            <div className="member-photo-gallery">
-              {/* Slot 1: Profile Picture (always shown if available) */}
-              <div className="gallery-slot profile-pic-slot">
-                {user.images?.[0] ? (
-                  <img 
-                    src={getAuthenticatedImageUrl(user.images[0])}
-                    alt="Profile"
-                    className="gallery-image"
-                    onClick={() => {
-                      openLightbox(user.images[0], user.images.filter(Boolean));
-                    }}
-                  />
-                ) : (
-                  <div className="gallery-placeholder">
-                    <span>👤</span>
-                  </div>
-                )}
-                <span className="slot-label">Profile</span>
-              </div>
-              
-              {/* Slots 2-5: Additional Photos (visible if in user.images array from backend) */}
-              {[1, 2, 3, 4].map((index) => {
-                // Backend already filters images based on 3-bucket visibility + PII access
-                // If image exists in user.images, it's accessible
-                const image = user.images?.[index];
-                const hasAccess = !!image; // If backend returned it, user has access
+            <div className="member-photo-gallery-wrapper">
+              {currentUsername && currentUsername !== username && (viewerViewMetrics.lastViewedAt || viewerViewMetrics.viewCount > 0) && (
+                <div className="profile-view-metrics-pill">
+                  Last viewed: {formatPacificDateTime(viewerViewMetrics.lastViewedAt)} • Viewed: {viewerViewMetrics.viewCount} {viewerViewMetrics.viewCount === 1 ? 'time' : 'times'}
+                </div>
+              )}
+              <div className="member-photo-gallery">
+                {/* Slot 1: Profile Picture (always shown if available) */}
+                <div className="gallery-slot profile-pic-slot">
+                  {user.images?.[0] ? (
+                    <img 
+                      src={getAuthenticatedImageUrl(user.images[0])}
+                      alt="Profile"
+                      className="gallery-image"
+                      onClick={() => {
+                        openLightbox(user.images[0], user.images.filter(Boolean));
+                      }}
+                    />
+                  ) : (
+                    <div className="gallery-placeholder">
+                      <span>👤</span>
+                    </div>
+                  )}
+                  <span className="slot-label">Profile</span>
+                </div>
                 
-                return (
-                  <div key={index} className={`gallery-slot ${hasAccess ? 'accessible' : 'locked'}`}>
-                    {hasAccess && image ? (
-                      <img 
-                        src={getAuthenticatedImageUrl(image)}
-                        alt={`Gallery item ${index + 1}`}
-                        className="gallery-image"
-                        onClick={() => {
-                          openLightbox(image, user.images.filter(Boolean));
-                        }}
-                      />
-                    ) : hasAccess && !image ? (
-                      <div className="gallery-placeholder empty">
-                        <span>📷</span>
-                      </div>
-                    ) : (
-                      <div className="gallery-placeholder locked" title="Request photo access to view">
-                        <span>🔒</span>
-                      </div>
-                    )}
-                    <span className="slot-label">{hasAccess ? (image ? `Photo ${index + 1}` : 'Empty') : 'Locked'}</span>
-                  </div>
-                );
-              })}
+                {/* Slots 2-5: Additional Photos (visible if in user.images array from backend) */}
+                {[1, 2, 3, 4].map((index) => {
+                  // Backend already filters images based on 3-bucket visibility + PII access
+                  // If image exists in user.images, it's accessible
+                  const image = user.images?.[index];
+                  const hasAccess = !!image; // If backend returned it, user has access
+                  
+                  return (
+                    <div key={index} className={`gallery-slot ${hasAccess ? 'accessible' : 'locked'}`}>
+                      {hasAccess && image ? (
+                        <img 
+                          src={getAuthenticatedImageUrl(image)}
+                          alt={`Gallery item ${index + 1}`}
+                          className="gallery-image"
+                          onClick={() => {
+                            openLightbox(image, user.images.filter(Boolean));
+                          }}
+                        />
+                      ) : hasAccess && !image ? (
+                        <div className="gallery-placeholder empty">
+                          <span>📷</span>
+                        </div>
+                      ) : (
+                        <div className="gallery-placeholder locked" title="Request photo access to view">
+                          <span>🔒</span>
+                        </div>
+                      )}
+                      <span className="slot-label">{hasAccess ? (image ? `Photo ${index + 1}` : 'Empty') : 'Locked'}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

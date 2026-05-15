@@ -9796,6 +9796,38 @@ async def track_profile_view(
         logger.error(f"❌ Error tracking profile view: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/profile-views/{username}/viewer-metrics")
+async def get_viewer_profile_view_metrics(
+    username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Get the current user's view history metrics for a specific profile"""
+    viewer_username = current_user["username"]
+
+    # Viewing your own profile isn't considered a "view" for these metrics
+    if viewer_username == username:
+        return {"lastViewedAt": None, "viewCount": 0}
+
+    existing_view = await db.profile_views.find_one({
+        "profileUsername": username,
+        "viewedByUsername": viewer_username
+    })
+
+    if not existing_view:
+        return {"lastViewedAt": None, "viewCount": 0}
+
+    last_viewed_at = (
+        existing_view.get("lastViewedAt")
+        or existing_view.get("viewedAt")
+        or existing_view.get("createdAt")
+    )
+
+    return {
+        "lastViewedAt": safe_datetime_serialize(last_viewed_at),
+        "viewCount": existing_view.get("viewCount", 0)
+    }
+
 @router.get("/profile-views/{username}")
 async def get_profile_views(
     username: str,
