@@ -1111,6 +1111,18 @@ class EventDispatcher:
             or (images[0] if images else None)
             or user.get("profileImage")
         )
+        # Normalize avatar path to the canonical /api/users/media/{filename}
+        # URL the frontend can render. Raw DB paths like "/uploads/foo.jpg"
+        # are not served directly by the backend (especially with GCS), so
+        # the persisted snapshot would otherwise 404 on refresh.
+        if avatar_path:
+            try:
+                from utils import get_full_image_url
+                resolved = get_full_image_url(avatar_path)
+                if resolved:
+                    avatar_path = resolved
+            except Exception as _e:
+                logger.warning(f"Failed to resolve avatar URL for activation card: {_e}")
 
         height_label = None
         height_val = user.get("height")
