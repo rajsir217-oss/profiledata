@@ -4,6 +4,7 @@ Phase 1: 1:1 conversations, text + media messages, delivery receipts, device tok
 """
 
 import logging
+import asyncio
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File, Query, Request
@@ -620,6 +621,52 @@ async def set_conversation_retention(
     logger.info(
         f"⏱️ Retention set on {conversation_id} by {username}: {retention} hour(s)"
     )
+
+    try:
+        await db.messenger_messages.create_index(
+            [("expireAt", 1)],
+            expireAfterSeconds=0,
+            background=True,
+            name="ttl_expireAt",
+        )
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to ensure TTL index on messenger_messages.expireAt: {e}")
+
+    async def _apply_retention_to_existing() -> None:
+        try:
+            conv_oid = ObjectId(conversation_id)
+            if retention is None:
+                await db.messenger_messages.update_many(
+                    {"conversationId": conv_oid, "expireAt": {"$exists": True}},
+                    {"$unset": {"expireAt": ""}},
+                )
+                return
+
+            await db.messenger_messages.update_many(
+                {"conversationId": conv_oid},
+                [
+                    {
+                        "$set": {
+                            "expireAt": {
+                                "$dateAdd": {
+                                    "startDate": "$createdAt",
+                                    "unit": "hour",
+                                    "amount": retention,
+                                }
+                            }
+                        }
+                    }
+                ],
+            )
+
+            cutoff = datetime.utcnow() - timedelta(hours=retention)
+            await db.messenger_messages.delete_many(
+                {"conversationId": conv_oid, "createdAt": {"$lte": cutoff}}
+            )
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to apply retention retroactively for {conversation_id}: {e}")
+
+    asyncio.create_task(_apply_retention_to_existing())
     return {"success": True, "retentionHours": retention}
 
 
@@ -1160,7 +1207,18 @@ async def send_message(
 
     # Real-time delivery via Socket.IO
     try:
-        await _notify_realtime(db, conversation_id, username, msg)
+        async def _notify_wrapper() -> None:
+            try:
+                await _notify_realtime(db, conversation_id, username, msg)
+            except Exception as e:
+                logger.warning(f"⚠️ Real-time notification failed: {e}")
+
+        conv_type = conv.get("type") if isinstance(conv, dict) else None
+        participants_count = len(conv.get("participants", []) or []) if isinstance(conv, dict) else 0
+        if conv_type in ("group", "public_group") or participants_count > 20:
+            asyncio.create_task(_notify_wrapper())
+        else:
+            await _notify_wrapper()
     except Exception as e:
         logger.warning(f"⚠️ Real-time notification failed: {e}")
 
@@ -1355,12 +1413,22 @@ async def post_public_reply(
     # Real-time broadcast to conversation participants
     try:
         broadcast_msg = {
-            **msg_doc,
-            "_id": msg_id,
+            "id": str(msg_doc["_id"]),
             "conversationId": str(conversation_id),
+            "senderUsername": public_email,
+            "contentType": msg_doc.get("contentType", "text"),
+            "content": msg_doc.get("content", ""),
+            "createdAt": msg_doc.get("createdAt", datetime.utcnow()),
+            "media": msg_doc.get("media"),
             "replyTo": str(msg_doc["replyTo"]) if msg_doc.get("replyTo") else None,
         }
-        await _notify_realtime(db, str(conversation_id), public_email, broadcast_msg)
+        async def _public_notify_wrapper() -> None:
+            try:
+                await _notify_realtime(db, str(conversation_id), public_email, broadcast_msg)
+            except Exception as e:
+                logger.warning(f"⚠️ Real-time broadcast of public reply failed: {e}")
+
+        asyncio.create_task(_public_notify_wrapper())
     except Exception as e:
         logger.warning(f"⚠️ Real-time broadcast of public reply failed: {e}")
 
@@ -1520,14 +1588,30 @@ async def _notify_realtime(
     if not conv:
         return
 
+    recipients = []
     for p in conv.get("participants", []):
         recipient = p.get("username")
         if recipient and recipient != sender_username:
-            await sio.emit(
-                "messenger:new_message",
-                {"conversationId": conversation_id, "message": _serialize_for_socket(message)},
-                room=f"user:{recipient}",
-            )
+            recipients.append(recipient)
+
+    if not recipients:
+        return
+
+    payload = {"conversationId": conversation_id, "message": _serialize_for_socket(message)}
+    semaphore = asyncio.Semaphore(50)
+
+    async def _emit_one(recipient: str) -> None:
+        async with semaphore:
+            try:
+                await sio.emit(
+                    "messenger:new_message",
+                    payload,
+                    room=f"user:{recipient}",
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ Real-time emit failed for {recipient}: {e}")
+
+    await asyncio.gather(*(_emit_one(r) for r in recipients))
 
 
 async def _send_push(

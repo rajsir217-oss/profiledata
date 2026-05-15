@@ -246,18 +246,38 @@ async def get_messages(
     if not conv:
         return [], 0, False
 
-    query: Dict[str, Any] = {"conversationId": ObjectId(conversation_id)}
+    now = datetime.utcnow()
+    and_clauses: List[Dict[str, Any]] = []
     if before:
-        query["_id"] = {"$lt": ObjectId(before)}
+        and_clauses.append({"_id": {"$lt": ObjectId(before)}})
 
     # Per-user "clear chat" filter — hide messages older than the user's clearedAt timestamp
     cleared_for = (conv.get("clearedFor") or {}).get(username)
     if cleared_for:
-        query["createdAt"] = {"$gt": cleared_for}
+        and_clauses.append({"createdAt": {"$gt": cleared_for}})
+
+    # Hide expired messages immediately (TTL cleanup is async and can lag).
+    # Messages with no expireAt (or null expireAt) live forever.
+    and_clauses.append({
+        "$or": [
+            {"expireAt": {"$exists": False}},
+            {"expireAt": None},
+            {"expireAt": {"$gt": now}},
+        ]
+    })
+
+    query: Dict[str, Any] = {"conversationId": ObjectId(conversation_id)}
+    if and_clauses:
+        query["$and"] = and_clauses
 
     count_query: Dict[str, Any] = {"conversationId": ObjectId(conversation_id)}
     if cleared_for:
         count_query["createdAt"] = {"$gt": cleared_for}
+    count_query["$or"] = [
+        {"expireAt": {"$exists": False}},
+        {"expireAt": None},
+        {"expireAt": {"$gt": now}},
+    ]
     total = await db.messenger_messages.count_documents(count_query)
     cursor = (
         db.messenger_messages.find(query)
