@@ -72,6 +72,11 @@ const Profile = ({
     lastViewedAt: null,
     viewCount: 0
   });
+
+  // Track which profiles we've already recorded a view for in this session,
+  // so React StrictMode's double-invocation of effects (in dev) doesn't
+  // double-count views or overwrite "Last viewed" with the just-recorded view.
+  const trackedViewsRef = useRef(new Set());
   
   // Action states (isExcluded and showMessageModal only - others already exist)
   const [isExcluded, setIsExcluded] = useState(false);
@@ -335,27 +340,34 @@ const Profile = ({
         
         // Track profile view (only if viewing someone else's profile)
         if (currentUsername && currentUsername !== username) {
-          // Fetch viewer metrics FIRST so "Last viewed" reflects the PREVIOUS view,
-          // not the one we are about to record.
-          try {
-            const metricsRes = await api.get(`/profile-views/${username}/viewer-metrics`);
-            const data = metricsRes?.data || {};
-            setViewerViewMetrics({
-              lastViewedAt: data.lastViewedAt || null,
-              viewCount: Number.isFinite(data.viewCount) ? data.viewCount : 0
-            });
-          } catch (metricsErr) {
-            logger.debug('Error loading viewer view metrics:', metricsErr);
-          }
+          // Guard against React StrictMode double-invocation (and rapid re-renders):
+          // only fetch metrics + record a view ONCE per profile per component instance.
+          const trackKey = `${currentUsername}->${username}`;
+          if (!trackedViewsRef.current.has(trackKey)) {
+            trackedViewsRef.current.add(trackKey);
 
-          try {
-            await api.post('/profile-views', {
-              profileUsername: username,
-              viewedByUsername: currentUsername
-            });
-          } catch (viewErr) {
-            // Silently fail - don't block profile loading if tracking fails
-            console.error("Error tracking profile view:", viewErr);
+            // Fetch viewer metrics FIRST so "Last viewed" reflects the PREVIOUS view,
+            // not the one we are about to record.
+            try {
+              const metricsRes = await api.get(`/profile-views/${username}/viewer-metrics`);
+              const data = metricsRes?.data || {};
+              setViewerViewMetrics({
+                lastViewedAt: data.lastViewedAt || null,
+                viewCount: Number.isFinite(data.viewCount) ? data.viewCount : 0
+              });
+            } catch (metricsErr) {
+              logger.debug('Error loading viewer view metrics:', metricsErr);
+            }
+
+            try {
+              await api.post('/profile-views', {
+                profileUsername: username,
+                viewedByUsername: currentUsername
+              });
+            } catch (viewErr) {
+              // Silently fail - don't block profile loading if tracking fails
+              console.error("Error tracking profile view:", viewErr);
+            }
           }
           
           // Fetch current user's profile for PII request validation
