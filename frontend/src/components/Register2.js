@@ -85,6 +85,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     passwordConfirm: "",  // For validation only, not sent to backend
     firstName: "",
     lastName: "",
+    promoCode: promoCodeFromUrl || "",  // Promo code from URL or manual entry
     contactNumber: "",  // Backward compat: primary number (derived from contactNumbers[0])
     contactNumbers: [{ number: "", label: "primary", visible: true }],  // Multi-contact support
     contactEmail: "",
@@ -1411,9 +1412,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       data.append("images", img);
     });
     
-    // Add promo code from URL if present (hidden from user)
-    if (promoCodeFromUrl && !isEditMode) {
-      data.append('promoCode', promoCodeFromUrl);
+    // Add promo code from form or URL if present
+    if (formData.promoCode && !isEditMode) {
+      data.append('promoCode', formData.promoCode);
     }
     
     // Add referredBy info from interest form (if registering via invitation)
@@ -3091,8 +3092,25 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
             </>
           )}
+          {/* Promo Code - only show in register mode */}
+          {!isEditMode && (
+            <div className="col-md-4">
+              <label className="form-label">Promo Code <span className="text-muted">(Optional)</span></label>
+              <input
+                type="text"
+                className="form-control"
+                name="promoCode"
+                value={formData.promoCode}
+                onChange={handleChange}
+                placeholder="Enter promo code"
+              />
+              {promoCodeFromUrl && formData.promoCode === promoCodeFromUrl && (
+                <div className="valid-feedback d-block">✅ Promo code applied!</div>
+              )}
+            </div>
+          )}
         </div>
-        
+
         {/* Residential Information */}
         <div className="row mb-3">
           <div className="col-md-4">
