@@ -1205,6 +1205,19 @@ async def send_message(
     if msg.get("replyTo"):
         msg["replyTo"] = str(msg["replyTo"])
 
+    # Fast path for active viewers: broadcast once to the per-conversation room.
+    try:
+        from websocket_manager import sio
+
+        payload = {"conversationId": conversation_id, "message": _serialize_for_socket(msg)}
+        await sio.emit(
+            "messenger:new_message",
+            payload,
+            room=f"conversation:{conversation_id}",
+        )
+    except Exception as e:
+        logger.warning(f"⚠️ Real-time conversation-room emit failed for {conversation_id}: {e}")
+
     # Real-time delivery via Socket.IO
     try:
         async def _notify_wrapper() -> None:
@@ -1242,6 +1255,25 @@ async def delete_message(
     ok = await messenger_service.delete_message(db, message_id, current_user["username"])
     if not ok:
         raise HTTPException(status_code=403, detail="Cannot delete this message")
+
+    try:
+        from websocket_manager import sio
+
+        msg = await db.messenger_messages.find_one(
+            {"_id": ObjectId(message_id)},
+            {"conversationId": 1},
+        )
+        conv_oid = msg.get("conversationId") if isinstance(msg, dict) else None
+        if conv_oid:
+            conv_id = str(conv_oid)
+            await sio.emit(
+                "messenger:message_deleted",
+                {"conversationId": conv_id, "messageId": message_id},
+                room=f"conversation:{conv_id}",
+            )
+    except Exception as e:
+        logger.warning(f"⚠️ Real-time delete broadcast failed for message {message_id}: {e}")
+
     return {"success": True, "messageId": message_id}
 
 
@@ -1422,6 +1454,19 @@ async def post_public_reply(
             "media": msg_doc.get("media"),
             "replyTo": str(msg_doc["replyTo"]) if msg_doc.get("replyTo") else None,
         }
+
+        try:
+            from websocket_manager import sio
+
+            payload = {"conversationId": str(conversation_id), "message": _serialize_for_socket(broadcast_msg)}
+            await sio.emit(
+                "messenger:new_message",
+                payload,
+                room=f"conversation:{str(conversation_id)}",
+            )
+        except Exception as e:
+            logger.warning(f"⚠️ Real-time conversation-room emit failed for public reply: {e}")
+
         async def _public_notify_wrapper() -> None:
             try:
                 await _notify_realtime(db, str(conversation_id), public_email, broadcast_msg)

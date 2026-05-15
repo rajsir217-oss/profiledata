@@ -257,6 +257,39 @@ async def messenger_typing(sid, data):
         logger.warning(f"⚠️ messenger:typing error: {e}")
 
 
+@sio.on('messenger:join_conversation')
+async def messenger_join_conversation(sid, data):
+    """Join a per-conversation room for low-latency message fanout to active viewers."""
+    conversation_id = (data or {}).get('conversationId')
+    if not conversation_id or sid not in user_sessions:
+        return
+    username = user_sessions[sid]
+    try:
+        from main import db
+        from bson import ObjectId
+        conv = await db.messenger_conversations.find_one(
+            {"_id": ObjectId(conversation_id), "participants.username": username},
+            {"_id": 1},
+        )
+        if not conv:
+            return
+        await sio.enter_room(sid, f"conversation:{conversation_id}")
+    except Exception as e:
+        logger.warning(f"⚠️ messenger:join_conversation error: {e}")
+
+
+@sio.on('messenger:leave_conversation')
+async def messenger_leave_conversation(sid, data):
+    """Leave a per-conversation room."""
+    conversation_id = (data or {}).get('conversationId')
+    if not conversation_id:
+        return
+    try:
+        await sio.leave_room(sid, f"conversation:{conversation_id}")
+    except Exception as e:
+        logger.warning(f"⚠️ messenger:leave_conversation error: {e}")
+
+
 @sio.on('messenger:mark_delivered')
 async def messenger_mark_delivered(sid, data):
     """Client reports messages as delivered."""
