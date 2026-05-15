@@ -1266,11 +1266,40 @@ async def delete_message(
         conv_oid = msg.get("conversationId") if isinstance(msg, dict) else None
         if conv_oid:
             conv_id = str(conv_oid)
+            payload = {"conversationId": conv_id, "messageId": message_id}
+
+            # Fast path: notify users actively viewing this conversation
             await sio.emit(
                 "messenger:message_deleted",
-                {"conversationId": conv_id, "messageId": message_id},
+                payload,
                 room=f"conversation:{conv_id}",
             )
+
+            # Fanout to every participant's user room so their cached store
+            # (and future renders of this conversation) reflect the deletion
+            # even if they're not currently viewing the chat.
+            conv = await db.messenger_conversations.find_one(
+                {"_id": conv_oid},
+                {"participants.username": 1},
+            )
+            if conv:
+                async def _emit_to_user(recipient: str) -> None:
+                    try:
+                        await sio.emit(
+                            "messenger:message_deleted",
+                            payload,
+                            room=f"user:{recipient}",
+                        )
+                    except Exception as ee:
+                        logger.warning(f"⚠️ Delete fanout failed for {recipient}: {ee}")
+
+                await asyncio.gather(
+                    *(
+                        _emit_to_user(p.get("username"))
+                        for p in conv.get("participants", [])
+                        if p.get("username")
+                    )
+                )
     except Exception as e:
         logger.warning(f"⚠️ Real-time delete broadcast failed for message {message_id}: {e}")
 
