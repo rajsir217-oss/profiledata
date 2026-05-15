@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L3V3L Matches - Find Your Perfect Match</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .flyer {
+            background: white;
+            width: 100%;
+            max-width: 700px;
+            border-radius: 16px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+            color: white;
+            padding: 20px 25px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header .butterfly {
+            font-size: 3em;
+            line-height: 1;
+            flex-shrink: 0;
+            animation: flutter 3s ease-in-out infinite;
+        }
+
+        @keyframes flutter {
+            0%, 100% { transform: translateY(0) rotate(-5deg); }
+            50% { transform: translateY(-4px) rotate(5deg); }
+        }
+
+        .header-text {
+            text-align: left;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            font-weight: 800;
+            margin-bottom: 4px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h2 {
+            font-size: 1em;
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        .tagline {
+            background: #1a1a2e;
+            color: #e94560;
+            padding: 8px;
+            text-align: center;
+            font-size: 0.9em;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+        }
+
+        .content {
+            padding: 20px 25px;
+        }
+
+        .intro {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 3px solid #667eea;
+        }
+
+        .intro p {
+            color: #333;
+            line-height: 1.45;
+            font-size: 0.82em;
+            margin: 0;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border-left: 3px solid #e94560;
+        }
+
+        .feature-card h3 {
+            color: #0f3460;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .feature-card p {
+            color: #555;
+            line-height: 1.3;
+            font-size: 0.75em;
+        }
+
+        .messenger-highlight {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .messenger-highlight h3 {
+            font-size: 1em;
+            margin-bottom: 8px;
+            color: #e94560;
+        }
+
+        .messenger-features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .messenger-feature {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78em;
+        }
+
+        .messenger-feature .icon {
+            font-size: 1em;
+            color: #e94560;
+        }
+
+        .promo-section {
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .promo-info {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .promo-info h3 {
+            color: #1a1a2e;
+            font-size: 1.1em;
+            margin-bottom: 6px;
+        }
+
+        .promo-info p {
+            font-size: 0.8em;
+            line-height: 1.4;
+            color: #1a1a2e;
+        }
+
+        .promo-code {
+            background: white;
+            color: #e94560;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 1.3em;
+            font-weight: 800;
+            display: inline-block;
+            margin: 8px 0;
+            letter-spacing: 2px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .qr-section {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .qr-section img {
+            width: 120px;
+            height: 120px;
+            border-radius: 6px;
+        }
+
+        .qr-section p {
+            color: #555;
+            margin-top: 6px;
+            font-size: 0.75em;
+        }
+
+        .footer {
+            background: #1a1a2e;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-size: 0.78em;
+        }
+
+        .footer p {
+            margin-bottom: 4px;
+        }
+
+        .footer a {
+            color: #e94560;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .emoji {
+            font-size: 1.1em;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .flyer {
+                box-shadow: none;
+                border-radius: 0;
+                max-width: 100%;
+            }
+            @page {
+                size: letter;
+                margin: 0.5in;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .header-text {
+                text-align: center;
+            }
+            .promo-section {
+                flex-direction: column;
+                text-align: center;
+            }
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .messenger-features {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="flyer">
+        <div class="header">
+            <div class="butterfly">🦋</div>
+            <div class="header-text">
+                <h1>L3V3L Matches</h1>
+                <h2>Your Trusted Matrimonial Platform</h2>
+            </div>
+        </div>
+
+        <div class="tagline">
+            ✨ FIND YOUR PERFECT MATCH WITH CONFIDENCE ✨
+        </div>
+
+        <div class="content">
+            <div class="intro">
+                <p>
+                    <strong>L3V3L Matches</strong> is a premium matrimonial platform for Indian-origin US citizens and Green Card holders seeking meaningful, long-term relationships leading to marriage. Our AI analyzes <strong>50+ compatibility factors</strong> — values, lifestyle, and relationship potential. Every profile is verified.
+                </p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">🔍</span> Smart Search</h3>
+                    <p>Filter by education, profession, location, and preferences.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🎓</span> Detailed Profiles</h3>
+                    <p>Education history, work experience, and partner preferences.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🔒</span> Privacy First</h3>
+                    <p>3-bucket privacy system for photos and profile visibility.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">⭐</span> Top Matches</h3>
+                    <p>AI-powered matching based on your compatibility criteria.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📱</span> Mobile Ready</h3>
+                    <p>Responsive web and mobile apps - access anytime, anywhere.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🛡️</span> Verified Profiles</h3>
+                    <p>Admin-verified profiles ensure authenticity and trust.</p>
+                </div>
+            </div>
+
+            <div class="messenger-highlight">
+                <h3>💬 Real-Time Messenger</h3>
+                <div class="messenger-features">
+                    <div class="messenger-feature"><span class="icon">⚡</span><span>Instant Messaging</span></div>
+                    <div class="messenger-feature"><span class="icon">👥</span><span>Group Chats</span></div>
+                    <div class="messenger-feature"><span class="icon">📇</span><span>Profile Cards</span></div>
+                    <div class="messenger-feature"><span class="icon">🔔</span><span>Push Notifications</span></div>
+                    <div class="messenger-feature"><span class="icon">🟢</span><span>Online Status</span></div>
+                    <div class="messenger-feature"><span class="icon">📧</span><span>Email Invites</span></div>
+                </div>
+            </div>
+
+            <div class="promo-section">
+                <div class="promo-info">
+                    <h3>📱 Register Today</h3>
+                    <p>Use promo code when registering interest:</p>
+                    <div class="promo-code">L3V3L2026</div>
+                    <p>
+                        How did you know about us? Select "Other" and enter <strong>L3V3L2026</strong>.
+                        Or click <a href="https://l3v3lmatches.com/register-interest?promo=L3V3L2026" style="color: #e94560; text-decoration: underline; font-weight: 600;">register</a> to auto-fill.
+                    </p>
+                </div>
+                <div class="qr-section">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https%3A%2F%2Fl3v3lmatches.com%2Fregister-interest%3Fpromo%3DL3V3L2026" alt="Scan to Register">
+                    <p>Scan to Register</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>🌐 <a href="https://l3v3lmatches.com">l3v3lmatches.com</a> | 💬 <a href="https://messenger.l3v3lmatches.com">messenger.l3v3lmatches.com</a></p>
+            <p>📧 Contact us for community partnerships | 🤝 Join thousands of happy couples</p>
+        </div>
+    </div>
+</body>
+</html>
