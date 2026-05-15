@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
@@ -25,7 +25,14 @@ const RegisterInterest = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  
+
+  // Ref for auto-focusing the promo code input
+  const howDidYouHearOtherRef = useRef(null);
+  const firstNameRef = useRef(null);
+
+  // Track if promo code is present to conditionally auto-focus
+  const [hasPromoCode, setHasPromoCode] = useState(false);
+
   // US Vedika invitation params
   const [source, setSource] = useState(null);
   const [sourceConversationId, setSourceConversationId] = useState(null);
@@ -40,7 +47,7 @@ const RegisterInterest = () => {
     return () => document.removeEventListener('keydown', handleEsc);
   }, [navigate]);
 
-  // Parse query params for US Vedika invitation
+  // Parse query params for US Vedika invitation and promo code
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const emailParam = params.get('email');
@@ -48,11 +55,26 @@ const RegisterInterest = () => {
     const cidParam = params.get('cid');
     const invitedByParam = params.get('invitedBy');
     const tokenParam = params.get('token'); // for future validation
+    const promoCodeParam = params.get('promo') || params.get('promoCode');
 
     if (emailParam) {
       setFormData(prev => ({ ...prev, email: emailParam }));
     }
-    
+
+    // Pre-fill "How did you hear about us?" if promo code is present
+    if (promoCodeParam) {
+      setFormData(prev => ({
+        ...prev,
+        howDidYouHear: 'other',
+        howDidYouHearOther: promoCodeParam
+      }));
+      setHasPromoCode(true);
+      logger.info('Promo code detected in URL', { promoCode: promoCodeParam });
+    } else {
+      // No promo code - will focus firstName in separate effect
+      setHasPromoCode(false);
+    }
+
     if (sourceParam === 'us_vedika') {
       setSource(sourceParam);
       setSourceConversationId(cidParam);
@@ -60,6 +82,25 @@ const RegisterInterest = () => {
       logger.info('US Vedika invitation detected', { source: sourceParam, cid: cidParam, invitedBy: invitedByParam });
     }
   }, []);
+
+  // Handle focus after state is set
+  useEffect(() => {
+    if (hasPromoCode && formData.howDidYouHear === 'other') {
+      // Focus promo code field after it renders
+      setTimeout(() => {
+        if (howDidYouHearOtherRef.current) {
+          howDidYouHearOtherRef.current.focus();
+        }
+      }, 200);
+    } else if (!hasPromoCode && firstNameRef.current) {
+      // Focus firstName when no promo code
+      setTimeout(() => {
+        if (firstNameRef.current) {
+          firstNameRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [hasPromoCode, formData.howDidYouHear]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -215,6 +256,7 @@ const RegisterInterest = () => {
             {formData.howDidYouHear === 'other' && (
               <div className="ri-field" style={{ marginTop: '10px' }}>
                 <input
+                  ref={howDidYouHearOtherRef}
                   name="howDidYouHearOther"
                   type="text"
                   value={formData.howDidYouHearOther}
@@ -297,6 +339,7 @@ const RegisterInterest = () => {
               <div className="ri-field">
                 <label htmlFor="firstName">First Name *</label>
                 <input
+                  ref={firstNameRef}
                   id="firstName"
                   name="firstName"
                   type="text"
@@ -304,7 +347,6 @@ const RegisterInterest = () => {
                   onChange={handleChange}
                   placeholder="First name"
                   required
-                  autoFocus
                 />
               </div>
               <div className="ri-field">
