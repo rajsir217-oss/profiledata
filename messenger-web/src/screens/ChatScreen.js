@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import useAuthStore from '@messenger/stores/authStore';
 import useMessengerStore from '@messenger/stores/messengerStore';
+import messengerSocket from '@messenger/services/socketService';
 import { API_BASE_URL } from '@messenger/config/api';
 import { getMainAppUrl } from '../config/apiConfig';
 
@@ -206,11 +207,11 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   const fetchStoreMessages = useMessengerStore((state) => state.fetchMessages);
   const sendStoreMessage = useMessengerStore((state) => state.sendMessage);
   const onStoreNewMessage = useMessengerStore((state) => state.onNewMessage);
+  const deleteStoreMessage = useMessengerStore((state) => state.deleteMessage);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [newMessage, setNewMessage] = useState('');
   const [error, setError] = useState(null);
+  const [newMessage, setNewMessage] = useState('');
   // Send errors are kept separate from load errors so they don't blow away
   // the chat view. They appear as an inline banner above the composer.
   const [sendError, setSendError] = useState(null);
@@ -245,12 +246,33 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   // wired up; the other categories are visible-but-disabled placeholders.
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [sendingProfileCard, setSendingProfileCard] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [armedDeleteId, setArmedDeleteId] = useState(null);
+  const [socketConnected, setSocketConnected] = useState(true);
+
+  // For non-legacy conversations, render directly from the store to avoid
+  // an extra commit per real-time update. For legacy chats, keep the local
+  // messages state populated by the REST endpoint.
+  const displayMessages = isLegacy ? messages : storeMessages;
 
   useEffect(() => {
-    if (isLegacy) return;
-    if (!id) return;
-    setMessages(storeMessages);
-  }, [storeMessages, id, isLegacy]);
+    if (!id || isLegacy) return;
+    messengerSocket.joinConversation(id);
+    return () => messengerSocket.leaveConversation(id);
+  }, [id, isLegacy]);
+
+  useEffect(() => {
+    const unsub = messengerSocket.onStatusChange((connected) => {
+      setSocketConnected(connected);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!armedDeleteId) return;
+    const t = setTimeout(() => setArmedDeleteId(null), 3000);
+    return () => clearTimeout(t);
+  }, [armedDeleteId]);
 
   // Build a profile_card snapshot from the current user's profile and POST it
   // as a rich message into the active conversation. Legacy (main app) 1:1
@@ -709,15 +731,23 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         </View>
       ) : (
         <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
-          {messages.length === 0 ? (
+          {!socketConnected && (
+            <View style={styles.reconnectBanner}>
+              <Text style={styles.reconnectBannerText}>
+                Reconnecting… new messages will appear once you're back online.
+              </Text>
+            </View>
+          )}
+          {displayMessages.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No messages yet</Text>
               <Text style={styles.emptySubText}>Start the conversation!</Text>
             </View>
           ) : (
-            messages.map((msg) => {
+            displayMessages.map((msg) => {
               const isOwn = msg.senderUsername === user.username || msg.fromUsername === user.username;
               const isPublicEmail = msg.senderType === 'public_email';
+              const canDelete = !isLegacy && isOwn && !msg.isDeleted && Boolean(msg.id) && !msg.isOptimistic;
               const isActivationIntro =
                 msg.senderUsername === 'L3V3LMatchAgent' &&
                 msg.contentType === 'profile_card' &&
@@ -744,7 +774,9 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                         <Text style={styles.senderName}>{senderName}</Text>
                       </TouchableOpacity>
                     )}
-                    {msg.contentType === 'profile_card' && msg.cardSnapshot ? (
+                    {msg.isDeleted ? (
+                      <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>Message deleted</Text>
+                    ) : msg.contentType === 'profile_card' && msg.cardSnapshot ? (
                       <ProfileCard
                         card={msg.cardSnapshot}
                         isOwn={isOwn}
@@ -761,13 +793,11 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                           }
                         }}
                       />
-                    ) : (
-                      msg.content ? (
-                        <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
-                          {msg.content}
-                        </Text>
-                      ) : null
-                    )}
+                    ) : msg.content ? (
+                      <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
+                        {msg.content}
+                      </Text>
+                    ) : null}
 
                     {/* US Vedika invitation recipients — show current activation
                         status for each @{email} that was invited via this message. */}
@@ -804,15 +834,37 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                       </View>
                     )}
 
-                    <Text style={styles.messageTime}>
-                      {(() => {
-                        const d = new Date(msg.createdAt);
-                        if (Number.isNaN(d.getTime())) return '';
-                        const date = d.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
-                        const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        return `${date} ${time}`;
-                      })()}
-                    </Text>
+                    <View style={styles.messageMetaRow}>
+                      <Text style={styles.messageTime}>
+                        {msg.status === 'sending' ? 'Sending…'
+                          : msg.status === 'failed' ? 'Failed — tap Send to retry'
+                          : (() => {
+                              const d = new Date(msg.createdAt);
+                              if (Number.isNaN(d.getTime())) return '';
+                              const date = d.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
+                              const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                              return `${date} ${time}`;
+                            })()}
+                      </Text>
+                      {canDelete && (
+                        <TouchableOpacity
+                          onPress={async () => {
+                            if (armedDeleteId !== msg.id) {
+                              setArmedDeleteId(msg.id);
+                              return;
+                            }
+                            setArmedDeleteId(null);
+                            const ok = await deleteStoreMessage(msg.id, id);
+                            if (!ok) setSendError('Failed to delete message');
+                          }}
+                          style={styles.messageActionBtn}
+                        >
+                          <Text style={[styles.messageTime, styles.messageActionIcon]}>
+                            {armedDeleteId === msg.id ? '✓' : '🗑️'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
                 </View>
               );
@@ -1333,6 +1385,34 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     marginTop: 4,
     textAlign: 'right',
+  },
+  messageMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  messageActionBtn: {
+    marginLeft: 8,
+  },
+  messageActionIcon: {
+    marginTop: 0,
+    fontSize: 10,
+    textAlign: 'left',
+  },
+  reconnectBanner: {
+    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+    borderColor: 'rgba(234, 179, 8, 0.4)',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+    alignSelf: 'center',
+  },
+  reconnectBannerText: {
+    color: '#facc15',
+    fontSize: 12,
+    fontWeight: '600',
   },
   senderName: {
     fontSize: 12,

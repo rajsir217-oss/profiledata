@@ -17,7 +17,7 @@ const getMainAppUrl = () => {
 };
 
 export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout }) {
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('messages');
   const [error, setError] = useState(null);
   const [allConversations, setAllConversations] = useState([]);

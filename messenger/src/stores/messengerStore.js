@@ -88,6 +88,30 @@ const useMessengerStore = create((set, get) => ({
   },
 
   sendMessage: async (conversationId, content, contentType = 'text', media = null, replyTo = null) => {
+    const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const sender = useAuthStore.getState().user?.username || '';
+    const tempMsg = {
+      id: tempId,
+      tempId,
+      conversationId,
+      senderUsername: sender,
+      contentType,
+      content,
+      media,
+      replyTo,
+      createdAt: new Date().toISOString(),
+      status: 'sending',
+      isOptimistic: true,
+    };
+    // Optimistically add immediately so the UI feels instant
+    set((state) => {
+      const existing = state.messages[conversationId] || [];
+      return {
+        messages: { ...state.messages, [conversationId]: [...existing, tempMsg] },
+      };
+    });
+    get()._bumpConversation(conversationId, content, contentType);
+
     try {
       const api = useAuthStore.getState().getApi();
       const res = await api.post(
@@ -97,14 +121,21 @@ const useMessengerStore = create((set, get) => ({
       const msg = res.data.message;
       set((state) => {
         const existing = state.messages[conversationId] || [];
-        return {
-          messages: { ...state.messages, [conversationId]: [...existing, msg] },
-        };
+        const withoutTemp = existing.filter((m) => m.id !== tempId);
+        const alreadyHas = withoutTemp.some((m) => m.id === msg.id);
+        const next = alreadyHas ? withoutTemp : [...withoutTemp, msg];
+        return { messages: { ...state.messages, [conversationId]: next } };
       });
-      // Move conversation to top
-      get()._bumpConversation(conversationId, content, contentType);
       return msg;
     } catch (e) {
+      // Mark the optimistic message as failed so the UI can offer retry
+      set((state) => {
+        const existing = state.messages[conversationId] || [];
+        const updated = existing.map((m) =>
+          m.id === tempId ? { ...m, status: 'failed' } : m,
+        );
+        return { messages: { ...state.messages, [conversationId]: updated } };
+      });
       return null;
     }
   },
@@ -163,6 +194,21 @@ const useMessengerStore = create((set, get) => ({
       };
     });
     get()._bumpConversation(conversationId, message.content, message.contentType);
+  },
+
+  onMessageDeleted: (conversationId, messageId) => {
+    set((state) => {
+      const existing = state.messages[conversationId] || [];
+      if (!existing.length) return state;
+      const updated = existing.map((m) =>
+        m.id === messageId
+          ? { ...m, isDeleted: true, content: '', media: null }
+          : m,
+      );
+      return {
+        messages: { ...state.messages, [conversationId]: updated },
+      };
+    });
   },
 
   onMessageStatusUpdate: (messageIds, status) => {
