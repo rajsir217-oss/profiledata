@@ -22,6 +22,13 @@
   clear: both;
 }
 
+.dashboard-banners .mfa-notification-banner,
+.dashboard-banners .photo-reminder-banner,
+.dashboard-banners .invite-friends-banner,
+.dashboard-banners .pause-status-banner {
+  margin-bottom: 0;
+}
+
 /* Override Bootstrap container max-width for dashboard parent */
 .container:has(.dashboard-container) {
   max-width: 98% !important;
