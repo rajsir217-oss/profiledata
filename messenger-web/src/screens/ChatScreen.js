@@ -198,10 +198,14 @@ const formatRelative = (when) => {
   return `${Math.floor(mo / 12)}y ago`;
 };
 
+const EMPTY_MESSAGES = [];
+
 export default function ChatScreen({ id, name, isGroup, isLegacy, profile, username, isOnline, onBack, onOpenDirectChat }) {
   const { user } = useAuthStore();
-  const storeMessages = useMessengerStore((state) => (id ? (state.messages[id] || []) : []));
+  const storeMessages = useMessengerStore((state) => (id ? (state.messages[id] ?? EMPTY_MESSAGES) : EMPTY_MESSAGES));
   const fetchStoreMessages = useMessengerStore((state) => state.fetchMessages);
+  const sendStoreMessage = useMessengerStore((state) => state.sendMessage);
+  const onStoreNewMessage = useMessengerStore((state) => state.onNewMessage);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -453,8 +457,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         res = await api.get(`/api/users/messages/conversation/${name}?username=${user.username}`);
       } else {
         await fetchStoreMessages(id);
-        setMessages(useMessengerStore.getState().messages[id] || []);
-        setLoading(false);
+        setMessages(useMessengerStore.getState().messages[id] ?? EMPTY_MESSAGES);
         return;
       }
       console.log('✅ API Response:', res.data);
@@ -572,15 +575,17 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           content: newMessage.trim(),
         });
       } else {
-        res = await api.post(`/api/messenger/conversations/${id}/messages`, {
-          conversationId: id,
-          contentType: 'text',
-          content: newMessage.trim(),
-        });
+        const msg = await sendStoreMessage(id, newMessage.trim(), 'text');
+        if (!msg) {
+          throw new Error('Failed to send message');
+        }
+        res = { data: { success: true, message: msg } };
       }
       console.log('✅ Message sent successfully:', res.data);
       setNewMessage('');
-      await loadMessages();
+      if (isLegacy) {
+        await loadMessages();
+      }
     } catch (e) {
       console.error('❌ Failed to send message:', e);
       console.error('❌ Error response:', e.response?.data);
@@ -612,7 +617,9 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
       console.log('✅ Message sent successfully:', res.data);
       setNewMessage('');
       setPublicRecipients([]);
-      await loadMessages();
+      if (res?.data?.message) {
+        onStoreNewMessage(id, res.data.message);
+      }
     } catch (e) {
       console.error('❌ Failed to send message:', e);
       console.error('❌ Error response:', e.response?.data);
@@ -798,7 +805,13 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                     )}
 
                     <Text style={styles.messageTime}>
-                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {(() => {
+                        const d = new Date(msg.createdAt);
+                        if (Number.isNaN(d.getTime())) return '';
+                        const date = d.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
+                        const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        return `${date} ${time}`;
+                      })()}
                     </Text>
                   </View>
                 </View>
