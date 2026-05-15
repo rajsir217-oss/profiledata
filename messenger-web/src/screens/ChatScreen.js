@@ -364,11 +364,18 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
 
       const created = res?.data?.message;
       if (created) {
-        setMessages((prev) => {
-          const next = Array.isArray(prev) ? [...prev] : [];
-          next.push(created);
-          return next;
-        });
+        // Legacy chats render from local `messages` state; non-legacy chats
+        // render from the messenger store. Update whichever is in use so the
+        // card shows immediately without waiting for a refresh / socket echo.
+        if (isLegacy) {
+          setMessages((prev) => {
+            const next = Array.isArray(prev) ? [...prev] : [];
+            next.push(created);
+            return next;
+          });
+        } else {
+          onStoreNewMessage(id, created);
+        }
       } else {
         await loadMessages();
       }
@@ -757,7 +764,12 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
               const publicEmailsSent = Array.isArray(msg.publicEmailsSent) ? msg.publicEmailsSent : [];
               return (
                 <View key={msg.id} style={[styles.messageRow, isOwn && styles.messageRowOwn]}>
-                  <View style={[styles.messageBubble, isOwn && styles.messageBubbleOwn, isPublicEmail && styles.messageBubblePublic]}>
+                  <View style={[
+                    styles.messageBubble,
+                    isOwn && styles.messageBubbleOwn,
+                    isPublicEmail && styles.messageBubblePublic,
+                    msg.contentType === 'profile_card' && styles.messageBubbleCard,
+                  ]}>
                     {isPublicEmail ? (
                       <Text style={styles.publicEmailBadge}>📧 {msg.publicEmail || msg.senderUsername}</Text>
                     ) : isActivationIntro ? (
@@ -1465,6 +1477,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e1e3f',
     borderColor: '#6366f1',
   },
+  // Profile-card bubbles get a wider, responsive width so the card content
+  // (avatar + sections) has room to breathe and scales with the viewport.
+  messageBubbleCard: {
+    width: '85%',
+    maxWidth: 520,
+  },
   sendErrorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1796,7 +1814,8 @@ const cardStyles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginTop: 4,
-    minWidth: 260,
+    alignSelf: 'stretch',
+    width: '100%',
   },
   cardOwn: {
     backgroundColor: '#102043',
