@@ -475,6 +475,43 @@ const RegisterInterest = () => {
               <li>You will receive an email confirming your profile is active</li>
               <li>Then you can login, search profiles, and access all platform features</li>
             </ul>
+            <div className="ri-flow-diagram">
+              <div className="ri-flow-step">
+                <div className="ri-step-num">1</div>
+                <div className="ri-step-icon">✅</div>
+                <div className="ri-step-text">Interest verified — receive an invite from <strong>Admins</strong></div>
+              </div>
+              <div className="ri-flow-arrow">→</div>
+              <div className="ri-flow-step">
+                <div className="ri-step-num">2</div>
+                <div className="ri-step-icon">🔗</div>
+                <div className="ri-step-text">Click <strong>"Create Profile"</strong> in the invitation email</div>
+              </div>
+              <div className="ri-flow-arrow">→</div>
+              <div className="ri-flow-step">
+                <div className="ri-step-num">3</div>
+                <div className="ri-step-icon">📝</div>
+                <div className="ri-step-text">Complete profile creation</div>
+              </div>
+              <div className="ri-flow-arrow">→</div>
+              <div className="ri-flow-step">
+                <div className="ri-step-num">4</div>
+                <div className="ri-step-icon">🛡️</div>
+                <div className="ri-step-text">Admin reviews &amp; activates profile</div>
+              </div>
+              <div className="ri-flow-arrow">→</div>
+              <div className="ri-flow-step">
+                <div className="ri-step-num">5</div>
+                <div className="ri-step-icon">📧</div>
+                <div className="ri-step-text">Receive activation email</div>
+              </div>
+              <div className="ri-flow-arrow">→</div>
+              <div className="ri-flow-step">
+                <div className="ri-step-num">6</div>
+                <div className="ri-step-icon">💕</div>
+                <div className="ri-step-text">Login &amp; find your match!</div>
+              </div>
+            </div>
           </div>
 
           {/* Submit */}
