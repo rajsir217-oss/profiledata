@@ -540,7 +540,8 @@ const Dashboard2 = () => {
       setLastLoginAt(res.data?.security?.last_login_at);
 
       try {
-        const dismissed = sessionStorage.getItem('inviteFriendsBannerDismissed');
+        const dismissedKey = user ? `inviteFriendsBannerDismissed:${user}` : 'inviteFriendsBannerDismissed';
+        const dismissed = sessionStorage.getItem(dismissedKey);
         if (dismissed !== 'true') {
           const token = localStorage.getItem('token');
           if (!token) {
@@ -564,7 +565,8 @@ const Dashboard2 = () => {
         logger.debug('Invite friends stats unavailable:', inviteErr);
       }
       
-      const photoReminderDismissed = sessionStorage.getItem('photoReminderDismissed');
+      const photoDismissedKey = user ? `photoReminderDismissed:${user}` : 'photoReminderDismissed';
+      const photoReminderDismissed = sessionStorage.getItem(photoDismissedKey);
       const userImages = res.data?.images || [];
       if (userImages.length === 0 && !photoReminderDismissed) {
         setShowPhotoReminder(true);
@@ -764,7 +766,8 @@ const Dashboard2 = () => {
 
   const checkMfaStatus = async (username) => {
     // Check if user has dismissed the MFA notification THIS SESSION ONLY
-    const dismissed = sessionStorage.getItem('mfaNotificationDismissed');
+    const dismissedKey = username ? `mfaNotificationDismissed:${username}` : 'mfaNotificationDismissed';
+    const dismissed = sessionStorage.getItem(dismissedKey);
     logger.debug('🔍 MFA Banner Check - Dismissed flag (this session):', dismissed);
     if (dismissed === 'true') {
       logger.debug('⏭️ MFA Banner - Dismissed this session, not showing');
@@ -805,7 +808,9 @@ const Dashboard2 = () => {
   const handleDismissMfaNotification = () => {
     setShowMfaNotification(false);
     // Only dismiss for this session - will show again on next login
-    sessionStorage.setItem('mfaNotificationDismissed', 'true');
+    const username = localStorage.getItem('username');
+    const dismissedKey = username ? `mfaNotificationDismissed:${username}` : 'mfaNotificationDismissed';
+    sessionStorage.setItem(dismissedKey, 'true');
   };
 
   const handleEnableMfa = () => {
@@ -816,7 +821,9 @@ const Dashboard2 = () => {
   // Photo reminder handlers
   const handleDismissPhotoReminder = () => {
     setShowPhotoReminder(false);
-    sessionStorage.setItem('photoReminderDismissed', 'true');
+    const username = localStorage.getItem('username');
+    const dismissedKey = username ? `photoReminderDismissed:${username}` : 'photoReminderDismissed';
+    sessionStorage.setItem(dismissedKey, 'true');
   };
 
   const handleUploadPhotos = () => {
@@ -831,7 +838,9 @@ const Dashboard2 = () => {
 
   const handleRemindInviteFriendsLater = () => {
     setShowInviteFriendsBanner(false);
-    sessionStorage.setItem('inviteFriendsBannerDismissed', 'true');
+    const username = localStorage.getItem('username');
+    const dismissedKey = username ? `inviteFriendsBannerDismissed:${username}` : 'inviteFriendsBannerDismissed';
+    sessionStorage.setItem(dismissedKey, 'true');
   };
 
   // Pause feature functions
