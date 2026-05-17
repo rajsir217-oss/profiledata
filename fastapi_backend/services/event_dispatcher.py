@@ -1166,6 +1166,7 @@ class EventDispatcher:
             "dobLabel": dob_label,
             "height": height_label,
             "location": location,
+            "gender": user.get("sex") or user.get("gender"),
             "educationHistory": user.get("educationHistory") if isinstance(user.get("educationHistory"), list) else [],
             "workExperience": user.get("workExperience") if isinstance(user.get("workExperience"), list) else [],
             "message": intro_message,

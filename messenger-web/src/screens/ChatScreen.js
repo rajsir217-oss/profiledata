@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import useAuthStore from '@messenger/stores/authStore';
 import useMessengerStore from '@messenger/stores/messengerStore';
@@ -58,7 +58,7 @@ const buildImageUrl = (path) => {
 // Mirrors the layout in Image 1 of the spec: avatar at top, name + meta pills,
 // then Education History, Work Experience, and a free-form "looking for" blurb.
 // `card` is the immutable snapshot persisted on the message document.
-function ProfileCard({ card, isOwn, onUsernameClick }) {
+function ProfileCard({ card, isOwn, onUsernameClick, onMenuOpen, isFavorited, currentUserGender }) {
   if (!card) return null;
   const avatarUri = card.avatarUrl ? buildImageUrl(String(card.avatarUrl)) : null;
   // Pills mirror the main-app card: age · DOB (MM/YYYY) · height. Prefer the
@@ -73,10 +73,18 @@ function ProfileCard({ card, isOwn, onUsernameClick }) {
       dobPill = `📅 ${parsed.toLocaleDateString('en-US', { month: '2-digit', year: 'numeric' })}`;
     }
   }
+  const genderPill = (card.sex || card.gender) ? (
+    ['male', 'm', 'man', 'Male', 'M', 'Man'].includes(String(card.sex || card.gender).trim())
+      ? '👨 Male'
+      : ['female', 'f', 'woman', 'Female', 'F', 'Woman'].includes(String(card.sex || card.gender).trim())
+      ? '👩 Female'
+      : `⚧ ${card.sex || card.gender}`
+  ) : '❓ Unknown';
   const pills = [
     card.age ? `👋 ${card.age} yrs` : null,
     dobPill,
     card.height ? `📏 ${card.height}` : null,
+    genderPill,
   ].filter(Boolean);
   // Subline shows just the user's location (city) — `education` / `occupation`
   // would duplicate what's already in the Education History / Work Experience
@@ -116,6 +124,28 @@ function ProfileCard({ card, isOwn, onUsernameClick }) {
               <Text style={cardStyles.subPillText}>{subline}</Text>
             </View>
           ) : null}
+        </View>
+        <View style={cardStyles.headerActions}>
+          {isFavorited && <Text style={cardStyles.heartEmoji}>❤️</Text>}
+          {!isOwn && onMenuOpen && (() => {
+            const normalizeGender = (g) => g ? String(g).trim().toLowerCase() : '';
+            const currentG = normalizeGender(currentUserGender);
+            const cardG = normalizeGender(card.gender || card.sex);
+            const isMale = ['male', 'm', 'man'].includes(currentG);
+            const cardIsMale = ['male', 'm', 'man'].includes(cardG);
+            const isFemale = ['female', 'f', 'woman'].includes(currentG);
+            const cardIsFemale = ['female', 'f', 'woman'].includes(cardG);
+            // Show menu if either gender is missing OR if genders are opposite
+            return !currentG || !cardG || (isMale && cardIsFemale) || (isFemale && cardIsMale);
+          })() && (
+            <TouchableOpacity
+              style={cardStyles.menuButton}
+              onPress={() => onMenuOpen(card)}
+              activeOpacity={0.7}
+            >
+              <Text style={cardStyles.menuButtonText}>⋮</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -249,6 +279,12 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   // Username action modal — opened when a user taps a sender's name in a group
   // chat bubble. Offers View Profile (main app) and Direct Message (1:1 chat).
   const [usernameModalTarget, setUsernameModalTarget] = useState(null);
+  // Profile card actions menu
+  const [profileCardMenuTarget, setProfileCardMenuTarget] = useState(null);
+  // Track favorited usernames to show heart emoji on profile cards
+  const [favoritedUsernames, setFavoritedUsernames] = useState(new Set());
+  // ScrollView ref for scrolling to bottom
+  const scrollViewRef = useRef(null);
   // Quick Messages popup (⚡ button next to composer). Only "Introduction" is
   // wired up; the other categories are visible-but-disabled placeholders.
   const [showQuickMessages, setShowQuickMessages] = useState(false);
@@ -281,6 +317,37 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     return () => clearTimeout(t);
   }, [armedDeleteId]);
 
+  // Load user's favorites on mount to populate favoritedUsernames state
+  useEffect(() => {
+    const loadFavorites = async () => {
+      if (!user?.username) return;
+      try {
+        const api = useAuthStore.getState().getApi();
+        const res = await api.get(`/api/users/favorites/${user.username}`);
+        const favorites = res.data?.favorites || [];
+        const usernameSet = new Set(favorites.map(f => f.username));
+        setFavoritedUsernames(usernameSet);
+      } catch (e) {
+        console.error('Failed to load favorites:', e);
+      }
+    };
+    loadFavorites();
+  }, [user?.username]);
+
+  // Scroll to bottom when messages load or new messages arrive
+  const lastMessageCountRef = useRef(0);
+  const hasLoadedOnceRef = useRef(false);
+  useEffect(() => {
+    if (scrollViewRef.current && displayMessages.length > 0) {
+      // Scroll on first load OR when new message is added
+      if (!hasLoadedOnceRef.current || displayMessages.length > lastMessageCountRef.current) {
+        scrollViewRef.current.scrollToEnd({ animated: true });
+        hasLoadedOnceRef.current = true;
+      }
+    }
+    lastMessageCountRef.current = displayMessages.length;
+  }, [displayMessages.length]);
+
   // Build a profile_card snapshot from the current user's profile and POST it
   // as a rich message into the active conversation. Legacy (main app) 1:1
   // chats don't support rich types, so we gate the ⚡ button on !isLegacy.
@@ -292,12 +359,30 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     try {
       const store = useAuthStore.getState();
       const api = store.getApi();
-      let snapshot = await store.prefetchIntroCard({ force: false });
+      let snapshot = await store.prefetchIntroCard({ force: true });
+      if (snapshot && !(snapshot.gender || snapshot.sex)) {
+        try {
+          const profRes = await api.get(`/api/users/profile/${user.username}?requester=${user.username}`);
+          const p = profRes.data?.user || profRes.data || {};
+          const genderValue = p.sex || p.gender || null;
+          if (genderValue) {
+            snapshot = {
+              ...snapshot,
+              gender: genderValue,
+              sex: genderValue,
+            };
+          }
+        } catch (_) {
+          // Best-effort enrichment — continue with existing snapshot
+        }
+      }
       if (!snapshot) {
         // Fetch the freshest profile so the snapshot reflects the latest edits.
         const profRes = await api.get(`/api/users/profile/${user.username}?requester=${user.username}`);
         const p = profRes.data?.user || profRes.data || {};
         const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.username || user.username;
+        // Use gender from profile data (sex field in DB), fallback to current user's gender
+        const gender = p.sex || p.gender || user.gender || user.sex || null;
         // The main app uses birthMonth / birthYear (no day). Synthesize a label
         // like "11/1995" for the card pill, plus an ISO-ish dob fallback for
         // anything that wants a real date.
@@ -343,6 +428,8 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           dob: rawDob,
           dobLabel,
           height: heightLabel,
+          gender,
+          sex: gender,
           // Just the city — Education / Work are shown in their own sections.
           location: p.location || p.currentLocation || null,
           // Persist arrays exactly as stored — the renderer knows the schema.
@@ -354,7 +441,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           // a female profile is "looking for a groom for our daughter".
           // Falls back to a neutral phrasing if gender is missing/unknown.
           message: (() => {
-            const g = String(p.gender || '').trim().toLowerCase();
+            const g = String(gender || '').trim().toLowerCase();
             if (g === 'male' || g === 'm' || g === 'man') {
               return 'Looking for a suitable bride for our son — please review the profile for details and Contact me. Thanks';
             }
@@ -422,6 +509,56 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     }
   };
 
+  // Profile card action handlers
+  const handleAddToFavorites = async (card) => {
+    setProfileCardMenuTarget(null);
+    const username = card.username;
+    if (!username) return;
+    try {
+      const api = useAuthStore.getState().getApi();
+      await api.post(`/api/users/favorites/${username}`);
+      setFavoritedUsernames(prev => new Set([...prev, username]));
+    } catch (e) {
+      console.error('Failed to add to favorites:', e);
+    }
+  };
+
+  const handleRemoveFromFavorites = async (card) => {
+    setProfileCardMenuTarget(null);
+    const username = card.username;
+    if (!username) return;
+    try {
+      const api = useAuthStore.getState().getApi();
+      await api.delete(`/api/users/favorites/${username}`);
+      setFavoritedUsernames(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(username);
+        return newSet;
+      });
+    } catch (e) {
+      console.error('Failed to remove from favorites:', e);
+    }
+  };
+
+  const handleDirectMessageFromCard = (card) => {
+    setProfileCardMenuTarget(null);
+    const username = card.username;
+    if (!username) return;
+    if (typeof onOpenDirectChat === 'function') {
+      onOpenDirectChat(username);
+    }
+  };
+
+  const handleViewProfileFromCard = (card) => {
+    setProfileCardMenuTarget(null);
+    const username = card.username;
+    if (!username) return;
+    const url = `${getMainAppUrl()}/profile/${encodeURIComponent(username)}`;
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const handleClearChat = async () => {
     setClearingChat(true);
     try {
@@ -432,7 +569,15 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         await api.post(`/api/messenger/conversations/${id}/clear`);
       }
       setShowClearConfirm(false);
-      setMessages([]);
+      if (isLegacy) {
+        setMessages([]);
+        await loadMessages();
+      } else {
+        useMessengerStore.setState((state) => ({
+          messages: { ...(state.messages || {}), [id]: [] },
+        }));
+        await fetchStoreMessages(id);
+      }
       console.log('🧹 Chat cleared from view');
     } catch (e) {
       console.error('❌ Failed to clear chat:', e);
@@ -747,7 +892,11 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.messagesContainer}
+          contentContainerStyle={styles.messagesContent}
+        >
           {!socketConnected && (
             <View style={styles.reconnectBanner}>
               <Text style={styles.reconnectBannerText}>
@@ -802,6 +951,9 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                       <ProfileCard
                         card={msg.cardSnapshot}
                         isOwn={isOwn}
+                        isFavorited={favoritedUsernames.has(msg.cardSnapshot.username)}
+                        currentUserGender={user?.gender}
+                        onMenuOpen={(card) => setProfileCardMenuTarget(card)}
                         onUsernameClick={(uname) => {
                           // Tapping the profile name on the card jumps straight
                           // to the main app's /profile/:username page in a new
@@ -1058,6 +1210,63 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
               style={styles.modalButtonCancel}
               onPress={() => setShowClearConfirm(false)}
               disabled={clearingChat}
+            >
+              <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Profile Card Actions Modal — appears when user taps ⋮ on a profile card */}
+      {profileCardMenuTarget && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>👤 {profileCardMenuTarget.fullName || profileCardMenuTarget.username}</Text>
+            <Text style={styles.modalText}>What would you like to do?</Text>
+
+            {(() => {
+              const normalizeGender = (g) => g ? String(g).trim().toLowerCase() : '';
+              const currentG = normalizeGender(user?.gender);
+              const cardG = normalizeGender(profileCardMenuTarget.gender || profileCardMenuTarget.sex);
+              const isMale = ['male', 'm', 'man'].includes(currentG);
+              const cardIsMale = ['male', 'm', 'man'].includes(cardG);
+              const isFemale = ['female', 'f', 'woman'].includes(currentG);
+              const cardIsFemale = ['female', 'f', 'woman'].includes(cardG);
+              // Show actions if either gender is missing OR if genders are opposite
+              return !currentG || !cardG || (isMale && cardIsFemale) || (isFemale && cardIsMale);
+            })() && (
+              <>
+                <TouchableOpacity
+                  style={styles.modalButtonPrimary}
+                  onPress={() => favoritedUsernames.has(profileCardMenuTarget.username)
+                    ? handleRemoveFromFavorites(profileCardMenuTarget)
+                    : handleAddToFavorites(profileCardMenuTarget)
+                  }
+                >
+                  <Text style={styles.modalButtonTextPrimary}>
+                    {favoritedUsernames.has(profileCardMenuTarget.username) ? '💔 Remove from Favorites' : '⭐ Add to Favorites'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalButtonPrimary}
+                  onPress={() => handleDirectMessageFromCard(profileCardMenuTarget)}
+                >
+                  <Text style={styles.modalButtonTextPrimary}>💬 Direct Message</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <TouchableOpacity
+              style={styles.modalButtonPrimary}
+              onPress={() => handleViewProfileFromCard(profileCardMenuTarget)}
+            >
+              <Text style={styles.modalButtonTextPrimary}>👁 View Profile</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalButtonCancel}
+              onPress={() => setProfileCardMenuTarget(null)}
             >
               <Text style={styles.modalButtonTextCancel}>Cancel</Text>
             </TouchableOpacity>
@@ -1854,6 +2063,25 @@ const cardStyles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heartEmoji: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  menuButton: {
+    padding: 8,
+    marginLeft: 8,
+    alignSelf: 'flex-start',
+  },
+  menuButtonText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '300',
+    lineHeight: 20,
   },
   name: {
     color: '#fff',

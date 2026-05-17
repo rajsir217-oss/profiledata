@@ -596,6 +596,7 @@ async def login(
             "firstName": user.get("firstName"),
             "lastName": user.get("lastName"),
             "role": user.get("role_name"),
+            "gender": user.get("sex") or user.get("gender"),
             "email_verified": status_info.get("email_verified")
         }
         
@@ -826,6 +827,7 @@ async def get_current_user(
         "firstName": current_user.get("firstName"),
         "lastName": current_user.get("lastName"),
         "role": current_user.get("role_name"),
+        "gender": current_user.get("sex") or current_user.get("gender"),
         "permissions": PermissionChecker.get_user_permissions(current_user),
         "email_verified": current_user.get("status", {}).get("email_verified"),
         "mfa_enabled": current_user.get("mfa", {}).get("mfa_enabled")
