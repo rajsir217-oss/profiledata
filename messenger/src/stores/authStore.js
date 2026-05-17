@@ -48,6 +48,7 @@ const buildIntroductionCardSnapshot = (profile, token, fallbackUsername) => {
   const p = profile || {};
   const username = p.username || fallbackUsername;
   const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim() || username;
+  const rawGender = p.gender || p.sex || null;
   const rawDob = p.dob || p.dateOfBirth || null;
   const age = calcAge(rawDob, p.birthYear, p.birthMonth);
   let dobLabel = null;
@@ -74,7 +75,7 @@ const buildIntroductionCardSnapshot = (profile, token, fallbackUsername) => {
   }
 
   const message = (() => {
-    const g = String(p.gender || '').trim().toLowerCase();
+    const g = String(rawGender || '').trim().toLowerCase();
     if (g === 'male' || g === 'm' || g === 'man') {
       return 'Looking for a suitable bride for our son — please review the profile for details and Contact me. Thanks';
     }
@@ -92,6 +93,7 @@ const buildIntroductionCardSnapshot = (profile, token, fallbackUsername) => {
     dob: rawDob,
     dobLabel,
     height: heightLabel,
+    gender: rawGender,
     location: p.location || p.currentLocation || null,
     educationHistory: Array.isArray(p.educationHistory) ? p.educationHistory : [],
     workExperience: Array.isArray(p.workExperience) ? p.workExperience : [],
@@ -334,8 +336,17 @@ const useAuthStore = create((set, get) => ({
       const api = get().getApi();
       const profRes = await api.get(`/api/users/profile/${user.username}?requester=${user.username}`);
       const profile = profRes.data?.user || profRes.data || {};
+      const profileGender = profile.gender || profile.sex || null;
       const snapshot = buildIntroductionCardSnapshot(profile, token, user.username);
       const fetchedAt = Date.now();
+
+      if (profileGender && !user?.gender) {
+        const nextUser = { ...(user || {}), gender: profileGender };
+        set({ user: nextUser });
+        try {
+          await AsyncStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+        } catch (_) {}
+      }
 
       set({ introCardSnapshot: snapshot, introCardFetchedAt: fetchedAt });
       await AsyncStorage.setItem(INTRO_CARD_KEY, JSON.stringify({ snapshot, fetchedAt }));
