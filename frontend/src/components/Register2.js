@@ -18,6 +18,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   // Detect if we're in edit mode
   const isEditMode = mode === 'edit' || editUsername !== null;
   const pageSEO = getPageSEO('register');
+
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Get promo code from URL query parameter (e.g., /register?promo=TELUGU2025)
+  const promoCodeFromUrl = searchParams.get('promo') || searchParams.get('promoCode') || null;
   // Helper function to calculate age from birth month and year
   const calculateAge = (birthMonth, birthYear) => {
     if (!birthMonth || !birthYear) return null;
@@ -184,12 +190,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     agreedToMarketing: false,
   });
 
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  
-  // Get promo code from URL query parameter (e.g., /register?promo=TELUGU2025)
-  const promoCodeFromUrl = searchParams.get('promo') || searchParams.get('promoCode') || null;
-  
   // Invitation state
   const [invitationToken, setInvitationToken] = useState(null);
   const [invitedBy, setInvitedBy] = useState(null); // Username of member who sent invitation
