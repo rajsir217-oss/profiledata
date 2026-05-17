@@ -335,18 +335,48 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   }, [user?.username]);
 
   // Scroll to bottom when messages load or new messages arrive
-  const lastMessageCountRef = useRef(0);
+  const firstMessageIdRef = useRef(null);
+  const lastMessageIdRef = useRef(null);
   const hasLoadedOnceRef = useRef(false);
   useEffect(() => {
-    if (scrollViewRef.current && displayMessages.length > 0) {
-      // Scroll on first load OR when new message is added
-      if (!hasLoadedOnceRef.current || displayMessages.length > lastMessageCountRef.current) {
-        scrollViewRef.current.scrollToEnd({ animated: true });
-        hasLoadedOnceRef.current = true;
-      }
+    // Reset scroll tracking when switching conversations
+    firstMessageIdRef.current = null;
+    lastMessageIdRef.current = null;
+    hasLoadedOnceRef.current = false;
+  }, [id]);
+
+  useEffect(() => {
+    if (!scrollViewRef.current) return;
+    if (!Array.isArray(displayMessages) || displayMessages.length === 0) return;
+
+    const firstMsg = displayMessages[0] || {};
+    const lastMsg = displayMessages[displayMessages.length - 1] || {};
+
+    const firstId = firstMsg.id || firstMsg._id || firstMsg.tempId || firstMsg.createdAt || null;
+    const lastId = lastMsg.id || lastMsg._id || lastMsg.tempId || lastMsg.createdAt || null;
+
+    const prevFirstId = firstMessageIdRef.current;
+    const prevLastId = lastMessageIdRef.current;
+
+    // Scroll when:
+    // - first render of a conversation (initial load)
+    // - the last message changes (append OR optimistic temp->real replacement)
+    // Do NOT scroll when only older history is prepended (first changes, last stays the same).
+    const shouldScroll =
+      !hasLoadedOnceRef.current ||
+      (!!lastId && prevLastId !== lastId);
+
+    if (shouldScroll) {
+      // Defer so layout has committed before we try to scroll.
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 0);
+      hasLoadedOnceRef.current = true;
     }
-    lastMessageCountRef.current = displayMessages.length;
-  }, [displayMessages.length]);
+
+    firstMessageIdRef.current = firstId;
+    lastMessageIdRef.current = lastId;
+  }, [displayMessages]);
 
   // Build a profile_card snapshot from the current user's profile and POST it
   // as a rich message into the active conversation. Legacy (main app) 1:1
