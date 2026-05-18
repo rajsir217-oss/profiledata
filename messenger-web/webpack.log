@@ -24,4 +24,14 @@ modules by path ../messenger/src/ 71.9 KiB
 modules by path ./*.js 11 KiB
   ./index.js 267 bytes [built] [code generated]
   ./App.js 10.7 KiB [built] [code generated]
-webpack 5.106.2 compiled successfully in 1977 ms
+webpack 5.106.2 compiled successfully in 2681 ms
+assets by status 1.06 KiB [cached] 1 asset
+assets by path *.js 6.32 MiB
+  asset bundle.js 6.23 MiB [emitted] (name: main)
+  asset main.13faa159ee8041dd90c4.hot-update.js 92.3 KiB [emitted] [immutable] [hmr] (name: main)
+asset main.13faa159ee8041dd90c4.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.32 MiB = bundle.js 6.23 MiB main.13faa159ee8041dd90c4.hot-update.js 92.3 KiB
+cached modules 2.12 MiB [cached] 246 modules
+runtime modules 27.1 KiB 13 modules
+./src/screens/LoginScreen.js 27 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 392 ms
