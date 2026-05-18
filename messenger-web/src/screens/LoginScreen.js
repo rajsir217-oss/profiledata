@@ -21,7 +21,6 @@ const LoginScreen = () => {
   const turnstileRef = useRef();
 
   const isDevelopment = process.env.NODE_ENV !== 'production';
-  const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   const canBypassCaptcha = captchaError && captchaRetryCount >= 3;
 
   // MFA State
@@ -54,7 +53,7 @@ const LoginScreen = () => {
       return;
     }
 
-    if (!isDevelopment && !isLocalhost && !captchaToken && !canBypassCaptcha) {
+    if (!isDevelopment && !captchaToken && !canBypassCaptcha) {
       setError('Please complete the security check');
       return;
     }
@@ -63,7 +62,7 @@ const LoginScreen = () => {
     setError('');
 
     try {
-      const captchaTokenForBackend = (isDevelopment || isLocalhost)
+      const captchaTokenForBackend = isDevelopment
         ? 'XXXX.DUMMY.TOKEN.XXXX'
         : (captchaToken || null);
 
@@ -254,7 +253,7 @@ const LoginScreen = () => {
             <TouchableOpacity
               style={styles.button}
               onPress={handleSubmit}
-              disabled={loading || (!isDevelopment && !isLocalhost && !captchaToken && !canBypassCaptcha)}
+              disabled={loading || (!isDevelopment && !captchaToken && !canBypassCaptcha)}
             >
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign In</Text>}
             </TouchableOpacity>

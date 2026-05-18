@@ -387,6 +387,46 @@ run_capacitor_android() {
     fi
   fi
 
+  # Configure capacitor.config.json for debug vs release
+  # Debug: server.url enables live reload from webpack dev server
+  # Release: Remove server block to use bundled dist/ assets + production backend
+  local capacitor_config="$MSG_WEB_DIR/capacitor.config.json"
+  local capacitor_config_backup="$MSG_WEB_DIR/capacitor.config.json.bak"
+  local capacitor_assets_config="$MSG_WEB_DIR/android/app/src/main/assets/capacitor.config.json"
+  local capacitor_assets_config_backup="$MSG_WEB_DIR/android/app/src/main/assets/capacitor.config.json.bak"
+  if [[ -f "$capacitor_config" ]]; then
+    cp "$capacitor_config" "$capacitor_config_backup"
+    if [[ -f "$capacitor_assets_config" ]]; then
+      cp "$capacitor_assets_config" "$capacitor_assets_config_backup"
+    fi
+    if [[ "$BUILD_TYPE" == "release" ]]; then
+      echo "📦 Release build: Setting server.hostname so CAPTCHA uses production domain (no server.url)"
+      node -e "
+        const fs = require('fs');
+        const cfg = JSON.parse(fs.readFileSync('$capacitor_config'));
+        cfg.server = {
+          androidScheme: 'https',
+          hostname: 'l3v3lmatches.com'
+        };
+        fs.writeFileSync('$capacitor_config', JSON.stringify(cfg, null, 2));
+        if (fs.existsSync('$capacitor_assets_config')) {
+          fs.writeFileSync('$capacitor_assets_config', JSON.stringify(cfg, null, 2));
+        }
+      "
+    else
+      echo "🔧 Debug build: Setting server.url for live reload from webpack dev server"
+      node -e "
+        const fs = require('fs');
+        const cfg = JSON.parse(fs.readFileSync('$capacitor_config'));
+        cfg.server = { androidScheme: 'http', cleartext: true, url: 'http://10.0.2.2:3030' };
+        fs.writeFileSync('$capacitor_config', JSON.stringify(cfg, null, 2));
+        if (fs.existsSync('$capacitor_assets_config')) {
+          fs.writeFileSync('$capacitor_assets_config', JSON.stringify(cfg, null, 2));
+        }
+      "
+    fi
+  fi
+
   # For release builds, we just build the APK without running on emulator
   if [[ "$BUILD_TYPE" == "release" ]]; then
     echo "🏗️  Building release APK..."
@@ -401,11 +441,43 @@ run_capacitor_android() {
     fi
     
     # Use Gradle directly for release builds to properly handle signing
+    echo "🏗️  Building messenger-web dist (production)..."
+    (cd "$MSG_WEB_DIR" && npm run build)
+
+    if ! command -v npx >/dev/null 2>&1; then
+      echo "❌ npx not found on PATH. Install Node.js (npm) and retry."
+      exit 1
+    fi
+
+    echo "🔄 Copying web assets + capacitor config into Android project..."
+    (cd "$MSG_WEB_DIR" && npx cap copy android)
+
+    if grep -q "10\.0\.2\.2:3030" "$capacitor_assets_config" 2>/dev/null; then
+      echo "❌ Release build still contains server.url=10.0.2.2:3030 in Android assets config"
+      exit 1
+    fi
+
+    echo "🧹 Cleaning Android build to avoid stale merged assets..."
+    (cd "$MSG_WEB_DIR/android" && ./gradlew clean)
+
     echo "🔨 Running Gradle assembleRelease..."
     (cd "$MSG_WEB_DIR/android" && ./gradlew assembleRelease)
+
+    local merged_release_config="$MSG_WEB_DIR/android/app/build/intermediates/assets/release/mergeReleaseAssets/capacitor.config.json"
+    if [[ -f "$merged_release_config" ]] && grep -q "10\.0\.2\.2:3030" "$merged_release_config"; then
+      echo "❌ Release build merged assets still contain server.url=10.0.2.2:3030"
+      echo "   Check: $merged_release_config"
+      exit 1
+    fi
     
     local apk_path="$MSG_WEB_DIR/android/app/build/outputs/apk/release/msgr-app-release-${new_build_num}.apk"
     if [[ -f "$apk_path" ]]; then
+      if command -v unzip >/dev/null 2>&1; then
+        if unzip -p "$apk_path" assets/capacitor.config.json 2>/dev/null | grep -q "10\.0\.2\.2:3030"; then
+          echo "❌ Release APK contains dev server URL (10.0.2.2:3030) in assets/capacitor.config.json"
+          exit 1
+        fi
+      fi
       echo "✅ Release APK built: $apk_path"
     else
       echo "⚠️  APK not found at expected path, listing output directory:"
@@ -414,6 +486,14 @@ run_capacitor_android() {
     
     # Keep only 3 most recent release APKs
     cleanup_old_apks "$MSG_WEB_DIR/android/app/build/outputs/apk/release" "msgr-app-release"
+    
+    # Restore original capacitor config
+    if [[ -f "$capacitor_config_backup" ]]; then
+      mv "$capacitor_config_backup" "$capacitor_config"
+    fi
+    if [[ -f "$capacitor_assets_config_backup" ]]; then
+      mv "$capacitor_assets_config_backup" "$capacitor_assets_config"
+    fi
     return
   fi
 
@@ -482,6 +562,14 @@ run_capacitor_android() {
   
   # Keep only 3 most recent debug APKs
   cleanup_old_apks "$MSG_WEB_DIR/android/app/build/outputs/apk/debug" "msgr-app-debug"
+  
+  # Restore original capacitor config
+  if [[ -f "$capacitor_config_backup" ]]; then
+    mv "$capacitor_config_backup" "$capacitor_config"
+  fi
+  if [[ -f "$capacitor_assets_config_backup" ]]; then
+    mv "$capacitor_assets_config_backup" "$capacitor_assets_config"
+  fi
 }
 
 run_ios() {
