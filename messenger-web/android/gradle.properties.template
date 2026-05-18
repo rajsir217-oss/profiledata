@@ -1,0 +1,16 @@
+# Android Release Signing Configuration
+# Copy this file to gradle.properties and fill in your keystore details
+# DO NOT commit gradle.properties to git
+
+# Path to your release keystore file (relative to android/ directory or absolute path)
+# Example: releaseStoreFile=/path/to/your/keystore.jks
+releaseStoreFile=
+
+# Keystore password
+releaseStorePassword=
+
+# Key alias in the keystore
+releaseKeyAlias=
+
+# Key password
+releaseKeyPassword=

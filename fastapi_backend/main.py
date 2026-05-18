@@ -390,10 +390,11 @@ else:
         "http://127.0.0.1:3001",
         "http://127.0.0.1:3030",  # messenger-web local dev
         "http://localhost:3030",  # messenger-web local dev
+        "http://10.0.2.2:3030",    # Android emulator -> host dev server
         "http://192.168.1.246:3000",  # Mac local IP
     ]
     # Regex for dev to catch any localhost variations
-    cors_regex = r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?"
+    cors_regex = r"https?://(localhost|127\.0\.0\.1|10\.0\.2\.2|192\.168\.\d+\.\d+)(:\d+)?"
     logger.info(f"🔓 Development CORS enabled for: {cors_origins}")
 
 # Add CORS middleware with conditional regex

@@ -1,0 +1,13 @@
+{
+  "appId": "com.l3v3lmessenger",
+  "appName": "L3V3L Matches Messenger",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true,
+    "url": "http://10.0.2.2:3030"
+  }
+}

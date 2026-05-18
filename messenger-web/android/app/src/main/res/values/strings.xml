@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">L3V3L Matches Messenger</string>
+    <string name="title_activity_main">L3V3L Matches Messenger</string>
+    <string name="package_name">com.l3v3lmessenger</string>
+    <string name="custom_url_scheme">com.l3v3lmessenger</string>
+</resources>

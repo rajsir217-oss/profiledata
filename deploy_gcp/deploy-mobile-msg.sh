@@ -5,33 +5,73 @@ set -euo pipefail
 show_usage() {
   cat << 'EOF'
 Usage:
-  ./deploy-mobile-msg.sh [--a] [--i]
+  ./deploy-mobile-msg.sh [--a] [--release] [--rn-android] [--i]
 
 Options:
-  --a, --android    Build/run Messenger on Android
-  --i, --iphone     Build/run Messenger on iOS (simulator)
+  --a, --android    Build/run Messenger Web (Capacitor) on Android
+  --release         Build release APK (instead of debug) for shipping
+  --rn-android      Build/run Messenger (React Native) on Android (legacy)
+  --i, --iphone     Build/run Messenger (React Native) on iOS (simulator) (legacy)
   -h, --help        Show this help
 
 Notes:
-  - This script targets the React Native app in ../messenger
+  - Android defaults to the Capacitor app in ../messenger-web
   - Android requires:
       - Java 21
       - ANDROID_HOME (defaults to ~/Library/Android/sdk)
       - adb/emulator available on PATH
+  - Release APKs are saved to messenger-web/android/app/build/outputs/apk/release/
 EOF
 }
 
-DO_ANDROID=false
-DO_IOS=false
+DO_CAP_ANDROID=false
+DO_RN_ANDROID=false
+DO_RN_IOS=false
+BUILD_TYPE="debug"
+
+# Cleanup old APKs, keeping only the 3 most recent
+cleanup_old_apks() {
+  local apk_dir="$1"
+  local apk_prefix="$2"
+  
+  if [[ ! -d "$apk_dir" ]]; then
+    return
+  fi
+  
+  # Count APKs matching the prefix
+  local apk_count=$(ls -1 "$apk_dir"/${apk_prefix}-*.apk 2>/dev/null | wc -l)
+  
+  if [[ $apk_count -le 3 ]]; then
+    return
+  fi
+  
+  echo "🧹 Cleaning up old APKs (keeping 3 most recent)..."
+  
+  # List APKs sorted by modification time (newest first), skip first 3, delete the rest
+  ls -t "$apk_dir"/${apk_prefix}-*.apk 2>/dev/null | tail -n +4 | while read -r old_apk; do
+    if [[ -f "$old_apk" ]]; then
+      echo "   Removing: $(basename "$old_apk")"
+      rm -f "$old_apk"
+    fi
+  done
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --a|--android)
-      DO_ANDROID=true
+      DO_CAP_ANDROID=true
+      shift
+      ;;
+    --release)
+      BUILD_TYPE="release"
+      shift
+      ;;
+    --rn-android)
+      DO_RN_ANDROID=true
       shift
       ;;
     --i|--iphone|--ios)
-      DO_IOS=true
+      DO_RN_IOS=true
       shift
       ;;
     -h|--help)
@@ -47,8 +87,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "$DO_ANDROID" != "true" && "$DO_IOS" != "true" ]]; then
-  echo "❌ You must specify at least one of: --a (Android) or --i (iPhone/iOS)"
+if [[ "$DO_CAP_ANDROID" != "true" && "$DO_RN_ANDROID" != "true" && "$DO_RN_IOS" != "true" ]]; then
+  echo "❌ You must specify at least one of: --a (Capacitor Android), --rn-android (RN Android), or --i (RN iOS)"
   echo ""
   show_usage
   exit 1
@@ -56,29 +96,80 @@ fi
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MSG_DIR="$REPO_ROOT/messenger"
+MSG_WEB_DIR="$REPO_ROOT/messenger-web"
 
-if [[ ! -f "$MSG_DIR/package.json" ]]; then
-  echo "❌ Messenger project not found at: $MSG_DIR"
+ensure_java() {
+  local java_home=""
+
+  # Prefer Java 21 first (required by Capacitor Android), then 17 as fallback.
+  for v in 21 17; do
+    java_home="$(/usr/libexec/java_home -v "$v" 2>/dev/null || true)"
+    if [[ -n "$java_home" && -d "$java_home" ]]; then
+      echo "ℹ️  Using Java $v at: $java_home"
+      export JAVA_HOME="$java_home"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      return 0
+    fi
+  done
+
+  echo "❌ Java 21 or 17 not found. Install one of them:"
+  echo "   brew install --cask temurin@21    # recommended for Capacitor"
+  echo "   brew install --cask temurin@17"
   exit 1
-fi
+}
 
-ensure_java21() {
-  local java21_home=""
-
-  if [[ -d "/usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home" ]]; then
-    java21_home="/usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
-  else
-    java21_home="$(/usr/libexec/java_home -v 21 2>/dev/null || true)"
+# Kill any process listening on the given TCP port (host machine).
+kill_port() {
+  local port="$1"
+  local pids
+  pids="$(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null || true)"
+  if [[ -n "$pids" ]]; then
+    echo "🧹 Killing process(es) on port $port: $pids"
+    # shellcheck disable=SC2086
+    kill $pids 2>/dev/null || true
+    sleep 1
+    # Force kill if still alive
+    pids="$(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null || true)"
+    if [[ -n "$pids" ]]; then
+      # shellcheck disable=SC2086
+      kill -9 $pids 2>/dev/null || true
+    fi
   fi
+}
 
-  if [[ -z "$java21_home" || ! -d "$java21_home" ]]; then
-    echo "❌ Java 21 not found. Install it first (recommended):"
-    echo "   brew install openjdk@21"
-    exit 1
+# Kill any stale Metro / react-native start / packager processes.
+kill_stale_metro() {
+  echo "🧹 Killing any stale Metro / react-native packager processes..."
+  pkill -f "react-native start" 2>/dev/null || true
+  pkill -f "metro" 2>/dev/null || true
+  kill_port 8081
+}
+
+# Kill any stale webpack dev server processes.
+kill_stale_webpack() {
+  echo "🧹 Killing any stale webpack dev server processes..."
+  pkill -f "webpack serve" 2>/dev/null || true
+  pkill -f "webpack-dev-server" 2>/dev/null || true
+  kill_port 3030
+}
+
+# Configure adb reverse mappings so the emulator can reach host services
+# at the same port numbers via "localhost".
+setup_adb_reverse() {
+  if ! command -v adb >/dev/null 2>&1; then
+    return 0
   fi
-
-  export JAVA_HOME="$java21_home"
-  export PATH="$JAVA_HOME/bin:$PATH"
+  if ! adb devices | grep -q "device$"; then
+    return 0
+  fi
+  echo "🔌 Setting up adb reverse for ports 8081 (Metro), 3030 (messenger-web), 8000 (backend), 3000 (main app)"
+  # Clear any prior (possibly bad) mappings, then set fresh ones.
+  adb reverse --remove-all >/dev/null 2>&1 || true
+  adb reverse tcp:8081 tcp:8081 >/dev/null 2>&1 || true
+  adb reverse tcp:3030 tcp:3030 >/dev/null 2>&1 || true
+  adb reverse tcp:8000 tcp:8000 >/dev/null 2>&1 || true
+  adb reverse tcp:3000 tcp:3000 >/dev/null 2>&1 || true
+  adb reverse --list 2>/dev/null | sed 's/^/    /'
 }
 
 load_messenger_env() {
@@ -204,8 +295,13 @@ run_android() {
   echo "🤖 Messenger (React Native) - Android"
   echo "=============================================="
 
+  if [[ ! -f "$MSG_DIR/package.json" ]]; then
+    echo "❌ Messenger (React Native) project not found at: $MSG_DIR"
+    exit 1
+  fi
+
   load_messenger_env
-  ensure_java21
+  ensure_java
   ensure_android_paths
 
   if ! command -v adb >/dev/null 2>&1; then
@@ -218,11 +314,174 @@ run_android() {
     exit 1
   fi
 
+  # Clean slate: kill any old Metro / packager processes (port 8081).
+  kill_stale_metro
+
   adb start-server >/dev/null 2>&1 || true
   android_start_emulator_if_needed
 
+  # Now that a device is up, configure port forwarding for Metro + backend.
+  setup_adb_reverse
+
+  # Start Metro in the background (with cache reset) so the app can fetch JS.
+  echo "🟢 Starting Metro (background) with --reset-cache..."
+  local metro_log="$REPO_ROOT/messenger/metro.log"
+  : > "$metro_log"
+  (
+    cd "$REPO_ROOT" || exit 1
+    nohup npm --prefix messenger start -- --reset-cache >>"$metro_log" 2>&1 &
+    echo "$!" > "$REPO_ROOT/messenger/.metro.pid"
+    disown || true
+  )
+  local METRO_PID
+  METRO_PID="$(cat "$REPO_ROOT/messenger/.metro.pid" 2>/dev/null || echo '?')"
+  echo "    Metro PID: $METRO_PID (logs: messenger/metro.log)"
+
+  # Wait briefly for Metro to come up.
+  for _ in $(seq 1 20); do
+    if curl -fsS http://localhost:8081/status >/dev/null 2>&1; then
+      echo "✅ Metro ready on :8081"
+      break
+    fi
+    sleep 1
+  done
+
   echo "🚀 Running: npm --prefix messenger run android"
   (cd "$REPO_ROOT" && npm --prefix messenger run android)
+}
+
+run_capacitor_android() {
+  echo "=============================================="
+  echo "🤖 Messenger Web (Capacitor) - Android ($BUILD_TYPE)"
+  echo "=============================================="
+
+  if [[ ! -f "$MSG_WEB_DIR/package.json" ]]; then
+    echo "❌ Messenger Web project not found at: $MSG_WEB_DIR"
+    exit 1
+  fi
+
+  ensure_java
+  ensure_android_paths
+
+  # Track and increment build number
+  local build_num_file="$REPO_ROOT/messenger-web/.build-number"
+  local build_num=1
+  if [[ -f "$build_num_file" ]]; then
+    build_num=$(cat "$build_num_file")
+  fi
+  local new_build_num=$((build_num + 1))
+  echo "$new_build_num" > "$build_num_file"
+  echo "📦 Build number: $new_build_num (previous: $build_num)"
+
+  # Update versionCode in Gradle config
+  local gradle_file="$MSG_WEB_DIR/android/app/build.gradle"
+  if [[ -f "$gradle_file" ]]; then
+    # Read current versionCode from build.gradle
+    local current_version=$(grep "versionCode" "$gradle_file" | head -1 | awk '{print $2}')
+    if [[ -n "$current_version" ]]; then
+      sed -i.bak "s/versionCode $current_version/versionCode $new_build_num/" "$gradle_file"
+      rm -f "${gradle_file}.bak"
+      echo "✅ Updated versionCode to $new_build_num in build.gradle"
+    else
+      echo "⚠️  Could not find versionCode in build.gradle"
+    fi
+  fi
+
+  # For release builds, we just build the APK without running on emulator
+  if [[ "$BUILD_TYPE" == "release" ]]; then
+    echo "🏗️  Building release APK..."
+    
+    # Check if gradle.properties exists for signing
+    local gradle_props="$MSG_WEB_DIR/android/gradle.properties"
+    if [[ -f "$gradle_props" ]]; then
+      echo "📋 Using signing configuration from gradle.properties"
+    else
+      echo "⚠️  gradle.properties not found, release build will use debug keystore"
+      echo "   Copy gradle.properties.template to gradle.properties and fill in keystore details"
+    fi
+    
+    # Use Gradle directly for release builds to properly handle signing
+    echo "🔨 Running Gradle assembleRelease..."
+    (cd "$MSG_WEB_DIR/android" && ./gradlew assembleRelease)
+    
+    local apk_path="$MSG_WEB_DIR/android/app/build/outputs/apk/release/msgr-app-release-${new_build_num}.apk"
+    if [[ -f "$apk_path" ]]; then
+      echo "✅ Release APK built: $apk_path"
+    else
+      echo "⚠️  APK not found at expected path, listing output directory:"
+      ls -la "$MSG_WEB_DIR/android/app/build/outputs/apk/release/" 2>/dev/null || echo "Directory not found"
+    fi
+    
+    # Keep only 3 most recent release APKs
+    cleanup_old_apks "$MSG_WEB_DIR/android/app/build/outputs/apk/release" "msgr-app-release"
+    return
+  fi
+
+  # Debug builds: run on emulator
+  if ! command -v adb >/dev/null 2>&1; then
+    echo "❌ adb not found on PATH. Expected under: $ANDROID_HOME/platform-tools"
+    exit 1
+  fi
+
+  if ! command -v emulator >/dev/null 2>&1; then
+    echo "❌ emulator not found on PATH. Expected under: $ANDROID_HOME/emulator"
+    exit 1
+  fi
+
+  kill_stale_webpack
+
+  adb start-server >/dev/null 2>&1 || true
+  android_start_emulator_if_needed
+
+  # Configure port forwarding so the app can reach host backend at localhost:8000 if needed.
+  setup_adb_reverse
+
+  echo "🟢 Starting messenger-web dev server (background)..."
+  local webpack_log="$REPO_ROOT/messenger-web/webpack.log"
+  : > "$webpack_log"
+  (
+    cd "$REPO_ROOT" || exit 1
+    nohup npm --prefix messenger-web start -- --host 0.0.0.0 >>"$webpack_log" 2>&1 &
+    echo "$!" > "$REPO_ROOT/messenger-web/.webpack.pid"
+    disown || true
+  )
+  local WEB_PID
+  WEB_PID="$(cat "$REPO_ROOT/messenger-web/.webpack.pid" 2>/dev/null || echo '?')"
+  echo "    Dev server PID: $WEB_PID (logs: messenger-web/webpack.log)"
+
+  # Wait briefly for the dev server to come up.
+  for _ in $(seq 1 30); do
+    if curl -fsS http://localhost:3030/ >/dev/null 2>&1; then
+      echo "✅ messenger-web dev server ready on :3030"
+      break
+    fi
+    sleep 1
+  done
+
+  if ! command -v npx >/dev/null 2>&1; then
+    echo "❌ npx not found on PATH. Install Node.js (npm) and retry."
+    exit 1
+  fi
+
+  # Use Gradle directly to build debug APK with our custom naming
+  echo "� Running Gradle assembleDebug..."
+  (cd "$MSG_WEB_DIR/android" && ./gradlew assembleDebug)
+  
+  # Find and install the renamed debug APK
+  local debug_apk_path="$MSG_WEB_DIR/android/app/build/outputs/apk/debug/msgr-app-debug-${new_build_num}.apk"
+  if [[ -f "$debug_apk_path" ]]; then
+    echo "📦 Installing $debug_apk_path to emulator..."
+    adb install -r "$debug_apk_path"
+    echo "🚀 Launching app..."
+    adb shell am start -n com.l3v3lmessenger.debug/com.l3v3lmessenger.MainActivity
+    echo "✅ Debug APK installed and launched"
+  else
+    echo "⚠️  Debug APK not found at expected path: $debug_apk_path"
+    ls -la "$MSG_WEB_DIR/android/app/build/outputs/apk/debug/" 2>/dev/null || echo "Directory not found"
+  fi
+  
+  # Keep only 3 most recent debug APKs
+  cleanup_old_apks "$MSG_WEB_DIR/android/app/build/outputs/apk/debug" "msgr-app-debug"
 }
 
 run_ios() {
@@ -253,10 +512,14 @@ run_ios() {
   (cd "$REPO_ROOT" && npm --prefix messenger run ios)
 }
 
-if [[ "$DO_ANDROID" = "true" ]]; then
+if [[ "$DO_CAP_ANDROID" = "true" ]]; then
+  run_capacitor_android
+fi
+
+if [[ "$DO_RN_ANDROID" = "true" ]]; then
   run_android
 fi
 
-if [[ "$DO_IOS" = "true" ]]; then
+if [[ "$DO_RN_IOS" = "true" ]]; then
   run_ios
 fi

@@ -1,0 +1,27 @@
+
+> l3v3l-messenger-web@0.1.0 start
+> webpack serve --config ./webpack.config.js --host 0.0.0.0
+
+<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:3030/, http://[::1]:3030/
+<i> [webpack-dev-server] On Your Network (IPv4): http://192.168.1.136:3030/
+<i> [webpack-dev-server] Content not from webpack is served from '/Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/web' directory
+<i> [webpack-dev-server] 404s will fallback to '/index.html'
+<i> [webpack-dev-middleware] wait until bundle finished: /
+asset bundle.js 6.23 MiB [emitted] (name: main)
+asset index.html 1.06 KiB [emitted]
+runtime modules 27.1 KiB 13 modules
+orphan modules 1000 bytes [orphan] 3 modules
+modules by path ./node_modules/ 1.83 MiB 229 modules
+modules by path ./src/ 233 KiB
+  modules by path ./src/screens/*.js 213 KiB
+    ./src/screens/LoginScreen.js 27.2 KiB [built] [code generated]
+    + 3 modules
+  + 4 modules
+modules by path ../messenger/src/ 71.9 KiB
+  modules by path ../messenger/src/stores/*.js 57.6 KiB 2 modules
+  + 3 modules
+modules by path ./*.js 11 KiB
+  ./index.js 267 bytes [built] [code generated]
+  ./App.js 10.7 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 1977 ms
