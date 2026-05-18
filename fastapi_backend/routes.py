@@ -620,6 +620,9 @@ async def get_protected_media(
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8000",
         "http://127.0.0.1:3030",
+        # Capacitor Android emulator (10.0.2.2 is host IP from emulator)
+        "http://10.0.2.2:3030",
+        "http://10.0.2.2:8000",
         # Capacitor Android app origins
         "https://localhost",
         "http://localhost",
