@@ -10,28 +10,8 @@
  * - Production (messenger.l3v3lmatches.com): https://api.l3v3lmatches.com
  */
 export const getBackendUrl = () => {
-  // Runtime hostname detection
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    
-    // Production: messenger.l3v3lmatches.com
-    if (hostname === 'messenger.l3v3lmatches.com') {
-      return 'https://api.l3v3lmatches.com';
-    }
-    
-    // Local dev: localhost
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:8000';
-    }
-  }
-  
-  // Fallback based on NODE_ENV
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://api.l3v3lmatches.com';
-  }
-  
-  // Development fallback
-  return 'http://localhost:8000';
+  const raw = process.env.MESSENGER_BACKEND_URL;
+  return String(raw || '').replace(/\/+$/, '');
 };
 
 /**
@@ -52,25 +32,13 @@ export const getFrontendUrl = () => {
   if (typeof window !== 'undefined') {
     return window.location.origin;
   }
-  
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://messenger.l3v3lmatches.com';
-  }
-  
-  return 'http://localhost:3000';
+
+  const raw = process.env.MESSENGER_FRONTEND_URL;
+  return String(raw || '').replace(/\/+$/, '');
 };
 
 export const getTurnstileSiteKey = () => {
-  if (process.env.NODE_ENV !== 'production') {
-    return '1x00000000000000000000AA';
-  }
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return '1x00000000000000000000AA';
-    }
-  }
-  return '0x4AAAAAACAeADZnXAaS1tep';
+  return process.env.MESSENGER_TURNSTILE_SITE_KEY;
 };
 
 /**
@@ -79,19 +47,8 @@ export const getTurnstileSiteKey = () => {
  * @returns {string} Main app URL
  */
 export const getMainAppUrl = () => {
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (hostname === 'messenger.l3v3lmatches.com') {
-      return 'https://l3v3lmatches.com';
-    }
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:3000';
-    }
-  }
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://l3v3lmatches.com';
-  }
-  return 'http://localhost:3000';
+  const raw = process.env.MESSENGER_MAIN_APP_URL;
+  return String(raw || '').replace(/\/+$/, '');
 };
 
 /**
