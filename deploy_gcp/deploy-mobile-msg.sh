@@ -99,13 +99,22 @@ ensure_android_paths() {
     export ANDROID_HOME="$HOME/Library/Android/sdk"
   fi
 
+  if [[ -z "${ANDROID_SDK_ROOT:-}" ]]; then
+    export ANDROID_SDK_ROOT="$ANDROID_HOME"
+  fi
+
   if [[ ! -d "$ANDROID_HOME" ]]; then
     echo "❌ ANDROID_HOME does not exist: $ANDROID_HOME"
     echo "   Install Android SDK (Android Studio or command-line tools)"
     exit 1
   fi
 
-  export PATH="$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools"
+  if [[ ! -d "$ANDROID_SDK_ROOT" ]]; then
+    echo "❌ ANDROID_SDK_ROOT does not exist: $ANDROID_SDK_ROOT"
+    exit 1
+  fi
+
+  export PATH="$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin"
 }
 
 android_start_emulator_if_needed() {
@@ -124,20 +133,65 @@ android_start_emulator_if_needed() {
   local avd_name
   avd_name="$(echo "$avds" | head -n 1)"
 
+  local avd_dir="$HOME/.android/avd/${avd_name}.avd"
+  local arch=""
+  if [[ -f "$avd_dir/config.ini" ]]; then
+    arch="$(grep -E "^abi\.type" "$avd_dir/config.ini" 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || true)"
+  fi
+
+  local image_sysdir=""
+  if [[ -f "$avd_dir/config.ini" ]]; then
+    image_sysdir="$(grep -E "^image\.sysdir\.1" "$avd_dir/config.ini" 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || true)"
+  fi
+  if [[ -n "$image_sysdir" && -n "${ANDROID_SDK_ROOT:-}" ]]; then
+    local image_dir="$ANDROID_SDK_ROOT/$image_sysdir"
+    if [[ ! -d "$image_dir" ]]; then
+      echo "❌ Missing AVD system image directory: $image_dir"
+      if command -v sdkmanager >/dev/null 2>&1; then
+        if [[ "$image_sysdir" == system-images/android-35/google_apis_playstore/arm64-v8a/* ]]; then
+          echo "   Install it with: sdkmanager --install \"system-images;android-35;google_apis_playstore;arm64-v8a\""
+        else
+          echo "   Install the required system image via: sdkmanager --list"
+        fi
+      else
+        echo "   sdkmanager not found on PATH. Expected under: $ANDROID_HOME/cmdline-tools/latest/bin"
+      fi
+      exit 1
+    fi
+  fi
+  if [[ -n "$arch" ]]; then
+    echo "ℹ️  AVD architecture: $arch"
+    if [[ "$arch" == "x86" || "$arch" == "x86_64" ]]; then
+      echo "⚠️  Warning: AVD is $arch. On Apple Silicon this may fail or be very slow."
+      echo "   Recommended: create an arm64-v8a AVD."
+    fi
+  fi
+
   echo "ℹ️  No connected devices. Starting emulator: $avd_name"
-  echo "   (If you're on Apple Silicon, ensure the AVD is arm64-v8a.)"
 
-  emulator -avd "$avd_name" -no-snapshot-load >/dev/null 2>&1 &
+  emulator -avd "$avd_name" -no-snapshot-load &
+  local emulator_pid=$!
 
-  echo "⏳ Waiting for emulator to boot..."
+  echo "⏳ Waiting for emulator to boot (PID $emulator_pid)..."
+
+  sleep 3
+  if ! kill -0 $emulator_pid 2>/dev/null; then
+    echo "❌ Emulator process exited immediately (check output above for crash reason)."
+    exit 1
+  fi
+
   adb wait-for-device >/dev/null 2>&1 || true
 
   local boot_completed=""
-  for _ in $(seq 1 90); do
+  for _ in $(seq 1 120); do
     boot_completed="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
     if [[ "$boot_completed" = "1" ]]; then
       echo "✅ Emulator boot complete"
       return 0
+    fi
+    if ! kill -0 $emulator_pid 2>/dev/null; then
+      echo "❌ Emulator process died during boot."
+      exit 1
     fi
     sleep 2
   done
