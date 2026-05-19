@@ -60,6 +60,33 @@ async def get_or_create_portal_members_group(
     username = current_user["username"]
     logger.info(f"🌐 Getting/creating Portal Members group for {username}")
 
+    async def _ensure_portal_member(conv_id: str) -> bool:
+        try:
+            status_val = current_user.get("accountStatus")
+            if status_val != "active":
+                u = await db.users.find_one({"username": username}, {"accountStatus": 1})
+                status_val = u.get("accountStatus") if u else status_val
+            if status_val != "active":
+                return False
+            now = datetime.utcnow()
+            res = await db.messenger_conversations.update_one(
+                {"_id": ObjectId(conv_id), "participants.username": {"$ne": username}},
+                {
+                    "$push": {
+                        "participants": {
+                            "username": username,
+                            "role": "member",
+                            "joinedAt": now,
+                        }
+                    },
+                    "$set": {"updatedAt": now},
+                },
+            )
+            return res.modified_count > 0
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to ensure Portal Members membership for {username}: {e}")
+            return False
+
     def _portal_group_summary(conv: dict) -> dict:
         participants = conv.get("participants", []) or []
         _id = conv.get("_id")
@@ -87,6 +114,9 @@ async def get_or_create_portal_members_group(
             import json
             existing = json.loads(cached)
             logger.info(f"✅ Cache hit for Portal Members group: {existing.get('_id')}")
+            conv_id = existing.get("_id")
+            if conv_id:
+                await _ensure_portal_member(conv_id)
             return {"success": True, "conversation": existing}
     except Exception as e:
         logger.warning(f"⚠️ Redis cache check failed: {e}")
@@ -100,6 +130,16 @@ async def get_or_create_portal_members_group(
     if existing:
         logger.info(f"✅ Portal Members group exists: {existing['_id']}")
         summary = _portal_group_summary(existing)
+
+        added = False
+        conv_id = summary.get("_id")
+        if conv_id:
+            added = await _ensure_portal_member(conv_id)
+            if added:
+                try:
+                    summary["participantsCount"] = int(summary.get("participantsCount") or 0) + 1
+                except Exception:
+                    pass
 
         try:
             from redis_manager import get_redis_manager
