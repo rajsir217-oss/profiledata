@@ -30,13 +30,13 @@ DEVICES=$($ADB devices | grep -v "List of devices" | grep "device$" | wc -l | tr
 
 if [ "$DEVICES" -eq "0" ]; then
     echo "❌ No devices found"
-    echo ""
+    echo "" 
     echo "Please start your emulator first:"
     echo "1. Open Android Studio"
     echo "2. Click Device Manager"
     echo "3. Start Pixel 9 emulator"
     echo ""
-    echo "Or run: ./build_android.sh (auto-starts emulator)"
+    echo "Or run: ./deploy-mobile-main.sh (auto-starts emulator)"
     exit 1
 fi
 

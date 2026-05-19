@@ -35,3 +35,288 @@ cached modules 2.12 MiB [cached] 246 modules
 runtime modules 27.1 KiB 13 modules
 ./src/screens/LoginScreen.js 27 KiB [built] [code generated]
 webpack 5.106.2 compiled successfully in 392 ms
+assets by path *.js 6.23 MiB
+  asset bundle.js 6.23 MiB [emitted] (name: main)
+  asset main.bb212dc8accbdd7f2c30.hot-update.js 855 bytes [emitted] [immutable] [hmr] (name: main)
+asset index.html 1.06 KiB [emitted]
+asset main.bb212dc8accbdd7f2c30.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.23 MiB = bundle.js 6.23 MiB main.bb212dc8accbdd7f2c30.hot-update.js 855 bytes
+cached modules 2.14 MiB [cached] 247 modules
+runtime modules 27.1 KiB 13 modules
+webpack 5.106.2 compiled successfully in 185 ms
+assets by status 1.06 KiB [cached] 1 asset
+assets by path *.js 6.35 MiB
+  asset bundle.js 6.24 MiB [emitted] (name: main)
+  asset main.264fc88e3a9cca8d614e.hot-update.js 113 KiB [emitted] [immutable] [hmr] (name: main)
+asset main.264fc88e3a9cca8d614e.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.35 MiB = bundle.js 6.24 MiB main.264fc88e3a9cca8d614e.hot-update.js 113 KiB
+cached modules 2.11 MiB [cached] 246 modules
+runtime modules 27.1 KiB 13 modules
+../messenger/src/stores/authStore.js 39.5 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 424 ms
+assets by status 1.06 KiB [cached] 1 asset
+assets by path *.js 6.35 MiB
+  asset bundle.js 6.24 MiB [emitted] (name: main)
+  asset main.234ada3788206dad6d6c.hot-update.js 112 KiB [emitted] [immutable] [hmr] (name: main)
+asset main.234ada3788206dad6d6c.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.35 MiB = bundle.js 6.24 MiB main.234ada3788206dad6d6c.hot-update.js 112 KiB
+cached modules 2.11 MiB [cached] 246 modules
+runtime modules 27.1 KiB 13 modules
+../messenger/src/stores/authStore.js 39.3 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 396 ms
+assets by status 1.06 KiB [cached] 1 asset
+assets by path *.js 6.56 MiB
+  asset bundle.js 6.36 MiB [emitted] (name: main)
+  asset main.12a71807663d526cc026.hot-update.js 211 KiB [emitted] [immutable] [hmr] (name: main)
+asset main.12a71807663d526cc026.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.56 MiB = bundle.js 6.36 MiB main.12a71807663d526cc026.hot-update.js 211 KiB
+cached modules 2.12 MiB [cached] 246 modules
+runtime modules 27.1 KiB 13 modules
+javascript modules 70.2 KiB
+  ./src/screens/LoginScreen.js 35.9 KiB [built] [code generated]
+  ./src/services/biometricAuth.js 10.8 KiB [built] [code generated]
+  ./node_modules/@capacitor/core/dist/index.js 23.5 KiB [built] [code generated]
+
+ERROR in ./src/services/biometricAuth.js 6:0-68
+Module not found: Error: Can't resolve '@capgo/capacitor-native-biometric' in '/Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/src/services'
+resolve '@capgo/capacitor-native-biometric' in '/Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/src/services'
+  Parsed request is a module
+  using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/package.json (relative path: ./src/services)
+    Field 'browser' doesn't contain a valid alias configuration
+    resolve as module
+      looking for modules in /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules
+        single file module
+          using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/package.json (relative path: ./node_modules/@capgo/capacitor-native-biometric)
+            no extension
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric doesn't exist
+            .js
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.js doesn't exist
+            .jsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.jsx doesn't exist
+            .ts
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.ts doesn't exist
+            .tsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.tsx doesn't exist
+            .json
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.json doesn't exist
+        /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric doesn't exist
+      looking for modules in /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules
+        single file module
+          using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/package.json (relative path: ./node_modules/@capgo/capacitor-native-biometric)
+            no extension
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric doesn't exist
+            .js
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.js doesn't exist
+            .jsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.jsx doesn't exist
+            .ts
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.ts doesn't exist
+            .tsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.tsx doesn't exist
+            .json
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.json doesn't exist
+        /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric doesn't exist
+ @ ./src/screens/LoginScreen.js 31:0-161 99:18-34 106:21-41 118:21-38 160:21-35 228:19-43 276:19-34
+ @ ./App.js 29:0-52 102:29-40
+ @ ./index.js 2:0-24 4:9-12
+
+webpack 5.106.2 compiled with 1 error in 485 ms
+assets by status 1.06 KiB [cached] 1 asset
+assets by path *.js 6.47 MiB
+  asset bundle.js 6.36 MiB [emitted] (name: main)
+  asset main.fd74568c51073a4a8118.hot-update.js 116 KiB [emitted] [immutable] [hmr] (name: main)
+asset main.fd74568c51073a4a8118.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.47 MiB = bundle.js 6.36 MiB main.fd74568c51073a4a8118.hot-update.js 116 KiB
+cached modules 2.15 MiB [cached] 248 modules
+runtime modules 27.1 KiB 13 modules
+./src/screens/LoginScreen.js 35.8 KiB [built] [code generated]
+
+ERROR in ./src/services/biometricAuth.js 6:0-68
+Module not found: Error: Can't resolve '@capgo/capacitor-native-biometric' in '/Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/src/services'
+resolve '@capgo/capacitor-native-biometric' in '/Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/src/services'
+  Parsed request is a module
+  using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/package.json (relative path: ./src/services)
+    Field 'browser' doesn't contain a valid alias configuration
+    resolve as module
+      looking for modules in /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules
+        single file module
+          using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/package.json (relative path: ./node_modules/@capgo/capacitor-native-biometric)
+            no extension
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric doesn't exist
+            .js
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.js doesn't exist
+            .jsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.jsx doesn't exist
+            .ts
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.ts doesn't exist
+            .tsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.tsx doesn't exist
+            .json
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.json doesn't exist
+        /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric doesn't exist
+      looking for modules in /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules
+        single file module
+          using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/package.json (relative path: ./node_modules/@capgo/capacitor-native-biometric)
+            no extension
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric doesn't exist
+            .js
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.js doesn't exist
+            .jsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.jsx doesn't exist
+            .ts
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.ts doesn't exist
+            .tsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.tsx doesn't exist
+            .json
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.json doesn't exist
+        /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric doesn't exist
+ @ ./src/screens/LoginScreen.js 31:0-161 99:18-34 106:21-41 118:21-38 160:21-35 228:19-43 276:19-34
+ @ ./App.js 29:0-52 102:29-40
+ @ ./index.js 2:0-24 4:9-12
+
+webpack 5.106.2 compiled with 1 error in 471 ms
+assets by status 6.36 MiB [cached] 2 assets
+cached modules 2.19 MiB (javascript) 27.1 KiB (runtime) [cached] 262 modules
+
+LOG from webpack.FileSystemInfo
+<w> Managed item /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric isn't a directory or doesn't contain a package.json (see snapshot.managedPaths option)
++ 13 hidden lines
+
+ERROR in ./src/services/biometricAuth.js 6:0-68
+Module not found: Error: Can't resolve '@capgo/capacitor-native-biometric' in '/Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/src/services'
+resolve '@capgo/capacitor-native-biometric' in '/Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/src/services'
+  Parsed request is a module
+  using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/package.json (relative path: ./src/services)
+    Field 'browser' doesn't contain a valid alias configuration
+    resolve as module
+      looking for modules in /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules
+        single file module
+          using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/package.json (relative path: ./node_modules/@capgo/capacitor-native-biometric)
+            no extension
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric is not a file
+            .js
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.js doesn't exist
+            .jsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.jsx doesn't exist
+            .ts
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.ts doesn't exist
+            .tsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.tsx doesn't exist
+            .json
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.json doesn't exist
+        existing directory /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric
+          using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/package.json (relative path: ./node_modules/@capgo/capacitor-native-biometric)
+            using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/package.json (relative path: ./node_modules/@capgo/capacitor-native-biometric)
+              no extension
+                Field 'browser' doesn't contain a valid alias configuration
+                /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric is not a file
+              .js
+                Field 'browser' doesn't contain a valid alias configuration
+                /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.js doesn't exist
+              .jsx
+                Field 'browser' doesn't contain a valid alias configuration
+                /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.jsx doesn't exist
+              .ts
+                Field 'browser' doesn't contain a valid alias configuration
+                /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.ts doesn't exist
+              .tsx
+                Field 'browser' doesn't contain a valid alias configuration
+                /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.tsx doesn't exist
+              .json
+                Field 'browser' doesn't contain a valid alias configuration
+                /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric.json doesn't exist
+              as directory
+                existing directory /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric
+                  using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/package.json (relative path: ./node_modules/@capgo/capacitor-native-biometric)
+                    using path: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric/index
+                      using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/package.json (relative path: ./node_modules/@capgo/capacitor-native-biometric/index)
+                        no extension
+                          Field 'browser' doesn't contain a valid alias configuration
+                          /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric/index doesn't exist
+                        .js
+                          Field 'browser' doesn't contain a valid alias configuration
+                          /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric/index.js doesn't exist
+                        .jsx
+                          Field 'browser' doesn't contain a valid alias configuration
+                          /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric/index.jsx doesn't exist
+                        .ts
+                          Field 'browser' doesn't contain a valid alias configuration
+                          /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric/index.ts doesn't exist
+                        .tsx
+                          Field 'browser' doesn't contain a valid alias configuration
+                          /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric/index.tsx doesn't exist
+                        .json
+                          Field 'browser' doesn't contain a valid alias configuration
+                          /Users/rajsiripuram02/opt/appsrc/profiledata/messenger-web/node_modules/@capgo/capacitor-native-biometric/index.json doesn't exist
+      looking for modules in /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules
+        single file module
+          using description file: /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/package.json (relative path: ./node_modules/@capgo/capacitor-native-biometric)
+            no extension
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric doesn't exist
+            .js
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.js doesn't exist
+            .jsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.jsx doesn't exist
+            .ts
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.ts doesn't exist
+            .tsx
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.tsx doesn't exist
+            .json
+              Field 'browser' doesn't contain a valid alias configuration
+              /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric.json doesn't exist
+        /Users/rajsiripuram02/opt/appsrc/profiledata/messenger/node_modules/@capgo/capacitor-native-biometric doesn't exist
+ @ ./src/screens/LoginScreen.js 31:0-161 99:18-34 106:21-41 118:21-38 160:21-35 228:19-43 276:19-34
+ @ ./App.js 29:0-52 102:29-40
+ @ ./index.js 2:0-24 4:9-12
+
+webpack 5.106.2 compiled with 1 error in 88 ms
+assets by status 1.06 KiB [cached] 1 asset
+assets by path *.js 6.46 MiB
+  asset bundle.js 6.38 MiB [emitted] (name: main)
+  asset main.cb943785b105a0924e23.hot-update.js 74 KiB [emitted] [immutable] [hmr] (name: main)
+  asset node_modules_capgo_capacitor-native-biometric_dist_esm_web_js.bundle.js 10.6 KiB [emitted]
+asset main.cb943785b105a0924e23.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.45 MiB = bundle.js 6.38 MiB main.cb943785b105a0924e23.hot-update.js 74 KiB
+cached modules 2.18 MiB [cached] 248 modules
+runtime modules 30.3 KiB 15 modules
+javascript modules 19.6 KiB
+  ./src/services/biometricAuth.js 10.8 KiB [code generated]
+  ./node_modules/@capgo/capacitor-native-biometric/dist/esm/index.js 278 bytes [built] [code generated]
+  ./node_modules/@capgo/capacitor-native-biometric/dist/esm/definitions.js 5.31 KiB [built] [code generated]
+  ./node_modules/@capgo/capacitor-native-biometric/dist/esm/web.js 3.22 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 74 ms

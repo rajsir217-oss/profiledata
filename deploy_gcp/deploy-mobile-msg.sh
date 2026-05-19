@@ -12,7 +12,7 @@ Options:
   --release         Build release APK (instead of debug) for shipping
   --rn-android      Build/run Messenger (React Native) on Android (legacy)
   --i, --iphone     Build/run Messenger (React Native) on iOS (simulator) (legacy)
-  -h, --help        Show this help
+  -h, --h, --help   Show this help
 
 Notes:
   - Android defaults to the Capacitor app in ../messenger-web
@@ -74,7 +74,7 @@ while [[ $# -gt 0 ]]; do
       DO_RN_IOS=true
       shift
       ;;
-    -h|--help)
+    -h|--h|--help)
       show_usage
       exit 0
       ;;
@@ -206,6 +206,43 @@ ensure_android_paths() {
   fi
 
   export PATH="$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin"
+}
+
+ensure_capacitor_android_launcher_icons() {
+  local src_png="$REPO_ROOT/frontend/public/logo512.png"
+  local res_dir="$MSG_WEB_DIR/android/app/src/main/res"
+
+  if [[ ! -f "$src_png" ]]; then
+    echo "⚠️  Launcher icon source not found: $src_png"
+    return 0
+  fi
+
+  if ! command -v sips >/dev/null 2>&1; then
+    echo "⚠️  sips not found; skipping launcher icon generation"
+    return 0
+  fi
+
+  local mipmap_dirs=(mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi)
+  local mipmap_sizes=(48 72 96 144 192)
+  local icon_files=(ic_launcher.png ic_launcher_round.png ic_launcher_foreground.png)
+
+  for i in "${!mipmap_dirs[@]}"; do
+    local out_dir="$res_dir/${mipmap_dirs[$i]}"
+    local size="${mipmap_sizes[$i]}"
+
+    if [[ ! -d "$out_dir" ]]; then
+      echo "⚠️  Missing Android res dir: $out_dir"
+      continue
+    fi
+
+    for f in "${icon_files[@]}"; do
+      local target="$out_dir/$f"
+      if [[ -f "$target" && ! -f "$target.toberemoved" ]]; then
+        mv "$target" "$target.toberemoved"
+      fi
+      sips -z "$size" "$size" "$src_png" --out "$target" >/dev/null 2>&1
+    done
+  done
 }
 
 android_start_emulator_if_needed() {
@@ -362,6 +399,7 @@ run_capacitor_android() {
 
   ensure_java
   ensure_android_paths
+  ensure_capacitor_android_launcher_icons
 
   # Track and increment build number
   local build_num_file="$REPO_ROOT/messenger-web/.build-number"

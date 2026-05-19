@@ -73,7 +73,7 @@ if [ -d "android" ]; then
     else
         echo "Keeping existing Android project..."
         echo ""
-        echo -e "${GREEN}✅ Setup complete! Use ./build_android.sh to build and run.${NC}"
+        echo -e "${GREEN}✅ Setup complete! Use ./deploy-mobile-main.sh to build and run.${NC}"
         exit 0
     fi
 fi
@@ -155,12 +155,12 @@ echo ""
 echo "📁 Android project created at: frontend/android/"
 echo ""
 echo "Next steps:"
-echo "  1. Run: ./build_android.sh        (Build and run on emulator)"
+echo "  1. Run: ./deploy-mobile-main.sh        (Build and run on emulator)"
 echo "  2. Or:  npx cap open android      (Open in Android Studio)"
 echo ""
 echo "For development with live reload:"
 echo "  1. Edit capacitor.config.json"
 echo "  2. Change server.url to: http://10.0.2.2:3000"
 echo "  3. Run: npm start (in one terminal)"
-echo "  4. Run: ./build_android.sh (in another terminal)"
+echo "  4. Run: ./deploy-mobile-main.sh (in another terminal)"
 echo ""

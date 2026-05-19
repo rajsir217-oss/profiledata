@@ -112,7 +112,7 @@ install_apk() {
     
     if [ ! -f "$APK_PATH" ]; then
         echo -e "${RED}❌ APK not found${NC}"
-        echo "Build first: ./build_android.sh"
+        echo "Build first: ./deploy-mobile-main.sh"
         exit 1
     fi
     
