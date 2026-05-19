@@ -260,6 +260,73 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  loginWithRefreshToken: async (refreshTokenOverride = null) => {
+    set({ error: null, isLoading: true });
+    try {
+      const refreshToken =
+        refreshTokenOverride ||
+        get().refreshToken ||
+        (await AsyncStorage.getItem(REFRESH_TOKEN_KEY));
+
+      if (!refreshToken) {
+        set({ isLoading: false, error: 'No saved session found. Please log in with password.' });
+        return { ok: false, error: 'No saved session found. Please log in with password.' };
+      }
+
+      const refreshRes = await axios.post(`${API_BASE_URL}/api/auth/refresh-token`, {
+        refresh_token: refreshToken,
+      });
+
+      const accessToken = refreshRes.data?.access_token;
+      if (!accessToken) {
+        set({ isLoading: false, error: 'Failed to refresh session. Please log in again.' });
+        return { ok: false, error: 'Failed to refresh session. Please log in again.' };
+      }
+
+      const meRes = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const user = meRes.data?.user || meRes.data;
+
+      if (!user || !user.username) {
+        set({ isLoading: false, error: 'Failed to load user session. Please log in again.' });
+        return { ok: false, error: 'Failed to load user session. Please log in again.' };
+      }
+
+      set({ token: accessToken, refreshToken, user, isLoading: false, error: null });
+      try {
+        await Promise.all([
+          AsyncStorage.setItem(TOKEN_KEY, accessToken),
+          AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken),
+          AsyncStorage.setItem(USER_KEY, JSON.stringify(user)),
+        ]);
+      } catch (_) {}
+
+      get().startKeepAlive();
+      get().prefetchIntroCard({ force: false });
+
+      return { ok: true };
+    } catch (e) {
+      const status = e.response?.status;
+      const rawData = e.response?.data;
+      let data = rawData || {};
+      if (typeof rawData === 'string') {
+        try {
+          data = JSON.parse(rawData);
+        } catch (_) {
+          data = { detail: rawData };
+        }
+      }
+      const msg =
+        status === 401
+          ? 'Saved session expired. Please log in with password.'
+          : (data.detail || data.message || e.message || 'Session refresh failed.');
+
+      set({ isLoading: false, error: msg });
+      return { ok: false, error: msg };
+    }
+  },
+
   /**
    * Logout — clear everything.
    */

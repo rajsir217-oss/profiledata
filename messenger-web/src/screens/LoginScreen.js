@@ -1,19 +1,32 @@
 // messenger-web/src/screens/LoginScreen.js
 // Adapted from main app Login.js for react-native-web
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import Turnstile from 'react-turnstile';
 import useAuthStore from '@messenger/stores/authStore';
 import { API_BASE_URL } from '@messenger/config/api';
 import { getMainAppUrl, getTurnstileSiteKey } from '../config/apiConfig';
+import {
+  biometricGetRefreshToken,
+  clearCredential,
+  isBiometricAvailable,
+  isCredentialSaved,
+  isNativePlatform,
+  saveCredential,
+} from '../services/biometricAuth';
 
 const LoginScreen = () => {
   const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, error: storeError } = useAuthStore();
+  const { login, loginWithRefreshToken, token, refreshToken, user, error: storeError } = useAuthStore();
   const displayError = error || storeError;
+
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricSaved, setBiometricSaved] = useState(false);
+  const [enableBiometricOnDevice, setEnableBiometricOnDevice] = useState(false);
+  const [biometricPersisted, setBiometricPersisted] = useState(false);
 
   const [captchaToken, setCaptchaToken] = useState(null);
   const [captchaError, setCaptchaError] = useState(false);
@@ -22,6 +35,37 @@ const LoginScreen = () => {
 
   const isDevelopment = process.env.NODE_ENV !== 'production';
   const canBypassCaptcha = captchaError && captchaRetryCount >= 3;
+
+  useEffect(() => {
+    const initBiometrics = async () => {
+      if (!isNativePlatform()) return;
+      const availability = await isBiometricAvailable();
+      const supported = !!availability?.isAvailable;
+      setBiometricSupported(supported);
+      if (!supported) return;
+      const saved = await isCredentialSaved();
+      setBiometricSaved(saved);
+    };
+    initBiometrics();
+  }, []);
+
+  useEffect(() => {
+    const persistBiometric = async () => {
+      if (!enableBiometricOnDevice) return;
+      if (biometricPersisted) return;
+      if (!token || !refreshToken || !user?.username) return;
+
+      try {
+        const res = await saveCredential({ username: user.username, refreshToken });
+        if (res?.ok) {
+          setBiometricSaved(true);
+          setBiometricPersisted(true);
+        }
+      } catch (_) {
+      }
+    };
+    persistBiometric();
+  }, [enableBiometricOnDevice, biometricPersisted, refreshToken, token, user?.username]);
 
   // MFA State
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -36,6 +80,39 @@ const LoginScreen = () => {
     // Clear the store-level (session-expired) error once the user starts typing
     if (storeError) {
       useAuthStore.setState({ error: null });
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await biometricGetRefreshToken();
+      if (!res?.ok) {
+        setError(res?.error || 'Biometric login failed.');
+        return;
+      }
+
+      const loginRes = await loginWithRefreshToken(res.refreshToken);
+      if (!loginRes?.ok) {
+        setError(loginRes?.error || 'Biometric login failed.');
+        return;
+      }
+    } catch (e) {
+      setError(e?.message || 'Biometric login failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearBiometric = async () => {
+    try {
+      await clearCredential();
+      setBiometricSaved(false);
+      setEnableBiometricOnDevice(false);
+      setBiometricPersisted(false);
+    } catch (_) {
     }
   };
 
@@ -184,6 +261,27 @@ const LoginScreen = () => {
 
           {!mfaRequired ? (
             <>
+            {biometricSupported && biometricSaved && (
+              <TouchableOpacity
+                style={[styles.button, styles.biometricButton]}
+                onPress={handleBiometricLogin}
+                disabled={loading}
+              >
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign In with Biometrics</Text>}
+              </TouchableOpacity>
+            )}
+
+            {biometricSupported && (
+              <TouchableOpacity
+                style={styles.biometricToggleRow}
+                onPress={() => setEnableBiometricOnDevice((v) => !v)}
+                disabled={loading}
+              >
+                <Text style={styles.biometricToggleIcon}>{enableBiometricOnDevice ? '☑️' : '⬜️'}</Text>
+                <Text style={[styles.openMainAppText, styles.biometricToggleText]}>Enable biometric login on this device</Text>
+              </TouchableOpacity>
+            )}
+
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
@@ -257,6 +355,12 @@ const LoginScreen = () => {
             >
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign In</Text>}
             </TouchableOpacity>
+
+            {biometricSupported && biometricSaved && (
+              <TouchableOpacity style={styles.biometricClearRow} onPress={handleClearBiometric} disabled={loading}>
+                <Text style={[styles.openMainAppText, styles.biometricClearText]}>Remove biometric login from this device</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.openMainAppBtn} onPress={() => openMainApp('')}>
               <Text style={styles.openMainAppText}>🏠 Open Main App</Text>
@@ -425,6 +529,30 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  biometricButton: {
+    marginBottom: 12,
+  },
+  biometricToggleRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  biometricToggleIcon: {
+    fontSize: 16,
+  },
+  biometricToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  biometricClearRow: { paddingVertical: 10, alignItems: 'center' },
+  biometricClearText: {
+    fontSize: 13,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
   openMainAppBtn: {
     alignItems: 'center',
     paddingVertical: 12,

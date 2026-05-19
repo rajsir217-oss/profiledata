@@ -246,6 +246,48 @@ html {
   cursor: not-allowed;
 }
 
+.login-biometric-row {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: center;
+}
+
+.login-biometric-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.login-biometric-toggle input {
+  width: 1rem;
+  height: 1rem;
+}
+
+.login-biometric-btn {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+
+.login-biometric-clear {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.login-biometric-clear:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .login-divider {
   margin-top: 1rem; /* 16px - Reduced from 24px */
   padding-top: 1rem; /* 16px - Reduced from 24px */

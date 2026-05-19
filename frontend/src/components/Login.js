@@ -5,7 +5,16 @@ import axios from "axios";
 import api from "../api";
 import socketService from "../services/socketService";
 import sessionManager from "../services/sessionManager";
+import toastService from '../services/toastService';
 import { getBackendUrl, getTurnstileSiteKey } from "../config/apiConfig";
+import {
+  biometricLogin,
+  clearCredential,
+  isBiometricAvailable,
+  isCredentialSaved,
+  isNativePlatform,
+  saveCredential,
+} from '../services/biometricAuth';
 import SEO from "./SEO";
 import { getPageSEO } from "../utils/seo";
 // Using Cloudflare Turnstile instead of reCAPTCHA (100% free, no limits)
@@ -26,6 +35,10 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const pageSEO = getPageSEO('login');
+
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricSaved, setBiometricSaved] = useState(false);
+  const [enableBiometricOnDevice, setEnableBiometricOnDevice] = useState(false);
 
   // MFA State
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -55,6 +68,19 @@ const Login = () => {
       }
       document.body.style.overflow = 'auto';
     };
+  }, []);
+
+  useEffect(() => {
+    const initBiometrics = async () => {
+      if (!isNativePlatform()) return;
+      const availability = await isBiometricAvailable();
+      const supported = !!availability?.isAvailable;
+      setBiometricSupported(supported);
+      if (!supported) return;
+      const saved = await isCredentialSaved();
+      setBiometricSaved(saved);
+    };
+    initBiometrics();
   }, []);
 
   useEffect(() => {
@@ -151,6 +177,27 @@ const Login = () => {
       // Save refresh token for session management
       if (res.data.refresh_token) {
         localStorage.setItem('refreshToken', res.data.refresh_token);
+      }
+
+      if (enableBiometricOnDevice) {
+        try {
+          if (res.data.refresh_token) {
+            const saveRes = await saveCredential({
+              username: res.data.user.username,
+              refreshToken: res.data.refresh_token,
+            });
+            if (saveRes?.ok) {
+              setBiometricSaved(true);
+              toastService.success('Biometric login enabled on this device', 4000);
+            } else if (saveRes?.error) {
+              toastService.warning(saveRes.error, 5000);
+            }
+          } else {
+            toastService.warning('Biometric login requires a refresh token. Please log in again.', 6000);
+          }
+        } catch (_) {
+          toastService.warning('Could not enable biometric login on this device.', 6000);
+        }
       }
       
       // Save user status for menu access control
@@ -389,6 +436,27 @@ const Login = () => {
       if (res.data.refresh_token) {
         localStorage.setItem('refreshToken', res.data.refresh_token);
       }
+
+      if (enableBiometricOnDevice) {
+        try {
+          if (res.data.refresh_token) {
+            const saveRes = await saveCredential({
+              username: res.data.user.username,
+              refreshToken: res.data.refresh_token,
+            });
+            if (saveRes?.ok) {
+              setBiometricSaved(true);
+              toastService.success('Biometric login enabled on this device', 4000);
+            } else if (saveRes?.error) {
+              toastService.warning(saveRes.error, 5000);
+            }
+          } else {
+            toastService.warning('Biometric login requires a refresh token. Please log in again.', 6000);
+          }
+        } catch (_) {
+          toastService.warning('Could not enable biometric login on this device.', 6000);
+        }
+      }
       
       // Initialize session manager
       sessionManager.init();
@@ -429,6 +497,65 @@ const Login = () => {
     setMfaCode("");
     setError("");
     setShowBackupCodeInput(false);
+  };
+
+  const handleBiometricLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const redirectParam = new URLSearchParams(location.search).get('redirect') || '/dashboard';
+      const safeRedirect = typeof redirectParam === 'string' && redirectParam.startsWith('/') ? redirectParam : '/dashboard';
+
+      const res = await biometricLogin();
+      if (!res?.ok) {
+        setError(res?.error || 'Biometric login failed.');
+        return;
+      }
+
+      const user = res.user || {};
+      const username = user.username || res.username;
+      if (!username) {
+        setError('Biometric login failed. Please log in with password.');
+        return;
+      }
+
+      localStorage.setItem('username', username);
+      localStorage.setItem('token', res.accessToken);
+      if (res.refreshToken) {
+        localStorage.setItem('refreshToken', res.refreshToken);
+      }
+
+      const userStatus = user.accountStatus || 'active';
+      localStorage.setItem('userStatus', userStatus);
+
+      const userRole = user.role_name || user.role || 'free_user';
+      localStorage.setItem('userRole', userRole);
+
+      sessionStorage.removeItem('photoReminderDismissed');
+      sessionManager.init();
+      socketService.connect(username);
+      localStorage.removeItem('appTheme');
+
+      window.dispatchEvent(new Event('loginStatusChanged'));
+      window.dispatchEvent(new Event('userLoggedIn'));
+
+      navigate(safeRedirect, { replace: true, state: { user } });
+    } catch (e) {
+      setError(e?.message || 'Biometric login failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearBiometric = async () => {
+    try {
+      await clearCredential();
+      setBiometricSaved(false);
+      setEnableBiometricOnDevice(false);
+      toastService.info('Biometric login removed from this device', 4000);
+    } catch (_) {
+      toastService.warning('Could not remove biometric login from this device.', 5000);
+    }
   };
 
   return (
@@ -554,6 +681,41 @@ const Login = () => {
               />
             )}
           </div>
+
+          {biometricSupported && (
+            <div className="login-biometric-row">
+              <label className="login-biometric-toggle">
+                <input
+                  type="checkbox"
+                  checked={enableBiometricOnDevice}
+                  onChange={(e) => setEnableBiometricOnDevice(e.target.checked)}
+                />
+                Enable biometric login on this device
+              </label>
+            </div>
+          )}
+
+          {biometricSupported && biometricSaved && (
+            <button
+              type="button"
+              className="login-button login-biometric-btn"
+              onClick={handleBiometricLogin}
+              disabled={loading}
+            >
+              {loading ? 'Authenticating...' : 'Sign In with Biometrics'}
+            </button>
+          )}
+
+          {biometricSupported && biometricSaved && (
+            <button
+              type="button"
+              className="login-biometric-clear"
+              onClick={handleClearBiometric}
+              disabled={loading}
+            >
+              Remove biometric login from this device
+            </button>
+          )}
           
           <button 
             type="submit" 
