@@ -248,6 +248,22 @@ async def admin_approve_user(
                     logger.warning(f"⚠️ Failed to send welcome email to {username}")
             else:
                 logger.warning(f"⚠️ No email address found for {username}")
+
+            try:
+                from services.event_dispatcher import get_event_dispatcher, UserEventType
+                dispatcher = await get_event_dispatcher(db)
+                await dispatcher.dispatch(
+                    event_type=UserEventType.USER_APPROVED,
+                    actor_username=current_user.get("username"),
+                    target_username=username,
+                    metadata={
+                        "profileId": user.get("profileId", ""),
+                        "old_status": user.get("accountStatus", ""),
+                        "notification_should_send_email": False,
+                    },
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to dispatch user_approved event for {username}: {e}")
             
             # Build success message
             message = f"User {username} approved successfully"

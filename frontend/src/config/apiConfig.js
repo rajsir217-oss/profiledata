@@ -30,6 +30,10 @@ export const getBackendUrl = () => {
   if (process.env.REACT_APP_BACKEND_URL) {
     return process.env.REACT_APP_BACKEND_URL;
   }
+
+  if (process.env.REACT_APP_SOCKET_URL) {
+    return process.env.REACT_APP_SOCKET_URL;
+  }
   
   // Priority 2: Runtime config (loaded from /config.js at runtime)
   if (typeof window !== 'undefined' && window.RUNTIME_CONFIG?.SOCKET_URL) {
