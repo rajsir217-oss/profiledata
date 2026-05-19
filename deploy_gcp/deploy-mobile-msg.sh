@@ -211,6 +211,7 @@ ensure_android_paths() {
 ensure_capacitor_android_launcher_icons() {
   local src_png="$REPO_ROOT/frontend/public/logo512.png"
   local res_dir="$MSG_WEB_DIR/android/app/src/main/res"
+  local backup_root="$MSG_WEB_DIR/android/app/src/main/res_toberemoved"
 
   if [[ ! -f "$src_png" ]]; then
     echo "⚠️  Launcher icon source not found: $src_png"
@@ -226,19 +227,39 @@ ensure_capacitor_android_launcher_icons() {
   local mipmap_sizes=(48 72 96 144 192)
   local icon_files=(ic_launcher.png ic_launcher_round.png ic_launcher_foreground.png)
 
+  mkdir -p "$backup_root"
+  shopt -s nullglob
+
   for i in "${!mipmap_dirs[@]}"; do
     local out_dir="$res_dir/${mipmap_dirs[$i]}"
     local size="${mipmap_sizes[$i]}"
+    local backup_dir="$backup_root/${mipmap_dirs[$i]}"
 
     if [[ ! -d "$out_dir" ]]; then
       echo "⚠️  Missing Android res dir: $out_dir"
       continue
     fi
 
+    mkdir -p "$backup_dir"
+
+    for old in "$out_dir"/*.toberemoved*; do
+      local old_base
+      old_base="$(basename "$old")"
+      local old_dest="$backup_dir/$old_base"
+      if [[ -e "$old_dest" ]]; then
+        old_dest="$backup_dir/$old_base.$(date +%Y%m%d-%H%M%S)"
+      fi
+      mv "$old" "$old_dest"
+    done
+
     for f in "${icon_files[@]}"; do
       local target="$out_dir/$f"
-      if [[ -f "$target" && ! -f "$target.toberemoved" ]]; then
-        mv "$target" "$target.toberemoved"
+      if [[ -f "$target" ]]; then
+        local moved="$backup_dir/${f}.toberemoved"
+        if [[ -e "$moved" ]]; then
+          moved="$backup_dir/${f}.toberemoved.$(date +%Y%m%d-%H%M%S)"
+        fi
+        mv "$target" "$moved"
       fi
       sips -z "$size" "$size" "$src_png" --out "$target" >/dev/null 2>&1
     done
