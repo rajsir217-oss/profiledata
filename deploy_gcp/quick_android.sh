@@ -43,9 +43,11 @@ fi
 echo "✅ Device connected"
 echo ""
 
-# Copy Android env file
-echo "⚙️  Setting Android environment..."
-cp .env.android .env.local 2>/dev/null || true
+# Load production env for Android build without mutating .env.local
+echo "⚙️  Loading production environment from .env.production..."
+set -a
+. ./.env.production
+set +a
 
 # Build React
 echo "📦 Building React app..."
