@@ -204,13 +204,15 @@
 /* Mobile: Slightly smaller text */
 @media (max-width: 768px) {
   .app-logo {
-    min-width: 44px; /* Smaller to fit just butterfly */
-    height: 44px;
-    padding: 6px 10px;
+    min-width: 32px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    box-sizing: border-box;
   }
   
   .logo-text {
-    font-size: 20px; /* Bigger butterfly on mobile */
+    font-size: 18px;
   }
   
   /* Hide "L3V3L" text on mobile - show only butterfly */
@@ -219,7 +221,7 @@
   }
   
   .butterfly-icon {
-    font-size: 24px; /* Make butterfly bigger and centered */
+    font-size: 18px;
   }
   
   /* Hide page title breadcrumb on mobile */
@@ -514,7 +516,27 @@
 @media (max-width: 768px) {
   .search-menu-dropdown {
     min-width: 280px;
-    right: -10px;
+    right: 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .search-menu-dropdown {
+    position: fixed;
+    top: 64px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    min-width: 0;
+    max-width: calc(100vw - 20px);
+    max-height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .search-menu-saved-list {
+    max-height: none;
+    overflow: auto;
   }
 }
 
@@ -1435,17 +1457,18 @@
   }
   
   .top-bar-content {
-    padding: 0 12px;
+    height: 56px;
+    padding: 0 8px;
   }
   
   .top-bar-left {
-    gap: 8px;
+    gap: 6px;
     flex: 1;
     min-width: 0;
   }
   
   .top-bar-right {
-    gap: 8px;
+    gap: 4px;
     flex-shrink: 0;
   }
   
@@ -1464,9 +1487,9 @@
   /* Make logout button more compact without text */
   .btn-logout {
     padding: 0 12px;
-    min-width: 44px;
-    max-width: 44px;
-    width: 44px;
+    min-width: 32px;
+    max-width: 32px;
+    width: 32px;
     flex-shrink: 0;
   }
   
@@ -1519,8 +1542,8 @@
   /* Mobile: Compact 44px square with vertical stack */
   .stat-badges-container {
     flex-direction: column;
-    width: 44px;
-    height: 44px;
+    width: 32px;
+    height: 32px;
     gap: 1px;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 12px;
@@ -1555,7 +1578,7 @@
   
   .online-indicator {
     padding: 0 8px;
-    height: 44px; /* Maintain 44px height on mobile */
+    height: 32px;
     gap: 4px;
   }
   
@@ -1583,21 +1606,47 @@
   /* Show hamburger on mobile (sidebar strip hidden) */
   .sidebar-toggle-btn {
     display: flex; /* Re-show on mobile */
-    width: 44px;
-    height: 44px;
-    font-size: 22px;
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .app-logo {
+    min-width: 32px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+  }
+
+  .logo-text .butterfly-icon {
+    font-size: 18px !important;
   }
   
   .btn-messages,
   .btn-messenger-app,
   .btn-refer-friend,
   .btn-admin-actions,
-  .btn-support-response {
-    width: 44px;
-    height: 44px;
-    font-size: 20px;
+  .btn-support-response,
+  .btn-online-count {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
   }
-  
+
+  .btn-refer-friend .refer-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .btn-user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .user-avatar-initials {
+    font-size: 14px;
+  }
+
   .admin-actions-dropdown {
     min-width: 260px;
     right: -20px;
@@ -1605,17 +1654,17 @@
   
   /* Make user icon bigger and more visible */
   .user-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 18px;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
   }
   
   .user-info {
     padding: 4px;
-    min-width: 44px;
-    min-height: 44px;
-    max-width: 44px;
-    width: 44px;
+    min-width: 32px;
+    min-height: 32px;
+    max-width: 32px;
+    width: 32px;
     justify-content: center;
     flex-shrink: 0;
     gap: 0;
@@ -1629,8 +1678,8 @@
   }
   
   .top-bar-content {
-    padding: 0 10px;
-    gap: 8px;
+    padding: 0 8px;
+    gap: 6px;
   }
   
   .top-bar-left {
@@ -1642,7 +1691,7 @@
   
   .top-bar-right {
     display: flex !important; /* KEEP VISIBLE */
-    gap: 6px;
+    gap: 4px;
     flex-shrink: 0;
   }
   
@@ -1661,27 +1710,33 @@
   /* Make logout button more compact without text */
   .btn-logout {
     padding: 0 12px;
-    min-width: 44px;
-    max-width: 44px;
-    width: 44px;
+    min-width: 32px;
+    max-width: 32px;
+    width: 32px;
     flex-shrink: 0;
   }
   
   /* Logo stays readable on tiny screens */
   .app-logo {
-    min-width: 55px;
-    height: 40px;
-    padding: 5px 8px;
+    min-width: 32px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
   }
   
   .logo-text {
     font-size: 14px;
   }
+
+  .btn-user-avatar {
+    width: 32px;
+    height: 32px;
+  }
   
   /* Tiny screens: Even more compact square */
   .stat-badges-container {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     gap: 0px;
     padding: 2px;
   }
@@ -1693,7 +1748,7 @@
   /* Compact online indicator - maintain height */
   .online-indicator {
     padding: 0 6px;
-    height: 40px; /* Slightly smaller on tiny screens */
+    height: 32px;
     gap: 3px;
   }
   
@@ -1711,10 +1766,10 @@
   .sidebar-toggle-btn,
   .btn-messages,
   .user-info {
-    min-width: 44px;
-    min-height: 44px;
-    max-width: 44px;
-    width: 44px;
+    min-width: 32px;
+    min-height: 32px;
+    max-width: 32px;
+    width: 32px;
     flex-shrink: 0;
     gap: 0;
     justify-content: center;
@@ -1722,8 +1777,8 @@
   
   /* Profile icon stays visible and tappable */
   .user-icon {
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 24px;
   }
 }
 
@@ -2070,11 +2125,11 @@
   }
 
   .btn-user-avatar {
-    width: 44px;
-    height: 44px;
+    width: 32px;
+    height: 32px;
   }
 
   .user-avatar-initials {
-    font-size: 18px;
+    font-size: 14px;
   }
 }
