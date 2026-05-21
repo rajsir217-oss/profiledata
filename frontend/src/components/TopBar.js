@@ -642,7 +642,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
                         className="search-menu-item search-menu-saved-item"
                         onClick={() => handleTopbarSavedSearchClick(savedSearch)}
                       >
-                        <span className="search-menu-item-icon">�</span>
+                        <span className="search-menu-item-icon" role="img" aria-label="Saved search">📌</span>
                         <span className="search-menu-item-label">{savedSearch.name || 'Saved search'}</span>
                       </button>
                     ))
