@@ -147,6 +147,11 @@ const SearchFilters = ({
     handleInputChange({ target: { name: 'profileId', value: '' } });
   };
 
+  const daysBackRawValue = searchCriteria.daysBack ?? '';
+  const allowedDaysBackValues = new Set(['45', '60', '90', '365', '0', '']);
+  const daysBackSelectValue = daysBackRawValue === null || daysBackRawValue === undefined ? '' : String(daysBackRawValue);
+  const showCustomDaysBackOption = daysBackSelectValue !== '' && !allowedDaysBackValues.has(daysBackSelectValue);
+
   return (
     <div className="unified-search-filters">
       {/* 0. PROFILE ID DIRECT SEARCH - Separate Section */}
@@ -180,16 +185,20 @@ const SearchFilters = ({
               className="btn btn-primary btn-profile-id-search"
               onClick={handleProfileIdSearch}
               disabled={!searchCriteria.profileId?.trim()}
+              aria-label="Search"
             >
-              🔍 Search
+              <span className="btn-icon" aria-hidden="true">🔍</span>
+              <span className="btn-label">Search</span>
             </button>
             <button 
               type="button" 
               className="btn btn-danger btn-profile-id-clear"
               onClick={handleProfileIdClear}
               disabled={!searchCriteria.profileId?.trim()}
+              aria-label="Clear"
             >
-              🗑️ Clear
+              <span className="btn-icon" aria-hidden="true">🗑️</span>
+              <span className="btn-label">Clear</span>
             </button>
           </div>
         </div>
@@ -198,7 +207,7 @@ const SearchFilters = ({
       
       {/* 2. BASIC FILTERS - Always Visible */}
       <div className="basic-filters-section">
-        {/* Row 1: Keyword Search (Full Width) */}
+        {/* Row 1: Keyword Search */}
         <div className="col-keyword">
           <div className="form-group">
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -220,8 +229,186 @@ const SearchFilters = ({
           </div>
         </div>
         
-        {/* Row 2: Occupation (Full Width) */}
-        <div className="col-occupation-basic" style={{ gridColumn: '1 / -1' }}>
+        <div className="col-age-range">
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Age Range
+              <Tooltip 
+                text="Set minimum and maximum age for matches. Leave blank for no age restriction. Minimum allowed: 19, Maximum: 100."
+                position="top"
+                icon 
+              />
+            </label>
+            <div className="age-range-inputs">
+              <input
+                type="number"
+                className="form-control age-range-input"
+                name="ageMin"
+                value={searchCriteria.ageMin || ''}
+                onChange={handleInputChange}
+                onBlur={(e) => {
+                  const value = parseInt(e.target.value);
+                  if (e.target.value && value < 19) {
+                    e.target.value = 19;
+                    handleInputChange(e);
+                  } else if (e.target.value && value > 100) {
+                    e.target.value = 100;
+                    handleInputChange(e);
+                  }
+                }}
+                min="19"
+                max="100"
+                placeholder="Min"
+                title="Minimum age: 19 | Maximum age: 100"
+              />
+              <input
+                type="number"
+                className="form-control age-range-input"
+                name="ageMax"
+                value={searchCriteria.ageMax || ''}
+                onChange={handleInputChange}
+                onBlur={(e) => {
+                  const value = parseInt(e.target.value);
+                  if (e.target.value && value < 19) {
+                    e.target.value = 19;
+                    handleInputChange(e);
+                  } else if (e.target.value && value > 100) {
+                    e.target.value = 100;
+                    handleInputChange(e);
+                  }
+                }}
+                min="19"
+                max="100"
+                placeholder="Max"
+                title="Minimum age: 19 | Maximum age: 100"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div className="col-height-min">
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Height (Min)
+              <Tooltip 
+                text="Minimum height preference. Matches will be at least this tall."
+                position="top"
+                icon 
+              />
+            </label>
+            <div className="height-inputs">
+              <select
+                className="form-control height-select"
+                name="heightMinFeet"
+                value={searchCriteria.heightMinFeet || ''}
+                onChange={handleInputChange}
+              >
+                <option value="">ft</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+              </select>
+              <select
+                className="form-control height-select"
+                name="heightMinInches"
+                value={searchCriteria.heightMinInches || ''}
+                onChange={handleInputChange}
+              >
+                <option value="">in</option>
+                {[...Array(12)].map((_, i) => (
+                  <option key={i} value={i}>{i}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div className="col-height-max">
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Height (Max)
+              <Tooltip 
+                text="Maximum height preference. Matches will be at most this tall."
+                position="top"
+                icon 
+              />
+            </label>
+            <div className="height-inputs">
+              <select
+                className="form-control height-select"
+                name="heightMaxFeet"
+                value={searchCriteria.heightMaxFeet || ''}
+                onChange={handleInputChange}
+              >
+                <option value="">ft</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+              </select>
+              <select
+                className="form-control height-select"
+                name="heightMaxInches"
+                value={searchCriteria.heightMaxInches || ''}
+                onChange={handleInputChange}
+              >
+                <option value="">in</option>
+                {[...Array(12)].map((_, i) => (
+                  <option key={i} value={i}>{i}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-days-back">
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Days Back
+              <Tooltip 
+                text="Show only profiles created within the last X days. Useful for finding new members."
+                position="top"
+                icon 
+              />
+            </label>
+            <select
+              className="form-control"
+              name="daysBack"
+              value={daysBackSelectValue}
+              onChange={handleInputChange}
+            >
+              {showCustomDaysBackOption && (
+                <option value={daysBackSelectValue}>{`${daysBackSelectValue} (Custom)`}</option>
+              )}
+              <option value="45">45</option>
+              <option value="60">60</option>
+              <option value="90">90</option>
+              <option value="365">365</option>
+              <option value="0">ALL</option>
+            </select>
+          </div>
+        </div>
+        <div className="col-has-photo">
+          <label className="has-photo-toggle-label">
+            <input
+              type="checkbox"
+              name="hasPhoto"
+              checked={searchCriteria.hasPhoto || false}
+              onChange={handleInputChange}
+              className="has-photo-checkbox"
+            />
+            <span className="has-photo-toggle-text">
+              📸 Has Photo Only
+            </span>
+            <Tooltip 
+              text="Only show profiles that have at least one photo. Profiles without photos are always deprioritized in results."
+              position="top"
+              icon 
+            />
+          </label>
+        </div>
+
+        <div className="col-occupation-basic">
           <div className="form-group">
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               Occupation
@@ -239,226 +426,73 @@ const SearchFilters = ({
             />
           </div>
         </div>
-        
-        {/* Row 3: Location and Age Range */}
-        <div className="filter-row-location-age">
-          <div className="col-location">
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                Location
-                <Tooltip 
-                  text="Filter by city or state. Select multiple locations to expand your search."
-                  position="top"
-                  icon 
-                />
-              </label>
-              <LocationMultiSelect
-                options={locationOptions}
-                selected={searchCriteria.locations || []}
-                onChange={(selectedLocations) => {
-                  // Update search criteria with selected locations
-                  handleInputChange({
-                    target: {
-                      name: 'locations',
-                      value: selectedLocations
-                    }
-                  });
-                }}
-                placeholder="Select locations..."
-                maxVisible={3}
-              />
-            </div>
-          </div>
-          <div className="col-age-range">
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                Age Range
-                <Tooltip 
-                  text="Set minimum and maximum age for matches. Leave blank for no age restriction. Minimum allowed: 19, Maximum: 100."
-                  position="top"
-                  icon 
-                />
-              </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="number"
-                  className="form-control"
-                  name="ageMin"
-                  value={searchCriteria.ageMin || ''}
-                  onChange={handleInputChange}
-                  onBlur={(e) => {
-                    const value = parseInt(e.target.value);
-                    if (e.target.value && value < 19) {
-                      e.target.value = 19;
-                      handleInputChange(e);
-                    } else if (e.target.value && value > 100) {
-                      e.target.value = 100;
-                      handleInputChange(e);
-                    }
-                  }}
-                  min="19"
-                  max="100"
-                  placeholder="Min"
-                  style={{ flex: 1 }}
-                  title="Minimum age: 19 | Maximum age: 100"
-                />
-                <input
-                  type="number"
-                  className="form-control"
-                  name="ageMax"
-                  value={searchCriteria.ageMax || ''}
-                  onChange={handleInputChange}
-                  onBlur={(e) => {
-                    const value = parseInt(e.target.value);
-                    if (e.target.value && value < 19) {
-                      e.target.value = 19;
-                      handleInputChange(e);
-                    } else if (e.target.value && value > 100) {
-                      e.target.value = 100;
-                      handleInputChange(e);
-                    }
-                  }}
-                  min="19"
-                  max="100"
-                  placeholder="Max"
-                  style={{ flex: 1 }}
-                  title="Minimum age: 19 | Maximum age: 100"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Row 3: Height Min and Height Max */}
-        <div className="filter-row-height">
-          <div className="col-height-min">
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                Height (Min)
-                <Tooltip 
-                  text="Minimum height preference. Matches will be at least this tall."
-                  position="top"
-                  icon 
-                />
-              </label>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <select
-                  className="form-control"
-                  name="heightMinFeet"
-                  value={searchCriteria.heightMinFeet || ''}
-                  onChange={handleInputChange}
-                  style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
-                >
-                  <option value="">Feet</option>
-                  <option value="4">4 ft</option>
-                  <option value="5">5 ft</option>
-                  <option value="6">6 ft</option>
-                  <option value="7">7 ft</option>
-                </select>
-                <select
-                  className="form-control"
-                  name="heightMinInches"
-                  value={searchCriteria.heightMinInches || ''}
-                  onChange={handleInputChange}
-                  style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
-                >
-                  <option value="">Inch</option>
-                  {[...Array(12)].map((_, i) => (
-                    <option key={i} value={i}>{i} in</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-          <div className="col-height-max">
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                Height (Max)
-                <Tooltip 
-                  text="Maximum height preference. Matches will be at most this tall."
-                  position="top"
-                  icon 
-                />
-              </label>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <select
-                  className="form-control"
-                  name="heightMaxFeet"
-                  value={searchCriteria.heightMaxFeet || ''}
-                  onChange={handleInputChange}
-                  style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
-                >
-                  <option value="">Feet</option>
-                  <option value="4">4 ft</option>
-                  <option value="5">5 ft</option>
-                  <option value="6">6 ft</option>
-                  <option value="7">7 ft</option>
-                </select>
-                <select
-                  className="form-control"
-                  name="heightMaxInches"
-                  value={searchCriteria.heightMaxInches || ''}
-                  onChange={handleInputChange}
-                  style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
-                >
-                  <option value="">Inch</option>
-                  {[...Array(12)].map((_, i) => (
-                    <option key={i} value={i}>{i} in</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Row: Days Back + Has Photo Toggle */}
-        <div className="filter-row-days-photo">
-          <div className="col-days-back">
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                Days Back
-                <Tooltip 
-                  text="Show only profiles created within the last X days. Useful for finding new members."
-                  position="top"
-                  icon 
-                />
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="daysBack"
-                value={searchCriteria.daysBack ?? ''}
-                onChange={handleInputChange}
-                min="0"
-                max="365"
-                placeholder="30"
-              />
-              <small className="form-text text-muted">
-                Set to 0 for all-time results, or use the quick time window buttons on the search page.
-              </small>
-            </div>
-          </div>
-          <div className="col-has-photo">
-            <label className="has-photo-toggle-label">
-              <input
-                type="checkbox"
-                name="hasPhoto"
-                checked={searchCriteria.hasPhoto || false}
-                onChange={handleInputChange}
-                className="has-photo-checkbox"
-              />
-              <span className="has-photo-toggle-text">
-                📸 Has Photo Only
-              </span>
+        <div className="col-location">
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Location
               <Tooltip 
-                text="Only show profiles that have at least one photo. Profiles without photos are always deprioritized in results."
+                text="Filter by city or state. Select multiple locations to expand your search."
                 position="top"
                 icon 
               />
             </label>
+            <LocationMultiSelect
+              options={locationOptions}
+              selected={searchCriteria.locations || []}
+              onChange={(selectedLocations) => {
+                // Update search criteria with selected locations
+                handleInputChange({
+                  target: {
+                    name: 'locations',
+                    value: selectedLocations
+                  }
+                });
+              }}
+              placeholder="Select locations..."
+              maxVisible={3}
+            />
           </div>
-
-          
         </div>
+
+        {/* 3. ACTION BUTTONS - First appearance (after basic filters) */}
+        {!hideActionButtons && !showAdvancedFilters && (
+          <div className="search-action-buttons search-action-buttons-inline">
+            {onSearch && (
+              <button
+                type="button"
+                onClick={handleMainSearch}
+                className="btn btn-primary"
+                aria-label={searchButtonText}
+              >
+                <span className="btn-icon" aria-hidden="true">🔍</span>
+                <span className="btn-label">{searchButtonText}</span>
+              </button>
+            )}
+            {onClear && (
+              <button
+                type="button"
+                onClick={onClear}
+                className="btn btn-clear"
+                title={isAdmin ? 'Clear all filters (widest search)' : 'Reset to your partner preference defaults'}
+                aria-label={isAdmin ? 'Clear' : 'Reset'}
+              >
+                <span className="btn-icon" aria-hidden="true">{isAdmin ? '🗑️' : '🔄'}</span>
+                <span className="btn-label">{isAdmin ? 'Clear' : 'Reset'}</span>
+              </button>
+            )}
+            {onSave && (
+              <button
+                type="button"
+                onClick={onSave}
+                className="btn btn-secondary"
+                aria-label={saveButtonText}
+              >
+                <span className="btn-icon" aria-hidden="true">💾</span>
+                <span className="btn-label">{saveButtonText}</span>
+              </button>
+            )}
+          </div>
+        )}
         {/* HIDDEN: L3V3L COMPATIBILITY SLIDER 
         {(systemConfig?.enable_l3v3l_for_all || isPremiumUser) && (
         <div className="l3v3l-slider-section" style={{ marginBottom: '24px' }}>
@@ -549,81 +583,6 @@ const SearchFilters = ({
         </div>
       )}
 
-      {/* 3. ACTION BUTTONS - First appearance (after basic filters) */}
-      {!hideActionButtons && (
-        <div className="search-action-buttons" style={{ justifyContent: 'center', display: 'flex', width: '100%' }}>
-          {onSearch && (
-            <button
-              type="button"
-              onClick={handleMainSearch}
-              className="btn btn-primary"
-              style={{
-                padding: '10px 32px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: 'var(--primary-color)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '14px'
-              }}
-            >
-              {searchButtonText}
-            </button>
-          )}
-          {onClear && (
-            <button
-              type="button"
-              onClick={onClear}
-              className="btn btn-clear"
-              style={{
-                padding: '10px 24px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: '#d84315',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '14px',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.background = '#bf360c'}
-              onMouseLeave={(e) => e.target.style.background = '#d84315'}
-            >
-              🗑️ Clear
-            </button>
-          )}
-          {onSave && (
-            <button
-              type="button"
-              onClick={onSave}
-              className="btn btn-secondary"
-              style={{
-                padding: '10px 24px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: 'var(--surface-color)',
-                color: 'var(--text-color)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '14px'
-              }}
-            >
-              {saveButtonText}
-            </button>
-          )}
-        </div>
-      )}
-      
       {/* 4. VIEW MORE/LESS TOGGLE BUTTON */}
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
         <button
@@ -650,7 +609,7 @@ const SearchFilters = ({
       {/* 5. ADVANCED FILTERS - Collapsible */}
       {showAdvancedFilters && (
         <>
-          <div className="advanced-filters-section">
+          <div className={`advanced-filters-section ${!hideActionButtons ? 'has-actions' : ''}`}>
               <div className="col-gender">
                 <div className="form-group">
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -774,83 +733,46 @@ const SearchFilters = ({
                   </select>
                 </div>
               </div>
+
+              {!hideActionButtons && (
+                <div className="col-advanced-actions">
+                  {onSearch && (
+                    <button
+                      type="button"
+                      onClick={handleMainSearch}
+                      className="btn btn-primary"
+                      aria-label={searchButtonText}
+                    >
+                      <span className="btn-icon" aria-hidden="true">🔍</span>
+                      <span className="btn-label">{searchButtonText}</span>
+                    </button>
+                  )}
+                  {onClear && (
+                    <button
+                      type="button"
+                      onClick={onClear}
+                      className={isAdmin ? 'btn btn-clear' : 'btn btn-primary'}
+                      title={isAdmin ? 'Clear all filters (widest search)' : 'Reset to your partner preference defaults'}
+                      aria-label={isAdmin ? 'Clear' : 'Reset'}
+                    >
+                      <span className="btn-icon" aria-hidden="true">{isAdmin ? '🗑️' : '🔄'}</span>
+                      <span className="btn-label">{isAdmin ? 'Clear' : 'Reset'}</span>
+                    </button>
+                  )}
+                  {onSave && (
+                    <button
+                      type="button"
+                      onClick={onSave}
+                      className="btn btn-secondary"
+                      aria-label={saveButtonText}
+                    >
+                      <span className="btn-icon" aria-hidden="true">💾</span>
+                      <span className="btn-label">{saveButtonText}</span>
+                    </button>
+                  )}
+                </div>
+              )}
           </div>
-          
-          {/* 6. ACTION BUTTONS - Second appearance (after advanced filters) */}
-          {!hideActionButtons && (
-            <div className="search-action-buttons">
-              {onSearch && (
-                <button
-                  type="button"
-                  onClick={handleMainSearch}
-                  className="btn btn-primary"
-                  style={{
-                    padding: '10px 32px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: 'var(--primary-color)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: '14px'
-                  }}
-                >
-                  {searchButtonText}
-                </button>
-              )}
-              {onClear && (
-                <button
-                  type="button"
-                  onClick={onClear}
-                  className="btn btn-clear"
-                  title={isAdmin ? 'Clear all filters (widest search)' : 'Reset to your partner preference defaults'}
-                  style={{
-                    padding: '10px 24px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: isAdmin ? '#d84315' : 'var(--primary-color)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = isAdmin ? '#bf360c' : 'var(--secondary-color)'}
-                  onMouseLeave={(e) => e.target.style.background = isAdmin ? '#d84315' : 'var(--primary-color)'}
-                >
-                  {isAdmin ? '🗑️ Clear' : '🔄 Reset'}
-                </button>
-              )}
-              {onSave && (
-                <button
-                  type="button"
-                  onClick={onSave}
-                  className="btn btn-secondary"
-                  style={{
-                    padding: '10px 24px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: 'var(--surface-color)',
-                    color: 'var(--text-color)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: '14px'
-                  }}
-                >
-                  {saveButtonText}
-                </button>
-              )}
-            </div>
-          )}
         </>
       )}
     </div>

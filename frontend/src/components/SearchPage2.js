@@ -13,7 +13,8 @@ import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
 import ChatFirstPrompt from './ChatFirstPrompt';
-import SearchFiltersModal from './SearchFiltersModal';
+import UniversalTabContainer from './UniversalTabContainer';
+import SearchFilters from './SearchFilters';
 import Profile from './Profile';
 import GraphView from './GraphView';
 import toastService from '../services/toastService';
@@ -23,6 +24,7 @@ import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import logger from '../utils/logger';
 import socketService from '../services/socketService';
 import LoadMore from './LoadMore';
+import './SearchFiltersModal.css';
 import './SearchPage2.css';
 
 // Shared utility: build default search criteria from a user profile.
@@ -125,13 +127,6 @@ const buildDefaultCriteria = (profile) => {
     hasPhoto: true,
     locations: []
   };
-};
-
-const DAYS_BACK_PRESETS = [30, 60, 90, 120, 180, 0];
-
-const getDaysBackLabel = (daysBack) => {
-  const value = Number(daysBack);
-  return value === 0 ? 'All' : `${value}d`;
 };
 
 const normalizeDaysBackValue = (daysBack, fallback = 30) => {
@@ -410,8 +405,60 @@ const SearchPage2 = () => {
   
   // ===== MAIN APPLICATION STATE =====
   // Note: Most state is now managed by useSearchState hook above
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const searchFiltersPanelRef = useRef(null);
+  const [isFiltersPanelExpanded, setIsFiltersPanelExpanded] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+
+  // Inline schedule editing state (Saved tab)
+  const [editingScheduleSearch, setEditingScheduleSearch] = useState(null);
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleFrequency, setScheduleFrequency] = useState('daily');
+  const [scheduleTime, setScheduleTime] = useState('09:00');
+  const [scheduleDay, setScheduleDay] = useState('monday');
+  const [savingSchedule, setSavingSchedule] = useState(false);
+
+  const startInlineScheduleEdit = (search) => {
+    setEditingScheduleSearch(search);
+    const notifications = search.notifications || {};
+    setScheduleEnabled(notifications.enabled || false);
+    setScheduleFrequency(notifications.frequency || 'daily');
+    setScheduleTime(notifications.time || '09:00');
+    setScheduleDay(notifications.dayOfWeek || 'monday');
+  };
+
+  const cancelInlineScheduleEdit = () => {
+    setEditingScheduleSearch(null);
+  };
+
+  const saveInlineSchedule = async () => {
+    if (!editingScheduleSearch) return;
+
+    setSavingSchedule(true);
+    try {
+      const username = localStorage.getItem('username');
+      const searchId = editingScheduleSearch.id || editingScheduleSearch._id;
+
+      await api.put(`/${username}/saved-searches/${searchId}`, {
+        notifications: {
+          enabled: scheduleEnabled,
+          frequency: scheduleFrequency,
+          time: scheduleTime,
+          dayOfWeek: scheduleFrequency === 'weekly' ? scheduleDay : null
+        }
+      });
+
+      toastService.success('✅ Schedule updated successfully');
+      setEditingScheduleSearch(null);
+
+      if (loadSavedSearches) {
+        loadSavedSearches();
+      }
+    } catch (err) {
+      toastService.error('Failed to update schedule');
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
   
   // HYBRID SEARCH: Traditional filters + L3V3L match score (premium feature)
   // State for online users
@@ -784,12 +831,35 @@ const SearchPage2 = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
+  const openFiltersPanel = useCallback(() => {
+    setIsFiltersPanelExpanded(true);
+    requestAnimationFrame(() => {
+      if (searchFiltersPanelRef.current && typeof searchFiltersPanelRef.current.scrollIntoView === 'function') {
+        searchFiltersPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }, []);
+
+  const toggleFiltersPanel = useCallback(() => {
+    setIsFiltersPanelExpanded((prev) => {
+      const next = !prev;
+      if (next) {
+        requestAnimationFrame(() => {
+          if (searchFiltersPanelRef.current && typeof searchFiltersPanelRef.current.scrollIntoView === 'function') {
+            searchFiltersPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      }
+      return next;
+    });
+  }, []);
+
   // Listen for external "open search modal" events (e.g. from TopBar)
   useEffect(() => {
-    const handleOpenModal = () => setIsSearchModalOpen(true);
+    const handleOpenModal = () => openFiltersPanel();
     window.addEventListener('openSearchModal', handleOpenModal);
     return () => window.removeEventListener('openSearchModal', handleOpenModal);
-  }, []);
+  }, [openFiltersPanel]);
 
   // Trigger initial search after user profile is loaded - check for default saved search first
   useEffect(() => {
@@ -1119,26 +1189,22 @@ const SearchPage2 = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const toggleSortOrder = useCallback(() => {
+    setSortOrder(prev => (prev === 'desc' ? 'asc' : 'desc'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [setSortOrder]);
+
   const handleQuickDaysBackChange = useCallback((nextDaysBack) => {
     const normalizedDaysBack = normalizeDaysBackValue(nextDaysBack, 30);
     const nextCriteria = {
       ...searchCriteria,
       daysBack: normalizedDaysBack
     };
-
     setSearchCriteria(nextCriteria);
-    handleSearchHook(1, 0, nextCriteria);
+    setSelectedSearch(null);
+    handleSearchHook(1, nextCriteria);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [searchCriteria, setSearchCriteria, handleSearchHook]);
-
-  // Toggle sort order - CLIENT-SIDE ONLY (no server re-fetch needed)
-  const toggleSortOrder = () => {
-    const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
-    logger.info(`🔀 Sort order changed to: ${newOrder}`);
-    setSortOrder(newOrder);
-    // Don't trigger server search - client-side sorting handles it
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [handleSearchHook, searchCriteria, setSearchCriteria]);
 
   const handleClearFilters = () => {
     // Admin: Clear all fields (widest search)
@@ -1367,7 +1433,7 @@ const SearchPage2 = () => {
     }
   };
 
-  const handleLoadSavedSearch = (savedSearch) => {
+  const handleLoadSavedSearch = useCallback((savedSearch) => {
     // Handle occupation format conversion for backward compatibility
     const criteria = { ...savedSearch.criteria };
     
@@ -1418,7 +1484,41 @@ const SearchPage2 = () => {
     setTimeout(() => {
       handleSearchHook(1, loadedMinScore, criteriaWithDefaults);
     }, 100);
-  };
+  }, [currentUserProfile, handleSearchHook]);
+
+  // Listen for saved search loads from TopBar
+  useEffect(() => {
+    const handler = (event) => {
+      const savedSearch = event?.detail;
+      if (!savedSearch) return;
+      handleLoadSavedSearch(savedSearch);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    window.addEventListener('loadSavedSearchFromTopbar', handler);
+    return () => window.removeEventListener('loadSavedSearchFromTopbar', handler);
+  }, [handleLoadSavedSearch]);
+
+  // Apply any pending search action set by TopBar when navigating to /search
+  useEffect(() => {
+    if (!currentUserProfile || Object.keys(currentUserProfile).length === 0) return;
+    const raw = sessionStorage.getItem('pendingSearchAction');
+    if (!raw) return;
+
+    sessionStorage.removeItem('pendingSearchAction');
+    try {
+      const action = JSON.parse(raw);
+      if (action?.type === 'openFilters') {
+        openFiltersPanel();
+        return;
+      }
+      if (action?.type === 'loadSavedSearch' && action?.savedSearch) {
+        handleLoadSavedSearch(action.savedSearch);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch (err) {
+      logger.error('Failed to parse pendingSearchAction:', err);
+    }
+  }, [currentUserProfile, handleLoadSavedSearch, openFiltersPanel]);
 
   const handleDeleteSavedSearch = async (searchId) => {
     if (!searchId) {
@@ -1501,7 +1601,6 @@ const SearchPage2 = () => {
       
       // Close both modals after successful save
       setShowSaveModal(false);
-      setIsSearchModalOpen(false);
       setEditingScheduleFor(null);
       
       loadSavedSearches();
@@ -1837,58 +1936,6 @@ const SearchPage2 = () => {
 
   return (
     <div className="search-page">
-      
-      {/* Floating Search Trigger Button */}
-      <button 
-        className="floating-search-trigger"
-        onClick={() => setIsSearchModalOpen(true)}
-        title="Open Search Filters"
-        style={{ 
-          position: 'fixed', 
-          bottom: '30px', 
-          right: '30px',
-          width: '36px',
-          height: '36px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
-        <span style={{ fontSize: '16px', lineHeight: 1 }}>🔍</span>
-        <span className="trigger-text">Search Filters</span>
-      </button>
-
-      {/* Search Filters Modal */}
-      <SearchFiltersModal
-        isOpen={isSearchModalOpen}
-        onClose={() => setIsSearchModalOpen(false)}
-        searchCriteria={searchCriteria}
-        minMatchScore={minMatchScore}
-        setMinMatchScore={handleMinMatchScoreChange}
-        handleInputChange={handleInputChange}
-        showAdvancedFilters={showAdvancedFilters}
-        setShowAdvancedFilters={setShowAdvancedFilters}
-        onSearch={() => handleSearchHook(1)}
-        onClear={handleClearFilters}
-        onSave={() => setShowSaveModal(true)}
-        systemConfig={systemConfig}
-        isPremiumUser={isPremiumUser}
-        currentUserProfile={currentUserProfile}
-        bodyTypeOptions={bodyTypeOptions}
-        occupationOptions={occupationOptions}
-        locationOptions={locationOptions}
-        eatingOptions={eatingOptions}
-        lifestyleOptions={lifestyleOptions}
-        isAdmin={isAdmin}
-        savedSearches={savedSearches}
-        selectedSearch={selectedSearch}
-        handleLoadSavedSearch={handleLoadSavedSearch}
-        handleDeleteSavedSearch={handleDeleteSavedSearch}
-        handleEditSchedule={handleEditSchedule}
-        handleSetDefaultSearch={handleSetDefaultSearch}
-        generateSearchDescription={generateSearchDescription}
-        loadSavedSearches={loadSavedSearches}
-      />
 
       {error && (
         <div style={{ maxWidth: '600px', margin: '10px auto' }}>
@@ -1906,48 +1953,166 @@ const SearchPage2 = () => {
       )}
 
       {/* Active Criteria Summary Bar - Header at top */}
-      <div className="active-criteria-bar" onClick={() => setIsSearchModalOpen(true)}>
-        <div className="criteria-info">
-          <span className="criteria-label">FILTERS:</span>
-          <span className="criteria-value">{getActiveCriteriaSummary()}</span>
-        </div>
-        <div className="criteria-actions">
-          <span className="results-count">
-            <span className="results-count-number">{totalResults}</span>
-            <span className="results-count-text"> - found</span>
-          </span>
-          <button className="btn-modify-search" onClick={(e) => { e.stopPropagation(); setIsSearchModalOpen(true); }}>
-            <span className="modify-text">Modify </span><span className="modify-icon">⚙️</span>
-          </button>
-          <button className="btn-modify-search" onClick={(e) => { e.stopPropagation(); handleSearchHook(1); }} title="Refresh search results">
-            <span className="modify-text">Refresh </span><span className="modify-icon">🔄</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="days-back-quick-bar">
-        <div className="days-back-quick-label">
-          <span className="days-back-quick-title">Quick time window</span>
-          <span className="days-back-quick-subtitle">Broaden results without opening filters</span>
-        </div>
-        <div className="days-back-quick-selector" role="tablist" aria-label="Quick time window selector">
-          {DAYS_BACK_PRESETS.map((option) => {
-            const isActive = Number(searchCriteria.daysBack ?? 30) === option;
-            return (
-              <button
-                key={option}
-                type="button"
-                className={`days-back-quick-btn ${isActive ? 'active' : ''}`}
-                onClick={() => handleQuickDaysBackChange(option)}
-                aria-pressed={isActive}
-                title={option === 0 ? 'Show profiles from all time' : `Show profiles from the last ${option} days`}
-              >
-                {getDaysBackLabel(option)}
-              </button>
-            );
-          })}
+      <div
+        className={`active-criteria-bar ${isFiltersPanelExpanded ? 'is-expanded' : ''}`}
+        onClick={toggleFiltersPanel}
+        ref={searchFiltersPanelRef}
+      >
+        <div className="active-criteria-bar-header">
+          <div className="criteria-info">
+            <span className="criteria-label">FILTERS:</span>
+            <span className="criteria-value">{getActiveCriteriaSummary()}</span>
+          </div>
+          <div className="criteria-actions">
+            <span className="results-count">
+              <span className="results-count-number">{totalResults}</span>
+              <span className="results-count-text"> - found</span>
+            </span>
+            <button className="btn-modify-search" onClick={(e) => { e.stopPropagation(); openFiltersPanel(); }}>
+              <span className="modify-text">Modify </span><span className="modify-icon">⚙️</span>
+            </button>
+            <button className="btn-modify-search" onClick={(e) => { e.stopPropagation(); handleSearchHook(1); }} title="Refresh search results">
+              <span className="modify-text">Refresh </span><span className="modify-icon">🔄</span>
+            </button>
+          </div>
         </div>
 
+        {isFiltersPanelExpanded && (
+          <div className="active-criteria-bar-body" onClick={(e) => e.stopPropagation()}>
+            <div className="search-filters-panel">
+              <div className="search-filters-panel-body is-expanded">
+                <UniversalTabContainer
+                  key={`search-inline-tabs-${savedSearches.length}`}
+                  variant="underlined"
+                  defaultTab={savedSearches.length > 0 ? 'saved' : 'search'}
+                  tabs={[
+                    {
+                      id: 'search',
+                      icon: '🔍',
+                      label: 'Filters',
+                      badge: minMatchScore > 0 ? `${minMatchScore}%` : null,
+                      content: (
+                        <SearchFilters
+                          searchCriteria={searchCriteria}
+                          minMatchScore={minMatchScore}
+                          setMinMatchScore={handleMinMatchScoreChange}
+                          handleInputChange={handleInputChange}
+                          showAdvancedFilters={showAdvancedFilters}
+                          setShowAdvancedFilters={setShowAdvancedFilters}
+                          onSearch={() => handleSearchHook(1)}
+                          onClear={handleClearFilters}
+                          onSave={() => setShowSaveModal(true)}
+                          systemConfig={systemConfig}
+                          isPremiumUser={isPremiumUser}
+                          currentUserProfile={currentUserProfile}
+                          bodyTypeOptions={bodyTypeOptions}
+                          occupationOptions={occupationOptions}
+                          locationOptions={locationOptions}
+                          eatingOptions={eatingOptions}
+                          lifestyleOptions={lifestyleOptions}
+                          isAdmin={isAdmin}
+                        />
+                      )
+                    },
+                    {
+                      id: 'saved',
+                      icon: '💾',
+                      label: 'Saved',
+                      badge: savedSearches.length > 0 ? savedSearches.length : null,
+                      content: (
+                        <div className="saved-searches-tab">
+                          {editingScheduleSearch && (
+                            <div className="inline-schedule-edit">
+                              <div className="schedule-edit-header">
+                                <h4>⏰ Edit Schedule: {editingScheduleSearch.name}</h4>
+                                <button type="button" className="btn-close-schedule" onClick={cancelInlineScheduleEdit}>✕</button>
+                              </div>
+                              <div className="schedule-edit-body">
+                                <div className="schedule-toggle">
+                                  <label className="toggle-label">
+                                    <input
+                                      type="checkbox"
+                                      checked={scheduleEnabled}
+                                      onChange={(e) => setScheduleEnabled(e.target.checked)}
+                                    />
+                                    <span className="toggle-text">Enable Email Notifications</span>
+                                  </label>
+                                </div>
+                              </div>
+                              <div className="schedule-edit-footer">
+                                <button type="button" className="btn btn-secondary" onClick={cancelInlineScheduleEdit}>Cancel</button>
+                                <button type="button" className="btn btn-primary" onClick={saveInlineSchedule} disabled={savingSchedule}>
+                                  {savingSchedule ? '⏳ Saving...' : '💾 Save Schedule'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {!editingScheduleSearch && (
+                            <>
+                              {savedSearches.length === 0 ? (
+                                <div className="empty-saved-searches">
+                                  <div className="empty-icon">📋</div>
+                                  <h4>No Saved Searches Yet</h4>
+                                  <p>Save your search criteria to quickly access them later.</p>
+                                </div>
+                              ) : (
+                                <div className="saved-searches-grid">
+                                  {savedSearches.map(search => {
+                                    const searchId = search.id || search._id;
+                                    const isActive = selectedSearch?.id === searchId || selectedSearch?._id === searchId;
+                                    return (
+                                      <div key={searchId} className={`saved-search-card ${search.isDefault ? 'is-default' : ''} ${isActive ? 'is-active' : ''}`}>
+                                        <div className="saved-search-header">
+                                          <h5 className="saved-search-name">
+                                            {search.isDefault && (
+                                              <button
+                                                type="button"
+                                                className="default-badge-btn"
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSetDefaultSearch(searchId, search.name, true); }}
+                                                title="Click to remove as default"
+                                              >
+                                                ⭐
+                                              </button>
+                                            )}
+                                            {search.name}
+                                          </h5>
+                                          <div className="saved-search-actions">
+                                            <button type="button" className="btn-schedule-saved" onClick={(e) => { e.preventDefault(); startInlineScheduleEdit(search); }} title="Edit schedule">⏰</button>
+                                            <button type="button" className="btn-delete-saved" onClick={(e) => { e.preventDefault(); handleDeleteSavedSearch(searchId); }} title="Delete">🗑️</button>
+                                          </div>
+                                        </div>
+                                        <div className="saved-search-description">
+                                          <p>{search.description || generateSearchDescription(search.criteria, search.minMatchScore)}</p>
+                                        </div>
+                                        <div className="saved-search-footer">
+                                          <button
+                                            type="button"
+                                            className={`btn-set-default ${search.isDefault ? 'is-default' : ''}`}
+                                            onClick={(e) => { e.preventDefault(); handleSetDefaultSearch(searchId, search.name, search.isDefault); }}
+                                            title={search.isDefault ? 'Remove as default' : 'Set as default'}
+                                          >
+                                            <span className="default-icon">{search.isDefault ? '⭐' : '☆'}</span>
+                                            <span className="default-text">{search.isDefault ? ' Unset' : ' Default'}</span>
+                                          </button>
+                                          <button type="button" className="btn-load-saved" onClick={(e) => { e.preventDefault(); handleLoadSavedSearch(search); }}>📂 Load</button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )
+                    }
+                  ]}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="search-container">
@@ -2025,7 +2190,7 @@ const SearchPage2 = () => {
                   <h5>No profiles found</h5>
                   <p>Try widening the time window, clearing one or two filters, or reloading the page.</p>
                   <div className="no-results-actions">
-                    {DAYS_BACK_PRESETS.map((option) => (
+                    {[45, 60, 90, 365, 0].map((option) => (
                       <button
                         key={option}
                         type="button"
