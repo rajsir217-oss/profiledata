@@ -41,6 +41,12 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const [showUnattendedAlert, setShowUnattendedAlert] = useState(false); // Alert panel visibility
   const [brandConfig, setBrandConfig] = useState(null); // Whitelabel branding config
 
+  const [showSearchMenu, setShowSearchMenu] = useState(false);
+  const searchMenuRef = useRef(null);
+  const [savedSearchesForMenu, setSavedSearchesForMenu] = useState([]);
+  const [savedSearchesForMenuLoading, setSavedSearchesForMenuLoading] = useState(false);
+  const [savedSearchesForMenuLoadedAt, setSavedSearchesForMenuLoadedAt] = useState(null);
+
   // Compute highest urgency level for icon color
   const urgencyLevel = urgencyCounts.critical > 0 ? 'critical'
     : urgencyCounts.high > 0 ? 'high'
@@ -58,7 +64,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
 
   // Handle message deleted callback
   const handleMessageDeleted = (messageId) => {
-    console.log('🗑️ Message deleted:', messageId);
+    logger.debug('🗑️ Message deleted:', messageId);
     // Refresh the messages dropdown by closing and reopening it
     if (showMessagesDropdown) {
       // Temporarily close and reopen to refresh the data
@@ -395,6 +401,78 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showUserMenu]);
 
+  // Close search menu dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchMenuRef.current && !searchMenuRef.current.contains(e.target)) {
+        setShowSearchMenu(false);
+      }
+    };
+    if (showSearchMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSearchMenu]);
+
+  // Load saved searches for the search menu when it opens
+  useEffect(() => {
+    if (!showSearchMenu || !currentUser) return;
+
+    const now = Date.now();
+    if (savedSearchesForMenuLoadedAt && (now - savedSearchesForMenuLoadedAt) < 30000) {
+      return;
+    }
+
+    let cancelled = false;
+    const loadSavedSearchesForMenu = async () => {
+      setSavedSearchesForMenuLoading(true);
+      try {
+        const response = await api.get(`/${currentUser}/saved-searches`);
+        if (cancelled) return;
+        setSavedSearchesForMenu(response.data.savedSearches || []);
+        setSavedSearchesForMenuLoadedAt(Date.now());
+      } catch (err) {
+        logger.error('Error loading saved searches for TopBar menu:', err);
+        if (cancelled) return;
+        setSavedSearchesForMenu([]);
+      } finally {
+        if (cancelled) return;
+        setSavedSearchesForMenuLoading(false);
+      }
+    };
+
+    loadSavedSearchesForMenu();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, savedSearchesForMenuLoadedAt, showSearchMenu]);
+
+  const handleSearchProfilesClick = () => {
+    setShowSearchMenu(false);
+    if (location.pathname === '/search') {
+      window.dispatchEvent(new Event('openSearchModal'));
+      return;
+    }
+
+    sessionStorage.setItem('pendingSearchAction', JSON.stringify({ type: 'openFilters' }));
+    navigate('/search');
+  };
+
+  const handleTopbarSavedSearchClick = (savedSearch) => {
+    if (!savedSearch) return;
+    setShowSearchMenu(false);
+    if (location.pathname === '/search') {
+      window.dispatchEvent(new CustomEvent('loadSavedSearchFromTopbar', { detail: savedSearch }));
+      return;
+    }
+
+    sessionStorage.setItem('pendingSearchAction', JSON.stringify({
+      type: 'loadSavedSearch',
+      savedSearch
+    }));
+    navigate('/search');
+  };
+
   // Poll for unread admin responses (all logged-in users)
   useEffect(() => {
     if (!currentUser) {
@@ -531,21 +609,48 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
           <EventCountdown />
         </div>
         <div className="top-bar-right">
-          {/* Search Button */}
-          <button 
-            className="btn-refer-friend" 
-            onClick={() => {
-              if (location.pathname === '/search') {
-                window.dispatchEvent(new Event('openSearchModal'));
-              } else {
-                navigate('/search');
-              }
-            }}
-            title="Search Profiles"
-          >
-            <span className="refer-icon">🔍</span>
-            <span className="refer-text">Search</span>
-          </button>
+          <div className="search-menu-container" ref={searchMenuRef}>
+            <button
+              className={`btn-refer-friend ${showSearchMenu ? 'is-open' : ''}`}
+              onClick={() => setShowSearchMenu(prev => !prev)}
+              title="Search"
+              aria-haspopup="menu"
+              aria-expanded={showSearchMenu}
+            >
+              <span className="refer-icon">🔍</span>
+              <span className="refer-text">Search</span>
+            </button>
+            {showSearchMenu && (
+              <div className="search-menu-dropdown" role="menu" aria-label="Search menu">
+                <div className="search-menu-header">Search</div>
+                <button type="button" className="search-menu-item" onClick={handleSearchProfilesClick}>
+                  <span className="search-menu-item-icon">🔍</span>
+                  <span className="search-menu-item-label">Search Profiles</span>
+                </button>
+                <div className="search-menu-divider" />
+                <div className="search-menu-header">Saved Searches</div>
+                <div className="search-menu-saved-list" role="group" aria-label="Saved searches">
+                  {savedSearchesForMenuLoading ? (
+                    <div className="search-menu-state">Loading…</div>
+                  ) : savedSearchesForMenu.length === 0 ? (
+                    <div className="search-menu-state">No saved searches yet</div>
+                  ) : (
+                    savedSearchesForMenu.map((savedSearch) => (
+                      <button
+                        key={savedSearch._id || savedSearch.id || savedSearch.name}
+                        type="button"
+                        className="search-menu-item search-menu-saved-item"
+                        onClick={() => handleTopbarSavedSearchClick(savedSearch)}
+                      >
+                        <span className="search-menu-item-icon">�</span>
+                        <span className="search-menu-item-label">{savedSearch.name || 'Saved search'}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           
           {/* Admin Action Center - Unified pending items indicator */}
           {userRole === 'admin' && adminPendingCounts && (

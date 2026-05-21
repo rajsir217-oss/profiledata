@@ -7,6 +7,306 @@
   overflow: visible; /* Allow tooltips to overflow */
 }
 
+/* Compact + full-width layout when embedded inside the FILTERS accordion */
+.active-criteria-bar-body .unified-search-filters {
+  max-width: none;
+  margin: 0;
+}
+
+.active-criteria-bar-body .profile-id-search-section,
+.active-criteria-bar-body .basic-filters-section {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.active-criteria-bar-body .basic-filters-section {
+  display: grid;
+  grid-template-columns:
+    minmax(240px, 2.3fr)
+    minmax(170px, 1.1fr)
+    minmax(150px, 1fr)
+    minmax(150px, 1fr)
+    minmax(120px, 0.8fr)
+    minmax(190px, 1.1fr);
+  grid-template-areas:
+    "keyword age hmin hmax days photo"
+    "occupation occupation location location actions actions";
+  gap: 10px 12px;
+  align-items: end;
+}
+
+.active-criteria-bar-body .basic-filters-section .col-keyword { grid-area: keyword; }
+.active-criteria-bar-body .basic-filters-section .col-age-range { grid-area: age; }
+.active-criteria-bar-body .basic-filters-section .col-height-min { grid-area: hmin; }
+.active-criteria-bar-body .basic-filters-section .col-height-max { grid-area: hmax; }
+.active-criteria-bar-body .basic-filters-section .col-days-back { grid-area: days; }
+.active-criteria-bar-body .basic-filters-section .col-has-photo { grid-area: photo; }
+.active-criteria-bar-body .basic-filters-section .col-occupation-basic { grid-area: occupation; }
+.active-criteria-bar-body .basic-filters-section .col-location { grid-area: location; }
+.active-criteria-bar-body .basic-filters-section .search-action-buttons-inline { grid-area: actions; }
+
+.active-criteria-bar-body .age-range-inputs,
+.active-criteria-bar-body .height-inputs {
+  display: flex;
+  gap: 8px;
+}
+
+.active-criteria-bar-body .age-range-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.active-criteria-bar-body .height-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.active-criteria-bar-body .col-has-photo {
+  display: flex;
+  align-items: flex-end;
+}
+
+.active-criteria-bar-body .search-action-buttons.search-action-buttons-inline {
+  justify-content: flex-start;
+  margin: 0;
+  padding: 0 !important;
+  gap: 10px;
+}
+
+.active-criteria-bar-body .search-action-buttons.search-action-buttons-inline .btn {
+  width: auto;
+}
+
+.active-criteria-bar-body .advanced-filters-section {
+  grid-template-columns: repeat(5, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.active-criteria-bar-body .advanced-filters-section.has-actions {
+  grid-template-columns: repeat(5, minmax(160px, 1fr)) minmax(260px, 1.4fr);
+}
+
+.active-criteria-bar-body .advanced-filters-section .col-advanced-actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.active-criteria-bar-body .advanced-filters-section .col-advanced-actions .btn {
+  width: auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .active-criteria-bar-body .advanced-filters-section {
+    grid-template-columns: repeat(3, minmax(200px, 1fr));
+  }
+
+  .active-criteria-bar-body .advanced-filters-section.has-actions {
+    grid-template-columns: repeat(3, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .active-criteria-bar-body .advanced-filters-section {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+
+  .active-criteria-bar-body .advanced-filters-section.has-actions {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+
+  .active-criteria-bar-body .advanced-filters-section .col-advanced-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .active-criteria-bar-body .advanced-filters-section {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .active-criteria-bar-body .advanced-filters-section.has-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.unified-search-filters .btn-clear {
+  background: var(--danger-color);
+  color: white;
+  border: none;
+}
+
+.unified-search-filters .btn-clear:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+@media (max-width: 1100px) {
+  .active-criteria-bar-body .basic-filters-section {
+    grid-template-columns:
+      minmax(240px, 2fr)
+      minmax(170px, 1fr)
+      minmax(160px, 1fr);
+    grid-template-areas:
+      "keyword keyword age"
+      "hmin hmax days"
+      "photo photo photo"
+      "occupation occupation occupation"
+      "location location location"
+      "actions actions actions";
+    align-items: stretch;
+  }
+}
+
+.active-criteria-bar-body .profile-id-search-row {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.active-criteria-bar-body .btn-profile-id-search,
+.active-criteria-bar-body .btn-profile-id-clear {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.unified-search-filters .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .active-criteria-bar-body .basic-filters-section {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "keyword"
+      "age"
+      "hmin"
+      "hmax"
+      "days"
+      "photo"
+      "occupation"
+      "location"
+      "actions";
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .active-criteria-bar-body .profile-id-search-section,
+  .active-criteria-bar-body .basic-filters-section {
+    padding: 10px 12px;
+  }
+
+  .active-criteria-bar-body .col-has-photo {
+    align-items: center;
+  }
+
+  .active-criteria-bar-body .profile-id-search-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "input input"
+      "search clear";
+    align-items: center;
+    gap: 10px 12px;
+  }
+
+  .active-criteria-bar-body .profile-id-search-row > .form-control {
+    grid-area: input;
+    width: 100%;
+  }
+
+  .active-criteria-bar-body .profile-id-search-row .btn-profile-id-search {
+    grid-area: search;
+    justify-self: center;
+  }
+
+  .active-criteria-bar-body .profile-id-search-row .btn-profile-id-clear {
+    grid-area: clear;
+    justify-self: center;
+  }
+
+  .active-criteria-bar-body .unified-search-filters .btn-profile-id-search,
+  .active-criteria-bar-body .unified-search-filters .btn-profile-id-clear {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .active-criteria-bar-body .unified-search-filters .btn-profile-id-search .btn-icon,
+  .active-criteria-bar-body .unified-search-filters .btn-profile-id-clear .btn-icon {
+    font-size: 16px;
+  }
+
+  .active-criteria-bar-body .unified-search-filters .btn-label {
+    display: none;
+  }
+
+  .active-criteria-bar-body .search-action-buttons.search-action-buttons-inline {
+    flex-direction: row;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .active-criteria-bar-body .advanced-filters-section .col-advanced-actions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .active-criteria-bar-body .unified-search-filters .search-action-buttons-inline .btn,
+  .active-criteria-bar-body .unified-search-filters .col-advanced-actions .btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .active-criteria-bar-body .unified-search-filters .search-action-buttons-inline,
+  .active-criteria-bar-body .unified-search-filters .col-advanced-actions {
+    gap: 8px;
+  }
+}
+
+.active-criteria-bar-body .unified-search-filters .form-group label {
+  margin-bottom: 4px;
+}
+
+.active-criteria-bar-body .unified-search-filters .form-control {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.active-criteria-bar-body .search-action-buttons {
+  margin-bottom: 12px;
+}
+
+.active-criteria-bar-body .unified-search-filters .btn {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.active-criteria-bar-body .basic-filters-section .filter-row-location-age {
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+}
+
+.active-criteria-bar-body .basic-filters-section .filter-row-height,
+.active-criteria-bar-body .filter-row-days-photo {
+  gap: 12px;
+}
+
 /* Profile ID Direct Search Section - Separate at top */
 .profile-id-search-section {
   background: var(--card-background);

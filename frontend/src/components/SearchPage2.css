@@ -25,6 +25,33 @@
   width: 100%;
 }
 
+.search-filters-panel {
+  width: 100%;
+  background: transparent;
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-self: flex-start;
+}
+
+.search-filters-panel-body {
+  padding: 14px;
+}
+
+.search-filters-panel-body .universal-tab-container {
+  border: none;
+  background: transparent;
+}
+
+.search-filters-panel-body .tab-content-area {
+  padding-top: 16px;
+}
+
+.active-criteria-bar {
+  cursor: pointer;
+}
+
 /* Search Results */
 .search-results {
   background: var(--card-background, white);
@@ -339,119 +366,6 @@
   border-color: var(--primary-color);
 }
 
-/* ========== QUICK DAYS BACK BAR ========== */
-.days-back-quick-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin: 14px 0 18px;
-  padding: 14px 16px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: linear-gradient(180deg, var(--surface-color), rgba(255, 255, 255, 0.02));
-  box-shadow: var(--shadow-sm);
-}
-
-.days-back-quick-label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 220px;
-}
-
-.days-back-quick-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-color);
-}
-
-.days-back-quick-subtitle,
-.days-back-quick-note {
-  font-size: 11px;
-  color: var(--text-muted, #888);
-}
-
-.days-back-quick-selector {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 4px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-color);
-}
-
-.days-back-quick-btn {
-  min-width: 68px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-secondary, #666);
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.days-back-quick-btn:hover {
-  color: var(--primary-color);
-  background: rgba(102, 126, 234, 0.08);
-}
-
-.days-back-quick-btn.active {
-  background: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
-  box-shadow: var(--shadow-sm);
-}
-
-.days-back-quick-note {
-  flex-basis: 100%;
-  margin-top: -4px;
-}
-
-@media (max-width: 768px) {
-  .days-back-quick-bar {
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px 14px;
-  }
-
-  .days-back-quick-label {
-    min-width: 0;
-  }
-
-  .days-back-quick-selector {
-    width: 100%;
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: max-content;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 6px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    scroll-snap-type: x proximity;
-  }
-
-  .days-back-quick-selector::-webkit-scrollbar {
-    display: none;
-  }
-
-  .days-back-quick-btn {
-    flex: 0 0 auto;
-    min-width: 0;
-    padding: 7px 9px;
-    font-size: 10px;
-    white-space: nowrap;
-    scroll-snap-align: start;
-  }
-}
-
 /* ========== IMAGE ACCESS OVERLAY ========== */
 .image-access-overlay {
   position: absolute;
@@ -583,6 +497,13 @@
   .search-container {
     gap: 15px;
     flex-direction: column;
+  }
+
+  .search-filters-panel {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .search-results {
@@ -962,20 +883,45 @@
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 6px 20px;
+  padding: 0;
   margin-bottom: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-sm);
 }
 
+
+.active-criteria-bar-header {
+  padding: 6px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .active-criteria-bar:hover {
   border-color: var(--primary-color);
+}
+
+.active-criteria-bar:hover .active-criteria-bar-header {
   background: var(--hover-background);
   transform: translateY(-2px);
+}
+
+.active-criteria-bar.is-expanded .active-criteria-bar-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.active-criteria-bar-body {
+  padding: 12px 16px 16px;
+  background: var(--surface-color);
+}
+
+.active-criteria-bar-body .search-filters-panel {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  align-self: stretch;
 }
 
 .criteria-info {
@@ -1049,7 +995,7 @@
     font-size: 20px;
   }
   
-  .active-criteria-bar {
+  .active-criteria-bar-header {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
