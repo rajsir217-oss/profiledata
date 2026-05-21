@@ -1458,7 +1458,8 @@
   
   .top-bar-content {
     height: 56px;
-    padding: 0 8px;
+    padding: 2px 8px 0;
+    box-sizing: border-box;
   }
   
   .top-bar-left {
@@ -1678,8 +1679,9 @@
   }
   
   .top-bar-content {
-    padding: 0 8px;
+    padding: 2px 8px 0;
     gap: 6px;
+    box-sizing: border-box;
   }
   
   .top-bar-left {
@@ -1929,6 +1931,12 @@
   filter: none !important;
   color: initial !important;
   -webkit-text-fill-color: initial !important;
+}
+
+@media (max-width: 768px) {
+  .logo-text .butterfly-icon {
+    font-size: 18px !important;
+  }
 }
 
 /* ========================================
