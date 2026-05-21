@@ -33,6 +33,8 @@ const LoginScreen = () => {
   const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
   const turnstileRef = useRef();
 
+  const turnstileSiteKey = getTurnstileSiteKey();
+
   const isDevelopment = process.env.NODE_ENV !== 'production';
   const canBypassCaptcha = captchaError && captchaRetryCount >= 3;
 
@@ -323,7 +325,7 @@ const LoginScreen = () => {
             </TouchableOpacity>
 
             <View style={styles.captchaContainer}>
-              {isDevelopment ? null : (captchaError ? (
+              {isDevelopment ? null : ((captchaError || !turnstileSiteKey) ? (
                 <View style={styles.captchaErrorBox}>
                   <Text style={styles.captchaErrorTitle}>Security check unavailable</Text>
                   {captchaRetryCount < 3 ? (
@@ -337,7 +339,7 @@ const LoginScreen = () => {
               ) : (
                 <Turnstile
                   ref={turnstileRef}
-                  sitekey={getTurnstileSiteKey()}
+                  sitekey={turnstileSiteKey}
                   onVerify={handleCaptchaChange}
                   onError={handleCaptchaError}
                   onExpire={handleCaptchaExpire}
