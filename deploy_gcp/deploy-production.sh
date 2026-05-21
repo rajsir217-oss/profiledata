@@ -63,6 +63,11 @@ MESSENGER_DOMAIN="messenger.l3v3lmatches.com"
 MESSENGER_SERVICE="matrimonial-messenger"
 REGION="us-central1"
 
+# Canonical production endpoints (override per-run via env if needed)
+PROD_MAIN_APP_URL="${PROD_MAIN_APP_URL:-https://l3v3lmatches.com}"
+PROD_BACKEND_URL="${PROD_BACKEND_URL:-https://api.l3v3lmatches.com}"
+PROD_TURNSTILE_SITE_KEY="${PROD_TURNSTILE_SITE_KEY:-0x4AAAAAACAeADZnXAaS1tep}"
+
 # Parse command-line arguments
 SHOW_LOGS="${SHOW_LOGS:-true}"  # Default to true
 DEPLOY_TARGET=""  # Empty = interactive prompt
@@ -350,11 +355,17 @@ case $choice in
         ;;
     4)
         echo ""
-        echo "� Deploying Messenger..."
+        echo "📦 Deploying Messenger..."
         echo "   Service : $MESSENGER_SERVICE"
         echo "   Domain  : https://$MESSENGER_DOMAIN"
         echo ""
         cd "$PROJECT_ROOT"
+        PROJECT_ID="$PROJECT" \
+        REGION="$REGION" \
+        SERVICE_NAME="$MESSENGER_SERVICE" \
+        BACKEND_URL="$PROD_BACKEND_URL" \
+        MAIN_APP_URL="$PROD_MAIN_APP_URL" \
+        TURNSTILE_SITE_KEY="$PROD_TURNSTILE_SITE_KEY" \
         ./deploy_gcp/deploy_messenger_full.sh
         ;;
     5)
@@ -378,6 +389,12 @@ case $choice in
         echo "   Domain  : https://$MESSENGER_DOMAIN"
         echo ""
         cd "$PROJECT_ROOT"
+        PROJECT_ID="$PROJECT" \
+        REGION="$REGION" \
+        SERVICE_NAME="$MESSENGER_SERVICE" \
+        BACKEND_URL="$PROD_BACKEND_URL" \
+        MAIN_APP_URL="$PROD_MAIN_APP_URL" \
+        TURNSTILE_SITE_KEY="$PROD_TURNSTILE_SITE_KEY" \
         ./deploy_gcp/deploy_messenger_full.sh
         ;;
     *)

@@ -238,7 +238,18 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       let messengerConvs = [];
       if (messengerRes.status === 'fulfilled') {
         const res = messengerRes.value;
-        messengerConvs = res.data?.conversations || res.data || [];
+        const raw = res.data?.conversations ?? res.data;
+        messengerConvs = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.conversations)
+            ? raw.conversations
+            : Array.isArray(raw?.items)
+              ? raw.items
+              : [];
+        if (!Array.isArray(messengerConvs)) {
+          console.warn('⚠️ Messenger conversations response is not an array');
+          messengerConvs = [];
+        }
         messengerConvs = messengerConvs.map(c => ({ ...c, id: c.id || c._id }));
         console.log('✅ Messenger conversations:', messengerConvs.length);
       } else {

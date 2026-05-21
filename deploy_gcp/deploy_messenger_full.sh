@@ -25,6 +25,11 @@ BACKEND_SERVICE="${BACKEND_SERVICE:-matrimonial-backend}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 IMAGE_URI="${IMAGE_URI:-gcr.io/${PROJECT_ID}/${SERVICE_NAME}:${IMAGE_TAG}}"
 
+# Production defaults baked into the messenger build during deploy.
+# These are safe to embed (public URLs + Turnstile *site* key).
+MAIN_APP_URL="${MAIN_APP_URL:-https://l3v3lmatches.com}"
+TURNSTILE_SITE_KEY="${TURNSTILE_SITE_KEY:-0x4AAAAAACAeADZnXAaS1tep}"
+
 # -----------------------------------------------------------------------------
 # Pre-flight
 # -----------------------------------------------------------------------------
@@ -54,13 +59,102 @@ echo "   Region  : $REGION"
 echo "   Image   : $IMAGE_URI"
 echo "============================================="
 
-# Resolve backend URL (informational only — messenger reads via apiConfig.js)
-BACKEND_URL=$(gcloud run services describe "$BACKEND_SERVICE" \
-  --region "$REGION" \
-  --format 'value(status.url)' 2>/dev/null || true)
+# Resolve backend URL (used for build-time config injection)
+BACKEND_URL="${BACKEND_URL:-}"
+if [[ -z "$BACKEND_URL" ]]; then
+  BACKEND_URL=$(gcloud run services describe "$BACKEND_SERVICE" \
+    --region "$REGION" \
+    --format 'value(status.url)' 2>/dev/null || true)
+fi
 if [[ -n "$BACKEND_URL" ]]; then
   echo "ℹ️  Backend reachable at: $BACKEND_URL"
 fi
+
+# -----------------------------------------------------------------------------
+# Prepare build-time configuration
+#
+# IMPORTANT:
+# - messenger-web uses webpack DefinePlugin to load .env.production / .env.local
+# - Those .env files are gitignored -> gcloud builds submit excludes them
+# - So in production, process.env.MESSENGER_* can become undefined
+#
+# To avoid broken prod builds, we temporarily inject production defaults into
+# source-controlled config files for the duration of the Cloud Build, then
+# restore them immediately after.
+# -----------------------------------------------------------------------------
+
+MESSENGER_WEB_API_CONFIG_PATH="$MESSENGER_DIR/src/config/apiConfig.js"
+MESSENGER_SHARED_API_CONFIG_PATH="$REPO_ROOT/messenger/src/config/api.js"
+MESSENGER_WEB_API_CONFIG_BACKUP=$(mktemp)
+MESSENGER_SHARED_API_CONFIG_BACKUP=$(mktemp)
+
+restore_configs() {
+  if [[ -f "$MESSENGER_WEB_API_CONFIG_BACKUP" ]]; then
+    mv "$MESSENGER_WEB_API_CONFIG_BACKUP" "$MESSENGER_WEB_API_CONFIG_PATH"
+  fi
+  if [[ -f "$MESSENGER_SHARED_API_CONFIG_BACKUP" ]]; then
+    mv "$MESSENGER_SHARED_API_CONFIG_BACKUP" "$MESSENGER_SHARED_API_CONFIG_PATH"
+  fi
+}
+trap restore_configs EXIT
+
+cp "$MESSENGER_WEB_API_CONFIG_PATH" "$MESSENGER_WEB_API_CONFIG_BACKUP"
+cp "$MESSENGER_SHARED_API_CONFIG_PATH" "$MESSENGER_SHARED_API_CONFIG_BACKUP"
+
+echo "📝 Injecting production defaults into messenger config (temporary)"
+export BACKEND_URL
+export MAIN_APP_URL
+export TURNSTILE_SITE_KEY
+export MESSENGER_DIR
+python3 - <<'PY'
+from pathlib import Path
+import os
+import sys
+
+backend_url = os.environ.get("BACKEND_URL") or ""
+main_app_url = os.environ.get("MAIN_APP_URL") or ""
+turnstile_site_key = os.environ.get("TURNSTILE_SITE_KEY") or ""
+messenger_dir = Path(os.environ["MESSENGER_DIR"])
+repo_root = messenger_dir.parent
+
+web_api_config = messenger_dir / "src/config/apiConfig.js"
+shared_api_config = repo_root / "messenger/src/config/api.js"
+
+if not backend_url:
+    print("❌ BACKEND_URL is empty - cannot bake production defaults", file=sys.stderr)
+    sys.exit(1)
+
+text = web_api_config.read_text()
+repls = {
+    "const raw = process.env.MESSENGER_BACKEND_URL;": f"const raw = process.env.MESSENGER_BACKEND_URL || '{backend_url}';",
+    "return process.env.MESSENGER_TURNSTILE_SITE_KEY;": f"return process.env.MESSENGER_TURNSTILE_SITE_KEY || '{turnstile_site_key}';",
+    "const raw = process.env.MESSENGER_MAIN_APP_URL;": f"const raw = process.env.MESSENGER_MAIN_APP_URL || '{main_app_url}';",
+}
+for old, new in repls.items():
+    if old not in text:
+        print(f"❌ Failed to locate in messenger-web apiConfig: {old}", file=sys.stderr)
+        sys.exit(1)
+    text = text.replace(old, new, 1)
+web_api_config.write_text(text)
+
+text = shared_api_config.read_text()
+needle_base = "  (typeof process !== 'undefined' && process?.env ? process.env.MESSENGER_BACKEND_URL : null) ||"
+needle_ws = "  (typeof process !== 'undefined' && process?.env ? process.env.MESSENGER_WS_URL : null) ||"
+if needle_base not in text:
+    print("❌ Failed to locate messenger shared BACKEND_URL needle", file=sys.stderr)
+    sys.exit(1)
+if needle_ws not in text:
+    print("❌ Failed to locate messenger shared WS_URL needle", file=sys.stderr)
+    sys.exit(1)
+
+inject_base = needle_base + f"\n  '{backend_url}' ||"
+inject_ws = needle_ws + f"\n  '{backend_url}' ||"
+text = text.replace(needle_base, inject_base, 1)
+text = text.replace(needle_ws, inject_ws, 1)
+shared_api_config.write_text(text)
+PY
+
+echo "✅ Messenger build configuration updated"
 
 # -----------------------------------------------------------------------------
 # Build via Cloud Build (context = repo root, because Dockerfile copies both
@@ -99,6 +193,12 @@ gcloud run deploy "$SERVICE_NAME" \
 
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --format='value(status.url)')
 
+echo "🔄 Restoring local configuration files"
+restore_configs
+trap - EXIT
+
+echo "✅ Local configuration restored"
+
 echo "============================================="
 echo "🎉 Messenger deployment complete"
 echo "   Cloud Run URL  : $SERVICE_URL"
@@ -108,3 +208,17 @@ echo ""
 echo "ℹ️  If this is the first deploy, set up the custom domain:"
 echo "   ./deploy_gcp/deploy-production.sh --setup-messenger-domain"
 echo ""
+
+# Restore local dev env file for messenger-web
+echo "🔄 Restoring local development environment..."
+cd "$MESSENGER_DIR"
+if [ ! -f ".env.local" ] || ! grep -q "MESSENGER_BACKEND_URL=http://localhost:8000" ".env.local"; then
+  echo "📝 Creating/updating messenger-web/.env.local for local development..."
+  cat > ".env.local" <<'ENVLOCAL'
+MESSENGER_BACKEND_URL=http://localhost:8000
+MESSENGER_MAIN_APP_URL=http://localhost:3000
+MESSENGER_TURNSTILE_SITE_KEY=1x00000000000000000000AA
+ENVLOCAL
+fi
+
+echo "✅ Local environment restored!"
