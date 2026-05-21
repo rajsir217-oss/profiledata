@@ -50,8 +50,8 @@ const SearchFilters = ({
   eatingOptions = [],
   lifestyleOptions = [],
   hideActionButtons = false,
-  searchButtonText = '🔍 Search',
-  saveButtonText = '💾 Save Search',
+  searchButtonText = 'Search',
+  saveButtonText = 'Save Search',
   isAdmin = false
 }) => {
   // Validation error state

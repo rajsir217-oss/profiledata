@@ -73,6 +73,10 @@
   gap: 10px;
 }
 
+.active-criteria-bar-body .basic-filters-section .search-action-buttons-inline {
+  justify-self: end;
+}
+
 .active-criteria-bar-body .search-action-buttons.search-action-buttons-inline .btn {
   width: auto;
 }
@@ -168,9 +172,25 @@
 }
 
 .active-criteria-bar-body .btn-profile-id-search,
-.active-criteria-bar-body .btn-profile-id-clear {
-  padding: 8px 14px;
-  font-size: 13px;
+.active-criteria-bar-body .btn-profile-id-clear,
+.active-criteria-bar-body .search-action-buttons.search-action-buttons-inline .btn,
+.active-criteria-bar-body .advanced-filters-section .col-advanced-actions .btn {
+  height: 30px;
+  min-height: 30px;
+  padding: 6px 10px;
+  font-size: 12px;
+  gap: 6px;
+}
+
+.active-criteria-bar-body .search-action-buttons.search-action-buttons-inline {
+  gap: 8px;
+}
+
+.active-criteria-bar-body .btn-profile-id-search .btn-icon,
+.active-criteria-bar-body .btn-profile-id-clear .btn-icon,
+.active-criteria-bar-body .search-action-buttons.search-action-buttons-inline .btn-icon,
+.active-criteria-bar-body .advanced-filters-section .col-advanced-actions .btn-icon {
+  font-size: 14px;
 }
 
 .unified-search-filters .btn-icon {
@@ -178,6 +198,15 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: auto;
+  height: auto;
+  background: transparent;
+  border: none;
+  margin: 0;
 }
 
 @media (max-width: 768px) {
@@ -253,29 +282,32 @@
 
   .active-criteria-bar-body .search-action-buttons.search-action-buttons-inline {
     flex-direction: row;
-    justify-content: flex-end;
-    width: 100%;
+    justify-content: center;
+    width: fit-content;
+    justify-self: center;
   }
 
   .active-criteria-bar-body .advanced-filters-section .col-advanced-actions {
-    justify-content: flex-end;
+    justify-content: center;
     flex-wrap: nowrap;
-    width: 100%;
+    width: fit-content;
+    justify-self: center;
   }
 
   .active-criteria-bar-body .unified-search-filters .search-action-buttons-inline .btn,
   .active-criteria-bar-body .unified-search-filters .col-advanced-actions .btn {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border-radius: 10px;
   }
 
   .active-criteria-bar-body .unified-search-filters .search-action-buttons-inline,
   .active-criteria-bar-body .unified-search-filters .col-advanced-actions {
-    gap: 8px;
+    gap: 6px;
   }
 }
 
