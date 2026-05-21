@@ -154,11 +154,18 @@ const useAuthStore = create((set, get) => ({
    */
   ssoFromUrl: async () => {
     if (typeof window === 'undefined' || !window.location) return false;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const ssoToken = params.get('token');
-      if (!ssoToken) return false;
+    const params = new URLSearchParams(window.location.search);
+    const ssoToken = params.get('token');
+    if (!ssoToken) return false;
 
+    const stripUrlToken = () => {
+      try {
+        const cleanUrl = window.location.origin + window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+      } catch (_) { /* noop */ }
+    };
+
+    try {
       // Validate token + fetch user via /api/auth/me
       const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${ssoToken}` },
@@ -166,6 +173,7 @@ const useAuthStore = create((set, get) => ({
       const user = res.data?.user || res.data;
       if (!user || !user.username) {
         console.warn('🔒 SSO failed: invalid /me response');
+        stripUrlToken();
         return false;
       }
 
@@ -179,15 +187,13 @@ const useAuthStore = create((set, get) => ({
       get().prefetchIntroCard({ force: false });
 
       // Strip the token from the URL — security & cleanliness.
-      try {
-        const cleanUrl = window.location.origin + window.location.pathname + window.location.hash;
-        window.history.replaceState({}, document.title, cleanUrl);
-      } catch (_) { /* noop */ }
+      stripUrlToken();
 
       console.log('✅ Messenger SSO succeeded for', user.username);
       return true;
     } catch (e) {
       console.warn('🔒 SSO failed:', e?.response?.status || e?.message);
+      stripUrlToken();
       // Fall through — user will see login screen.
       return false;
     }
