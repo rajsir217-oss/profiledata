@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
-import api, { setDefaultSavedSearch, getDefaultSavedSearch, unsetDefaultSavedSearch } from '../api';
+import api from '../api';
 import { useUserData } from '../hooks/useUserData';
 import { useSearchPagination } from '../hooks/useSearchPagination';
 import { useSearchViewModes } from '../hooks/useSearchViewModes';
@@ -24,132 +24,13 @@ import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import logger from '../utils/logger';
 import socketService from '../services/socketService';
 import LoadMore from './LoadMore';
+import { buildDefaultCriteria, normalizeDaysBackValue } from '../utils/searchDefaults';
+import { generateSearchDescription } from '../utils/searchDescription';
+import useSavedSearches from '../hooks/useSavedSearches';
+import useInitialSearchBootstrap from '../hooks/useInitialSearchBootstrap';
+import SavedSearchesPanel from './search/SavedSearchesPanel';
 import './SearchFiltersModal.css';
 import './SearchPage2.css';
-
-// Shared utility: build default search criteria from a user profile.
-// Computes opposite gender, age range, and height range from partnerCriteria
-// with gender-based fallbacks. Used by loadCurrentUserProfile,
-// loadAndExecuteDefaultSearch, and getDefaultSearchCriteria / handleClearFilters.
-const buildDefaultCriteria = (profile) => {
-  if (!profile) {
-    return { gender: '', ageMin: '', ageMax: '', heightMinFeet: '', heightMinInches: '', heightMaxFeet: '', heightMaxInches: '', daysBack: 30, hasPhoto: true };
-  }
-
-  const userGender = profile.gender?.toLowerCase();
-  let oppositeGender = '';
-  if (userGender === 'male') oppositeGender = 'female';
-  else if (userGender === 'female') oppositeGender = 'male';
-
-  // Calculate user's age
-  let userAge = null;
-  if (profile.birthMonth && profile.birthYear) {
-    const today = new Date();
-    userAge = today.getFullYear() - profile.birthYear;
-    if (today.getMonth() + 1 < profile.birthMonth) userAge--;
-  }
-
-  // Parse user's height
-  let userHeightTotalInches = null;
-  if (profile.height) {
-    const heightMatch = profile.height.match(/(\d+)'(\d+)"/);
-    if (heightMatch) {
-      userHeightTotalInches = parseInt(heightMatch[1]) * 12 + parseInt(heightMatch[2]);
-    }
-  }
-
-  const partnerCriteria = profile.partnerCriteria;
-  let defaultAgeMin = '', defaultAgeMax = '';
-  let defaultHeightMinFeet = '', defaultHeightMinInches = '';
-  let defaultHeightMaxFeet = '', defaultHeightMaxInches = '';
-
-  // Age range: relative offsets → absolute range → gender-based fallback
-  if (partnerCriteria?.ageRangeRelative && userAge) {
-    const minOffset = partnerCriteria.ageRangeRelative.minOffset || 0;
-    const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
-    defaultAgeMin = Math.max(19, userAge + minOffset).toString();
-    defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
-  } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
-    defaultAgeMin = partnerCriteria.ageRange.min.toString();
-    defaultAgeMax = partnerCriteria.ageRange.max.toString();
-  } else if (userAge && userGender) {
-    if (userGender === 'male') {
-      defaultAgeMin = Math.max(19, userAge - 5).toString();
-      defaultAgeMax = Math.min(100, userAge + 1).toString();
-    } else if (userGender === 'female') {
-      defaultAgeMin = Math.max(19, userAge - 1).toString();
-      defaultAgeMax = Math.min(100, userAge + 5).toString();
-    }
-  }
-
-  // Height range: relative offsets → absolute range → gender-based fallback
-  if (partnerCriteria?.heightRangeRelative && userHeightTotalInches) {
-    const minInchesOffset = partnerCriteria.heightRangeRelative.minInches || 0;
-    const maxInchesOffset = partnerCriteria.heightRangeRelative.maxInches || 6;
-    const minTotalInches = userHeightTotalInches + minInchesOffset;
-    const maxTotalInches = userHeightTotalInches + maxInchesOffset;
-    defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-    defaultHeightMinInches = (minTotalInches % 12).toString();
-    defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-    defaultHeightMaxInches = (maxTotalInches % 12).toString();
-  } else if (partnerCriteria?.heightRange?.minFeet) {
-    defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
-    defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
-    defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
-    defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
-  } else if (userHeightTotalInches && userGender) {
-    if (userGender === 'male') {
-      const minTotalInches = userHeightTotalInches - 6;
-      const maxTotalInches = userHeightTotalInches;
-      defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-      defaultHeightMinInches = (minTotalInches % 12).toString();
-      defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-      defaultHeightMaxInches = (maxTotalInches % 12).toString();
-    } else if (userGender === 'female') {
-      const minTotalInches = userHeightTotalInches + 1;
-      const maxTotalInches = userHeightTotalInches + 6;
-      defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-      defaultHeightMinInches = (minTotalInches % 12).toString();
-      defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-      defaultHeightMaxInches = (maxTotalInches % 12).toString();
-    }
-  }
-
-  return {
-    gender: oppositeGender,
-    ageMin: defaultAgeMin,
-    ageMax: defaultAgeMax,
-    heightMinFeet: defaultHeightMinFeet,
-    heightMinInches: defaultHeightMinInches,
-    heightMaxFeet: defaultHeightMaxFeet,
-    heightMaxInches: defaultHeightMaxInches,
-    daysBack: 30,
-    hasPhoto: true,
-    locations: []
-  };
-};
-
-const normalizeDaysBackValue = (daysBack, fallback = 30) => {
-  if (daysBack === '' || daysBack === null || daysBack === undefined) {
-    return fallback;
-  }
-
-  const parsed = Number(daysBack);
-  return Number.isNaN(parsed) ? fallback : parsed;
-};
-
-// Module-level bootstrap guard.
-// Survives React 18 StrictMode's mount→unmount→remount cycle (where component
-// instance refs reset). Keyed by username so a sign-out / different-user
-// session re-bootstraps. Reset to {username: null, done: false} on logout.
-const searchBootstrapState = { username: null, done: false };
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('loginStatusChanged', () => {
-    searchBootstrapState.username = null;
-    searchBootstrapState.done = false;
-  });
-}
 
 const SearchPage2 = () => {
   // Activity logger hook
@@ -173,8 +54,8 @@ const SearchPage2 = () => {
   // Read & clear pendingSearchAction exactly once per page load.
   // useState's initializer runs per component instance; in StrictMode the
   // second mount sees an empty sessionStorage and returns null. The bootstrap
-  // effect uses this captured value plus searchBootstrapState (module-level)
-  // to ensure the action is processed at most once per page session.
+  // hook combines this captured value with its own module-level guard to
+  // ensure the action is processed at most once per page session.
   const [pendingSearchAction] = useState(() => {
     try {
       const raw = sessionStorage.getItem('pendingSearchAction');
@@ -296,9 +177,9 @@ const SearchPage2 = () => {
     getViewModeInfo: getViewModeConfig,
   } = viewModes;
   
-  // Saved searches state
+  // Saved searches state (selected + UI state owned by parent;
+  // list state + CRUD + inline schedule editor live in useSavedSearches).
   const [selectedSearch, setSelectedSearch] = useState(null);
-  const [savedSearches, setSavedSearches] = useState([]);
   const [showSavedSearches, setShowSavedSearches] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [editingScheduleFor, setEditingScheduleFor] = useState(null);
@@ -451,56 +332,33 @@ const SearchPage2 = () => {
   const [isFiltersPanelExpanded, setIsFiltersPanelExpanded] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
 
-  // Inline schedule editing state (Saved tab)
-  const [editingScheduleSearch, setEditingScheduleSearch] = useState(null);
-  const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const [scheduleFrequency, setScheduleFrequency] = useState('daily');
-  const [scheduleTime, setScheduleTime] = useState('09:00');
-  const [scheduleDay, setScheduleDay] = useState('monday');
-  const [savingSchedule, setSavingSchedule] = useState(false);
-
-  const startInlineScheduleEdit = (search) => {
-    setEditingScheduleSearch(search);
-    const notifications = search.notifications || {};
-    setScheduleEnabled(notifications.enabled || false);
-    setScheduleFrequency(notifications.frequency || 'daily');
-    setScheduleTime(notifications.time || '09:00');
-    setScheduleDay(notifications.dayOfWeek || 'monday');
-  };
-
-  const cancelInlineScheduleEdit = () => {
-    setEditingScheduleSearch(null);
-  };
-
-  const saveInlineSchedule = async () => {
-    if (!editingScheduleSearch) return;
-
-    setSavingSchedule(true);
-    try {
-      const username = localStorage.getItem('username');
-      const searchId = editingScheduleSearch.id || editingScheduleSearch._id;
-
-      await api.put(`/${username}/saved-searches/${searchId}`, {
-        notifications: {
-          enabled: scheduleEnabled,
-          frequency: scheduleFrequency,
-          time: scheduleTime,
-          dayOfWeek: scheduleFrequency === 'weekly' ? scheduleDay : null
-        }
-      });
-
-      toastService.success('✅ Schedule updated successfully');
-      setEditingScheduleSearch(null);
-
-      if (loadSavedSearches) {
-        loadSavedSearches();
+  // Inline schedule editor state, list state, and CRUD all live in this hook.
+  // Cross-talk via callbacks: clear selectedSearch on delete; close modals on save.
+  const {
+    savedSearches,
+    loadSavedSearches,
+    handleSaveSearch: handleSaveSearchHook,
+    handleUpdateSavedSearch,
+    handleDeleteSavedSearch,
+    handleSetDefaultSearch,
+    editingScheduleSearch,
+    scheduleEnabled,
+    setScheduleEnabled,
+    savingSchedule,
+    startInlineScheduleEdit,
+    cancelInlineScheduleEdit,
+    saveInlineSchedule
+  } = useSavedSearches({
+    onAfterDelete: (searchId) => {
+      if (selectedSearch && (selectedSearch.id === searchId || selectedSearch._id === searchId)) {
+        setSelectedSearch(null);
       }
-    } catch (err) {
-      toastService.error('Failed to update schedule');
-    } finally {
-      setSavingSchedule(false);
+    },
+    onAfterSave: () => {
+      setShowSaveModal(false);
+      setEditingScheduleFor(null);
     }
-  };
+  });
   
   // HYBRID SEARCH: Traditional filters + L3V3L match score (premium feature)
   // State for online users
@@ -903,118 +761,20 @@ const SearchPage2 = () => {
     return () => window.removeEventListener('openSearchModal', handleOpenModal);
   }, [openFiltersPanel]);
 
-  // Trigger initial search after user profile is loaded - check for default saved search first
-  useEffect(() => {
-    const loadAndExecuteDefaultSearch = async () => {
-      if (!currentUserProfile || Object.keys(currentUserProfile).length === 0) {
-        logger.info('⚠️ currentUserProfile is empty or null, waiting...');
-        return;
-      }
-
-      // Module-level guard: survives StrictMode mount→unmount→remount and
-      // prevents both "default search runs after saved search" and double
-      // bootstrap. Reset on user change so sign-out + sign-in re-bootstraps.
-      const currentUsername = localStorage.getItem('username');
-      if (searchBootstrapState.username !== currentUsername) {
-        searchBootstrapState.username = currentUsername;
-        searchBootstrapState.done = false;
-      }
-      if (searchBootstrapState.done) {
-        logger.info('⏭️ Bootstrap already done for this session, skipping');
-        return;
-      }
-      searchBootstrapState.done = true;
-
-      // If there is a pending saved-search action from TopBar, the dedicated
-      // pending-action effect will load it. Skip the default search path so
-      // we don't run two searches.
-      if (pendingSearchAction?.type === 'loadSavedSearch' && pendingSearchAction?.savedSearch) {
-        logger.info('⏭️ Skipping default auto-search due to pending saved search load');
-        return;
-      }
-
-      // Clear any stale users before loading fresh results.
-      logger.info('🧹 Clearing stale users before loading search criteria');
-      setUsers([]);
-
-      // Pre-compute once; reused in gender-override, partner-criteria, and fallback branches.
-      const profileDefaults = buildDefaultCriteria(currentUserProfile);
-
-      const buildPartnerCriteriaCriteria = (defaults) => ({
-        keyword: '',
-        profileId: '',
-        ...defaults,
-        heightMin: '',
-        heightMax: '',
-        location: '',
-        education: '',
-        occupation: '',
-        occupations: [],
-        religion: '',
-        caste: '',
-        drinking: '',
-        smoking: '',
-        relationshipStatus: '',
-        newlyAdded: false,
-      });
-
-      try {
-        // Check if there's a default saved search
-        logger.info('⭐ Checking for default saved search for user:', currentUsername);
-        const response = await getDefaultSavedSearch();
-        const defaultSearch = response?.savedSearch || response;
-
-        if (defaultSearch && defaultSearch.criteria) {
-          logger.info('⭐ Found default saved search:', defaultSearch.name);
-          logger.info('📋 Default search criteria:', defaultSearch.criteria);
-
-          // Extract minMatchScore from saved search
-          const loadedMinScore = defaultSearch.minMatchScore !== undefined ? defaultSearch.minMatchScore : 0;
-
-          // SAFETY: Enforce opposite-gender filter for non-admin users.
-          // Saved searches might have gender='' or wrong gender - override it.
-          const userRole = currentUserProfile?.role?.toLowerCase();
-          const isPrivileged = userRole === 'admin' || userRole === 'moderator';
-          if (!isPrivileged) {
-            if (profileDefaults.gender && defaultSearch.criteria.gender !== profileDefaults.gender) {
-              logger.info(`🚻 Overriding saved search gender '${defaultSearch.criteria.gender}' → '${profileDefaults.gender}'`);
-              defaultSearch.criteria.gender = profileDefaults.gender;
-            }
-          }
-
-          // Load criteria and set selected search
-          setSearchCriteria(defaultSearch.criteria);
-          setMinMatchScore(loadedMinScore);
-          setSelectedSearch(defaultSearch);
-
-          logger.info('🔍 Auto-executing default saved search');
-          handleSearchHook(1, loadedMinScore, defaultSearch.criteria);
-          toastService.info(`⭐ Default search "${defaultSearch.name}" executed`);
-        } else {
-          // No default saved search - execute search with partnerCriteria defaults
-          logger.info('🔍 No default search found - building criteria from partnerCriteria');
-          const partnerCriteriaDefaults = buildPartnerCriteriaCriteria(profileDefaults);
-          logger.info('📋 Built partnerCriteria defaults:', partnerCriteriaDefaults);
-
-          setSearchCriteria(partnerCriteriaDefaults);
-          logger.info('🔍 Auto-executing search with partnerCriteria defaults');
-          handleSearchHook(1, 0, partnerCriteriaDefaults);
-        }
-      } catch (err) {
-        logger.error('Error loading default saved search:', err);
-
-        // FALLBACK: If loading default search fails, execute with partner criteria
-        // Without this, no search would ever execute on page load.
-        logger.info('🔍 Fallback: executing search with partnerCriteria after error');
-        const fallbackCriteria = buildPartnerCriteriaCriteria(profileDefaults);
-        setSearchCriteria(fallbackCriteria);
-        handleSearchHook(1, 0, fallbackCriteria);
-      }
-    };
-
-    loadAndExecuteDefaultSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserProfile]);
+  // Trigger initial search after user profile lands.
+  // Module-level guard inside the hook prevents StrictMode double-fire and
+  // allows sign-out + different-user sign-in to re-bootstrap. If a TopBar
+  // pending saved-search action is in flight, the bootstrap skips the
+  // default-search path so the pending-action effect can load it cleanly.
+  useInitialSearchBootstrap({
+    currentUserProfile,
+    pendingSearchAction,
+    setUsers,
+    setSearchCriteria,
+    setMinMatchScore,
+    setSelectedSearch,
+    handleSearchHook
+  });
   const loadPiiRequests = async () => {
     const currentUser = localStorage.getItem('username');
     if (!currentUser) return;
@@ -1167,24 +927,8 @@ const SearchPage2 = () => {
 
   // NOTE: Standalone loadUserFavorites, loadUserShortlist, loadUserExclusions
   // were removed — they duplicated the loadUserData() function (which uses
-  // Promise.all) and were never called.
-  const loadSavedSearches = async () => {
-    try {
-      const username = localStorage.getItem('username');
-      if (username) {
-        const response = await api.get(`/${username}/saved-searches`);
-        setSavedSearches(response.data.savedSearches || []);
-      }
-    } catch (err) {
-      if (err.response?.status === 404 || err.response?.data?.savedSearches?.length === 0) {
-        logger.info('No saved searches found for user (this is normal for new users)');
-        setSavedSearches([]);
-      } else {
-        logger.error('Error loading saved searches:', err);
-        setSavedSearches([]);
-      }
-    }
-  };
+  // Promise.all) and were never called. loadSavedSearches now lives in
+  // useSavedSearches hook (see top of component).
 
   // Keep filterActionsRef pointing at the latest implementations so
   // useSearchActions (which captured a stable proxy) calls into the
@@ -1347,136 +1091,6 @@ const SearchPage2 = () => {
 
   // Pagination functions are now handled by useSearchPagination hook
 
-  const generateSearchDescription = (criteria, matchScore = null) => {
-    const parts = [];
-    
-    // Start with "I'm looking for"
-    let intro = "I'm looking for";
-    
-    // Gender
-    if (criteria.gender) {
-      const genderMap = {
-        'male': 'a guy',
-        'female': 'a girl',
-        'other': 'someone'
-      };
-      intro += ` ${genderMap[criteria.gender.toLowerCase()] || 'someone'}`;
-    } else {
-      intro += ' someone';
-    }
-    
-    parts.push(intro);
-    
-    // Age range
-    if (criteria.ageMin || criteria.ageMax) {
-      const ageMin = criteria.ageMin || '?';
-      const ageMax = criteria.ageMax || '?';
-      parts.push(`age ranges from ${ageMin} to ${ageMax} years old`);
-    }
-    
-    // Height range
-    if (criteria.heightMinFeet || criteria.heightMaxFeet) {
-      const heightMin = criteria.heightMinFeet 
-        ? `${criteria.heightMinFeet}ft${criteria.heightMinInches ? ' ' + criteria.heightMinInches + 'in' : ''}`
-        : '?';
-      const heightMax = criteria.heightMaxFeet 
-        ? `${criteria.heightMaxFeet}ft${criteria.heightMaxInches ? ' ' + criteria.heightMaxInches + 'in' : ''}`
-        : '?';
-      parts.push(`height from ${heightMin} to ${heightMax}`);
-    }
-    
-    // Location (handle both single location and locations array)
-    if (criteria.locations && criteria.locations.length > 0) {
-      if (criteria.locations.length === 1) {
-        parts.push(`living around ${criteria.locations[0]}`);
-      } else {
-        parts.push(`living around ${criteria.locations.slice(0, 2).join(' or ')}${criteria.locations.length > 2 ? ` (+${criteria.locations.length - 2} more)` : ''}`);
-      }
-    } else if (criteria.location) {
-      parts.push(`living around ${criteria.location}`);
-    }
-    
-    // Religion
-    if (criteria.religion && criteria.religion !== '') {
-      parts.push(`religion ${criteria.religion}`);
-    }
-    
-    // Education
-    if (criteria.education && criteria.education !== '') {
-      parts.push(`education ${criteria.education}`);
-    }
-    
-    // Occupation (handle both old single and new multi-select format)
-    if (criteria.occupations && criteria.occupations.length > 0) {
-      if (criteria.occupations.length === 1) {
-        parts.push(`working as ${criteria.occupations[0]}`);
-      } else {
-        parts.push(`working as ${criteria.occupations.slice(0, 2).join(' or ')}${criteria.occupations.length > 2 ? ` (+${criteria.occupations.length - 2} more)` : ''}`);
-      }
-    } else if (criteria.occupation && criteria.occupation !== '') {
-      // Backward compatibility
-      parts.push(`working as ${criteria.occupation}`);
-    }
-    
-    // Body Type
-    if (criteria.bodyType && criteria.bodyType !== '') {
-      parts.push(`body type ${criteria.bodyType.toLowerCase()}`);
-    }
-    
-    // Eating Preference
-    if (criteria.eatingPreference && criteria.eatingPreference !== '') {
-      parts.push(`eating preference ${criteria.eatingPreference.toLowerCase()}`);
-    }
-    
-    // L3V3L Match Score
-    const effectiveScore = matchScore !== null ? matchScore : minMatchScore;
-    logger.info('🦋 L3V3L Score check - matchScore:', matchScore, 'minMatchScore:', minMatchScore, 'effectiveScore:', effectiveScore);
-    if (effectiveScore > 0) {
-      parts.push(`L3V3L match score ≥${effectiveScore}%`);
-      logger.info('✅ Added L3V3L to description');
-    } else {
-      logger.info('❌ L3V3L score is 0, skipping');
-    }
-    
-    // Keyword
-    if (criteria.keyword) {
-      parts.push(`with keywords "${criteria.keyword}"`);
-    }
-    
-    // Days Back (new profiles)
-    const normalizedDaysBack = normalizeDaysBackValue(criteria.daysBack, 30);
-
-    if (normalizedDaysBack === 0) {
-      parts.push('across all time');
-    } else if (normalizedDaysBack > 0) {
-      parts.push(`joined in last ${normalizedDaysBack} days`);
-    }
-    
-    // Join all parts with commas and "and" before the last item
-    if (parts.length === 0) {
-      return "Search with no specific criteria";
-    }
-    
-    if (parts.length === 1) {
-      return parts[0];
-    }
-    
-    // Join with commas and add "and" before last item
-    const lastPart = parts.pop();
-    return parts.join(', ') + ' and ' + lastPart;
-  };
-
-  const handleUpdateSavedSearch = async (searchId, newName) => {
-    try {
-      const username = localStorage.getItem('username');
-      await api.put(`/${username}/saved-searches/${searchId}`, { name: newName });
-      toastService.success(`✅ Search renamed to: "${newName}"`);
-      loadSavedSearches();
-    } catch (err) {
-      logger.error('Error updating saved search:', err);
-      toastService.error('Failed to update saved search');
-    }
-  };
 
   const handleLoadSavedSearch = useCallback((savedSearch) => {
     // Handle occupation format conversion for backward compatibility
@@ -1565,95 +1179,18 @@ const SearchPage2 = () => {
     }
   }, [currentUserProfile, pendingSearchAction, handleLoadSavedSearch, openFiltersPanel]);
 
-  const handleDeleteSavedSearch = async (searchId) => {
-    if (!searchId) {
-      toastService.error('Cannot delete: Invalid search ID');
-      return;
-    }
-    
-    try {
-      const username = localStorage.getItem('username');
-      await api.delete(`/${username}/saved-searches/${searchId}`);
-      toastService.success('✅ Search deleted successfully');
-      loadSavedSearches();
-      // Clear selected search if it was deleted
-      if (selectedSearch && (selectedSearch.id === searchId || selectedSearch._id === searchId)) {
-        setSelectedSearch(null);
-      }
-    } catch (err) {
-      logger.error('❌ Error deleting saved search:', err);
-      toastService.error('Failed to delete saved search');
-    }
-  };
-
-  const handleSetDefaultSearch = async (searchId, searchName, isCurrentlyDefault = false) => {
-    try {
-      if (isCurrentlyDefault) {
-        // Unset the default
-        await unsetDefaultSavedSearch();
-        toastService.success(`☆ "${searchName}" is no longer the default search`);
-      } else {
-        // Set as default
-        await setDefaultSavedSearch(searchId);
-        toastService.success(`⭐ "${searchName}" set as default search`);
-      }
-      loadSavedSearches();
-    } catch (err) {
-      logger.error('Error toggling default search:', err);
-      toastService.error('Failed to update default search');
-    }
-  };
 
   const handleEditSchedule = (search) => {
     setEditingScheduleFor(search);
     setShowSaveModal(true);
   };
 
-  const handleSaveSearch = async (saveData) => {
-    try {
-      const username = localStorage.getItem('username');
-      if (!username) {
-        toastService.error('Please login to save searches');
-        return;
-      }
-
-      // Generate human-readable description (pass minMatchScore)
-      logger.info('🔍 Saving search with minMatchScore:', minMatchScore);
-      const description = generateSearchDescription(searchCriteria, minMatchScore);
-      logger.info('📝 Generated description:', description);
-
-      // Handle both old format (string) and new format (object with notifications)
-      const searchName = typeof saveData === 'string' ? saveData : saveData.name;
-      const notifications = typeof saveData === 'object' ? saveData.notifications : null;
-
-      const searchData = {
-        name: searchName.trim(),
-        description: description,
-        criteria: searchCriteria,
-        minMatchScore: minMatchScore, // Save L3V3L match score
-        created_at: new Date().toISOString(),
-        ...(notifications && { notifications }) // Add notifications if provided
-      };
-      
-      logger.info('💾 Search data to save:', searchData);
-
-      await api.post(`/${username}/saved-searches`, searchData);
-
-      const notificationMsg = notifications?.enabled 
-        ? ` with ${notifications.frequency} notifications`
-        : '';
-      toastService.success(`✅ Search saved: "${searchName}"${notificationMsg}`);
-      
-      // Close both modals after successful save
-      setShowSaveModal(false);
-      setEditingScheduleFor(null);
-      
-      loadSavedSearches();
-    } catch (err) {
-      logger.error('Error saving search:', err);
-      toastService.error('Failed to save search. ' + (err.response?.data?.detail || err.message));
-    }
-  };
+  // Thin adapter: SaveSearchModal calls onSave(saveData) without knowing
+  // about current criteria / minMatchScore. The hook expects them explicit.
+  const handleSaveSearch = useCallback(
+    (saveData) => handleSaveSearchHook(saveData, { criteria: searchCriteria, minMatchScore }),
+    [handleSaveSearchHook, searchCriteria, minMatchScore]
+  );
 
   const parseHeight = (height) => {
     if (!height) return null;
@@ -2065,91 +1602,20 @@ const SearchPage2 = () => {
                       label: 'Saved',
                       badge: savedSearches.length > 0 ? savedSearches.length : null,
                       content: (
-                        <div className="saved-searches-tab">
-                          {editingScheduleSearch && (
-                            <div className="inline-schedule-edit">
-                              <div className="schedule-edit-header">
-                                <h4>⏰ Edit Schedule: {editingScheduleSearch.name}</h4>
-                                <button type="button" className="btn-close-schedule" onClick={cancelInlineScheduleEdit}>✕</button>
-                              </div>
-                              <div className="schedule-edit-body">
-                                <div className="schedule-toggle">
-                                  <label className="toggle-label">
-                                    <input
-                                      type="checkbox"
-                                      checked={scheduleEnabled}
-                                      onChange={(e) => setScheduleEnabled(e.target.checked)}
-                                    />
-                                    <span className="toggle-text">Enable Email Notifications</span>
-                                  </label>
-                                </div>
-                              </div>
-                              <div className="schedule-edit-footer">
-                                <button type="button" className="btn btn-secondary" onClick={cancelInlineScheduleEdit}>Cancel</button>
-                                <button type="button" className="btn btn-primary" onClick={saveInlineSchedule} disabled={savingSchedule}>
-                                  {savingSchedule ? '⏳ Saving...' : '💾 Save Schedule'}
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {!editingScheduleSearch && (
-                            <>
-                              {savedSearches.length === 0 ? (
-                                <div className="empty-saved-searches">
-                                  <div className="empty-icon">📋</div>
-                                  <h4>No Saved Searches Yet</h4>
-                                  <p>Save your search criteria to quickly access them later.</p>
-                                </div>
-                              ) : (
-                                <div className="saved-searches-grid">
-                                  {savedSearches.map(search => {
-                                    const searchId = search.id || search._id;
-                                    const isActive = selectedSearch?.id === searchId || selectedSearch?._id === searchId;
-                                    return (
-                                      <div key={searchId} className={`saved-search-card ${search.isDefault ? 'is-default' : ''} ${isActive ? 'is-active' : ''}`}>
-                                        <div className="saved-search-header">
-                                          <h5 className="saved-search-name">
-                                            {search.isDefault && (
-                                              <button
-                                                type="button"
-                                                className="default-badge-btn"
-                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSetDefaultSearch(searchId, search.name, true); }}
-                                                title="Click to remove as default"
-                                              >
-                                                ⭐
-                                              </button>
-                                            )}
-                                            {search.name}
-                                          </h5>
-                                          <div className="saved-search-actions">
-                                            <button type="button" className="btn-schedule-saved" onClick={(e) => { e.preventDefault(); startInlineScheduleEdit(search); }} title="Edit schedule">⏰</button>
-                                            <button type="button" className="btn-delete-saved" onClick={(e) => { e.preventDefault(); handleDeleteSavedSearch(searchId); }} title="Delete">🗑️</button>
-                                          </div>
-                                        </div>
-                                        <div className="saved-search-description">
-                                          <p>{search.description || generateSearchDescription(search.criteria, search.minMatchScore)}</p>
-                                        </div>
-                                        <div className="saved-search-footer">
-                                          <button
-                                            type="button"
-                                            className={`btn-set-default ${search.isDefault ? 'is-default' : ''}`}
-                                            onClick={(e) => { e.preventDefault(); handleSetDefaultSearch(searchId, search.name, search.isDefault); }}
-                                            title={search.isDefault ? 'Remove as default' : 'Set as default'}
-                                          >
-                                            <span className="default-icon">{search.isDefault ? '⭐' : '☆'}</span>
-                                            <span className="default-text">{search.isDefault ? ' Unset' : ' Default'}</span>
-                                          </button>
-                                          <button type="button" className="btn-load-saved" onClick={(e) => { e.preventDefault(); handleLoadSavedSearch(search); }}>📂 Load</button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
+                        <SavedSearchesPanel
+                          savedSearches={savedSearches}
+                          selectedSearch={selectedSearch}
+                          editingScheduleSearch={editingScheduleSearch}
+                          scheduleEnabled={scheduleEnabled}
+                          setScheduleEnabled={setScheduleEnabled}
+                          savingSchedule={savingSchedule}
+                          onStartScheduleEdit={startInlineScheduleEdit}
+                          onCancelScheduleEdit={cancelInlineScheduleEdit}
+                          onSaveSchedule={saveInlineSchedule}
+                          onSetDefault={handleSetDefaultSearch}
+                          onDelete={handleDeleteSavedSearch}
+                          onLoad={handleLoadSavedSearch}
+                        />
                       )
                     }
                   ]}
