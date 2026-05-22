@@ -23,37 +23,16 @@
 | 7 | Inlined `loadOccupationOptions` / `loadLocationOptions` bodies into their mount effects; named functions kept for `filterActionsRef` | ✅ |
 | 8 | Ref-latest pattern for TopBar `loadSavedSearchFromTopbar` listener; effect now has `[]` deps and never re-registers | ✅ |
 | — | **Bug fix (prod toast storm):** pending-action effect now guarded by `pendingActionConsumedRef` so it consumes the saved-search action exactly once, regardless of how often `handleLoadSavedSearch` identity churns after each search | ✅ |
-| 9 | **Hybrid fix:** quick day-range chip clears `selectedSearch` only when `daysBack` actually diverges from the saved search's value (preserves badge + edit-saved-search workflow when user picks the same range). Strict criteria-equality model deferred to #11. | ✅ |
+| 9 | **Hybrid fix:** quick day-range chip clears `selectedSearch` only when `daysBack` actually diverges from the saved search's value (preserves badge + edit-saved-search workflow when user picks the same range). | ✅ |
+| 11 | **File split:** extracted pure utilities (`utils/searchDefaults.js`, `utils/searchDescription.js`), presentational components (`components/search/SavedSearchesPanel.jsx`, `components/search/InlineScheduleEditor.jsx`), and two hooks (`hooks/useSavedSearches.js`, `hooks/useInitialSearchBootstrap.js`). `SearchPage2.js`: **3,176 → 2,641 lines** (-535, -16.8%). | ✅ |
 
 ---
 
 ## Remaining backlog
 
-
-
-
-### 🔴 #11 — File size: 3,176 lines
-
-**Easy extraction targets** (highest priority):
-
-| Extract | To | Approx LOC freed |
-|---|---|---|
-| `buildDefaultCriteria`, `normalizeDaysBackValue` | `utils/searchDefaults.js` | ~110 |
-| Bootstrap effect (`loadAndExecuteDefaultSearch`) | `useInitialSearchBootstrap` hook | ~120 |
-| Saved-search CRUD (`handleSaveSearch`, `handleUpdateSavedSearch`, `handleDeleteSavedSearch`, `handleSetDefaultSearch`, `handleLoadSavedSearch`) | `useSavedSearches` hook | ~250 |
-| Saved-searches list panel JSX | `SavedSearchesPanel.jsx` | ~200 |
-| Inline schedule editor (the one at `SearchPage2.js:2043-2058`) | `InlineScheduleEditor.jsx` | ~80 |
-| `generateSearchDescription` helper | `utils/searchDescription.js` | ~70 |
-
-**Estimated final size of `SearchPage2.js`:** ~2,300 lines. Not pretty, but a meaningful reduction.
-
-**Effort:** 1-2 days for full pass. **Risk:** medium — needs testing on every search code path.
-
----
-
 ### 🟡 Bonus — `setUsers([])` redundancy in bootstrap effect
 
-**Where:** `frontend/src/components/SearchPage2.js:929`.
+**Where:** `frontend/src/hooks/useInitialSearchBootstrap.js` (formerly `SearchPage2.js:929`).
 
 **Issue:** Calls `setUsers([])` immediately, but `handleSearchHook(1, ...)` → `resetSearchState()` already does the same on page 1.
 
@@ -65,13 +44,18 @@
 
 ### 🟡 Bonus — Misleading comment about `hasAutoExecutedRef` and StrictMode
 
-**Where:** `frontend/src/components/SearchPage2.js:892-894` (comment text — actual code already partially removed).
+**Where:** `frontend/src/hooks/useInitialSearchBootstrap.js` (formerly `SearchPage2.js:892-894`).
 
-**Issue:** Comment claims setting the ref before `await` prevents StrictMode double-fire, which is incorrect (refs reset between StrictMode component instances). The actual protection is now `searchBootstrapState` (module-level) and `AbortController` inside `handleSearch`.
+**Issue (resolved during #11):** Comment originally claimed setting the ref before `await` prevents StrictMode double-fire, which was incorrect. The bootstrap hook now carries an accurate explanation referencing the module-level `searchBootstrapState` guard.
 
-**Fix:** Replace comment with an accurate explanation referencing `searchBootstrapState`.
+**Status:** Resolved as part of #11. ✅
 
-**Effort:** 2 minutes. **Risk:** none.
+---
+
+### 🟢 Future — Dead-code cleanup
+
+- `frontend/src/components/SearchFiltersModal.js` is not imported anywhere. The matching CSS is still imported by `SearchPage2.js`. Schedule for removal after confirming with the broader team.
+- `frontend/src/components/SearchPage2.js: handleEditSchedule` (~3 lines) — defined but never called. Safe to delete in a future pass.
 
 ---
 
@@ -82,7 +66,9 @@
 3. ~~**#7** — fix the `loadOccupationOptions` / `loadLocationOptions` effect closures~~ ✅
 4. ~~**#8** — defensive ref-latest for the TopBar listener~~ ✅
 5. ~~**#9** — Hybrid fix shipped~~ ✅
-6. **#11** — schedule for a dedicated refactor sprint.
+6. ~~**#11** — File split shipped~~ ✅
+
+**All backlog items closed.** Remaining bonus items are low-priority cleanups.
 
 ---
 
