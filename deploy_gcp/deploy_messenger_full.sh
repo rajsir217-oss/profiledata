@@ -133,7 +133,7 @@ repls = [
         "MESSENGER_BACKEND_URL",
     ),
     (
-        r"^(\s*return\s+process\.env\.MESSENGER_TURNSTILE_SITE_KEY)(?:\s*\|\|\s*[^;]+)?;\s*$",
+        r"^(\s*const\s+raw\s*=\s*process\.env\.MESSENGER_TURNSTILE_SITE_KEY)(?:\s*\|\|\s*[^;]+)?;\s*$",
         lambda m: f"{m.group(1)} || '{turnstile_site_key}';",
         "MESSENGER_TURNSTILE_SITE_KEY",
     ),
