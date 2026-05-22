@@ -1238,10 +1238,18 @@ const SearchPage2 = () => {
       daysBack: normalizedDaysBack
     };
     setSearchCriteria(nextCriteria);
-    setSelectedSearch(null);
+    // Only clear the selected-saved-search badge if the chip actually
+    // diverges from the saved search's daysBack. If they already match,
+    // the user is still effectively "on" the saved search.
+    if (selectedSearch) {
+      const savedDaysBack = normalizeDaysBackValue(selectedSearch?.criteria?.daysBack, 30);
+      if (savedDaysBack !== normalizedDaysBack) {
+        setSelectedSearch(null);
+      }
+    }
     handleSearchHook(1, minMatchScore, nextCriteria);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [handleSearchHook, minMatchScore, searchCriteria, setSearchCriteria]);
+  }, [handleSearchHook, minMatchScore, searchCriteria, setSearchCriteria, selectedSearch]);
 
   const handleClearFilters = () => {
     // Admin: Clear all fields (widest search)
