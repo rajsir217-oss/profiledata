@@ -8,6 +8,26 @@
   padding: 20px 30px;
 }
 
+@media (max-width: 768px) {
+  .share-profile-btn .share-label {
+    display: none;
+  }
+
+  .activity-summary-btn .activity-label {
+    display: none;
+  }
+
+  .share-profile-btn,
+  .activity-summary-btn {
+    padding: 0 8px;
+    width: fit-content;
+    min-width: 0;
+    height: 32px;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+}
+
 /* Responsive container widths */
 @media (max-width: 1024px) {
   .profile-page-wide {
@@ -108,6 +128,55 @@
   border-bottom: 2px solid var(--border-color, #e0e0e0);
 }
 
+.profile-header-inner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "avatar info gallery"
+    "avatar stats gallery"
+    "avatar edit gallery";
+  gap: 12px;
+  align-items: start;
+  width: 100%;
+}
+
+.profile-header-inner .profile-avatar-container {
+  grid-area: avatar;
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+}
+
+.profile-header-inner .profile-title-section {
+  grid-area: info;
+  min-width: 0;
+}
+
+.profile-header-inner .stats-ribbon {
+  grid-area: stats;
+  justify-self: start;
+}
+
+.profile-header-inner .btn-edit-profile {
+  grid-area: edit;
+  justify-self: start;
+}
+
+.profile-header-inner .member-photo-gallery-wrapper {
+  grid-area: gallery;
+}
+
+.profile-identity-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 0 0;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-family: monospace;
+  color: var(--text-secondary);
+}
+
 .member-photo-gallery-wrapper {
   display: flex;
   flex-direction: column;
@@ -154,13 +223,26 @@
   font-size: 18px !important;
 }
 
+.profile-bio-section {
+  background: var(--surface-color);
+  border-left: 4px solid var(--primary-color);
+  text-align: center;
+}
+
+.profile-bio-text {
+  margin: 0;
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 16px;
+}
+
 /* Profile Quick Info Pills (age, born, height) */
 .profile-quick-pills {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 4px;
-  margin-bottom: 2px;
+  margin-top: 2px;
+  margin-bottom: 0;
 }
 
 .profile-pill {
@@ -525,12 +607,12 @@
 }
 
 .profile-header h2 {
-  margin: 0 0 8px 0;
+  margin: 0 0 4px 0;
   color: var(--text-color, #333);
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .status-bulb-profile {
@@ -1607,12 +1689,65 @@
 
 /* Responsive design */
 @media (max-width: 768px) {
+  .profile-header-inner {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "avatar info"
+      "stats stats"
+      "edit edit"
+      "gallery gallery";
+    gap: 12px;
+  }
+
+  .profile-header-inner .profile-avatar-container {
+    width: 76px;
+    height: 76px;
+  }
+
+  .profile-identity-row {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    gap: 6px 8px;
+  }
+
+  .profile-identity-row strong {
+    display: none;
+  }
+
+  .profile-identity-row > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .profile-quick-pills {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .profile-pill {
+    flex-shrink: 0;
+    max-width: 100%;
+  }
+
+  .profile-pill .pill-value {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .share-profile-btn .share-caret {
+    display: none;
+  }
+
   .member-photo-gallery {
     gap: 5px;
-    margin-top: 10px;
+    margin-top: 6px;
     margin-left: 0;
-    justify-content: center;
-    flex-wrap: wrap;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
   }
 
   .member-photo-gallery-wrapper {
@@ -1626,15 +1761,18 @@
     justify-content: center;
     text-align: center;
     white-space: normal;
+    padding: 5px 8px;
+    font-size: 10px;
   }
   
   .gallery-slot {
-    width: 55px;
-    height: 70px;
+    width: 52px;
+    height: 66px;
+    flex: 0 0 auto;
   }
   
   .gallery-image {
-    height: 48px;
+    height: 46px;
   }
   
   .gallery-placeholder {

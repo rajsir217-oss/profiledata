@@ -1621,9 +1621,9 @@ const Profile = ({
       )}
 
       <div className="profile-header">
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '25px', width: '100%', flexWrap: 'wrap', position: 'relative' }}>
+        <div className="profile-header-inner">
           {/* Profile Avatar - Always shown */}
-          <div className="profile-avatar-container" style={{ flexShrink: 0, width: '120px', height: '120px' }}>
+          <div className="profile-avatar-container">
             {/* Main Avatar - Always use image[0] (profile picture) */}
             {(() => {
               // Check per-image access for avatar (first image, index 0)
@@ -1647,9 +1647,9 @@ const Profile = ({
 
               return (
             <div style={{
-              width: '120px',
-              height: '120px',
-              borderRadius: '50%',
+              width: '100%',
+              height: '100%',
+              borderRadius: 'var(--radius-md)',
               overflow: 'hidden',
               border: `4px solid ${user.gender === 'Female' ? '#ec4899' : 'var(--primary-color, #667eea)'}`,
               boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
@@ -1708,7 +1708,7 @@ const Profile = ({
           </div>
           
           {/* Profile Info */}
-          <div className="profile-title-section" style={{ flex: 1, minWidth: '250px' }}>
+          <div className="profile-title-section">
             <h2>
               {user.firstName} {user.lastName}
               {!isOwnProfile && (
@@ -1777,16 +1777,7 @@ const Profile = ({
             )}
             {/* Username + Profile ID — single row */}
             {((isAdmin || isOwnProfile) || user.profileId) && (
-              <div style={{ 
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                margin: '5px 0 0 0',
-                flexWrap: 'wrap',
-                fontSize: '13px',
-                fontFamily: 'monospace',
-                color: '#6c757d'
-              }}>
+              <div className="profile-identity-row">
                 {(isAdmin || isOwnProfile) && user.username && (
                   <span>
                     <strong>Username:</strong> <span style={{ 
@@ -1839,7 +1830,9 @@ const Profile = ({
                       title="Share profile"
                       type="button"
                     >
-                      🔗 Share ▾
+                      <span className="share-icon" aria-hidden="true">🔗</span>
+                      <span className="share-label">Share</span>
+                      <span className="share-caret" aria-hidden="true">▾</span>
                     </button>
 
                     {showShareMenu && (
@@ -1886,7 +1879,8 @@ const Profile = ({
                     onClick={() => setShowActivityPanel(true)}
                     title="View user activity summary (Admin)"
                   >
-                    📊 Activity
+                    <span className="activity-icon" aria-hidden="true">📊</span>
+                    <span className="activity-label">Activity</span>
                   </button>
                 )}
               </div>
@@ -2141,15 +2135,8 @@ const Profile = ({
       
       {/* Bio / Tagline */}
       {user.bio && (
-        <div className="profile-section" style={{ 
-          backgroundColor: '#f8f9fa', 
-          borderLeft: '4px solid #007bff',
-          fontStyle: 'italic',
-          fontSize: '16px',
-          textAlign: 'center',
-          padding: '20px'
-        }}>
-          <p style={{ margin: 0, color: '#495057' }}>"{user.bio}"</p>
+        <div className="profile-section profile-bio-section">
+          <p className="profile-bio-text">"{user.bio}"</p>
         </div>
       )}
 
