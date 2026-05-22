@@ -194,6 +194,8 @@ const SearchPage2 = () => {
     loadOccupationOptions: () => {},
     loadLocationOptions: () => {},
   });
+  // Ref-latest for the TopBar listener so it never needs to re-register.
+  const handleLoadSavedSearchRef = useRef(null);
   const filterActionsProxy = useMemo(() => ({
     loadSavedSearches: (...args) => filterActionsRef.current.loadSavedSearches?.(...args),
     loadOccupationOptions: (...args) => filterActionsRef.current.loadOccupationOptions?.(...args),
@@ -934,7 +936,9 @@ const SearchPage2 = () => {
       // Clear any stale users before loading fresh results.
       logger.info('🧹 Clearing stale users before loading search criteria');
       setUsers([]);
-      hasAutoExecutedRef.current = true;
+
+      // Pre-compute once; reused in gender-override, partner-criteria, and fallback branches.
+      const profileDefaults = buildDefaultCriteria(currentUserProfile);
 
       const buildPartnerCriteriaCriteria = (defaults) => ({
         keyword: '',
@@ -972,10 +976,9 @@ const SearchPage2 = () => {
           const userRole = currentUserProfile?.role?.toLowerCase();
           const isPrivileged = userRole === 'admin' || userRole === 'moderator';
           if (!isPrivileged) {
-            const defaults = buildDefaultCriteria(currentUserProfile);
-            if (defaults.gender && defaultSearch.criteria.gender !== defaults.gender) {
-              logger.info(`🚻 Overriding saved search gender '${defaultSearch.criteria.gender}' → '${defaults.gender}'`);
-              defaultSearch.criteria.gender = defaults.gender;
+            if (profileDefaults.gender && defaultSearch.criteria.gender !== profileDefaults.gender) {
+              logger.info(`🚻 Overriding saved search gender '${defaultSearch.criteria.gender}' → '${profileDefaults.gender}'`);
+              defaultSearch.criteria.gender = profileDefaults.gender;
             }
           }
 
@@ -990,7 +993,7 @@ const SearchPage2 = () => {
         } else {
           // No default saved search - execute search with partnerCriteria defaults
           logger.info('🔍 No default search found - building criteria from partnerCriteria');
-          const partnerCriteriaDefaults = buildPartnerCriteriaCriteria(buildDefaultCriteria(currentUserProfile));
+          const partnerCriteriaDefaults = buildPartnerCriteriaCriteria(profileDefaults);
           logger.info('📋 Built partnerCriteria defaults:', partnerCriteriaDefaults);
 
           setSearchCriteria(partnerCriteriaDefaults);
@@ -1003,7 +1006,7 @@ const SearchPage2 = () => {
         // FALLBACK: If loading default search fails, execute with partner criteria
         // Without this, no search would ever execute on page load.
         logger.info('🔍 Fallback: executing search with partnerCriteria after error');
-        const fallbackCriteria = buildPartnerCriteriaCriteria(buildDefaultCriteria(currentUserProfile));
+        const fallbackCriteria = buildPartnerCriteriaCriteria(profileDefaults);
         setSearchCriteria(fallbackCriteria);
         handleSearchHook(1, 0, fallbackCriteria);
       }
@@ -1097,8 +1100,23 @@ const SearchPage2 = () => {
 
   // Load occupation options on component mount
   useEffect(() => {
-    loadOccupationOptions();
-  }, []);
+    (async () => {
+      try {
+        const response = await api.get('/search/occupation-options');
+        setOccupationOptions(response.data.options || []);
+        logger.info(`Loaded ${response.data.count || 0} occupation options`);
+      } catch (err) {
+        logger.error('Error loading occupation options:', err);
+        setOccupationOptions([
+          'Software Engineer', 'Data Scientist', 'Product Manager', 'Business Analyst',
+          'Consultant', 'Doctor', 'Chartered Accountant', 'Lawyer', 'Teacher', 'Professor',
+          'Architect', 'Designer', 'Marketing Manager', 'Sales Executive', 'HR Manager',
+          'Financial Analyst', 'Civil Engineer', 'Mechanical Engineer', 'Pharmacist', 'Nurse',
+          'Entrepreneur', 'Banker', 'Government Officer'
+        ]);
+      }
+    })();
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load location options dynamically
   const loadLocationOptions = async () => {
@@ -1125,8 +1143,27 @@ const SearchPage2 = () => {
 
   // Load location options on component mount
   useEffect(() => {
-    loadLocationOptions();
-  }, []);
+    (async () => {
+      try {
+        const response = await api.get('/search/location-options');
+        setLocationOptions(response.data.options || []);
+        logger.info(`Loaded ${response.data.count || 0} location options`);
+      } catch (err) {
+        logger.error('Error loading location options:', err);
+        setLocationOptions([
+          'California', 'New York', 'Texas', 'Florida', 'Illinois', 'Pennsylvania',
+          'Ohio', 'Georgia', 'North Carolina', 'Michigan', 'New Jersey', 'Virginia',
+          'Washington', 'Arizona', 'Massachusetts', 'Tennessee', 'Indiana', 'Missouri',
+          'Maryland', 'Wisconsin', 'Colorado', 'Minnesota', 'South Carolina', 'Alabama',
+          'Louisiana', 'Kentucky', 'Oregon', 'Oklahoma', 'Connecticut', 'Utah', 'Iowa',
+          'Nevada', 'Arkansas', 'Mississippi', 'Kansas', 'New Mexico', 'Nebraska',
+          'West Virginia', 'Idaho', 'Hawaii', 'New Hampshire', 'Maine', 'Montana',
+          'Rhode Island', 'Alaska', 'Delaware', 'North Dakota', 'South Dakota', 'Vermont', 'Wyoming',
+          'Nashville, TN', 'Nashville', 'Music City'
+        ]);
+      }
+    })();
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // NOTE: Standalone loadUserFavorites, loadUserShortlist, loadUserExclusions
   // were removed — they duplicated the loadUserData() function (which uses
@@ -1482,25 +1519,35 @@ const SearchPage2 = () => {
     handleSearchHook(1, loadedMinScore, criteriaWithDefaults);
   }, [currentUserProfile, handleSearchHook]);
 
-  // Listen for saved search loads from TopBar
+  // Keep ref pointing at the latest handleLoadSavedSearch each render.
+  handleLoadSavedSearchRef.current = handleLoadSavedSearch;
+
+  // Listen for saved search loads from TopBar.
+  // Uses ref-latest pattern so the listener is registered once and never stale.
   useEffect(() => {
     const handler = (event) => {
       const savedSearch = event?.detail;
       if (!savedSearch) return;
-      handleLoadSavedSearch(savedSearch);
+      handleLoadSavedSearchRef.current(savedSearch);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     window.addEventListener('loadSavedSearchFromTopbar', handler);
     return () => window.removeEventListener('loadSavedSearchFromTopbar', handler);
-  }, [handleLoadSavedSearch]);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Apply any pending search action set by TopBar when navigating to /search.
   // pendingSearchAction was captured (and sessionStorage cleared) during this
-  // component instance's first render via useState's initializer, so on
-  // StrictMode mount#2 it is null and this effect no-ops correctly.
+  // component instance's first render via useState's initializer.
+  // We use a ref-flag (not deps churn) to guarantee the action is consumed
+  // EXACTLY ONCE — even if handleLoadSavedSearch's identity changes later
+  // (which it does after every search via handleSearchHook re-creation).
+  const pendingActionConsumedRef = useRef(false);
   useEffect(() => {
+    if (pendingActionConsumedRef.current) return;
     if (!currentUserProfile || Object.keys(currentUserProfile).length === 0) return;
     if (!pendingSearchAction) return;
+
+    pendingActionConsumedRef.current = true;
 
     if (pendingSearchAction.type === 'openFilters') {
       openFiltersPanel();
