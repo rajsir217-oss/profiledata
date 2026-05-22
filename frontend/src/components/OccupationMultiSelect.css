@@ -18,9 +18,19 @@
   transition: all 0.2s ease;
 }
 
+.occupation-multiselect.is-disabled .occupation-selected-items {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .occupation-selected-items:hover {
   border-color: var(--primary-color, #007bff);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.occupation-multiselect.is-disabled .occupation-selected-items:hover {
+  border-color: var(--border-color, #ddd);
+  box-shadow: none;
 }
 
 .occupation-placeholder {

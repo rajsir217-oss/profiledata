@@ -6,12 +6,19 @@ const OccupationMultiSelect = ({
   selected = [], 
   onChange, 
   placeholder = "Select options...",
-  maxVisible = 5
+  maxVisible = 5,
+  disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredOptions, setFilteredOptions] = useState([]);
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!disabled) return;
+    setIsOpen(false);
+    setSearchTerm('');
+  }, [disabled]);
 
   // Filter options based on search term
   useEffect(() => {
@@ -35,6 +42,7 @@ const OccupationMultiSelect = ({
   }, []);
 
   const handleToggle = () => {
+    if (disabled) return;
     setIsOpen(!isOpen);
     if (!isOpen) {
       setSearchTerm('');
@@ -42,21 +50,25 @@ const OccupationMultiSelect = ({
   };
 
   const handleSelectOption = (option) => {
+    if (disabled) return;
     const newSelected = [...selected, option];
     onChange(newSelected);
     setSearchTerm('');
   };
 
   const handleRemoveOption = (optionToRemove) => {
+    if (disabled) return;
     const newSelected = selected.filter(option => option !== optionToRemove);
     onChange(newSelected);
   };
 
   const handleClearAll = () => {
+    if (disabled) return;
     onChange([]);
   };
 
   const handleSelectAll = () => {
+    if (disabled) return;
     const allAvailableOptions = options.filter(option =>
       !selected.includes(option) &&
       option.toLowerCase().includes(searchTerm.toLowerCase())
@@ -70,7 +82,7 @@ const OccupationMultiSelect = ({
   const hasMoreSelected = selected.length > maxVisible;
 
   return (
-    <div className="occupation-multiselect" ref={dropdownRef}>
+    <div className={`occupation-multiselect${disabled ? ' is-disabled' : ''}`} ref={dropdownRef}>
       {/* Selected items display */}
       <div className="occupation-selected-items">
         {selected.length === 0 ? (
@@ -87,6 +99,7 @@ const OccupationMultiSelect = ({
                   className="occupation-remove-btn"
                   onClick={() => handleRemoveOption(option)}
                   aria-label={`Remove ${option}`}
+                  disabled={disabled}
                 >
                   ×
                 </button>
@@ -103,6 +116,7 @@ const OccupationMultiSelect = ({
                 className="occupation-clear-all"
                 onClick={handleClearAll}
                 title="Clear all selections"
+                disabled={disabled}
               >
                 Clear all
               </button>
@@ -136,6 +150,7 @@ const OccupationMultiSelect = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               autoFocus
+              disabled={disabled}
             />
           </div>
           
@@ -148,6 +163,7 @@ const OccupationMultiSelect = ({
                     type="button"
                     className="occupation-action-btn occupation-clear-btn"
                     onClick={handleClearAll}
+                    disabled={disabled}
                   >
                     Clear All
                   </button>
@@ -157,6 +173,7 @@ const OccupationMultiSelect = ({
                     type="button"
                     className="occupation-action-btn occupation-select-all-btn"
                     onClick={handleSelectAll}
+                    disabled={disabled}
                   >
                     Select All {searchTerm ? `(${filteredOptions.length} matches)` : `(${filteredOptions.length})`}
                   </button>
@@ -175,7 +192,14 @@ const OccupationMultiSelect = ({
                   <div
                     key={index}
                     className={`occupation-option ${isSelected ? 'occupation-option-selected' : ''}`}
-                    onClick={() => isSelected ? handleRemoveOption(option) : handleSelectOption(option)}
+                    onClick={() => {
+                      if (disabled) return;
+                      if (isSelected) {
+                        handleRemoveOption(option);
+                      } else {
+                        handleSelectOption(option);
+                      }
+                    }}
                   >
                     {option}
                     {isSelected && (
