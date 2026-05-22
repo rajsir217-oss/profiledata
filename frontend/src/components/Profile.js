@@ -1621,7 +1621,7 @@ const Profile = ({
       )}
 
       <div className="profile-header">
-        <div className="profile-header-inner">
+        <div className={`profile-header-inner ${isOwnProfile ? 'profile-header-inner-own' : ''}`}>
           {/* Profile Avatar - Always shown */}
           <div className="profile-avatar-container">
             {/* Main Avatar - Always use image[0] (profile picture) */}
@@ -2031,40 +2031,39 @@ const Profile = ({
             )}
           </div>
           
-          {/* Floating Ribbon with Stats - Positioned before Edit Button */}
           {isOwnProfile && (
-            <div className="stats-ribbon">
-              {/* Profile Views */}
-              <div className="stat-ribbon-item stat-views">
-                <span className="stat-icon">👁️</span>
-                <span className="stat-value">{kpiStats.profileViews}</span>
+            <div className="profile-own-actions">
+              {/* Floating Ribbon with Stats - Positioned before Edit Button */}
+              <div className="stats-ribbon">
+                {/* Profile Views */}
+                <div className="stat-ribbon-item stat-views">
+                  <span className="stat-icon">👁️</span>
+                  <span className="stat-value">{kpiStats.profileViews}</span>
+                </div>
+                
+                {/* Shortlisted */}
+                <div className="stat-ribbon-item stat-shortlist">
+                  <span className="stat-icon">📝</span>
+                  <span className="stat-value">{kpiStats.shortlistedBy}</span>
+                </div>
+                
+                {/* Favorites */}
+                <div className="stat-ribbon-item stat-favorites">
+                  <span className="stat-icon">❤️</span>
+                  <span className="stat-value">{kpiStats.favoritedBy}</span>
+                </div>
               </div>
-              
-              {/* Shortlisted */}
-              <div className="stat-ribbon-item stat-shortlist">
-                <span className="stat-icon">📝</span>
-                <span className="stat-value">{kpiStats.shortlistedBy}</span>
-              </div>
-              
-              {/* Favorites */}
-              <div className="stat-ribbon-item stat-favorites">
-                <span className="stat-icon">❤️</span>
-                <span className="stat-value">{kpiStats.favoritedBy}</span>
-              </div>
+
+              {/* Edit Profile Button */}
+              <button 
+                className="btn-edit-profile"
+                onClick={handleEditProfile}
+                title="Edit Profile"
+                aria-label="Edit Profile"
+              >
+                <span>✏️</span>
+              </button>
             </div>
-          )}
-          
-          {/* Edit Profile Button */}
-          {isOwnProfile && (
-            <button 
-              className="btn-edit-profile"
-              onClick={handleEditProfile}
-              title="Edit Profile"
-              style={{ alignSelf: 'flex-start' }}
-            >
-              <span>✏️</span>
-              <span>Edit Profile</span>
-            </button>
           )}
           
           {/* Member View: Photo Gallery (5 slots) */}
