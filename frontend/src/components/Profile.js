@@ -1780,7 +1780,7 @@ const Profile = ({
               <div className="profile-identity-row">
                 {(isAdmin || isOwnProfile) && user.username && (
                   <span>
-                    <strong>Username:</strong> <span style={{ 
+                    <span style={{ 
                       backgroundColor: '#e3f2fd', 
                       padding: '2px 8px', 
                       borderRadius: '4px',
@@ -1791,7 +1791,7 @@ const Profile = ({
                 )}
                 {user.profileId && (
                   <span>
-                    <strong>Profile ID:</strong> <span style={{ 
+                    <strong>ID:</strong> <span style={{ 
                       backgroundColor: '#f0f0f0', 
                       padding: '2px 8px', 
                       borderRadius: '4px',
