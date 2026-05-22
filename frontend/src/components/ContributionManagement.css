@@ -60,7 +60,10 @@
 /* Spacing between the icon and label inside header action buttons.
    On mobile, the label is hidden and the icon stays. */
 .add-payment-btn .btn-icon {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .add-payment-btn .btn-label {
@@ -73,9 +76,14 @@
    tooltip comes from the button's `title` attribute. */
 @media (max-width: 600px) {
   .add-payment-btn {
-    padding: 8px 10px;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
     font-size: 16px;
-    min-width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .add-payment-btn .btn-label {
@@ -85,6 +93,18 @@
   .add-payment-btn .btn-icon {
     margin: 0;
     font-size: 16px;
+  }
+
+  .main-tab {
+    padding: 10px 12px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .main-tab .tab-label {
+    display: none;
   }
 }
 
@@ -259,6 +279,18 @@
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+}
+
+.main-tab .tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.main-tab .tab-label {
+  display: inline-block;
+  margin-left: 6px;
 }
 
 .main-tab:hover {

@@ -544,20 +544,29 @@ const ContributionManagement = () => {
         <button 
           className={`main-tab ${activeTab === 'contributions' ? 'active' : ''}`}
           onClick={() => setActiveTab('contributions')}
+          title="Contributions"
+          aria-label="Contributions"
         >
-          💝 Contributions
+          <span className="tab-icon" aria-hidden="true">💝</span>
+          <span className="tab-label">Contributions</span>
         </button>
         <button 
           className={`main-tab ${activeTab === 'unpaid' ? 'active' : ''}`}
           onClick={() => setActiveTab('unpaid')}
+          title="Unpaid Members"
+          aria-label="Unpaid Members"
         >
-          💸 Unpaid Members
+          <span className="tab-icon" aria-hidden="true">💸</span>
+          <span className="tab-label">Unpaid Members</span>
         </button>
         <button 
           className={`main-tab ${activeTab === 'activity' ? 'active' : ''}`}
           onClick={() => setActiveTab('activity')}
+          title="Activity Log"
+          aria-label="Activity Log"
         >
-          📋 Activity Log
+          <span className="tab-icon" aria-hidden="true">📋</span>
+          <span className="tab-label">Activity Log</span>
         </button>
       </div>
 
