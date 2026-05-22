@@ -20,8 +20,17 @@
   min-height: 44px;
 }
 
+.location-multiselect.is-disabled .location-selected-items {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .location-selected-items:hover {
   border-color: #1976d2;
+}
+
+.location-multiselect.is-disabled .location-selected-items:hover {
+  border-color: #e0e0e0;
 }
 
 .location-selected-items:focus-within {

@@ -51,7 +51,7 @@ const SearchFilters = ({
   lifestyleOptions = [],
   hideActionButtons = false,
   searchButtonText = 'Search',
-  saveButtonText = 'Save Search',
+  saveButtonText = 'Save',
   isAdmin = false
 }) => {
   // Validation error state
@@ -67,13 +67,12 @@ const SearchFilters = ({
 
   // Handle Profile ID search - independent direct lookup (ignores other filters on backend)
   const handleProfileIdSearch = () => {
-    console.log('🔍 Profile ID Search clicked, profileId:', searchCriteria.profileId);
     if (searchCriteria.profileId?.trim()) {
       // Profile ID search is handled specially by backend - ignores other filters
-      console.log('🔍 Direct Profile ID lookup:', searchCriteria.profileId);
+      logger.debug('🔍 Direct Profile ID lookup:', searchCriteria.profileId);
       onSearch();
     } else {
-      console.log('🔍 Profile ID is empty, not searching');
+      logger.debug('🔍 Profile ID is empty, not searching');
     }
   };
 
@@ -125,6 +124,12 @@ const SearchFilters = ({
 
   // Handle main search with validation - clears profileId to use filter criteria
   const handleMainSearch = () => {
+    if (searchCriteria.profileId?.trim()) {
+      setValidationError('');
+      handleProfileIdSearch();
+      return;
+    }
+
     const validation = validateMainSearch();
     if (!validation.valid) {
       setValidationError(validation.message);
@@ -133,18 +138,8 @@ const SearchFilters = ({
       return;
     }
     setValidationError(''); // Clear any previous error
-    
-    // Clear profileId so main search uses filter criteria, not profileId
-    if (searchCriteria.profileId?.trim()) {
-      handleInputChange({ target: { name: 'profileId', value: '' } });
-    }
-    
-    onSearch();
-  };
 
-  // Handle Profile ID clear
-  const handleProfileIdClear = () => {
-    handleInputChange({ target: { name: 'profileId', value: '' } });
+    onSearch();
   };
 
   const daysBackRawValue = searchCriteria.daysBack ?? '';
@@ -152,80 +147,44 @@ const SearchFilters = ({
   const daysBackSelectValue = daysBackRawValue === null || daysBackRawValue === undefined ? '' : String(daysBackRawValue);
   const showCustomDaysBackOption = daysBackSelectValue !== '' && !allowedDaysBackValues.has(daysBackSelectValue);
 
+  const isDirectLookupMode = Boolean(searchCriteria.profileId && String(searchCriteria.profileId).trim());
+  const roleLower = currentUserProfile?.role?.toLowerCase();
+  const isAdminOrModerator = roleLower === 'admin' || roleLower === 'moderator';
+  const genderDisabledTitle = isDirectLookupMode
+    ? 'Disabled while searching by Profile ID / Username'
+    : (!isAdminOrModerator ? 'Gender filter is locked to opposite gender' : '');
+
   return (
     <div className="unified-search-filters">
-      {/* 0. PROFILE ID DIRECT SEARCH - Separate Section */}
-      <div className="profile-id-search-section">
-        <div className="form-group">
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            Profile ID / Username
-            <Tooltip 
-              text="Enter a Profile ID or Username to find a specific user directly. This bypasses all other filters."
-              position="top"
-              icon 
-            />
-          </label>
-          <div className="profile-id-search-row">
-            <input
-              type="text"
-              className="form-control"
-              name="profileId"
-              id="profileId-input"
-              value={searchCriteria.profileId || ''}
-              onChange={handleInputChange}
-              placeholder="e.g., STHa9Lor or john_doe"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleProfileIdSearch();
-                }
-              }}
-            />
-            <button 
-              type="button" 
-              className="btn btn-primary btn-profile-id-search"
-              onClick={handleProfileIdSearch}
-              disabled={!searchCriteria.profileId?.trim()}
-              aria-label="Search"
-            >
-              <span className="btn-icon" aria-hidden="true">🔍</span>
-              <span className="btn-label">Search</span>
-            </button>
-            <button 
-              type="button" 
-              className="btn btn-danger btn-profile-id-clear"
-              onClick={handleProfileIdClear}
-              disabled={!searchCriteria.profileId?.trim()}
-              aria-label="Clear"
-            >
-              <span className="btn-icon" aria-hidden="true">🗑️</span>
-              <span className="btn-label">Clear</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      
       {/* 2. BASIC FILTERS - Always Visible */}
       <div className="basic-filters-section">
-        {/* Row 1: Keyword Search */}
-        <div className="col-keyword">
+        {/* 0. PROFILE ID DIRECT SEARCH - Separate Section */}
+        <div className="col-profile-id">
           <div className="form-group">
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              Keyword Search
+              Profile ID / Username
               <Tooltip 
-                text="Search across all profile fields including bio, interests, occupation, and more. Leave empty to see all matches."
+                text="Enter a Profile ID or Username to find a specific user directly. This bypasses all other filters."
                 position="top"
                 icon 
               />
             </label>
-            <input
-              type="text"
-              className="form-control"
-              name="keyword"
-              value={searchCriteria.keyword || ''}
-              onChange={handleInputChange}
-              placeholder="Search any field..."
-            />
+            <div className="profile-id-search-row">
+              <input
+                type="text"
+                className="form-control"
+                name="profileId"
+                id="profileId-input"
+                value={searchCriteria.profileId || ''}
+                onChange={handleInputChange}
+                placeholder="e.g., STHa9Lor or john_doe"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleMainSearch();
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
         
@@ -246,6 +205,7 @@ const SearchFilters = ({
                 name="ageMin"
                 value={searchCriteria.ageMin || ''}
                 onChange={handleInputChange}
+                disabled={isDirectLookupMode}
                 onBlur={(e) => {
                   const value = parseInt(e.target.value);
                   if (e.target.value && value < 19) {
@@ -267,6 +227,7 @@ const SearchFilters = ({
                 name="ageMax"
                 value={searchCriteria.ageMax || ''}
                 onChange={handleInputChange}
+                disabled={isDirectLookupMode}
                 onBlur={(e) => {
                   const value = parseInt(e.target.value);
                   if (e.target.value && value < 19) {
@@ -302,6 +263,7 @@ const SearchFilters = ({
                 name="heightMinFeet"
                 value={searchCriteria.heightMinFeet || ''}
                 onChange={handleInputChange}
+                disabled={isDirectLookupMode}
               >
                 <option value="">ft</option>
                 <option value="4">4</option>
@@ -314,6 +276,7 @@ const SearchFilters = ({
                 name="heightMinInches"
                 value={searchCriteria.heightMinInches || ''}
                 onChange={handleInputChange}
+                disabled={isDirectLookupMode}
               >
                 <option value="">in</option>
                 {[...Array(12)].map((_, i) => (
@@ -339,6 +302,7 @@ const SearchFilters = ({
                 name="heightMaxFeet"
                 value={searchCriteria.heightMaxFeet || ''}
                 onChange={handleInputChange}
+                disabled={isDirectLookupMode}
               >
                 <option value="">ft</option>
                 <option value="4">4</option>
@@ -351,6 +315,7 @@ const SearchFilters = ({
                 name="heightMaxInches"
                 value={searchCriteria.heightMaxInches || ''}
                 onChange={handleInputChange}
+                disabled={isDirectLookupMode}
               >
                 <option value="">in</option>
                 {[...Array(12)].map((_, i) => (
@@ -376,6 +341,7 @@ const SearchFilters = ({
               name="daysBack"
               value={daysBackSelectValue}
               onChange={handleInputChange}
+              disabled={isDirectLookupMode}
             >
               {showCustomDaysBackOption && (
                 <option value={daysBackSelectValue}>{`${daysBackSelectValue} (Custom)`}</option>
@@ -395,10 +361,11 @@ const SearchFilters = ({
               name="hasPhoto"
               checked={searchCriteria.hasPhoto || false}
               onChange={handleInputChange}
+              disabled={isDirectLookupMode}
               className="has-photo-checkbox"
             />
             <span className="has-photo-toggle-text">
-              📸 Has Photo Only
+              📸 Has Photos
             </span>
             <Tooltip 
               text="Only show profiles that have at least one photo. Profiles without photos are always deprioritized in results."
@@ -423,6 +390,7 @@ const SearchFilters = ({
               selected={searchCriteria.occupations || []}
               onChange={(selected) => handleInputChange({ target: { name: 'occupations', value: selected } })}
               placeholder="Select professions..."
+              disabled={isDirectLookupMode}
             />
           </div>
         </div>
@@ -450,6 +418,7 @@ const SearchFilters = ({
               }}
               placeholder="Select locations..."
               maxVisible={3}
+              disabled={isDirectLookupMode}
             />
           </div>
         </div>
@@ -531,6 +500,7 @@ const SearchFilters = ({
             value={minMatchScore}
             onChange={handleSliderChange}
             className="match-score-slider"
+            disabled={isDirectLookupMode}
             style={{ width: '100%', height: '8px', cursor: 'pointer', marginBottom: '12px' }}
           />
           
@@ -625,13 +595,13 @@ const SearchFilters = ({
                     name="gender"
                     value={searchCriteria.gender || ''}
                     onChange={handleInputChange}
-                    readOnly={currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator'}
-                    disabled={currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator'}
+                    readOnly={!isAdminOrModerator || isDirectLookupMode}
+                    disabled={!isAdminOrModerator || isDirectLookupMode}
                     style={{
-                      cursor: (currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? 'not-allowed' : 'pointer',
-                      backgroundColor: (currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? 'var(--disabled-bg, #f0f0f0)' : 'var(--input-bg, rgba(255, 255, 255, 0.9))'
+                      cursor: (!isAdminOrModerator || isDirectLookupMode) ? 'not-allowed' : 'pointer',
+                      backgroundColor: (!isAdminOrModerator || isDirectLookupMode) ? 'var(--disabled-bg, #f0f0f0)' : 'var(--input-bg, rgba(255, 255, 255, 0.9))'
                     }}
-                    title={(currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? 'Gender filter is locked to opposite gender' : ''}
+                    title={(!isAdminOrModerator || isDirectLookupMode) ? genderDisabledTitle : ''}
                   >
                     <option value="">All</option>
                     <option value="male">Male</option>
@@ -655,6 +625,7 @@ const SearchFilters = ({
                     name="bodyType"
                     value={searchCriteria.bodyType || ''}
                     onChange={handleInputChange}
+                    disabled={isDirectLookupMode}
                   >
                     <option value="">Any</option>
                     {bodyTypeOptions.map(option => option && (
@@ -679,6 +650,7 @@ const SearchFilters = ({
                     name="eatingPreference"
                     value={searchCriteria.eatingPreference || ''}
                     onChange={handleInputChange}
+                    disabled={isDirectLookupMode}
                   >
                     <option value="">Any</option>
                     {eatingOptions.map(option => option && (
@@ -702,6 +674,7 @@ const SearchFilters = ({
                     name="drinking"
                     value={searchCriteria.drinking || ''}
                     onChange={handleInputChange}
+                    disabled={isDirectLookupMode}
                   >
                     <option value="">Any</option>
                     {lifestyleOptions.map(option => option && (
@@ -725,12 +698,35 @@ const SearchFilters = ({
                     name="smoking"
                     value={searchCriteria.smoking || ''}
                     onChange={handleInputChange}
+                    disabled={isDirectLookupMode}
                   >
                     <option value="">Any</option>
                     {lifestyleOptions.map(option => option && (
                       <option key={option} value={option}>{option}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              <div className="col-keyword">
+                <div className="form-group">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Keyword Search
+                    <Tooltip 
+                      text="Search across all profile fields including bio, interests, occupation, and more. Leave empty to see all matches."
+                      position="top"
+                      icon 
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="keyword"
+                    value={searchCriteria.keyword || ''}
+                    onChange={handleInputChange}
+                    disabled={isDirectLookupMode}
+                    placeholder="Search any field..."
+                  />
                 </div>
               </div>
 

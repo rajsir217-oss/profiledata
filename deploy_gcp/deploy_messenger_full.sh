@@ -110,6 +110,7 @@ python3 - <<'PY'
 from pathlib import Path
 import os
 import sys
+import re
 
 backend_url = os.environ.get("BACKEND_URL") or ""
 main_app_url = os.environ.get("MAIN_APP_URL") or ""
@@ -125,16 +126,30 @@ if not backend_url:
     sys.exit(1)
 
 text = web_api_config.read_text()
-repls = {
-    "const raw = process.env.MESSENGER_BACKEND_URL;": f"const raw = process.env.MESSENGER_BACKEND_URL || '{backend_url}';",
-    "return process.env.MESSENGER_TURNSTILE_SITE_KEY;": f"return process.env.MESSENGER_TURNSTILE_SITE_KEY || '{turnstile_site_key}';",
-    "const raw = process.env.MESSENGER_MAIN_APP_URL;": f"const raw = process.env.MESSENGER_MAIN_APP_URL || '{main_app_url}';",
-}
-for old, new in repls.items():
-    if old not in text:
-        print(f"❌ Failed to locate in messenger-web apiConfig: {old}", file=sys.stderr)
+repls = [
+    (
+        r"^(\s*const\s+raw\s*=\s*process\.env\.MESSENGER_BACKEND_URL)(?:\s*\|\|\s*[^;]+)?;\s*$",
+        lambda m: f"{m.group(1)} || '{backend_url}';",
+        "MESSENGER_BACKEND_URL",
+    ),
+    (
+        r"^(\s*return\s+process\.env\.MESSENGER_TURNSTILE_SITE_KEY)(?:\s*\|\|\s*[^;]+)?;\s*$",
+        lambda m: f"{m.group(1)} || '{turnstile_site_key}';",
+        "MESSENGER_TURNSTILE_SITE_KEY",
+    ),
+    (
+        r"^(\s*const\s+raw\s*=\s*process\.env\.MESSENGER_MAIN_APP_URL)(?:\s*\|\|\s*[^;]+)?;\s*$",
+        lambda m: f"{m.group(1)} || '{main_app_url}';",
+        "MESSENGER_MAIN_APP_URL",
+    ),
+]
+
+for pattern, repl_fn, label in repls:
+    next_text, n = re.subn(pattern, repl_fn, text, count=1, flags=re.MULTILINE)
+    if n != 1:
+        print(f"❌ Failed to patch messenger-web apiConfig ({label}). Matches found: {n}", file=sys.stderr)
         sys.exit(1)
-    text = text.replace(old, new, 1)
+    text = next_text
 web_api_config.write_text(text)
 
 text = shared_api_config.read_text()

@@ -11,7 +11,20 @@
  */
 export const getBackendUrl = () => {
   const raw = process.env.MESSENGER_BACKEND_URL;
-  return String(raw || '').replace(/\/+$/, '');
+  const cleaned = String(raw || '').replace(/\/+$/, '');
+  if (cleaned) return cleaned;
+
+  try {
+    if (typeof window !== 'undefined' && window.location?.hostname) {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:8000';
+      }
+    }
+  } catch (_) {
+  }
+
+  return '';
 };
 
 /**
@@ -38,7 +51,19 @@ export const getFrontendUrl = () => {
 };
 
 export const getTurnstileSiteKey = () => {
-  return process.env.MESSENGER_TURNSTILE_SITE_KEY;
+  const raw = process.env.MESSENGER_TURNSTILE_SITE_KEY;
+  const cleaned = String(raw || '').trim();
+  if (cleaned) return cleaned;
+  try {
+    if (typeof window !== 'undefined' && window.location?.hostname) {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return '1x00000000000000000000AA';
+      }
+    }
+  } catch (_) {
+  }
+  return undefined;
 };
 
 /**
@@ -48,7 +73,20 @@ export const getTurnstileSiteKey = () => {
  */
 export const getMainAppUrl = () => {
   const raw = process.env.MESSENGER_MAIN_APP_URL;
-  return String(raw || '').replace(/\/+$/, '');
+  const cleaned = String(raw || '').replace(/\/+$/, '');
+  if (cleaned) return cleaned;
+
+  try {
+    if (typeof window !== 'undefined' && window.location?.hostname) {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:3000';
+      }
+    }
+  } catch (_) {
+  }
+
+  return '';
 };
 
 /**

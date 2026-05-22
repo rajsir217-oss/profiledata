@@ -6,12 +6,19 @@ const LocationMultiSelect = ({
   selected = [], 
   onChange, 
   placeholder = "Select locations...",
-  maxVisible = 5
+  maxVisible = 5,
+  disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredOptions, setFilteredOptions] = useState([]);
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!disabled) return;
+    setIsOpen(false);
+    setSearchTerm('');
+  }, [disabled]);
 
   // Filter options based on search term
   useEffect(() => {
@@ -35,6 +42,7 @@ const LocationMultiSelect = ({
   }, []);
 
   const handleToggle = () => {
+    if (disabled) return;
     setIsOpen(!isOpen);
     if (!isOpen) {
       setSearchTerm('');
@@ -42,29 +50,33 @@ const LocationMultiSelect = ({
   };
 
   const handleSelectOption = (option) => {
+    if (disabled) return;
     const newSelected = [...selected, option];
     onChange(newSelected);
     setSearchTerm('');
   };
 
   const handleRemoveOption = (optionToRemove) => {
+    if (disabled) return;
     const newSelected = selected.filter(option => option !== optionToRemove);
     onChange(newSelected);
   };
 
   const handleSelectAll = () => {
+    if (disabled) return;
     onChange(filteredOptions);
     setSearchTerm('');
   };
 
   const handleClearAll = () => {
+    if (disabled) return;
     onChange([]);
   };
 
   const hasMoreSelected = selected.length > maxVisible;
 
   return (
-    <div className="location-multiselect" ref={dropdownRef}>
+    <div className={`location-multiselect${disabled ? ' is-disabled' : ''}`} ref={dropdownRef}>
       {/* Selected items display */}
       <div className="location-selected-items">
         {selected.length === 0 ? (
@@ -81,6 +93,7 @@ const LocationMultiSelect = ({
                   className="location-item-remove"
                   onClick={() => handleRemoveOption(option)}
                   aria-label={`Remove ${option}`}
+                  disabled={disabled}
                 >
                   ×
                 </button>
@@ -96,6 +109,7 @@ const LocationMultiSelect = ({
               className="location-toggle-button"
               onClick={handleToggle}
               aria-label="Toggle dropdown"
+              disabled={disabled}
             >
               {isOpen ? '▲' : '▼'}
             </button>
@@ -130,6 +144,7 @@ const LocationMultiSelect = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               autoFocus
+              disabled={disabled}
             />
           </div>
 
@@ -139,7 +154,7 @@ const LocationMultiSelect = ({
               type="button"
               className="location-select-all-btn"
               onClick={handleSelectAll}
-              disabled={filteredOptions.length === 0}
+              disabled={disabled || filteredOptions.length === 0}
             >
               Select All ({filteredOptions.length})
             </button>
@@ -147,7 +162,7 @@ const LocationMultiSelect = ({
               type="button"
               className="location-clear-all-btn"
               onClick={handleClearAll}
-              disabled={selected.length === 0}
+              disabled={disabled || selected.length === 0}
             >
               Clear All ({selected.length})
             </button>
@@ -165,6 +180,7 @@ const LocationMultiSelect = ({
                   key={index}
                   className={`location-option ${selected.includes(option) ? 'selected' : ''}`}
                   onClick={() => {
+                    if (disabled) return;
                     if (selected.includes(option)) {
                       handleRemoveOption(option);
                     } else {
