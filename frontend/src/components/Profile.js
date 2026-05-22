@@ -200,7 +200,7 @@ const Profile = ({
   
   // Collapsed sections state (all collapsed by default)
   const [collapsedSections, setCollapsedSections] = useState({
-    basicInfo: true,
+    basicInfo: false,
     regionalCultural: true,
     personalLifestyle: true,
     educationHistory: true,
@@ -2254,69 +2254,6 @@ const Profile = ({
         )}
       </div>
 
-      {/* What You're Looking For Narrative */}
-      <div className="profile-section profile-narrative-section">
-        <div className="section-header-with-edit">
-          <h3>💑 What You're Looking For</h3>
-          {isOwnProfile && !isEditingPartnerPref && (
-            <button 
-              className="about-me-edit-btn"
-              onClick={handleEditPartnerPref}
-              title="Edit What You're Looking For"
-            >
-              ✎
-            </button>
-          )}
-          {isOwnProfile && isEditingPartnerPref && (
-            <div className="about-me-action-btns">
-              <button 
-                className="about-me-save-btn"
-                onClick={handleSavePartnerPref}
-                disabled={savingPartnerPref}
-                title="Save"
-              >
-                {savingPartnerPref ? '⏳' : '✓'}
-              </button>
-              {user.customPartnerPreference && (
-                <button 
-                  className="about-me-reset-btn"
-                  onClick={handleResetPartnerPref}
-                  disabled={savingPartnerPref}
-                  title="Reset to auto-generated"
-                >
-                  ↺
-                </button>
-              )}
-              <button 
-                className="about-me-cancel-btn"
-                onClick={() => setIsEditingPartnerPref(false)}
-                disabled={savingPartnerPref}
-                title="Cancel"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-        </div>
-        
-        {isEditingPartnerPref ? (
-          <div className="about-me-edit-container">
-            <RichTextEditor
-              value={editedPartnerPref}
-              onChange={setEditedPartnerPref}
-              placeholder="Describe what you're looking for in a partner..."
-              minHeight={200}
-              simpleToolbar={true}
-            />
-          </div>
-        ) : (
-          <div 
-            className="profile-narrative-content"
-            dangerouslySetInnerHTML={{ __html: user.customPartnerPreference || generatePartnerPreference(user) }}
-          />
-        )}
-      </div>
-
       {/* Basic Info (Collapsible) */}
       <div className="profile-section">
         <div className="section-header-with-edit">
@@ -2444,6 +2381,69 @@ const Profile = ({
             {user.citizenshipStatus && <p><strong>Citizenship Status:</strong> {user.citizenshipStatus}</p>}
           </div>
         ))}
+      </div>
+
+      {/* What You're Looking For Narrative */}
+      <div className="profile-section profile-narrative-section">
+        <div className="section-header-with-edit">
+          <h3>💑 What You're Looking For</h3>
+          {isOwnProfile && !isEditingPartnerPref && (
+            <button 
+              className="about-me-edit-btn"
+              onClick={handleEditPartnerPref}
+              title="Edit What You're Looking For"
+            >
+              ✎
+            </button>
+          )}
+          {isOwnProfile && isEditingPartnerPref && (
+            <div className="about-me-action-btns">
+              <button 
+                className="about-me-save-btn"
+                onClick={handleSavePartnerPref}
+                disabled={savingPartnerPref}
+                title="Save"
+              >
+                {savingPartnerPref ? '⏳' : '✓'}
+              </button>
+              {user.customPartnerPreference && (
+                <button 
+                  className="about-me-reset-btn"
+                  onClick={handleResetPartnerPref}
+                  disabled={savingPartnerPref}
+                  title="Reset to auto-generated"
+                >
+                  ↺
+                </button>
+              )}
+              <button 
+                className="about-me-cancel-btn"
+                onClick={() => setIsEditingPartnerPref(false)}
+                disabled={savingPartnerPref}
+                title="Cancel"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {isEditingPartnerPref ? (
+          <div className="about-me-edit-container">
+            <RichTextEditor
+              value={editedPartnerPref}
+              onChange={setEditedPartnerPref}
+              placeholder="Describe what you're looking for in a partner..."
+              minHeight={200}
+              simpleToolbar={true}
+            />
+          </div>
+        ) : (
+          <div 
+            className="profile-narrative-content"
+            dangerouslySetInnerHTML={{ __html: user.customPartnerPreference || generatePartnerPreference(user) }}
+          />
+        )}
       </div>
 
       {/* Regional & Cultural Information */}

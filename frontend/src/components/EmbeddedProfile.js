@@ -69,7 +69,7 @@ const EmbeddedProfile = ({
   const [expandedSections, setExpandedSections] = useState({
     aboutMe: true,
     lookingFor: true,
-    basicInfo: false,
+    basicInfo: true,
     lifestyle: false,
     contact: false,
     preferences: false,
@@ -545,40 +545,6 @@ const EmbeddedProfile = ({
         )}
       </div>
 
-      {/* What You're Looking For */}
-      <div className="profile-section" style={{ marginBottom: '12px' }}>
-        <div
-          onClick={() => toggleSection('lookingFor')}
-          style={{
-            background: 'var(--surface-color)',
-            padding: '12px 16px',
-            borderRadius: expandedSections.lookingFor ? 'var(--radius-sm) var(--radius-sm) 0 0' : 'var(--radius-sm)',
-            cursor: 'pointer',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            fontWeight: 600,
-            border: '1px solid var(--border-color)'
-          }}
-        >
-          <span>💝 What You're Looking For</span>
-          <span>{expandedSections.lookingFor ? '▼' : '▶'}</span>
-        </div>
-        {expandedSections.lookingFor && (
-          <div style={{
-            padding: '16px',
-            background: 'var(--card-background)',
-            border: '1px solid var(--border-color)',
-            borderTop: 'none',
-            borderRadius: '0 0 var(--radius-sm) var(--radius-sm)'
-          }}>
-            <p style={{ margin: 0, lineHeight: 1.6 }}>
-              {user.lookingFor || generatePartnerPreference(user) || 'No preferences specified.'}
-            </p>
-          </div>
-        )}
-      </div>
-
       {/* Basic Information */}
       <div className="profile-section" style={{ marginBottom: '12px' }}>
         <div
@@ -595,7 +561,7 @@ const EmbeddedProfile = ({
             border: '1px solid var(--border-color)'
           }}
         >
-          <span>👤 Basic Information</span>
+          <span>� Basic Information</span>
           <span>{expandedSections.basicInfo ? '▼' : '▶'}</span>
         </div>
         {expandedSections.basicInfo && (
@@ -616,6 +582,40 @@ const EmbeddedProfile = ({
               <div><strong>Relationship Status:</strong> {user.relationshipStatus || 'N/A'}</div>
               <div><strong>Mother Tongue:</strong> {user.motherTongue || 'N/A'}</div>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* What You're Looking For */}
+      <div className="profile-section" style={{ marginBottom: '12px' }}>
+        <div
+          onClick={() => toggleSection('lookingFor')}
+          style={{
+            background: 'var(--surface-color)',
+            padding: '12px 16px',
+            borderRadius: expandedSections.lookingFor ? 'var(--radius-sm) var(--radius-sm) 0 0' : 'var(--radius-sm)',
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontWeight: 600,
+            border: '1px solid var(--border-color)'
+          }}
+        >
+          <span>� What You're Looking For</span>
+          <span>{expandedSections.lookingFor ? '▼' : '▶'}</span>
+        </div>
+        {expandedSections.lookingFor && (
+          <div style={{
+            padding: '16px',
+            background: 'var(--card-background)',
+            border: '1px solid var(--border-color)',
+            borderTop: 'none',
+            borderRadius: '0 0 var(--radius-sm) var(--radius-sm)'
+          }}>
+            <p style={{ margin: 0, lineHeight: 1.6 }}>
+              {user.lookingFor || generatePartnerPreference(user) || 'No preferences specified.'}
+            </p>
           </div>
         )}
       </div>
