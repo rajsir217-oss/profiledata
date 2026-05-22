@@ -23,29 +23,13 @@
 | 7 | Inlined `loadOccupationOptions` / `loadLocationOptions` bodies into their mount effects; named functions kept for `filterActionsRef` | ✅ |
 | 8 | Ref-latest pattern for TopBar `loadSavedSearchFromTopbar` listener; effect now has `[]` deps and never re-registers | ✅ |
 | — | **Bug fix (prod toast storm):** pending-action effect now guarded by `pendingActionConsumedRef` so it consumes the saved-search action exactly once, regardless of how often `handleLoadSavedSearch` identity churns after each search | ✅ |
+| 9 | **Hybrid fix:** quick day-range chip clears `selectedSearch` only when `daysBack` actually diverges from the saved search's value (preserves badge + edit-saved-search workflow when user picks the same range). Strict criteria-equality model deferred to #11. | ✅ |
 
 ---
 
 ## Remaining backlog
 
 
-
-### 🟡 #9 — Inconsistent `selectedSearch` lifecycle on saved-search edits
-
-**Where:**
-- `handleDeleteSavedSearch` only nulls `selectedSearch` if it matches the deleted ID (`frontend/src/components/SearchPage2.js:1518-1537`). ✅ correct.
-- `handleQuickDaysBackChange` always nulls it (`SearchPage2.js:1219`). ⚠ inconsistent — clicking a quick day-range chip should not necessarily mean "I'm not using the saved search anymore" if the saved search's daysBack matches.
-- `handleClearFilters` should likely null it too but doesn't (verify).
-
-**Fix:** Decide on a single rule:
-- If criteria differ from the selected saved search's criteria → null `selectedSearch`.
-- Otherwise → keep it.
-
-Centralize via a `derivedSelectedSearch = useMemo(...)` based on criteria comparison rather than imperative setters.
-
-**Effort:** 30 minutes. **Risk:** medium (UX behavior change — confirm with PM).
-
----
 
 
 ### 🔴 #11 — File size: 3,176 lines
@@ -97,7 +81,7 @@ Centralize via a `derivedSelectedSearch = useMemo(...)` based on criteria compar
 2. ~~**#6** — delete dead `useSearchFilters.js`~~ ✅
 3. ~~**#7** — fix the `loadOccupationOptions` / `loadLocationOptions` effect closures~~ ✅
 4. ~~**#8** — defensive ref-latest for the TopBar listener~~ ✅
-5. **#9** — UX call needed; align with product before implementing.
+5. ~~**#9** — Hybrid fix shipped~~ ✅
 6. **#11** — schedule for a dedicated refactor sprint.
 
 ---
