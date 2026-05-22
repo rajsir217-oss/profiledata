@@ -138,6 +138,19 @@ const normalizeDaysBackValue = (daysBack, fallback = 30) => {
   return Number.isNaN(parsed) ? fallback : parsed;
 };
 
+// Module-level bootstrap guard.
+// Survives React 18 StrictMode's mount→unmount→remount cycle (where component
+// instance refs reset). Keyed by username so a sign-out / different-user
+// session re-bootstraps. Reset to {username: null, done: false} on logout.
+const searchBootstrapState = { username: null, done: false };
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('loginStatusChanged', () => {
+    searchBootstrapState.username = null;
+    searchBootstrapState.done = false;
+  });
+}
+
 const SearchPage2 = () => {
   // Activity logger hook
   const { logPageVisit, logSearchResultsViewed } = useActivityLogger();
@@ -156,6 +169,36 @@ const SearchPage2 = () => {
     // toggleListAction is now managed by useSearchActions hook
     // Functions below are now managed by useSearchActions hook
   } = userData;
+
+  // Read & clear pendingSearchAction exactly once per page load.
+  // useState's initializer runs per component instance; in StrictMode the
+  // second mount sees an empty sessionStorage and returns null. The bootstrap
+  // effect uses this captured value plus searchBootstrapState (module-level)
+  // to ensure the action is processed at most once per page session.
+  const [pendingSearchAction] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem('pendingSearchAction');
+      if (!raw) return null;
+      sessionStorage.removeItem('pendingSearchAction');
+      return JSON.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  });
+
+  // Late-bind ref for filter actions used by useSearchActions. The actual
+  // load* functions are declared lower in this component, so we expose a
+  // stable proxy that delegates to the latest implementations via a ref.
+  const filterActionsRef = useRef({
+    loadSavedSearches: () => {},
+    loadOccupationOptions: () => {},
+    loadLocationOptions: () => {},
+  });
+  const filterActionsProxy = useMemo(() => ({
+    loadSavedSearches: (...args) => filterActionsRef.current.loadSavedSearches?.(...args),
+    loadOccupationOptions: (...args) => filterActionsRef.current.loadOccupationOptions?.(...args),
+    loadLocationOptions: (...args) => filterActionsRef.current.loadLocationOptions?.(...args),
+  }), []);
   
   // ===== SEARCH STATE HOOK =====
   const searchState = useSearchState();
@@ -201,12 +244,9 @@ const SearchPage2 = () => {
       shortlistedUsers, setShortlistedUsers,
       excludedUsers, setExcludedUsers,
     },
-    // filterState
-    {
-      loadSavedSearches: () => {},
-      loadOccupationOptions: () => {},
-      loadLocationOptions: () => {},
-    }
+    // filterState - late-bound proxy to the real load* functions defined
+    // further down. Stable reference to avoid retriggering useCallback deps.
+    filterActionsProxy
   );
   const {
     handleSearch: handleSearchHook,
@@ -863,44 +903,72 @@ const SearchPage2 = () => {
 
   // Trigger initial search after user profile is loaded - check for default saved search first
   useEffect(() => {
-    let autoSearchTimerId = null; // Track setTimeout so cleanup can cancel it
     const loadAndExecuteDefaultSearch = async () => {
       if (!currentUserProfile || Object.keys(currentUserProfile).length === 0) {
         logger.info('⚠️ currentUserProfile is empty or null, waiting...');
         return;
       }
 
-      // CRITICAL: Clear any stale users IMMEDIATELY - BEFORE any other checks
-      // This prevents showing wrong-gender profiles from previous sessions
-      // Must happen even if hasAutoExecutedRef is true (e.g., from restored state)
-      logger.info('🧹 Clearing stale users before loading search criteria');
-      setUsers([]);
-
-      // Prevent multiple auto-executions (or if state was restored).
-      // CRITICAL: Set the ref synchronously BEFORE any await so React 18
-      // StrictMode's double mount-unmount-remount cycle can't slip through
-      // and fire the initial search twice.
-      if (hasAutoExecutedRef.current) {
-        logger.info('⏭️ Already auto-executed default search or state restored, skipping');
+      // Module-level guard: survives StrictMode mount→unmount→remount and
+      // prevents both "default search runs after saved search" and double
+      // bootstrap. Reset on user change so sign-out + sign-in re-bootstraps.
+      const currentUsername = localStorage.getItem('username');
+      if (searchBootstrapState.username !== currentUsername) {
+        searchBootstrapState.username = currentUsername;
+        searchBootstrapState.done = false;
+      }
+      if (searchBootstrapState.done) {
+        logger.info('⏭️ Bootstrap already done for this session, skipping');
         return;
       }
+      searchBootstrapState.done = true;
+
+      // If there is a pending saved-search action from TopBar, the dedicated
+      // pending-action effect will load it. Skip the default search path so
+      // we don't run two searches.
+      if (pendingSearchAction?.type === 'loadSavedSearch' && pendingSearchAction?.savedSearch) {
+        logger.info('⏭️ Skipping default auto-search due to pending saved search load');
+        return;
+      }
+
+      // Clear any stale users before loading fresh results.
+      logger.info('🧹 Clearing stale users before loading search criteria');
+      setUsers([]);
       hasAutoExecutedRef.current = true;
+
+      const buildPartnerCriteriaCriteria = (defaults) => ({
+        keyword: '',
+        profileId: '',
+        ...defaults,
+        heightMin: '',
+        heightMax: '',
+        location: '',
+        education: '',
+        occupation: '',
+        occupations: [],
+        religion: '',
+        caste: '',
+        drinking: '',
+        smoking: '',
+        relationshipStatus: '',
+        newlyAdded: false,
+      });
 
       try {
         // Check if there's a default saved search
-        logger.info('⭐ Checking for default saved search for user:', localStorage.getItem('username'));
+        logger.info('⭐ Checking for default saved search for user:', currentUsername);
         const response = await getDefaultSavedSearch();
         const defaultSearch = response?.savedSearch || response;
-        
+
         if (defaultSearch && defaultSearch.criteria) {
           logger.info('⭐ Found default saved search:', defaultSearch.name);
           logger.info('📋 Default search criteria:', defaultSearch.criteria);
-          
+
           // Extract minMatchScore from saved search
           const loadedMinScore = defaultSearch.minMatchScore !== undefined ? defaultSearch.minMatchScore : 0;
-          
-          // SAFETY: Enforce opposite-gender filter for non-admin users
-          // Saved searches might have gender='' or wrong gender - override it
+
+          // SAFETY: Enforce opposite-gender filter for non-admin users.
+          // Saved searches might have gender='' or wrong gender - override it.
           const userRole = currentUserProfile?.role?.toLowerCase();
           const isPrivileged = userRole === 'admin' || userRole === 'moderator';
           if (!isPrivileged) {
@@ -910,113 +978,38 @@ const SearchPage2 = () => {
               defaultSearch.criteria.gender = defaults.gender;
             }
           }
-          
+
           // Load criteria and set selected search
           setSearchCriteria(defaultSearch.criteria);
           setMinMatchScore(loadedMinScore);
           setSelectedSearch(defaultSearch);
-          
-          // Mark as executed
-          hasAutoExecutedRef.current = true;
-          
-          // Execute the search with explicit criteria AND minMatchScore
-          // Delay slightly to ensure state is processed by React
-          autoSearchTimerId = setTimeout(() => {
-            // Check if user has entered a profileId - if so, skip auto-search
-            const profileIdInput = document.getElementById('profileId-input');
-            if (profileIdInput && profileIdInput.value.trim()) {
-              logger.info('⏭️ Skipping auto-search - user has entered profileId:', profileIdInput.value);
-              return;
-            }
-            logger.info('🔍 Auto-executing default saved search');
-            handleSearchHook(1, loadedMinScore, defaultSearch.criteria);
-            toastService.info(`⭐ Default search "${defaultSearch.name}" executed`);
-          }, 100);
+
+          logger.info('🔍 Auto-executing default saved search');
+          handleSearchHook(1, loadedMinScore, defaultSearch.criteria);
+          toastService.info(`⭐ Default search "${defaultSearch.name}" executed`);
         } else {
           // No default saved search - execute search with partnerCriteria defaults
-          // This ensures fresh results matching the displayed filter criteria
           logger.info('🔍 No default search found - building criteria from partnerCriteria');
-          
-          // Build the COMPLETE criteria object using shared utility
-          const defaults = buildDefaultCriteria(currentUserProfile);
-          const partnerCriteriaDefaults = {
-            keyword: '',
-            profileId: '',
-            ...defaults,
-            heightMin: '',
-            heightMax: '',
-            location: '',
-            education: '',
-            occupation: '',
-            occupations: [],
-            religion: '',
-            caste: '',
-            drinking: '',
-            smoking: '',
-            relationshipStatus: '',
-            newlyAdded: false,
-          };
-          
+          const partnerCriteriaDefaults = buildPartnerCriteriaCriteria(buildDefaultCriteria(currentUserProfile));
           logger.info('📋 Built partnerCriteria defaults:', partnerCriteriaDefaults);
-          
-          // Set complete criteria object (not merging)
+
           setSearchCriteria(partnerCriteriaDefaults);
-          
-          // Mark as executed
-          hasAutoExecutedRef.current = true;
-          
-          // Execute search with explicit criteria (don't rely on async state)
-          // Note: Users already cleared at line 628 at start of function
-          autoSearchTimerId = setTimeout(() => {
-            // Check if user has entered a profileId - if so, skip auto-search
-            const profileIdInput = document.getElementById('profileId-input');
-            if (profileIdInput && profileIdInput.value.trim()) {
-              logger.info('⏭️ Skipping auto-search - user has entered profileId:', profileIdInput.value);
-              return;
-            }
-            logger.info('🔍 Auto-executing search with partnerCriteria defaults');
-            handleSearchHook(1, 0, partnerCriteriaDefaults);
-          }, 100);
+          logger.info('🔍 Auto-executing search with partnerCriteria defaults');
+          handleSearchHook(1, 0, partnerCriteriaDefaults);
         }
       } catch (err) {
         logger.error('Error loading default saved search:', err);
-        
+
         // FALLBACK: If loading default search fails, execute with partner criteria
-        // Without this, no search would ever execute on page load
-        if (!hasAutoExecutedRef.current) {
-          logger.info('🔍 Fallback: executing search with partnerCriteria after error');
-          const defaults = buildDefaultCriteria(currentUserProfile);
-          const fallbackCriteria = {
-            keyword: '',
-            profileId: '',
-            ...defaults,
-            heightMin: '',
-            heightMax: '',
-            location: '',
-            education: '',
-            occupation: '',
-            occupations: [],
-            religion: '',
-            caste: '',
-            drinking: '',
-            smoking: '',
-            relationshipStatus: '',
-            newlyAdded: false,
-          };
-          setSearchCriteria(fallbackCriteria);
-          hasAutoExecutedRef.current = true;
-          autoSearchTimerId = setTimeout(() => {
-            handleSearchHook(1, 0, fallbackCriteria);
-          }, 100);
-        }
+        // Without this, no search would ever execute on page load.
+        logger.info('🔍 Fallback: executing search with partnerCriteria after error');
+        const fallbackCriteria = buildPartnerCriteriaCriteria(buildDefaultCriteria(currentUserProfile));
+        setSearchCriteria(fallbackCriteria);
+        handleSearchHook(1, 0, fallbackCriteria);
       }
     };
 
     loadAndExecuteDefaultSearch();
-    
-    return () => {
-      if (autoSearchTimerId) clearTimeout(autoSearchTimerId);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserProfile]);
   const loadPiiRequests = async () => {
@@ -1156,6 +1149,13 @@ const SearchPage2 = () => {
     }
   };
 
+  // Keep filterActionsRef pointing at the latest implementations so
+  // useSearchActions (which captured a stable proxy) calls into the
+  // current closures (e.g., handleSaveSearch refreshes the list).
+  filterActionsRef.current.loadSavedSearches = loadSavedSearches;
+  filterActionsRef.current.loadOccupationOptions = loadOccupationOptions;
+  filterActionsRef.current.loadLocationOptions = loadLocationOptions;
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     logger.info(`🔧 Input changed: ${name} = ${value}`);
@@ -1202,9 +1202,9 @@ const SearchPage2 = () => {
     };
     setSearchCriteria(nextCriteria);
     setSelectedSearch(null);
-    handleSearchHook(1, nextCriteria);
+    handleSearchHook(1, minMatchScore, nextCriteria);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [handleSearchHook, searchCriteria, setSearchCriteria]);
+  }, [handleSearchHook, minMatchScore, searchCriteria, setSearchCriteria]);
 
   const handleClearFilters = () => {
     // Admin: Clear all fields (widest search)
@@ -1478,12 +1478,8 @@ const SearchPage2 = () => {
     setSelectedSearch(savedSearch);
     setShowSavedSearches(false);
     toastService.info(`📂 Loaded saved search: "${savedSearch.name}"`);
-    
-    // Automatically perform search with loaded criteria
-    // Pass the criteria directly to handleSearch to ensure immediate execution with correct values
-    setTimeout(() => {
-      handleSearchHook(1, loadedMinScore, criteriaWithDefaults);
-    }, 100);
+
+    handleSearchHook(1, loadedMinScore, criteriaWithDefaults);
   }, [currentUserProfile, handleSearchHook]);
 
   // Listen for saved search loads from TopBar
@@ -1498,27 +1494,21 @@ const SearchPage2 = () => {
     return () => window.removeEventListener('loadSavedSearchFromTopbar', handler);
   }, [handleLoadSavedSearch]);
 
-  // Apply any pending search action set by TopBar when navigating to /search
+  // Apply any pending search action set by TopBar when navigating to /search.
+  // pendingSearchAction was captured (and sessionStorage cleared) during this
+  // component instance's first render via useState's initializer, so on
+  // StrictMode mount#2 it is null and this effect no-ops correctly.
   useEffect(() => {
     if (!currentUserProfile || Object.keys(currentUserProfile).length === 0) return;
-    const raw = sessionStorage.getItem('pendingSearchAction');
-    if (!raw) return;
+    if (!pendingSearchAction) return;
 
-    sessionStorage.removeItem('pendingSearchAction');
-    try {
-      const action = JSON.parse(raw);
-      if (action?.type === 'openFilters') {
-        openFiltersPanel();
-        return;
-      }
-      if (action?.type === 'loadSavedSearch' && action?.savedSearch) {
-        handleLoadSavedSearch(action.savedSearch);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } catch (err) {
-      logger.error('Failed to parse pendingSearchAction:', err);
+    if (pendingSearchAction.type === 'openFilters') {
+      openFiltersPanel();
+    } else if (pendingSearchAction.type === 'loadSavedSearch' && pendingSearchAction.savedSearch) {
+      handleLoadSavedSearch(pendingSearchAction.savedSearch);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [currentUserProfile, handleLoadSavedSearch, openFiltersPanel]);
+  }, [currentUserProfile, pendingSearchAction, handleLoadSavedSearch, openFiltersPanel]);
 
   const handleDeleteSavedSearch = async (searchId) => {
     if (!searchId) {

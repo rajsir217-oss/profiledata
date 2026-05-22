@@ -261,9 +261,12 @@
 
 .profile-bio-text {
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--text-color);
   font-style: italic;
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.2px;
 }
 
 /* Profile Quick Info Pills (age, born, height) */
