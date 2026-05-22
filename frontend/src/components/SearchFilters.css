@@ -66,10 +66,11 @@
 }
 
 .active-criteria-bar-body .search-action-buttons.search-action-buttons-inline {
-  justify-content: flex-start;
+  justify-content: flex-end;
   margin: 0;
   padding: 0 !important;
-  gap: 10px;
+  gap: 6px;
+  width: fit-content;
 }
 
 .active-criteria-bar-body .basic-filters-section .search-action-buttons-inline {
@@ -93,9 +94,11 @@
 .active-criteria-bar-body .advanced-filters-section .col-advanced-actions {
   display: flex;
   align-items: flex-end;
-  justify-content: flex-start;
-  gap: 10px;
+  justify-content: flex-end;
+  gap: 6px;
   flex-wrap: nowrap;
+  width: fit-content;
+  justify-self: end;
 }
 
 .active-criteria-bar-body .advanced-filters-section .col-advanced-actions .btn {
