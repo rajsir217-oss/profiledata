@@ -21,7 +21,7 @@
 /* ===== HERO ===== */
 
 .dv2-hero {
-  background: var(--dv2-hero-section-bg, var(--surface-color, #fff));
+  background: var(--dv2-hero-section-bg, var(--surface-color, var(--background-color)));
   border: 1px solid var(--border-color, #e5e5e5);
   border-radius: var(--radius-lg, 12px);
   padding: var(--spacing-lg, 24px);
