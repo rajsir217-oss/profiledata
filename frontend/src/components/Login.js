@@ -7,6 +7,7 @@ import socketService from "../services/socketService";
 import sessionManager from "../services/sessionManager";
 import toastService from '../services/toastService';
 import { getBackendUrl, getTurnstileSiteKey } from "../config/apiConfig";
+import logger from '../utils/logger';
 import {
   biometricLogin,
   clearCredential,
@@ -20,6 +21,15 @@ import { getPageSEO } from "../utils/seo";
 // Using Cloudflare Turnstile instead of reCAPTCHA (100% free, no limits)
 import Turnstile from "react-turnstile";
 import "./Login.css";
+
+const getHomeRoute = (homePage) => {
+  const homeRoutes = {
+    dashboard: '/dashboardv2',
+    search: '/search',
+    messages: '/messages',
+  };
+  return homeRoutes[homePage] || '/dashboardv2';
+};
 
 const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -91,8 +101,8 @@ const Login = () => {
     if (ssoExchangeGuardRef.current.code === ssoCode) return;
     ssoExchangeGuardRef.current.code = ssoCode;
 
-    const redirectParam = params.get('redirect') || '/dashboard';
-    const safeRedirect = typeof redirectParam === 'string' && redirectParam.startsWith('/') ? redirectParam : '/dashboard';
+    const redirectParam = params.get('redirect');
+    const safeRedirect = typeof redirectParam === 'string' && redirectParam.startsWith('/') ? redirectParam : null;
 
     const exchange = async () => {
       setLoading(true);
@@ -131,9 +141,12 @@ const Login = () => {
         window.dispatchEvent(new Event('loginStatusChanged'));
         window.dispatchEvent(new Event('userLoggedIn'));
 
-        navigate(safeRedirect, { replace: true, state: { user } });
+        const homePage = user.homePage || localStorage.getItem('homePage') || 'dashboard';
+        localStorage.setItem('homePage', homePage);
+
+        navigate(safeRedirect || getHomeRoute(homePage), { replace: true, state: { user } });
       } catch (err) {
-        console.error('SSO exchange failed:', err);
+        logger.error('SSO exchange failed', err);
         setError('Single sign-on failed. Please log in.');
         navigate('/login', { replace: true });
       } finally {
@@ -208,17 +221,17 @@ const Login = () => {
       // Save user role for admin access control
       const userRole = res.data.user.role_name || res.data.user.role || 'free_user';
       localStorage.setItem('userRole', userRole);
-      console.log('👤 User role saved:', userRole);
+      logger.debug('User role saved', { userRole });
       
       // Clear photo reminder dismissal so banner shows fresh each login
       sessionStorage.removeItem('photoReminderDismissed');
       
       // Initialize session manager for activity-based token refresh
       sessionManager.init();
-      console.log('🔄 Session manager initialized');
+      logger.debug('Session manager initialized');
       
       // Connect to WebSocket (automatically marks user as online)
-      console.log('🔌 Connecting to WebSocket');
+      logger.debug('Connecting to WebSocket');
       socketService.connect(res.data.user.username);
       
       // Clear any cached theme from previous user
@@ -243,12 +256,12 @@ const Login = () => {
         : null;
       
       // Check for unattended chats before redirecting
-      let redirectPath = '/dashboard';
+      let redirectPath = '/dashboardv2';
       try {
-        console.log('🔍 Checking for unattended chats...');
+        logger.debug('Checking for unattended chats');
         const unattendedRes = await api.get('/messages/unattended');
         const unattendedData = unattendedRes.data;
-        console.log('📬 Unattended chats response:', unattendedData);
+        logger.debug('Unattended chats response', unattendedData);
         
         // Check for critical (blocking) or warning messages
         const hasWarnings = (unattendedData.warningCount || 0) > 0;
@@ -256,7 +269,10 @@ const Login = () => {
         
         if (hasCritical) {
           // Critical messages (10+ days) - redirect to messages, blocks navigation
-          console.log(`🔴 ${unattendedData.criticalCount} critical chats found, redirecting to messages`);
+          logger.info('Critical unattended chats found; redirecting to messages', {
+            criticalCount: unattendedData.criticalCount,
+            warningCount: unattendedData.warningCount || 0,
+          });
           redirectPath = '/messages';
           sessionStorage.setItem('unattendedChatsAlert', JSON.stringify({
             count: unattendedData.criticalCount,
@@ -265,7 +281,12 @@ const Login = () => {
           }));
         } else if (hasWarnings) {
           // Warning messages (1-9 days) - show toast but don't force redirect
-          console.log(`💬 ${unattendedData.warningCount} warning chats found, showing notification`);
+          logger.info('Unattended chat warnings found', {
+            warningCount: unattendedData.warningCount,
+            highCount: unattendedData.highCount || 0,
+            mediumCount: unattendedData.mediumCount || 0,
+            pendingCount: unattendedData.pendingCount || 0,
+          });
           sessionStorage.setItem('pendingMessagesWarning', JSON.stringify({
             count: unattendedData.warningCount,
             high: unattendedData.highCount || 0,
@@ -278,12 +299,7 @@ const Login = () => {
             // Continue to user's preferred home page
             const homePage = res.data.user.homePage || 'dashboard';
             localStorage.setItem('homePage', homePage);
-            const homeRoutes = {
-              'dashboard': '/dashboard',
-              'search': '/search',
-              'messages': '/messages'
-            };
-            redirectPath = homeRoutes[homePage] || '/dashboard';
+            redirectPath = getHomeRoute(homePage);
           }
         } else {
           if (safeRequestedRedirect) {
@@ -292,34 +308,24 @@ const Login = () => {
             // Redirect to user's preferred home page (default: dashboard)
             const homePage = res.data.user.homePage || 'dashboard';
             localStorage.setItem('homePage', homePage);
-            const homeRoutes = {
-              'dashboard': '/dashboard',
-              'search': '/search',
-              'messages': '/messages'
-            };
-            redirectPath = homeRoutes[homePage] || '/dashboard';
+            redirectPath = getHomeRoute(homePage);
           }
         }
       } catch (unattendedErr) {
-        console.warn('Could not check unattended chats:', unattendedErr);
+        logger.warn('Could not check unattended chats', unattendedErr);
         if (safeRequestedRedirect) {
           redirectPath = safeRequestedRedirect;
         } else {
           // Fall back to user's preferred home page
           const homePage = res.data.user.homePage || 'dashboard';
           localStorage.setItem('homePage', homePage);
-          const homeRoutes = {
-            'dashboard': '/dashboard',
-            'search': '/search',
-            'messages': '/messages'
-          };
-          redirectPath = homeRoutes[homePage] || '/dashboard';
+          redirectPath = getHomeRoute(homePage);
         }
       }
       
       navigate(redirectPath, { state: { user: res.data.user } });
     } catch (err) {
-      console.error("Login error:", err);
+      logger.error('Login error', err);
       
       // Reset CAPTCHA on error
       if (turnstileRef.current) {
@@ -338,7 +344,7 @@ const Login = () => {
         try {
           await sendMfaCode();
         } catch (mfaErr) {
-          console.error("Failed to send MFA code:", mfaErr);
+          logger.error('Failed to send MFA code', mfaErr);
           // Error message is already set by sendMfaCode function
         }
       } else {
@@ -350,7 +356,7 @@ const Login = () => {
   };
 
   const handleCaptchaChange = (token) => {
-    console.log("CAPTCHA verified:", token ? "✓" : "✗");
+    logger.debug('CAPTCHA verified', { ok: Boolean(token) });
     setCaptchaToken(token);
     setCaptchaError(false);
     setCaptchaLoaded(true);
@@ -358,7 +364,7 @@ const Login = () => {
   };
 
   const handleCaptchaError = () => {
-    console.error("CAPTCHA error - Cloudflare Turnstile failed to load");
+    logger.error('CAPTCHA error - Cloudflare Turnstile failed to load');
     setCaptchaError(true);
     setCaptchaRetryCount(prev => prev + 1);
     setCaptchaToken(null);
@@ -366,7 +372,7 @@ const Login = () => {
   };
 
   const handleCaptchaExpire = () => {
-    console.log("CAPTCHA expired - resetting");
+    logger.debug('CAPTCHA expired - resetting');
     setCaptchaToken(null);
   };
 
@@ -404,7 +410,7 @@ const Login = () => {
         setError(`DEV MODE: Use code ${response.data.mock_code}`);
       }
     } catch (err) {
-      console.error("Error sending MFA code:", err);
+      logger.error('Error sending MFA code', err);
       // Show the actual backend error message
       const errorMessage = err.response?.data?.detail || err.response?.data?.message || "Failed to send verification code";
       setError(errorMessage);
@@ -460,7 +466,7 @@ const Login = () => {
       
       // Initialize session manager
       sessionManager.init();
-      console.log('🔄 Session manager initialized (MFA)');
+      logger.debug('Session manager initialized (MFA)');
       
       // Save user status for menu access control
       // CRITICAL FIX: Use accountStatus (unified field) instead of legacy status.status
@@ -470,10 +476,10 @@ const Login = () => {
       // Save user role for admin access control
       const userRole = res.data.user.role_name || 'free_user';
       localStorage.setItem('userRole', userRole);
-      console.log('👤 User role saved:', userRole);
+      logger.debug('User role saved (MFA)', { userRole });
       
       // Connect to WebSocket
-      console.log('🔌 Connecting to WebSocket');
+      logger.debug('Connecting to WebSocket');
       socketService.connect(res.data.user.username);
       
       // Clear any cached theme from previous user
@@ -482,10 +488,18 @@ const Login = () => {
       // Dispatch custom event to notify other components
       window.dispatchEvent(new Event('loginStatusChanged'));
       window.dispatchEvent(new Event('userLoggedIn'));
-      
-      navigate('/dashboard', { state: { user: res.data.user } });
+
+      const urlParams = new URLSearchParams(location.search);
+      const requestedRedirect = urlParams.get('redirect');
+      const safeRequestedRedirect = typeof requestedRedirect === 'string' && requestedRedirect.startsWith('/')
+        ? requestedRedirect
+        : null;
+      const homePage = res.data.user.homePage || 'dashboard';
+      localStorage.setItem('homePage', homePage);
+
+      navigate(safeRequestedRedirect || getHomeRoute(homePage), { state: { user: res.data.user } });
     } catch (err) {
-      console.error("MFA verification error:", err);
+      logger.error('MFA verification error', err);
       setError(err.response?.data?.detail || "Invalid verification code");
     } finally {
       setLoading(false);
@@ -503,8 +517,8 @@ const Login = () => {
     setLoading(true);
     setError('');
     try {
-      const redirectParam = new URLSearchParams(location.search).get('redirect') || '/dashboard';
-      const safeRedirect = typeof redirectParam === 'string' && redirectParam.startsWith('/') ? redirectParam : '/dashboard';
+      const redirectParam = new URLSearchParams(location.search).get('redirect');
+      const safeRedirect = typeof redirectParam === 'string' && redirectParam.startsWith('/') ? redirectParam : null;
 
       const res = await biometricLogin();
       if (!res?.ok) {
@@ -539,7 +553,10 @@ const Login = () => {
       window.dispatchEvent(new Event('loginStatusChanged'));
       window.dispatchEvent(new Event('userLoggedIn'));
 
-      navigate(safeRedirect, { replace: true, state: { user } });
+      const homePage = user.homePage || localStorage.getItem('homePage') || 'dashboard';
+      localStorage.setItem('homePage', homePage);
+
+      navigate(safeRedirect || getHomeRoute(homePage), { replace: true, state: { user } });
     } catch (e) {
       setError(e?.message || 'Biometric login failed.');
     } finally {
