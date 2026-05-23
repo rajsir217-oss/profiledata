@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: 160px minmax(0, 1fr) 240px;
   gap: var(--spacing-lg, 24px);
-  background: linear-gradient(135deg, var(--dv2-accent-soft, var(--surface-color)) 0%, var(--dv2-hero-card-bg, var(--surface-color)) 55%, var(--card-background) 120%);
+  background: linear-gradient(135deg, var(--dv2-accent-soft, var(--surface-color)) 0%, var(--dv2-hero-card-bg, var(--surface-color)) 55%, var(--dv2-hero-card-bg, var(--card-background)) 120%);
   border: 1px solid var(--border-color, #e5e5e5);
   border-radius: var(--radius-lg, 12px);
   padding: var(--spacing-lg, 24px);
