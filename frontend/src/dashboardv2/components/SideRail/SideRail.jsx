@@ -15,9 +15,9 @@ const SideRail = ({
   return (
     <aside className="dv2-side-rail">
       <ProfileCompletenessCard userProfile={userProfile} />
+      <ActivePollsCard polls={activePolls} onPollResponded={onPollResponded} />
       <SavedSearchesListCard savedSearches={savedSearches} onOpenSavedSearch={onOpenSavedSearch} />
       <NotificationsCard savedSearches={savedSearches} />
-      <ActivePollsCard polls={activePolls} onPollResponded={onPollResponded} />
     </aside>
   );
 };

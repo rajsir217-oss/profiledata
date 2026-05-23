@@ -131,7 +131,7 @@ const HeroNewestMatch = ({
   const photo = getProfileImage(profile);
 
   return (
-    <div className="dv2-hero-card dv2-variant-secondary">
+    <div className="dv2-hero-card dv2-variant-primary">
       <div className="dv2-hero-photo" aria-hidden="true">
         {photo ? (
           <img className="dv2-hero-img" src={photo} alt="" />
