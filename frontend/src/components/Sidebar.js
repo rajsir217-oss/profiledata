@@ -165,7 +165,13 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         icon: '🦋', 
         label: 'My Dashboard', 
         subLabel: 'Overview & Activity',
-        action: () => navigate('/dashboard'),
+        action: () => navigate('/dashboardv2'),
+        links: [
+          {
+            label: 'Legacy dashboard',
+            action: () => navigate('/dashboard'),
+          },
+        ],
         disabled: !isActive
       },
       { 
@@ -490,6 +496,23 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
                     <div className="menu-label">{item.label}</div>
                     {item.subLabel && (
                       <div className="menu-sublabel">{item.subLabel}</div>
+                    )}
+                    {Array.isArray(item.links) && item.links.length > 0 && (
+                      <div className="menu-links">
+                        {item.links.map((link, i) => (
+                          <button
+                            key={`${item.label}-link-${i}`}
+                            type="button"
+                            className="menu-sublabel menu-sublabel-link"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMenuClick(link.action);
+                            }}
+                          >
+                            {link.label}
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}

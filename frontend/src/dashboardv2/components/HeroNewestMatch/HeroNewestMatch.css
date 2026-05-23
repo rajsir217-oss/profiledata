@@ -1,0 +1,211 @@
+.dv2-hero-card {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) 240px;
+  gap: var(--spacing-lg, 24px);
+  background: var(--dv2-hero-card-bg, var(--surface-color, #fff));
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--spacing-lg, 24px);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 980px) {
+  .dv2-hero-card {
+    grid-template-columns: 140px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .dv2-hero-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dv2-hero-photo {
+  position: relative;
+  border-radius: var(--radius-md, 10px);
+  overflow: hidden;
+  border: 1px solid var(--border-color, #e5e5e5);
+  background: linear-gradient(135deg, var(--selected-background) 0%, var(--background-color) 80%);
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dv2-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dv2-hero-initials {
+  font-size: 56px;
+  font-weight: 900;
+  color: var(--primary-color, #d4736a);
+}
+
+.dv2-hero-badge {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  background: var(--dv2-accent, var(--primary-color));
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.dv2-hero-content {
+  min-width: 0;
+}
+
+.dv2-hero-top {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dv2-hero-name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-color, #222);
+}
+
+.dv2-hero-score {
+  font-size: 13px;
+  color: var(--dv2-accent, var(--primary-color));
+  font-weight: 800;
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: 12px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, var(--dv2-accent-soft, var(--background-color)) 0%, var(--background-color) 100%);
+}
+
+.dv2-hero-attrs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-muted, #888);
+}
+
+.dv2-hero-bio {
+  margin: 12px 0 0;
+  color: var(--text-color, #222);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dv2-hero-why {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-md, 10px);
+  background: linear-gradient(135deg, var(--dv2-accent-soft, var(--background-color)) 0%, var(--background-color) 100%);
+  display: flex;
+  gap: 10px;
+}
+
+.dv2-heart {
+  color: var(--danger-color);
+}
+
+.dv2-hero-why-icon {
+  flex-shrink: 0;
+}
+
+.dv2-hero-why-text {
+  font-size: 13px;
+  color: var(--text-color, #222);
+}
+
+.dv2-hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 980px) {
+  .dv2-hero-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+.dv2-btn {
+  background: var(--surface-color, #fff);
+  border: 1px solid var(--border-color, #e5e5e5);
+  color: var(--text-color, #222);
+  border-radius: 999px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.dv2-btn:hover:not(:disabled) {
+  border-color: var(--primary-color, #d4736a);
+  transform: translateY(-1px);
+}
+
+.dv2-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dv2-btn-primary {
+  background: var(--primary-color, #d4736a);
+  border-color: var(--primary-color, #d4736a);
+  color: white;
+}
+
+.dv2-btn-primary:hover:not(:disabled) {
+  border-color: var(--primary-color, #d4736a);
+}
+
+.dv2-btn-ghost {
+  background: transparent;
+}
+
+.dv2-btn-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  color: var(--primary-color, #d4736a);
+}
+
+.dv2-hero-card-loading {
+  grid-template-columns: 1fr;
+}
+
+.dv2-hero-skeleton {
+  height: 120px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px dashed var(--border-color, #e5e5e5);
+  background: var(--background-color, #fafafa);
+}
+
+.dv2-hero-empty {
+  grid-template-columns: 1fr;
+}
+
+.dv2-hero-empty-title {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.dv2-hero-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted, #888);
+  margin-top: 6px;
+}

@@ -127,3 +127,6 @@ RATE_LIMITS = {
     "upload": "20/minute",       # File uploads
     "stats": "60/minute",        # Platform stats, analytics (cached read-only)
 }
+
+if os.getenv("ENV", "").lower() in {"development", "dev", "local"}:
+    RATE_LIMITS["search"] = os.getenv("DEV_RATE_LIMIT_SEARCH", "300/minute")

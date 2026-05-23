@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup A — Action-First Dashboard</title>
+<style>
+  :root {
+    --primary-color: #d4736a;
+    --primary-dark: #b85b53;
+    --secondary-color: #e9b384;
+    --accent-color: #6ba8a0;
+    --bg-color: #faf6f1;
+    --surface-color: #fff;
+    --card-background: #fff;
+    --border-color: #e8dfd5;
+    --text-color: #3a2e2a;
+    --text-secondary: #7a6b65;
+    --text-muted: #a89b94;
+    --success-color: #6ba87f;
+    --warning-color: #e0a458;
+    --danger-color: #c4685a;
+    --info-color: #5a8eb5;
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --shadow-sm: 0 2px 4px rgba(58, 46, 42, 0.06);
+    --shadow-md: 0 4px 12px rgba(58, 46, 42, 0.08);
+    --shadow-lg: 0 8px 24px rgba(58, 46, 42, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.5;
+  }
+
+  /* ============ TOP BAR (mock) ============ */
+  .topbar {
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--spacing-md) var(--spacing-xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .topbar-logo { font-weight: 700; font-size: 18px; color: var(--primary-color); }
+  .topbar-actions { display: flex; gap: var(--spacing-md); align-items: center; }
+  .notif-bell {
+    position: relative;
+    background: none;
+    border: 1px solid var(--border-color);
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+  }
+  .notif-bell .badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: var(--danger-color);
+    color: white;
+    font-size: 11px;
+    border-radius: 10px;
+    min-width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    padding: 0 4px;
+  }
+  .avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+  }
+
+  /* ============ MAIN LAYOUT ============ */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-md);
+  }
+
+  /* ============ HERO SEARCH ============ */
+  .hero {
+    background: linear-gradient(135deg, rgba(212, 115, 106, 0.05), rgba(233, 179, 132, 0.08));
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+  }
+  .hero-greeting {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+  }
+  .hero-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 var(--spacing-md);
+    color: var(--text-color);
+  }
+  .hero-title .name { color: var(--primary-color); }
+  /* ---- Daily pick (curated profile spotlight) ---- */
+  .daily-pick-card {
+    background: var(--surface-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    display: grid;
+    grid-template-columns: 180px 1fr 220px;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+  }
+  @media (max-width: 900px) {
+    .daily-pick-card { grid-template-columns: 1fr; }
+  }
+  .dp-photo {
+    aspect-ratio: 4/5;
+    background: linear-gradient(135deg, #6ba8a0, #4f8262);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 72px;
+    font-weight: 700;
+    position: relative;
+  }
+  .dp-age-badge {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: rgba(0,0,0,0.55);
+    color: white;
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 11px;
+    font-weight: 600;
+  }
+  .dp-pick-badge {
+    position: absolute;
+    bottom: 10px; left: 10px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .dp-content {
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .dp-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+  }
+  .dp-name {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-color);
+  }
+  .dp-score {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    font-size: 13px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .dp-online {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--success-color);
+    font-weight: 600;
+  }
+  .dp-online::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--success-color);
+    border-radius: 50%;
+  }
+  .dp-attrs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .dp-bio {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-color);
+    font-style: italic;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .dp-why {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: linear-gradient(135deg, rgba(212, 115, 106, 0.06), rgba(233, 179, 132, 0.10));
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--primary-color);
+    line-height: 1.5;
+  }
+  .dp-why em { color: var(--primary-color); font-style: normal; font-weight: 600; }
+  .dp-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: var(--spacing-md);
+    border-left: 1px solid var(--border-color);
+    background: var(--bg-color);
+    justify-content: center;
+  }
+  @media (max-width: 900px) {
+    .dp-actions { border-left: none; border-top: 1px solid var(--border-color); flex-direction: row; flex-wrap: wrap; }
+    .dp-actions .dp-btn { flex: 1; min-width: 140px; }
+  }
+  .dp-btn {
+    background: var(--surface-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 9px 12px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .dp-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+  .dp-btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+  .dp-btn-primary:hover { background: var(--primary-dark); color: white; border-color: var(--primary-dark); }
+  .dp-btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 4px;
+  }
+  .dp-btn-ghost:hover { color: var(--text-secondary); border-color: transparent; }
+
+  /* ---- Hero jump strip (saved-search shortcuts) ---- */
+  .hero-jump-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+  }
+  .hero-jump-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 4px;
+  }
+
+  .quick-chips {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    flex-wrap: wrap;
+  }
+  .quick-chip {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .quick-chip:hover { border-color: var(--primary-color); color: var(--primary-color); }
+  .quick-chip.starred::before { content: '⭐ '; }
+  .chip-count {
+    background: var(--primary-color);
+    color: white;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 700;
+    margin-left: 4px;
+  }
+  .quick-chip:hover .chip-count { background: var(--primary-dark); }
+
+  /* ============ TWO-COLUMN GRID ============ */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: var(--spacing-lg);
+  }
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .col-main { min-width: 0; }
+  .col-side { min-width: 0; }
+
+  /* ============ "WHAT'S NEXT" ACTION CARDS ============ */
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 var(--spacing-md);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+  }
+
+  .actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+  }
+  .action-card {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .action-card-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, rgba(212, 115, 106, 0.1), rgba(233, 179, 132, 0.15));
+    color: var(--primary-color);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: var(--spacing-sm);
+  }
+  .action-card-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: var(--spacing-xs);
+  }
+  .action-card-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  .action-card.urgent { border-color: var(--warning-color); background: linear-gradient(135deg, #fff8ed 0%, var(--card-background) 60%); }
+  .action-card.urgent .action-card-icon { background: rgba(224, 164, 88, 0.15); color: var(--warning-color); }
+  .action-card-badge {
+    position: absolute;
+    top: var(--spacing-md);
+    right: var(--spacing-md);
+    background: var(--danger-color);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  /* ============ COMPACT STATS STRIP ============ */
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+  }
+  @media (max-width: 600px) {
+    .stats-strip { grid-template-columns: repeat(2, 1fr); }
+  }
+  .stat-tile {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    cursor: pointer;
+    text-align: center;
+  }
+  .stat-tile:hover { border-color: var(--primary-color); }
+  .stat-tile .num {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-color);
+    display: block;
+  }
+  .stat-tile .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    display: block;
+  }
+  .stat-tile.has-new .num::after {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--danger-color);
+    border-radius: 50%;
+    margin-left: 6px;
+    vertical-align: top;
+    margin-top: 4px;
+  }
+
+  /* ============ INBOX SHORTCUT (recent messages) ============ */
+  .panel {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel-header h3 {
+    margin: 0;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+  }
+  .panel-header a {
+    font-size: 13px;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .msg-row {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    gap: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+  }
+  .msg-row:last-child { border-bottom: none; }
+  .msg-row:hover { background: var(--bg-color); }
+  .msg-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-color), var(--info-color));
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .msg-body { flex: 1; min-width: 0; }
+  .msg-name { font-weight: 600; font-size: 14px; }
+  .msg-preview {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .msg-time { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+  .msg-row.unread .msg-name::after {
+    content: '●';
+    color: var(--primary-color);
+    margin-left: 6px;
+    font-size: 10px;
+  }
+
+  /* ============ SIDE COLUMN ============ */
+  .side-card {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+  .side-card h4 {
+    margin: 0 0 var(--spacing-sm);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+  }
+  .completeness-bar {
+    background: var(--bg-color);
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: var(--spacing-sm) 0;
+  }
+  .completeness-fill {
+    background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+    height: 100%;
+    width: 75%;
+    border-radius: 4px;
+  }
+  .completeness-pct {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--success-color);
+  }
+  .completeness-todo {
+    list-style: none;
+    padding: 0;
+    margin: var(--spacing-sm) 0 0;
+    font-size: 13px;
+  }
+  .completeness-todo li {
+    padding: 4px 0;
+    color: var(--text-secondary);
+  }
+  .completeness-todo li::before {
+    content: '○ ';
+    color: var(--text-muted);
+  }
+  .completeness-todo li.done {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+  .completeness-todo li.done::before {
+    content: '✓ ';
+    color: var(--success-color);
+  }
+
+  .saved-search-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .saved-search-row:last-child { border-bottom: none; }
+  .saved-search-row:hover .saved-search-name { color: var(--primary-color); }
+  .saved-search-name { font-weight: 500; }
+  .saved-search-meta { font-size: 11px; color: var(--text-muted); }
+  .saved-search-new {
+    background: var(--primary-color);
+    color: white;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  /* ============ ACTIVE POLLS ============ */
+  .poll-card {
+    background: linear-gradient(135deg, rgba(107, 168, 160, 0.08), rgba(212, 115, 106, 0.05));
+    border: 1px solid var(--accent-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+  .poll-card h4 {
+    margin: 0 0 var(--spacing-sm);
+    font-size: 13px;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .poll-count-badge {
+    background: var(--accent-color);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .poll-question {
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    font-size: 14px;
+  }
+  .poll-meta {
+    font-size: 11px;
+    color: var(--text-color-muted, #888);
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .poll-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px dashed var(--border-color);
+  }
+  .poll-nav-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .poll-nav-btn:hover { border-color: var(--accent-color); color: var(--accent-color); }
+  .poll-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .poll-nav-position {
+    font-size: 12px;
+    color: var(--text-color-muted, #888);
+    font-weight: 600;
+  }
+  .poll-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .poll-option:hover { border-color: var(--accent-color); }
+
+  /* ============ NOTIFICATION DRAWER (closed by default) ============ */
+  .notif-drawer {
+    display: none;
+    position: fixed;
+    top: 70px; right: 16px;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .notif-drawer.open { display: block; }
+  .notif-drawer h4 {
+    margin: 0;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 14px;
+  }
+  .notif-item {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+    display: flex;
+    gap: var(--spacing-sm);
+  }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-icon { font-size: 18px; flex-shrink: 0; }
+  .notif-text strong { display: block; margin-bottom: 2px; }
+  .notif-text span { color: var(--text-secondary); font-size: 12px; }
+  .notif-action-btns { display: flex; gap: 6px; margin-top: 6px; }
+  .notif-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 4px 12px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .notif-btn.secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+  }
+
+  /* ============ FOOTER NOTE ============ */
+  .mockup-banner {
+    background: var(--text-color);
+    color: white;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 13px;
+  }
+  .mockup-banner a { color: var(--secondary-color); margin-left: 12px; }
+</style>
+</head>
+<body>
+
+<div class="mockup-banner">
+  <strong>📐 Mockup A — Action-First Dashboard.</strong>
+  <a href="./index.html">← Back to comparison</a>
+  <a href="./B-activity-timeline.html">B →</a>
+  <a href="./C-match-discovery.html">C →</a>
+  <a href="./D-two-column.html">D →</a>
+</div>
+
+<header class="topbar">
+  <div class="topbar-logo">L3V3L Matches</div>
+  <div class="topbar-actions">
+    <button class="notif-bell" onclick="document.getElementById('drawer').classList.toggle('open')">
+      🔔 <span class="badge">5</span>
+    </button>
+    <div class="avatar">SK</div>
+  </div>
+</header>
+
+<div class="notif-drawer" id="drawer">
+  <h4>Notifications</h4>
+  <div class="notif-item">
+    <span class="notif-icon">📸</span>
+    <div class="notif-text">
+      <strong>Add a photo</strong>
+      <span>Profiles with photos get 10x more views.</span>
+      <div class="notif-action-btns">
+        <button class="notif-btn">Upload</button>
+        <button class="notif-btn secondary">Later</button>
+      </div>
+    </div>
+  </div>
+  <div class="notif-item">
+    <span class="notif-icon">🔐</span>
+    <div class="notif-text">
+      <strong>Enable MFA</strong>
+      <span>Add an extra layer of security.</span>
+    </div>
+  </div>
+  <div class="notif-item">
+    <span class="notif-icon">🎟️</span>
+    <div class="notif-text">
+      <strong>3 invitations available</strong>
+      <span>Invite friends or family.</span>
+    </div>
+  </div>
+  <div class="notif-item">
+    <span class="notif-icon">💬</span>
+    <div class="notif-text">
+      <strong>Anita wants to reconnect</strong>
+      <span>You excluded them earlier.</span>
+      <div class="notif-action-btns">
+        <button class="notif-btn">✓ Unblock</button>
+        <button class="notif-btn secondary">Decline</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="container">
+
+  <!-- HERO: Newest match in default saved search (top 1 by joinedAt desc — no separate curation job) -->
+  <section class="hero">
+    <div class="hero-greeting">Tuesday, May 27 · Welcome back</div>
+    <h1 class="hero-title">Hi <span class="name">Sara</span> — newest match in <span class="name">“Tampa singles 28-34”</span></h1>
+
+    <div class="daily-pick-card">
+      <div class="dp-photo">
+        P
+        <span class="dp-age-badge">28y</span>
+        <span class="dp-pick-badge">Newest match</span>
+      </div>
+      <div class="dp-content">
+        <div class="dp-header">
+          <h2 class="dp-name">Priya R.</h2>
+          <span class="dp-score" title="L3V3L match score">💎 92% match</span>
+          <span class="dp-online">Online now</span>
+        </div>
+        <div class="dp-attrs">
+          <span>📍 Tampa, FL</span>
+          <span>💼 Cardiologist (MD)</span>
+          <span>🎓 5'5"</span>
+          <span>🌱 Vegetarian</span>
+          <span>🗓 Joined 4 hours ago</span>
+        </div>
+        <p class="dp-bio">"Looking for a thoughtful partner who values family, travel, and good food. Cardiologist by day, weekend hiker, perpetual coffee enthusiast — happy to meet someone who wants to build something real together."</p>
+        <div class="dp-why">
+          <span>✨</span>
+          <span><strong>Newest profile</strong> matching your default saved search <em>“Tampa singles 28-34”</em> · joined 4 hours ago · hits 9 of 10 of your preferences.</span>
+        </div>
+      </div>
+      <div class="dp-actions">
+        <button class="dp-btn dp-btn-primary">👁 View full profile</button>
+        <button class="dp-btn">❤ Favorite</button>
+        <button class="dp-btn">💬 Send message</button>
+        <button class="dp-btn dp-btn-ghost">⏭ Skip · show next newest</button>
+      </div>
+    </div>
+
+    <div class="hero-jump-strip">
+      <span class="hero-jump-label">Browse your searches:</span>
+      <span class="quick-chip starred">Tampa singles 28-34 <span class="chip-count">12 new</span></span>
+      <span class="quick-chip starred">SF tech professionals <span class="chip-count">12 new</span></span>
+      <span class="quick-chip starred">Doctor / 30+ / India <span class="chip-count">8</span></span>
+      <span class="quick-chip starred">Vegetarian / 25-30 <span class="chip-count">23</span></span>
+      <span class="quick-chip">+ Manage all (5)</span>
+    </div>
+  </section>
+
+  <div class="grid">
+    <!-- MAIN COLUMN -->
+    <div class="col-main">
+
+      <!-- WHAT'S NEXT -->
+      <h2 class="section-title">What needs your attention</h2>
+      <div class="actions-grid">
+        <div class="action-card urgent">
+          <div class="action-card-icon">📬</div>
+          <div class="action-card-badge">3</div>
+          <div class="action-card-title">Review contact requests</div>
+          <p class="action-card-desc">3 people want to share contact info. Approve or decline.</p>
+        </div>
+        <div class="action-card">
+          <div class="action-card-icon">💬</div>
+          <div class="action-card-badge">2</div>
+          <div class="action-card-title">Reply to messages</div>
+          <p class="action-card-desc">2 unread conversations from this week.</p>
+        </div>
+        <div class="action-card">
+          <div class="action-card-icon">⭐</div>
+          <div class="action-card-badge">7</div>
+          <div class="action-card-title">New profiles favorited you</div>
+          <p class="action-card-desc">7 people added you to their favorites.</p>
+        </div>
+        <div class="action-card">
+          <div class="action-card-icon">🔍</div>
+          <div class="action-card-title">Run "Tampa singles" search</div>
+          <p class="action-card-desc">12 new matches since you last ran this saved search.</p>
+        </div>
+        <div class="action-card">
+          <div class="action-card-icon">👀</div>
+          <div class="action-card-badge">12</div>
+          <div class="action-card-title">See who viewed you</div>
+          <p class="action-card-desc">12 people viewed your profile this week. 3 are 80%+ L3V3L matches.</p>
+        </div>
+        <div class="action-card">
+          <div class="action-card-icon">📅</div>
+          <div class="action-card-badge">2</div>
+          <div class="action-card-title">Follow up on chats</div>
+          <p class="action-card-desc">2 people you messaged last week haven't replied. Send a friendly nudge.</p>
+        </div>
+      </div>
+
+      <!-- COMPACT STATS -->
+      <h2 class="section-title">Your activity</h2>
+      <div class="stats-strip">
+        <div class="stat-tile has-new">
+          <span class="num">42</span>
+          <span class="label">Profile views</span>
+        </div>
+        <div class="stat-tile">
+          <span class="num">8</span>
+          <span class="label">Conversations</span>
+        </div>
+        <div class="stat-tile">
+          <span class="num">15</span>
+          <span class="label">My favorites</span>
+        </div>
+        <div class="stat-tile">
+          <span class="num">5</span>
+          <span class="label">Saved searches</span>
+        </div>
+        <div class="stat-tile">
+          <span class="num">6</span>
+          <span class="label">Short lists</span>
+        </div>
+        <div class="stat-tile">
+          <span class="num">9</span>
+          <span class="label">My notes</span>
+        </div>
+        <div class="stat-tile">
+          <span class="num">4</span>
+          <span class="label">Exclusions</span>
+        </div>
+      </div>
+
+      <!-- RECENT MESSAGES -->
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Recent conversations</h3>
+          <a href="#">View all →</a>
+        </div>
+        <div class="msg-row unread">
+          <div class="msg-avatar">PR</div>
+          <div class="msg-body">
+            <div class="msg-name">Priya R.</div>
+            <div class="msg-preview">That sounds great! Should we plan a video call this weekend?</div>
+          </div>
+          <div class="msg-time">2h</div>
+        </div>
+        <div class="msg-row unread">
+          <div class="msg-avatar">AN</div>
+          <div class="msg-body">
+            <div class="msg-name">Anjali N.</div>
+            <div class="msg-preview">Yes, I love hiking too! Where do you usually go?</div>
+          </div>
+          <div class="msg-time">5h</div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-avatar">MK</div>
+          <div class="msg-body">
+            <div class="msg-name">Meera K.</div>
+            <div class="msg-preview">Thank you for the kind message. Let me think about it.</div>
+          </div>
+          <div class="msg-time">1d</div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-avatar">SK</div>
+          <div class="msg-body">
+            <div class="msg-name">Sneha K.</div>
+            <div class="msg-preview">Hello! Nice to meet you. I read your profile and...</div>
+          </div>
+          <div class="msg-time">3d</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SIDE COLUMN -->
+    <aside class="col-side">
+
+      <!-- PROFILE COMPLETENESS -->
+      <div class="side-card">
+        <h4>Profile strength</h4>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <span class="completeness-pct">75%</span>
+          <span style="font-size: 12px; color: var(--text-secondary);">complete</span>
+        </div>
+        <div class="completeness-bar"><div class="completeness-fill"></div></div>
+        <ul class="completeness-todo">
+          <li class="done">Add basic info</li>
+          <li class="done">Upload primary photo</li>
+          <li class="done">Set partner preferences</li>
+          <li>Add 2 more photos <strong style="color: var(--primary-color);">→</strong></li>
+          <li>Verify your phone number</li>
+        </ul>
+      </div>
+
+      <!-- SAVED SEARCHES -->
+      <div class="side-card">
+        <h4>Saved searches</h4>
+        <div class="saved-search-row">
+          <div>
+            <div class="saved-search-name">⭐ Tampa singles 28-34</div>
+            <div class="saved-search-meta">Daily · last run 4h ago</div>
+          </div>
+          <span class="saved-search-new">12 new</span>
+        </div>
+        <div class="saved-search-row">
+          <div>
+            <div class="saved-search-name">SF tech professionals</div>
+            <div class="saved-search-meta">Weekly · last run 2d ago</div>
+          </div>
+          <span class="saved-search-new">3 new</span>
+        </div>
+        <div class="saved-search-row">
+          <div>
+            <div class="saved-search-name">Doctor / 30+ / India</div>
+            <div class="saved-search-meta">Manual</div>
+          </div>
+        </div>
+        <div class="saved-search-row">
+          <div>
+            <div class="saved-search-name">Vegetarian / 25-30</div>
+            <div class="saved-search-meta">Weekly</div>
+          </div>
+        </div>
+        <a href="#" style="display: block; text-align: center; margin-top: 8px; font-size: 13px; color: var(--primary-color); text-decoration: none;">+ Manage all (5)</a>
+      </div>
+
+      <!-- ACTIVE POLLS (multi-poll navigator — one visible at a time, no accordion) -->
+      <div class="poll-card">
+        <h4><span>📣 Active polls</span> <span class="poll-count-badge">3</span></h4>
+        <div class="poll-question">What's most important in a partner?</div>
+        <button class="poll-option">Shared values & beliefs</button>
+        <button class="poll-option">Career ambition</button>
+        <button class="poll-option">Family compatibility</button>
+        <button class="poll-option">Sense of humor</button>
+        <div class="poll-meta">🗳 324 votes · ⏱ ends in 2 days</div>
+        <div class="poll-nav">
+          <button class="poll-nav-btn" disabled title="Previous poll">◀</button>
+          <span class="poll-nav-position">Poll 1 of 3</span>
+          <button class="poll-nav-btn" title="Next poll">▶</button>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- DESIGN NOTES -->
+  <section style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--spacing-lg); margin-top: var(--spacing-xl);">
+    <h3 style="margin-top: 0;">Design rationale</h3>
+    <p><strong>Hypothesis:</strong> Users open the dashboard intending to <em>do</em> something — search, reply, approve a request. Optimize for action-completion, not stat-browsing.</p>
+    <ul>
+      <li><strong>Hero = newest match in your default saved search</strong>, not a search bar. Search has its own page (<code>/search</code>); the dashboard hero shows the top-1 result of the user's default saved search sorted by <code>joinedAt</code> desc — piggybacks on the existing saved-search digest cache, <em>no separate curation job needed</em>. Inline View / Favorite / Message / Skip; Skip walks to the next-newest. <strong>Fallback chain</strong> when a search has no new joiners: try next-most-recent saved search (by <code>lastRunAt</code>), then the next, etc. Only if all saved searches are empty does the hero show an empty state. Subtitle ("newest match in <em>X</em>") always reflects which search produced the current pick. The saved-search chip strip below provides 1-click navigation to <code>/search</code> with per-search new-match counts.</li>
+      <li><strong>"What needs your attention"</strong> task cards replace banner pile-up. Each card is a job-to-be-done with a count badge.</li>
+      <li><strong>Stats compressed</strong> from 9 cards to 4 actionable ones. Red dot on tiles with new activity.</li>
+      <li><strong>Inline message previews</strong> — most-frequent action surfaced inline, no extra click.</li>
+      <li><strong>Side rail</strong> = passive nudges (profile strength, <strong>active polls</strong> with multi-poll navigator, saved searches with "new" counts). The polls widget displays one poll at a time with ◀/▶ navigation (no accordion); voting auto-advances to the next unanswered poll. Header badge shows total active poll count.</li>
+      <li><strong>6 banners → 1 notification drawer</strong> (bell, top-right). Click to open.</li>
+    </ul>
+    <p><strong>Trade-offs:</strong> Less data density than current. Power users who want full activity logs may need to drill into sub-pages. No accordions on this page.</p>
+  </section>
+
+</main>
+
+</body>
+</html>

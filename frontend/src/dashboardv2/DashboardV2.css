@@ -1,0 +1,392 @@
+/* frontend/src/dashboardv2/DashboardV2.css
+ *
+ * Page-level layout for the new dashboardv2. Uses CSS variables from
+ * themes.css (no hardcoded colors). All section components added in
+ * subsequent commits will provide their own scoped styles.
+ */
+
+.dv2-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--spacing-lg, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 24px);
+}
+
+/* ===== HERO ===== */
+
+.dv2-hero {
+  background: var(--dv2-hero-section-bg, var(--surface-color, #fff));
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--spacing-lg, 24px);
+  box-shadow: var(--shadow-sm);
+}
+.dv2-hero-greeting {
+  font-size: 13px;
+  color: var(--text-muted, #888);
+  margin-bottom: var(--spacing-xs, 6px);
+}
+.dv2-hero-title {
+  margin: 0 0 var(--spacing-md, 16px);
+  font-size: 28px;
+  line-height: 1.25;
+  color: var(--text-color, #222);
+  font-weight: 700;
+}
+.dv2-name {
+  color: var(--primary-color, #d4736a);
+}
+
+/* ===== SECTION TITLES ===== */
+
+.dv2-section-title {
+  margin: 0 0 var(--spacing-md, 16px);
+  font-size: 18px;
+  color: var(--text-color, #222);
+  font-weight: 700;
+}
+
+/* ===== ATTENTION GRID (3×2) ===== */
+
+.dv2-attention-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md, 16px);
+}
+@media (max-width: 900px) {
+  .dv2-attention-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .dv2-attention-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dv2-attention-card {
+  background: linear-gradient(135deg, var(--dv2-accent-soft, var(--surface-color)) 0%, var(--surface-color) 65%, var(--card-background) 110%);
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--spacing-md, 16px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 12px);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+.dv2-attention-card:hover {
+  border-color: var(--dv2-accent, var(--primary-color));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.dv2-attention-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--dv2-accent, var(--primary-color));
+  opacity: 0.9;
+}
+
+.dv2-attention-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dv2-accent-soft, var(--selected-background));
+  border: 1px solid var(--border-color, #e5e5e5);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+.dv2-attention-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.dv2-attention-title {
+  flex: 1;
+  font-weight: 600;
+}
+.dv2-attention-count {
+  background: var(--dv2-accent, var(--primary-color));
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.dv2-variant-default,
+.dv2-variant-primary {
+  --dv2-accent: var(--primary-color);
+  --dv2-accent-soft: var(--primary-color-light);
+}
+.dv2-variant-secondary {
+  --dv2-accent: var(--secondary-color);
+  --dv2-accent-soft: var(--selected-background);
+}
+.dv2-variant-info {
+  --dv2-accent: var(--info-color);
+  --dv2-accent-soft: var(--info-light);
+}
+.dv2-variant-success {
+  --dv2-accent: var(--success-color);
+  --dv2-accent-soft: var(--success-light);
+}
+.dv2-variant-warning {
+  --dv2-accent: var(--warning-color);
+  --dv2-accent-soft: var(--warning-light);
+}
+.dv2-variant-danger {
+  --dv2-accent: var(--danger-color);
+  --dv2-accent-soft: var(--danger-light);
+}
+
+/* ===== MAIN GRID (main column + side rail) ===== */
+
+.dv2-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--spacing-lg, 24px);
+}
+@media (max-width: 1080px) {
+  .dv2-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dv2-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 24px);
+}
+
+/* ===== STATS STRIP (7 tiles, auto-fit) ===== */
+
+.dv2-stats-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-sm, 12px);
+}
+.dv2-stat-tile {
+  background: linear-gradient(135deg, var(--dv2-accent-soft, var(--surface-color)) 0%, var(--surface-color) 72%, var(--card-background) 115%);
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--spacing-md, 16px) var(--spacing-sm, 12px);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+}
+.dv2-stat-tile:hover:not(:disabled) {
+  border-color: var(--dv2-accent, var(--primary-color));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.dv2-stat-tile:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.dv2-stat-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--dv2-accent, var(--primary-color));
+  line-height: 1;
+}
+
+.dv2-stat-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dv2-accent-soft, var(--selected-background));
+  border: 1px solid var(--border-color, #e5e5e5);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 6px;
+}
+.dv2-stat-label {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  text-align: center;
+}
+
+/* ===== SIDE RAIL ===== */
+
+.dv2-side-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 16px);
+}
+.dv2-rail-card {
+  background: var(--surface-color, #fff);
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--spacing-md, 16px);
+}
+.dv2-rail-title {
+  margin: 0 0 var(--spacing-sm, 12px);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-color, #222);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dv2-pill {
+  background: var(--accent-color, #6ba8a0);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* ===== CONVERSATIONS PANEL ===== */
+
+.dv2-conversations {
+  background: var(--surface-color, #fff);
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--spacing-md, 16px);
+}
+
+/* ===== STATS / ATTENTION / HERO containers also need section wrapper styling ===== */
+
+.dv2-attention,
+.dv2-stats {
+  background: var(--surface-color, #fff);
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--spacing-md, 16px);
+}
+
+/* ===== PLACEHOLDER (scaffold only — removed when components are wired) ===== */
+
+.dv2-placeholder {
+  background: var(--background-color, #fafafa);
+  border: 1px dashed var(--border-color, #e5e5e5);
+  border-radius: var(--radius-sm, 6px);
+  padding: var(--spacing-md, 16px);
+  color: var(--text-muted, #888);
+  font-size: 13px;
+}
+.dv2-placeholder-hero {
+  margin-top: var(--spacing-sm, 12px);
+}
+
+.dv2-link-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color, #d4736a);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* ===== ERROR / RETRY ===== */
+
+.dv2-error {
+  max-width: 480px;
+  margin: var(--spacing-xl, 32px) auto;
+  padding: var(--spacing-lg, 24px);
+  text-align: center;
+  background: var(--surface-color, #fff);
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-md, 10px);
+}
+.dv2-retry-btn {
+  margin-top: var(--spacing-md, 16px);
+  padding: 8px 16px;
+  background: var(--primary-color, #d4736a);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  font: inherit;
+}
+
+.dv2-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, var(--opacity-overlay, 0.5));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: var(--z-modal-backdrop);
+  backdrop-filter: var(--backdrop-blur-sm);
+}
+
+.dv2-modal {
+  width: min(980px, 100%);
+  max-height: min(92vh, 920px);
+  overflow: hidden;
+  background: var(--surface-color, #fff);
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.dv2-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color, #e5e5e5);
+}
+
+.dv2-modal-title {
+  font-weight: 900;
+  color: var(--text-color, #222);
+}
+
+.dv2-modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #e5e5e5);
+  background: var(--surface-color, #fff);
+  cursor: pointer;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.dv2-modal-body {
+  overflow: auto;
+  padding: 0;
+}
+
+/* ===== SCAFFOLD NOTE (remove when fully built) ===== */
+
+.dv2-scaffold-note {
+  margin-top: var(--spacing-md, 16px);
+  padding: var(--spacing-sm, 12px);
+  border-left: 3px solid var(--accent-color, #6ba8a0);
+  background: var(--background-color, #fafafa);
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  border-radius: 0 var(--radius-sm, 6px) var(--radius-sm, 6px) 0;
+}

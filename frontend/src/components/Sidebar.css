@@ -245,6 +245,23 @@
   color: var(--text-secondary);
 }
 
+.menu-sublabel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.menu-sublabel-link:hover {
+  color: var(--primary-color);
+}
+
 /* First menu item (profile) styling */
 .menu-item:first-child {
   border-bottom: 1px solid var(--border-color);

@@ -5,6 +5,7 @@ import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import PIIRequestModal from './PIIRequestModal';
 import ChatFirstPrompt from './ChatFirstPrompt';
+import logger from '../utils/logger';
 import './SearchPage2.css';
 
 const Shortlist = () => {
@@ -32,6 +33,12 @@ const Shortlist = () => {
   const navigate = useNavigate();
   const currentUsername = localStorage.getItem('username');
 
+  const [cardsPerRow, setCardsPerRow] = useState(() => {
+    const raw = localStorage.getItem('searchCardsPerRow');
+    const parsed = raw ? parseInt(raw, 10) : 3;
+    return [2, 3, 4, 5, 6].includes(parsed) ? parsed : 3;
+  });
+
   useEffect(() => {
     loadShortlist();
     loadPiiRequests();
@@ -50,7 +57,7 @@ const Shortlist = () => {
       const response = await api.get(`/shortlist/${username}`);
       setShortlist(response.data.shortlist || []);
     } catch (err) {
-      console.error('Error loading shortlist:', err);
+      logger.error('Error loading shortlist:', err);
       setError('Failed to load shortlist');
     } finally {
       setLoading(false);
@@ -64,7 +71,7 @@ const Shortlist = () => {
       const response = await api.get(`/profile/${username}?requester=${username}`);
       setCurrentUserProfile(response.data);
     } catch (err) {
-      console.error('Error loading current user profile:', err);
+      logger.error('Error loading current user profile:', err);
     }
   };
 
@@ -120,7 +127,7 @@ const Shortlist = () => {
       setPiiAccessMap(piiMap);
       setPiiRequestsMap(piiReqMap);
     } catch (err) {
-      console.error('Error loading PII requests:', err);
+      logger.error('Error loading PII requests:', err);
     }
   };
 
@@ -162,7 +169,7 @@ const Shortlist = () => {
       });
       setShowPIIRequestModal(true);
     } catch (err) {
-      console.error('Failed to fetch profile for PII modal:', err);
+      logger.error('Failed to fetch profile for PII modal:', err);
       setSelectedUserForPII(user);
       setShowPIIRequestModal(true);
     }
@@ -194,7 +201,7 @@ const Shortlist = () => {
       setStatusMessage('✅ Removed from shortlist!');
       setTimeout(() => setStatusMessage(''), 3000);
     } catch (err) {
-      console.error('Error removing from shortlist:', err);
+      logger.error('Error removing from shortlist:', err);
       setError('Failed to remove from shortlist');
       setStatusMessage('❌ Failed to remove from shortlist');
       setTimeout(() => setStatusMessage(''), 3000);
@@ -208,7 +215,7 @@ const Shortlist = () => {
         const response = await api.get(`/profile/${user.username}?requester=${currentUsername}`);
         setSelectedUser(response.data);
       } catch (err) {
-        console.error('Error loading user profile:', err);
+        logger.error('Error loading user profile:', err);
         // Fallback to existing user object
         setSelectedUser(user);
       }
@@ -226,6 +233,28 @@ const Shortlist = () => {
       <div className="container-fluid">
         <h2 className="mb-4">📋 My Shortlist</h2>
 
+        {shortlist.length > 0 && (
+          <div className="results-controls-top-centered">
+            <div className="cards-per-row-selector">
+              <span className="selector-label">Cards:</span>
+              {[2, 3, 4, 5, 6].map(num => (
+                <button
+                  key={num}
+                  className={`cards-btn ${cardsPerRow === num ? 'active' : ''}`}
+                  onClick={() => {
+                    setCardsPerRow(num);
+                    localStorage.setItem('searchCardsPerRow', num.toString());
+                  }}
+                  title={`${num} cards per row`}
+                  type="button"
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {statusMessage && (
           <div className={`alert ${statusMessage.includes('❌') ? 'alert-danger' : 'alert-success'} alert-dismissible fade show`} role="alert">
             {statusMessage}
@@ -238,7 +267,7 @@ const Shortlist = () => {
             <p className="mb-0">No profiles in shortlist yet. Add profiles you're considering!</p>
           </div>
         ) : (
-          <div className="results-grid">
+          <div className={`results-grid results-grid-centered cards-per-row-${cardsPerRow}`}>
             {shortlist.map(user => (
               <SearchResultCard
                 key={user.username}

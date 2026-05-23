@@ -92,6 +92,9 @@
   --radius-md: 12px;
   --radius-lg: 20px;
   --radius-xl: 24px;
+
+  --dv2-hero-section-bg: linear-gradient(135deg, var(--surface-color) 0%, var(--card-background) 100%);
+  --dv2-hero-card-bg: var(--card-background);
 }
 
 /* ========================================
@@ -190,6 +193,9 @@ body.theme-dark {
   --primary-color: #a78bfa;
   --secondary-color: #c4b5fd;
   --accent-color: #fbbf24;
+
+  --dv2-hero-section-bg: linear-gradient(135deg, var(--primary-color-light) 0%, var(--surface-color) 55%, var(--warning-light) 140%);
+  --dv2-hero-card-bg: var(--card-background);
   
   /* Backgrounds - Lighter, warmer darks */
   --background-color: #1e1b2e;

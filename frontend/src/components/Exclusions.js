@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import SearchResultCard from './SearchResultCard';
+import logger from '../utils/logger';
 import './SearchPage2.css';
 
 const Exclusions = () => {
@@ -11,6 +12,12 @@ const Exclusions = () => {
   const [statusMessage, setStatusMessage] = useState('');
   const [piiRequests, setPiiRequests] = useState({});
   const navigate = useNavigate();
+
+  const [cardsPerRow, setCardsPerRow] = useState(() => {
+    const raw = localStorage.getItem('searchCardsPerRow');
+    const parsed = raw ? parseInt(raw, 10) : 3;
+    return [2, 3, 4, 5, 6].includes(parsed) ? parsed : 3;
+  });
 
   const loadExclusions = useCallback(async () => {
     try {
@@ -23,7 +30,7 @@ const Exclusions = () => {
       const response = await api.get(`/exclusions/${username}`);
       setExclusions(response.data.exclusions || []);
     } catch (err) {
-      console.error('Error loading exclusions:', err);
+      logger.error('Error loading exclusions:', err);
       setError('Failed to load not interested list');
     } finally {
       setLoading(false);
@@ -58,7 +65,7 @@ const Exclusions = () => {
 
       setPiiRequests(requestStatus);
     } catch (err) {
-      console.error('Error loading PII requests:', err);
+      logger.error('Error loading PII requests:', err);
     }
   }, []);
 
@@ -108,9 +115,9 @@ const Exclusions = () => {
 
       setStatusMessage('✅ Profile unhidden!');
       setTimeout(() => setStatusMessage(''), 3000);
-      console.log(`Successfully removed ${targetUsername} from exclusions`);
+      logger.info(`Successfully removed ${targetUsername} from exclusions`);
     } catch (err) {
-      console.error('Error removing exclusion:', err);
+      logger.error('Error removing exclusion:', err);
       setError('Failed to unhide profile');
       setStatusMessage('❌ Failed to unhide profile');
       setTimeout(() => setStatusMessage(''), 3000);
@@ -128,6 +135,28 @@ const Exclusions = () => {
       <div className="container-fluid">
         <h2 className="mb-4">🙈 Hidden Profiles</h2>
 
+        {exclusions.length > 0 && (
+          <div className="results-controls-top-centered">
+            <div className="cards-per-row-selector">
+              <span className="selector-label">Cards:</span>
+              {[2, 3, 4, 5, 6].map(num => (
+                <button
+                  key={num}
+                  className={`cards-btn ${cardsPerRow === num ? 'active' : ''}`}
+                  onClick={() => {
+                    setCardsPerRow(num);
+                    localStorage.setItem('searchCardsPerRow', num.toString());
+                  }}
+                  title={`${num} cards per row`}
+                  type="button"
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {statusMessage && (
           <div className={`alert ${statusMessage.includes('❌') ? 'alert-danger' : 'alert-success'} alert-dismissible fade show`} role="alert">
             {statusMessage}
@@ -142,7 +171,7 @@ const Exclusions = () => {
             <p className="mb-0">No hidden profiles. Profiles you hide will be removed from your search results.</p>
           </div>
         ) : (
-          <div className="results-grid">
+          <div className={`results-grid results-grid-centered cards-per-row-${cardsPerRow}`}>
             {exclusions.map(item => {
               // Handle both string usernames and user objects
               const user = typeof item === 'string' ? { username: item } : item;
