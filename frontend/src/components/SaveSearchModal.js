@@ -271,6 +271,11 @@ const SaveSearchModal = ({
       return;
     }
 
+    if (!editingScheduleFor && (savedSearches?.length || 0) >= 5) {
+      toast.error('You can save up to 5 searches. Please delete one before saving a new search.');
+      return;
+    }
+
     // Build save data with notification settings
     const saveData = {
       name: searchName.trim(),

@@ -4,6 +4,8 @@ import logger from '../utils/logger';
 import toastService from '../services/toastService';
 import { generateSearchDescription } from '../utils/searchDescription';
 
+const MAX_SAVED_SEARCHES = 5;
+
 // Owns saved-search list state, CRUD against the saved-searches API, and the
 // inline schedule editor form state used inside the Saved tab of the search
 // filters panel.
@@ -53,6 +55,16 @@ const useSavedSearches = ({
         return;
       }
 
+      const isUpdate =
+        typeof saveData === 'object' &&
+        saveData !== null &&
+        (saveData.isUpdate === true || Boolean(saveData.id || saveData._id));
+
+      if (!isUpdate && savedSearches.length >= MAX_SAVED_SEARCHES) {
+        toastService.error('You can save up to 5 searches. Please delete one before saving a new search.');
+        return;
+      }
+
       logger.info('🔍 Saving search with minMatchScore:', minMatchScore);
       const description = generateSearchDescription(criteria, minMatchScore);
       logger.info('📝 Generated description:', description);
@@ -60,6 +72,25 @@ const useSavedSearches = ({
       // Handle both old format (string) and new format (object with notifications)
       const searchName = typeof saveData === 'string' ? saveData : saveData.name;
       const notifications = typeof saveData === 'object' ? saveData.notifications : null;
+
+      if (isUpdate) {
+        const searchId = saveData?.id || saveData?._id;
+        if (!searchId) {
+          toastService.error('Could not update saved search (missing search ID)');
+          return;
+        }
+
+        await api.put(`/${username}/saved-searches/${searchId}`, {
+          name: searchName?.trim(),
+          ...(notifications && { notifications }),
+          ...(typeof saveData?.isDefault === 'boolean' ? { isDefault: saveData.isDefault } : {}),
+        });
+
+        toastService.success(`✅ Saved search updated: "${searchName}"`);
+        onAfterSave?.();
+        loadSavedSearches();
+        return;
+      }
 
       const searchData = {
         name: searchName.trim(),
@@ -85,7 +116,7 @@ const useSavedSearches = ({
       logger.error('Error saving search:', err);
       toastService.error('Failed to save search. ' + (err.response?.data?.detail || err.message));
     }
-  }, [onAfterSave, loadSavedSearches]);
+  }, [onAfterSave, loadSavedSearches, savedSearches.length]);
 
   const handleUpdateSavedSearch = useCallback(async (searchId, newName) => {
     try {
