@@ -93,6 +93,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   // Get page title based on current route
   const getPageTitle = () => {
     const path = location.pathname;
+    if (path === '/dashboardv2') return { icon: '🦋', title: 'My Dashboard', subtitle: 'Overview & Activity' };
     if (path === '/dashboard') return { icon: '💑', title: 'My Dashboard', subtitle: 'View your matches and activity' };
     if (path === '/search') return { icon: '🔍', title: 'Search Profiles', subtitle: 'Find your perfect match' };
     if (path === '/messages') return { icon: '💬', title: 'My Messages', subtitle: 'Communicate with your connections' };
@@ -558,7 +559,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
             <button className="sidebar-toggle-btn" onClick={onSidebarToggle} title="Toggle Sidebar">
               ☰
             </button>
-            <div className="app-logo" onClick={() => navigate('/')}>
+            <div className="app-logo" onClick={() => navigate('/dashboardv2')}>
               <Logo variant="modern" size="small" showText={!isMobile} theme="navbar" />
             </div>
           </div>
@@ -589,7 +590,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
           <button className="sidebar-toggle-btn" onClick={onSidebarToggle} title="Toggle Sidebar">
             ☰
           </button>
-          <div className="app-logo" onClick={() => navigate('/dashboard')}>
+          <div className="app-logo" onClick={() => navigate('/dashboardv2')}>
             <span className="logo-text">
               <span className="butterfly-icon">🦋</span>
               <span className="logo-text-full"> L3V3L</span>

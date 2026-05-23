@@ -1,0 +1,101 @@
+// frontend/src/dashboardv2/hooks/useDashboardData.js
+//
+// Parallel-fetches every piece of data the dashboardv2 page needs in a single
+// Promise.all. Returns a normalized object with the data + loading/error state.
+//
+// This intentionally does NOT include the hero "newest match" — that has its
+// own hook (useNewestMatch) because it has fallback logic that depends on
+// having the saved searches list first.
+
+import { useEffect, useState, useCallback } from 'react';
+import logger from '../../utils/logger';
+import {
+  fetchSavedSearches,
+  fetchProfileViews,
+  fetchFavorites,
+  fetchShortlist,
+  fetchExclusions,
+  fetchNotes,
+  fetchConversations,
+  fetchTheirFavorites,
+  fetchIncomingPiiRequests,
+  fetchActivePolls,
+  fetchCurrentUserProfile,
+} from '../api';
+
+const initialData = {
+  userProfile: null,
+  savedSearches: [],
+  profileViews: { viewers: [], totalViews: 0, uniqueViewers: 0 },
+  favorites: [],
+  shortlist: [],
+  exclusions: [],
+  notes: [],
+  conversations: [],
+  theirFavorites: [],
+  incomingPiiRequests: [],
+  activePolls: [],
+};
+
+export function useDashboardData() {
+  const [data, setData] = useState(initialData);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [
+        userProfile,
+        savedSearches,
+        profileViews,
+        favorites,
+        shortlist,
+        exclusions,
+        notes,
+        conversations,
+        theirFavorites,
+        incomingPiiRequests,
+        activePolls,
+      ] = await Promise.all([
+        fetchCurrentUserProfile(),
+        fetchSavedSearches(),
+        fetchProfileViews(),
+        fetchFavorites(),
+        fetchShortlist(),
+        fetchExclusions(),
+        fetchNotes(),
+        fetchConversations(),
+        fetchTheirFavorites(),
+        fetchIncomingPiiRequests(),
+        fetchActivePolls(),
+      ]);
+
+      setData({
+        userProfile,
+        savedSearches,
+        profileViews,
+        favorites,
+        shortlist,
+        exclusions,
+        notes,
+        conversations,
+        theirFavorites,
+        incomingPiiRequests,
+        activePolls,
+      });
+    } catch (err) {
+      logger.error('useDashboardData refetch failed:', err);
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  return { data, loading, error, refetch };
+}

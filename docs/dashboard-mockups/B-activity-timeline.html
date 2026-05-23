@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup B — Activity Timeline Dashboard</title>
+<style>
+  :root {
+    --primary-color: #d4736a;
+    --primary-dark: #b85b53;
+    --secondary-color: #e9b384;
+    --accent-color: #6ba8a0;
+    --bg-color: #faf6f1;
+    --surface-color: #fff;
+    --card-background: #fff;
+    --border-color: #e8dfd5;
+    --text-color: #3a2e2a;
+    --text-secondary: #7a6b65;
+    --text-muted: #a89b94;
+    --success-color: #6ba87f;
+    --warning-color: #e0a458;
+    --danger-color: #c4685a;
+    --info-color: #5a8eb5;
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --shadow-sm: 0 2px 4px rgba(58, 46, 42, 0.06);
+    --shadow-md: 0 4px 12px rgba(58, 46, 42, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.5;
+  }
+
+  /* ============ TOP BAR ============ */
+  .topbar {
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--spacing-md) var(--spacing-xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .topbar-logo { font-weight: 700; font-size: 18px; color: var(--primary-color); }
+  .topbar-actions { display: flex; gap: var(--spacing-md); align-items: center; }
+  .topbar-search {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 8px 16px;
+    width: 280px;
+    font-size: 14px;
+    outline: none;
+  }
+  .topbar-search:focus { border-color: var(--primary-color); background: var(--surface-color); }
+  .notif-bell {
+    position: relative;
+    background: none;
+    border: 1px solid var(--border-color);
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+  }
+  .notif-bell .badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: var(--danger-color);
+    color: white;
+    font-size: 11px;
+    border-radius: 10px;
+    min-width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    padding: 0 4px;
+  }
+  .avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  /* ============ HEADER ============ */
+  .page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+  }
+  .page-head h1 {
+    font-size: 24px;
+    margin: 0 0 4px;
+    color: var(--text-color);
+  }
+  .page-head .since {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 0;
+  }
+  .filter-tabs {
+    display: flex;
+    gap: var(--spacing-xs);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 4px;
+  }
+  .filter-tab {
+    background: none;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-secondary);
+  }
+  .filter-tab.active {
+    background: var(--primary-color);
+    color: white;
+    font-weight: 600;
+  }
+
+  /* ============ THREE-COLUMN GRID ============ */
+  .grid {
+    display: grid;
+    grid-template-columns: 240px 1fr 320px;
+    gap: var(--spacing-lg);
+  }
+  @media (max-width: 1100px) {
+    .grid { grid-template-columns: 1fr 320px; }
+    .col-left { display: none; }
+  }
+  @media (max-width: 800px) {
+    .grid { grid-template-columns: 1fr; }
+    .col-right { order: -1; }
+  }
+
+  /* ============ LEFT NAV (sticky) ============ */
+  .col-left {
+    position: sticky;
+    top: 88px;
+    align-self: start;
+  }
+  .nav-card {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+  .nav-card h4 {
+    margin: 0 0 var(--spacing-sm);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+  .nav-list { list-style: none; padding: 0; margin: 0; }
+  .nav-list li {
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-color);
+  }
+  .nav-list li:hover { background: var(--bg-color); }
+  .nav-list li.active { background: rgba(212, 115, 106, 0.1); color: var(--primary-color); font-weight: 600; }
+  .nav-list li .badge {
+    background: var(--bg-color);
+    color: var(--text-secondary);
+    font-size: 11px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .nav-list li.active .badge { background: var(--primary-color); color: white; }
+
+  /* ============ TIMELINE ============ */
+  .timeline-section { margin-bottom: var(--spacing-xl); }
+  .timeline-day-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-sm);
+    padding-left: 28px;
+    font-weight: 600;
+  }
+  .timeline-list {
+    position: relative;
+    padding-left: 28px;
+  }
+  .timeline-list::before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    background: var(--border-color);
+  }
+  .timeline-item {
+    position: relative;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .timeline-item:hover { border-color: var(--primary-color); }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 22px;
+    width: 12px; height: 12px;
+    background: var(--surface-color);
+    border: 3px solid var(--accent-color);
+    border-radius: 50%;
+  }
+  .timeline-item.highlight::before { border-color: var(--primary-color); }
+  .timeline-item.warning::before { border-color: var(--warning-color); }
+
+  .ti-row { display: flex; align-items: center; gap: var(--spacing-sm); }
+  .ti-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-color), var(--info-color));
+    color: white;
+    font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .ti-text { flex: 1; min-width: 0; font-size: 14px; }
+  .ti-text strong { font-weight: 600; }
+  .ti-text .muted { color: var(--text-secondary); }
+  .ti-time {
+    color: var(--text-muted);
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .ti-snippet {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--bg-color);
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--primary-color);
+  }
+  .ti-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .ti-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .ti-btn.secondary {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+  }
+  .ti-btn.danger { background: var(--danger-color); }
+  .ti-btn.success { background: var(--success-color); }
+
+  /* event-type icons */
+  .ti-row .icon-tag {
+    background: rgba(212, 115, 106, 0.1);
+    color: var(--primary-color);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+  }
+  .ti-row .icon-tag.view { background: rgba(90, 142, 181, 0.1); color: var(--info-color); }
+  .ti-row .icon-tag.fav { background: rgba(196, 104, 122, 0.1); color: var(--danger-color); }
+  .ti-row .icon-tag.msg { background: rgba(107, 168, 160, 0.12); color: var(--accent-color); }
+  .ti-row .icon-tag.req { background: rgba(224, 164, 88, 0.15); color: var(--warning-color); }
+  .ti-row .icon-tag.match { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; }
+
+  /* ============ RIGHT RAIL ============ */
+  .col-right { min-width: 0; }
+  .rail-card {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+  .rail-card h4 {
+    margin: 0 0 var(--spacing-sm);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+  }
+  .stat-mini {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 14px;
+  }
+  .stat-mini:last-child { border-bottom: none; }
+  .stat-mini-label { color: var(--text-secondary); }
+  .stat-mini-num {
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 16px;
+  }
+  .stat-mini.has-new .stat-mini-num::after {
+    content: '●';
+    color: var(--danger-color);
+    margin-left: 4px;
+    font-size: 10px;
+  }
+
+  .completeness-bar {
+    background: var(--bg-color);
+    height: 8px;
+    border-radius: 4px;
+    margin: 8px 0;
+    overflow: hidden;
+  }
+  .completeness-fill {
+    background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+    height: 100%;
+    border-radius: 4px;
+  }
+  .completeness-pct {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--success-color);
+  }
+
+  .suggestion {
+    background: linear-gradient(135deg, rgba(212, 115, 106, 0.06), rgba(233, 179, 132, 0.08));
+    border: 1px solid rgba(212, 115, 106, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 13px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .suggestion:hover { border-color: var(--primary-color); }
+  .suggestion strong { display: block; color: var(--primary-color); margin-bottom: 2px; }
+
+  /* ============ MOCKUP BANNER ============ */
+  .mockup-banner {
+    background: var(--text-color);
+    color: white;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 13px;
+  }
+  .mockup-banner a { color: var(--secondary-color); margin-left: 12px; }
+
+  /* notification drawer */
+  .notif-drawer {
+    display: none;
+    position: fixed;
+    top: 70px; right: 16px;
+    width: 360px; max-width: calc(100vw - 32px);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    z-index: 100;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .notif-drawer.open { display: block; }
+  .notif-drawer h4 {
+    margin: 0;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 14px;
+  }
+  .notif-item {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+    display: flex; gap: 8px;
+  }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-item span.icn { font-size: 18px; flex-shrink: 0; }
+  .notif-item strong { display: block; margin-bottom: 2px; }
+  .notif-item small { color: var(--text-secondary); font-size: 12px; }
+
+</style>
+</head>
+<body>
+
+<div class="mockup-banner">
+  <strong>📐 Mockup B — Activity Timeline Dashboard.</strong>
+  <a href="./index.html">← Back</a>
+  <a href="./A-action-first.html">A</a>
+  <a href="./C-match-discovery.html">C →</a>
+  <a href="./D-two-column.html">D →</a>
+</div>
+
+<header class="topbar">
+  <div class="topbar-logo">L3V3L Matches</div>
+  <input type="text" class="topbar-search" placeholder="Search by name, location, keywords..." />
+  <div class="topbar-actions">
+    <button class="notif-bell" onclick="document.getElementById('drawer').classList.toggle('open')">🔔 <span class="badge">3</span></button>
+    <div class="avatar">SK</div>
+  </div>
+</header>
+
+<div class="notif-drawer" id="drawer">
+  <h4>Notifications</h4>
+  <div class="notif-item"><span class="icn">📸</span><div><strong>Add a photo</strong><small>Profiles with photos get 10x more views.</small></div></div>
+  <div class="notif-item"><span class="icn">🔐</span><div><strong>Enable MFA</strong><small>Add an extra layer of security.</small></div></div>
+  <div class="notif-item"><span class="icn">🎟️</span><div><strong>3 invitations available</strong><small>Invite friends or family.</small></div></div>
+</div>
+
+<main class="container">
+
+  <!-- Page header -->
+  <div class="page-head">
+    <div>
+      <h1>Welcome back, Sara</h1>
+      <p class="since">23 things happened since you logged in 2 days ago.</p>
+    </div>
+    <div class="filter-tabs">
+      <button class="filter-tab active">All</button>
+      <button class="filter-tab">Profile</button>
+      <button class="filter-tab">Messages</button>
+      <button class="filter-tab">Requests</button>
+      <button class="filter-tab">Matches</button>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- LEFT NAV -->
+    <aside class="col-left">
+      <div class="nav-card">
+        <h4>Activity</h4>
+        <ul class="nav-list">
+          <li class="active">📊 All <span class="badge">23</span></li>
+          <li>👁 Profile views <span class="badge">12</span></li>
+          <li>⭐ Favorites <span class="badge">7</span></li>
+          <li>💬 Messages <span class="badge">2</span></li>
+          <li>🔐 Requests <span class="badge">3</span></li>
+          <li>🆕 New matches <span class="badge">8</span></li>
+        </ul>
+      </div>
+      <div class="nav-card">
+        <h4>Quick links</h4>
+        <ul class="nav-list">
+          <li>🔍 Search</li>
+          <li>⭐ My favorites</li>
+          <li>📋 My shortlist</li>
+          <li>🚫 Exclusions</li>
+          <li>⚙️ Preferences</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- TIMELINE (center) -->
+    <section class="col-center">
+
+      <!-- TODAY -->
+      <div class="timeline-section">
+        <div class="timeline-day-label">Today, May 27</div>
+        <div class="timeline-list">
+
+          <div class="timeline-item highlight">
+            <div class="ti-row">
+              <div class="ti-avatar">PR</div>
+              <div class="ti-text">
+                <strong>Priya R.</strong> <span class="muted">sent you a message</span>
+              </div>
+              <span class="icon-tag msg">message</span>
+              <span class="ti-time">2h ago</span>
+            </div>
+            <div class="ti-snippet">"That sounds great! Should we plan a video call this weekend?"</div>
+            <div class="ti-actions">
+              <button class="ti-btn">Reply</button>
+              <button class="ti-btn secondary">View profile</button>
+            </div>
+          </div>
+
+          <div class="timeline-item warning">
+            <div class="ti-row">
+              <div class="ti-avatar">AR</div>
+              <div class="ti-text">
+                <strong>Arjun R.</strong> <span class="muted">requested your contact info</span>
+              </div>
+              <span class="icon-tag req">request</span>
+              <span class="ti-time">3h ago</span>
+            </div>
+            <div class="ti-actions">
+              <button class="ti-btn success">✓ Approve</button>
+              <button class="ti-btn danger">✕ Decline</button>
+              <button class="ti-btn secondary">View profile</button>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="ti-row">
+              <div class="ti-avatar">VS</div>
+              <div class="ti-text">
+                <strong>Vivek S.</strong> <span class="muted">added you to favorites</span>
+              </div>
+              <span class="icon-tag fav">favorite</span>
+              <span class="ti-time">5h ago</span>
+            </div>
+          </div>
+
+          <div class="timeline-item highlight">
+            <div class="ti-row">
+              <div class="ti-avatar" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));">⭐</div>
+              <div class="ti-text">
+                <strong>"Tampa singles 28-34"</strong> <span class="muted">found 12 new matches</span>
+              </div>
+              <span class="icon-tag match">match</span>
+              <span class="ti-time">7h ago</span>
+            </div>
+            <div class="ti-actions">
+              <button class="ti-btn">View matches</button>
+              <button class="ti-btn secondary">Edit search</button>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="ti-row">
+              <div class="ti-avatar">MS</div>
+              <div class="ti-text">
+                <strong>3 people</strong> <span class="muted">viewed your profile in the last hour</span>
+              </div>
+              <span class="icon-tag view">view</span>
+              <span class="ti-time">1h ago</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- YESTERDAY -->
+      <div class="timeline-section">
+        <div class="timeline-day-label">Yesterday, May 26</div>
+        <div class="timeline-list">
+
+          <div class="timeline-item">
+            <div class="ti-row">
+              <div class="ti-avatar">AN</div>
+              <div class="ti-text">
+                <strong>Anjali N.</strong> <span class="muted">replied to your message</span>
+              </div>
+              <span class="icon-tag msg">message</span>
+              <span class="ti-time">22h ago</span>
+            </div>
+            <div class="ti-snippet">"Yes, I love hiking too! Where do you usually go?"</div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="ti-row">
+              <div class="ti-avatar">DK</div>
+              <div class="ti-text">
+                <strong>Divya K.</strong> <span class="muted">shortlisted you</span>
+              </div>
+              <span class="icon-tag fav">shortlist</span>
+              <span class="ti-time">1d ago</span>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="ti-row">
+              <div class="ti-avatar" style="background: linear-gradient(135deg, var(--accent-color), var(--info-color));">🔓</div>
+              <div class="ti-text">
+                <strong>You approved</strong> <span class="muted">contact request from Karthik M.</span>
+              </div>
+              <span class="icon-tag req">approved</span>
+              <span class="ti-time">1d ago</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 2 DAYS AGO -->
+      <div class="timeline-section">
+        <div class="timeline-day-label">2 days ago, May 25</div>
+        <div class="timeline-list">
+
+          <div class="timeline-item">
+            <div class="ti-row">
+              <div class="ti-avatar">RJ</div>
+              <div class="ti-text">
+                <strong>Rohit J.</strong> <span class="muted">added you to favorites</span>
+              </div>
+              <span class="icon-tag fav">favorite</span>
+              <span class="ti-time">2d ago</span>
+            </div>
+          </div>
+
+          <div class="timeline-item highlight">
+            <div class="ti-row">
+              <div class="ti-avatar" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));">💎</div>
+              <div class="ti-text">
+                <strong>L3V3L 92% match</strong> <span class="muted">— Aditi M. matches your criteria</span>
+              </div>
+              <span class="icon-tag match">match</span>
+              <span class="ti-time">2d ago</span>
+            </div>
+            <div class="ti-actions">
+              <button class="ti-btn">View profile</button>
+              <button class="ti-btn secondary">Add to favorites</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div style="text-align: center; padding: var(--spacing-md);">
+        <button style="background: var(--surface-color); border: 1px solid var(--border-color); padding: 8px 20px; border-radius: 20px; color: var(--text-secondary); cursor: pointer;">Load older activity</button>
+      </div>
+
+    </section>
+
+    <!-- RIGHT RAIL -->
+    <aside class="col-right">
+
+      <!-- AT A GLANCE -->
+      <div class="rail-card">
+        <h4>At a glance</h4>
+        <div class="stat-mini has-new">
+          <span class="stat-mini-label">Profile views (7d)</span>
+          <span class="stat-mini-num">42</span>
+        </div>
+        <div class="stat-mini">
+          <span class="stat-mini-label">Conversations</span>
+          <span class="stat-mini-num">8</span>
+        </div>
+        <div class="stat-mini has-new">
+          <span class="stat-mini-label">Pending requests</span>
+          <span class="stat-mini-num">3</span>
+        </div>
+        <div class="stat-mini">
+          <span class="stat-mini-label">My favorites</span>
+          <span class="stat-mini-num">15</span>
+        </div>
+      </div>
+
+      <!-- PROFILE STRENGTH -->
+      <div class="rail-card">
+        <h4>Profile strength</h4>
+        <div style="display:flex; align-items: baseline; gap: 8px;">
+          <span class="completeness-pct">75%</span>
+          <span style="font-size: 12px; color: var(--text-secondary);">complete</span>
+        </div>
+        <div class="completeness-bar"><div class="completeness-fill" style="width: 75%;"></div></div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          <strong style="color: var(--primary-color); cursor: pointer;">+ Add 2 more photos →</strong> get up to 10x more views.
+        </div>
+      </div>
+
+      <!-- SUGGESTIONS -->
+      <div class="rail-card">
+        <h4>Suggestions for you</h4>
+        <div class="suggestion">
+          <strong>Run "Tampa singles 28-34"</strong>
+          12 new matches since last run.
+        </div>
+        <div class="suggestion">
+          <strong>3 unread conversations</strong>
+          Reply within 24h gets 3x more chemistry.
+        </div>
+        <div class="suggestion">
+          <strong>Verify your phone</strong>
+          Verified profiles get priority placement.
+        </div>
+      </div>
+
+      <!-- ACTIVE POLL -->
+      <div class="rail-card" style="background: linear-gradient(135deg, rgba(107, 168, 160, 0.08), rgba(212, 115, 106, 0.05)); border-color: var(--accent-color);">
+        <h4 style="color: var(--accent-color);">📣 Quick poll</h4>
+        <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">What's most important in a partner?</div>
+        <button style="display:block; width: 100%; text-align: left; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 6px; cursor: pointer; font-size: 13px;">Shared values & beliefs</button>
+        <button style="display:block; width: 100%; text-align: left; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 6px; cursor: pointer; font-size: 13px;">Career ambition</button>
+        <button style="display:block; width: 100%; text-align: left; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px 12px; cursor: pointer; font-size: 13px;">Family compatibility</button>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- DESIGN NOTES -->
+  <section style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--spacing-lg); margin-top: var(--spacing-xl);">
+    <h3 style="margin-top: 0;">Design rationale</h3>
+    <p><strong>Hypothesis:</strong> Users open the dashboard to <em>catch up</em> — "what changed since I was last here?" Optimize for chronological awareness and inline action.</p>
+    <ul>
+      <li><strong>Timeline-first</strong> (LinkedIn / GitHub / Twitter pattern). Everything is an event with timestamp + actor + actions inline.</li>
+      <li><strong>"23 things happened since 2 days ago"</strong> — anchors the user's mental model. No more guessing what's new.</li>
+      <li><strong>Inline actions on every event card</strong> — Reply / Approve / View. No modal opens, no page navigation needed for routine tasks.</li>
+      <li><strong>Filter tabs</strong> let power users zoom into one event type without losing context.</li>
+      <li><strong>Left sidebar</strong> = navigation by type with live counts (replaces accordion sections).</li>
+      <li><strong>Right rail</strong> = passive stats + nudges + poll, all collapsed.</li>
+      <li><strong>L3V3L matches</strong> appear as event cards in-flow (highlighted), not as a separate section.</li>
+    </ul>
+    <p><strong>Trade-offs:</strong> Heavier scroll-load. Less suitable for users who only check in monthly (timeline becomes overwhelming). Search must move to top bar (still 1 click away).</p>
+  </section>
+
+</main>
+
+</body>
+</html>

@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup C — Match Discovery Dashboard</title>
+<style>
+  :root {
+    --primary-color: #d4736a;
+    --primary-dark: #b85b53;
+    --secondary-color: #e9b384;
+    --accent-color: #6ba8a0;
+    --bg-color: #faf6f1;
+    --surface-color: #fff;
+    --card-background: #fff;
+    --border-color: #e8dfd5;
+    --text-color: #3a2e2a;
+    --text-secondary: #7a6b65;
+    --text-muted: #a89b94;
+    --success-color: #6ba87f;
+    --warning-color: #e0a458;
+    --danger-color: #c4685a;
+    --info-color: #5a8eb5;
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --shadow-sm: 0 2px 4px rgba(58, 46, 42, 0.06);
+    --shadow-md: 0 4px 12px rgba(58, 46, 42, 0.10);
+    --shadow-lg: 0 12px 32px rgba(58, 46, 42, 0.15);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.5;
+  }
+
+  /* ============ TOP BAR ============ */
+  .topbar {
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--spacing-md) var(--spacing-xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .topbar-logo { font-weight: 700; font-size: 18px; color: var(--primary-color); }
+  .topbar-search {
+    flex: 1;
+    max-width: 420px;
+    margin: 0 var(--spacing-lg);
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 10px 18px;
+    font-size: 14px;
+    outline: none;
+  }
+  .topbar-search:focus { border-color: var(--primary-color); background: var(--surface-color); }
+  .topbar-actions { display: flex; gap: var(--spacing-md); align-items: center; }
+  .notif-bell {
+    position: relative;
+    background: none;
+    border: 1px solid var(--border-color);
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+  }
+  .notif-bell .badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: var(--danger-color);
+    color: white;
+    font-size: 11px;
+    border-radius: 10px;
+    min-width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    padding: 0 4px;
+  }
+  .avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+  }
+
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  /* ============ FEATURED MATCH OF THE DAY ============ */
+  .motd {
+    background: linear-gradient(135deg, rgba(212, 115, 106, 0.08), rgba(233, 179, 132, 0.10));
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+    border: 1px solid var(--border-color);
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: var(--spacing-xl);
+    align-items: center;
+  }
+  @media (max-width: 800px) {
+    .motd { grid-template-columns: 1fr; padding: var(--spacing-lg); }
+  }
+  .motd-photo {
+    aspect-ratio: 1;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--accent-color), var(--info-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 72px;
+    font-weight: 700;
+    box-shadow: var(--shadow-lg);
+  }
+  .motd-eyebrow {
+    color: var(--primary-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 12px;
+    margin-bottom: var(--spacing-sm);
+  }
+  .motd-name {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 var(--spacing-sm);
+    color: var(--text-color);
+  }
+  .motd-meta {
+    color: var(--text-secondary);
+    font-size: 15px;
+    margin: 0 0 var(--spacing-md);
+  }
+  .motd-score {
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: var(--spacing-md);
+    gap: 6px;
+  }
+  .motd-quote {
+    font-style: italic;
+    color: var(--text-secondary);
+    border-left: 3px solid var(--primary-color);
+    padding: 8px 14px;
+    margin: var(--spacing-md) 0;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: var(--radius-sm);
+  }
+  .motd-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-secondary {
+    background: var(--surface-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .btn-icon {
+    background: var(--surface-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .btn-icon:hover { border-color: var(--primary-color); color: var(--primary-color); }
+
+  /* ============ MATCH ROW ============ */
+  .match-row {
+    margin-bottom: var(--spacing-xl);
+  }
+  .match-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: var(--spacing-md);
+    padding: 0 var(--spacing-xs);
+  }
+  .match-row-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .match-row-title .pill {
+    background: var(--primary-color);
+    color: white;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .match-row-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  .match-row-link {
+    font-size: 13px;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .scroller {
+    display: flex;
+    gap: var(--spacing-md);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 6px 2px var(--spacing-sm);
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 2px;
+  }
+  .scroller::-webkit-scrollbar { height: 6px; }
+  .scroller::-webkit-scrollbar-track { background: transparent; }
+  .scroller::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+  /* ============ MATCH CARD ============ */
+  .match-card {
+    flex: 0 0 auto;
+    width: 200px;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    scroll-snap-align: start;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .match-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+  .match-card-photo {
+    aspect-ratio: 4/5;
+    background: linear-gradient(135deg, var(--accent-color), var(--info-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 48px;
+    font-weight: 700;
+    position: relative;
+  }
+  .match-card-score {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+  }
+  .match-card-online {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 12px; height: 12px;
+    background: var(--success-color);
+    border: 2px solid white;
+    border-radius: 50%;
+  }
+  .match-card-new {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: var(--primary-color);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .match-card-body { padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md); }
+  .match-card-name {
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0 0 2px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .match-card-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .match-card-icons {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .mc-icon {
+    font-size: 12px;
+    background: var(--bg-color);
+    padding: 2px 6px;
+    border-radius: 10px;
+    color: var(--text-secondary);
+  }
+
+  /* random photo color variants */
+  .photo-1 { background: linear-gradient(135deg, #c4a3d9, #8c6fb0); }
+  .photo-2 { background: linear-gradient(135deg, #f0a48a, #d4736a); }
+  .photo-3 { background: linear-gradient(135deg, #e9b384, #d4a574); }
+  .photo-4 { background: linear-gradient(135deg, #6ba8a0, #5a8eb5); }
+  .photo-5 { background: linear-gradient(135deg, #f0d984, #c9944a); }
+  .photo-6 { background: linear-gradient(135deg, #c4687a, #a85064); }
+  .photo-7 { background: linear-gradient(135deg, #6ba87f, #4f8262); }
+  .photo-8 { background: linear-gradient(135deg, #b4a0d4, #826ba8); }
+
+  /* ============ UTILITY STRIP (bottom mini) ============ */
+  .utility-strip {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+  }
+  .util-tile {
+    text-align: center;
+    cursor: pointer;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    transition: background 0.15s;
+  }
+  .util-tile:hover { background: var(--bg-color); }
+  .util-tile-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+  .util-tile-num {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+  }
+  .util-tile-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 2px;
+  }
+
+  /* ============ NOTIFICATION DRAWER ============ */
+  .notif-drawer {
+    display: none;
+    position: fixed;
+    top: 70px; right: 16px;
+    width: 360px; max-width: calc(100vw - 32px);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .notif-drawer.open { display: block; }
+  .notif-drawer h4 {
+    margin: 0;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 14px;
+  }
+  .notif-item {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+    display: flex;
+    gap: 8px;
+  }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-item span.icn { font-size: 18px; flex-shrink: 0; }
+  .notif-item strong { display: block; margin-bottom: 2px; }
+  .notif-item small { color: var(--text-secondary); font-size: 12px; }
+
+  /* mockup banner */
+  .mockup-banner {
+    background: var(--text-color);
+    color: white;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 13px;
+  }
+  .mockup-banner a { color: var(--secondary-color); margin-left: 12px; }
+
+  /* poll mini */
+  .poll-mini {
+    background: linear-gradient(135deg, rgba(107, 168, 160, 0.10), rgba(212, 115, 106, 0.06));
+    border: 1px solid var(--accent-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+  }
+  .poll-mini-text { flex: 1; min-width: 200px; font-size: 14px; }
+  .poll-mini-text strong { color: var(--accent-color); display: block; margin-bottom: 2px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .poll-mini-options { display: flex; gap: 6px; flex-wrap: wrap; }
+  .poll-mini-options button {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .poll-mini-options button:hover { border-color: var(--accent-color); }
+
+</style>
+</head>
+<body>
+
+<div class="mockup-banner">
+  <strong>📐 Mockup C — Match Discovery Dashboard.</strong>
+  <a href="./index.html">← Back</a>
+  <a href="./A-action-first.html">A</a>
+  <a href="./B-activity-timeline.html">B</a>
+  <a href="./D-two-column.html">D →</a>
+</div>
+
+<header class="topbar">
+  <div class="topbar-logo">L3V3L Matches</div>
+  <input type="text" class="topbar-search" placeholder="🔍 Search by name, location, occupation..." />
+  <div class="topbar-actions">
+    <button class="notif-bell" onclick="document.getElementById('drawer').classList.toggle('open')">🔔 <span class="badge">5</span></button>
+    <div class="avatar">SK</div>
+  </div>
+</header>
+
+<div class="notif-drawer" id="drawer">
+  <h4>Notifications</h4>
+  <div class="notif-item"><span class="icn">📬</span><div><strong>3 contact requests pending</strong><small>Approve or decline.</small></div></div>
+  <div class="notif-item"><span class="icn">💬</span><div><strong>2 unread messages</strong><small>From Priya R. and Anjali N.</small></div></div>
+  <div class="notif-item"><span class="icn">📸</span><div><strong>Add a photo</strong><small>Profiles with photos get 10x more views.</small></div></div>
+  <div class="notif-item"><span class="icn">🔐</span><div><strong>Enable MFA</strong><small>Extra layer of security.</small></div></div>
+  <div class="notif-item"><span class="icn">🎟️</span><div><strong>3 invitations available</strong><small>Invite friends or family.</small></div></div>
+</div>
+
+<main class="container">
+
+  <!-- MATCH OF THE DAY -->
+  <section class="motd">
+    <div class="motd-photo photo-1">A</div>
+    <div>
+      <div class="motd-eyebrow">⭐ Today's top match</div>
+      <h1 class="motd-name">Aditi M.</h1>
+      <p class="motd-meta">29 · Software Engineer · San Francisco, CA · 5'5"</p>
+      <div class="motd-score">💎 L3V3L 92% match</div>
+      <div class="motd-quote">"Loves hiking, reading sci-fi, and weekend pottery classes. Looking for someone who values family but also adventure."</div>
+      <div class="motd-actions">
+        <button class="btn-primary">View full profile</button>
+        <button class="btn-secondary">💬 Message</button>
+        <button class="btn-icon" title="Add to favorites">⭐</button>
+        <button class="btn-icon" title="Add to shortlist">📋</button>
+        <button class="btn-icon" title="Not interested">✕</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROW 1: New this week -->
+  <section class="match-row">
+    <div class="match-row-header">
+      <div>
+        <h2 class="match-row-title">🆕 New profiles this week <span class="pill">23</span></h2>
+        <p class="match-row-subtitle">Members who joined in the last 7 days that match your preferences.</p>
+      </div>
+      <a href="#" class="match-row-link">See all →</a>
+    </div>
+    <div class="scroller">
+      <div class="match-card">
+        <div class="match-card-photo photo-2">P</div>
+        <div class="match-card-name">Priya R.</div>
+        <div class="match-card-body">
+          <div class="match-card-meta">28 · Tampa, FL</div>
+          <div class="match-card-icons"><span class="mc-icon">💼 Doctor</span></div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-3">M</div>
+        <div class="match-card-name">Meera K.</div>
+        <div class="match-card-body">
+          <div class="match-card-meta">31 · Seattle, WA</div>
+          <div class="match-card-icons"><span class="mc-icon">🎓 PhD</span></div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-4">S</div>
+        <div class="match-card-name">Sneha K.</div>
+        <div class="match-card-body">
+          <div class="match-card-meta">26 · Austin, TX</div>
+          <div class="match-card-icons"><span class="mc-icon">🌱 Vegetarian</span></div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-5">D</div>
+        <div class="match-card-name">Divya P.</div>
+        <div class="match-card-body">
+          <div class="match-card-meta">29 · Boston, MA</div>
+          <div class="match-card-icons"><span class="mc-icon">💼 Lawyer</span></div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-6">N</div>
+        <div class="match-card-name">Nisha A.</div>
+        <div class="match-card-body">
+          <div class="match-card-meta">30 · Denver, CO</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-7">R</div>
+        <div class="match-card-name">Rina S.</div>
+        <div class="match-card-body">
+          <div class="match-card-meta">27 · Chicago, IL</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-8">K</div>
+        <div class="match-card-name">Kavya M.</div>
+        <div class="match-card-body">
+          <div class="match-card-meta">28 · NYC, NY</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-1">L</div>
+        <div class="match-card-name">Lakshmi V.</div>
+        <div class="match-card-body">
+          <div class="match-card-meta">32 · Miami, FL</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROW 2: Saved Search 1 -->
+  <section class="match-row">
+    <div class="match-row-header">
+      <div>
+        <h2 class="match-row-title">⭐ Tampa singles 28-34 <span class="pill">12 new</span></h2>
+        <p class="match-row-subtitle">From your saved search · runs daily</p>
+      </div>
+      <a href="#" class="match-row-link">Open search →</a>
+    </div>
+    <div class="scroller">
+      <div class="match-card">
+        <div class="match-card-photo photo-2">P
+          <span class="match-card-score">88%</span>
+          <span class="match-card-online"></span>
+          <span class="match-card-new">New</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Priya R.</div>
+          <div class="match-card-meta">28 · Tampa, FL</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-6">A
+          <span class="match-card-score">85%</span>
+          <span class="match-card-new">New</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Anjali T.</div>
+          <div class="match-card-meta">30 · Tampa, FL</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-4">D
+          <span class="match-card-score">82%</span>
+          <span class="match-card-online"></span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Deepa M.</div>
+          <div class="match-card-meta">29 · Clearwater, FL</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-5">S
+          <span class="match-card-score">80%</span>
+          <span class="match-card-new">New</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Sahana B.</div>
+          <div class="match-card-meta">31 · St Pete, FL</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-1">G
+          <span class="match-card-score">79%</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Gita R.</div>
+          <div class="match-card-meta">32 · Tampa, FL</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-7">M
+          <span class="match-card-score">77%</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Maya K.</div>
+          <div class="match-card-meta">28 · Sarasota, FL</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-3">J
+          <span class="match-card-score">75%</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Jaya N.</div>
+          <div class="match-card-meta">33 · Tampa, FL</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- POLL -->
+  <div class="poll-mini">
+    <div class="poll-mini-text">
+      <strong>📣 Quick poll</strong>
+      What's most important in a partner?
+    </div>
+    <div class="poll-mini-options">
+      <button>Shared values</button>
+      <button>Career ambition</button>
+      <button>Family compatibility</button>
+      <button>Sense of humor</button>
+    </div>
+  </div>
+
+  <!-- ROW 3: People who favorited you -->
+  <section class="match-row" style="margin-top: var(--spacing-xl);">
+    <div class="match-row-header">
+      <div>
+        <h2 class="match-row-title">💕 People who favorited you <span class="pill">7</span></h2>
+        <p class="match-row-subtitle">They liked your profile — see if you like theirs back.</p>
+      </div>
+      <a href="#" class="match-row-link">See all →</a>
+    </div>
+    <div class="scroller">
+      <div class="match-card">
+        <div class="match-card-photo photo-3">V
+          <span class="match-card-online"></span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Vivek S.</div>
+          <div class="match-card-meta">31 · SF, CA</div>
+          <div class="match-card-icons"><span class="mc-icon">⭐ 5h</span></div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-4">D</div>
+        <div class="match-card-body">
+          <div class="match-card-name">Divya K.</div>
+          <div class="match-card-meta">29 · NYC</div>
+          <div class="match-card-icons"><span class="mc-icon">⭐ 1d</span></div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-7">R</div>
+        <div class="match-card-body">
+          <div class="match-card-name">Rohit J.</div>
+          <div class="match-card-meta">33 · Chicago</div>
+          <div class="match-card-icons"><span class="mc-icon">⭐ 2d</span></div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-8">K</div>
+        <div class="match-card-body">
+          <div class="match-card-name">Karthik M.</div>
+          <div class="match-card-meta">30 · Boston</div>
+          <div class="match-card-icons"><span class="mc-icon">⭐ 3d</span></div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-2">N</div>
+        <div class="match-card-body">
+          <div class="match-card-name">Nikhil P.</div>
+          <div class="match-card-meta">32 · Seattle</div>
+          <div class="match-card-icons"><span class="mc-icon">⭐ 4d</span></div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-5">A</div>
+        <div class="match-card-body">
+          <div class="match-card-name">Ankit V.</div>
+          <div class="match-card-meta">29 · Austin</div>
+          <div class="match-card-icons"><span class="mc-icon">⭐ 5d</span></div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-6">S</div>
+        <div class="match-card-body">
+          <div class="match-card-name">Sahil R.</div>
+          <div class="match-card-meta">31 · Denver</div>
+          <div class="match-card-icons"><span class="mc-icon">⭐ 6d</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROW 4: Reciprocal matches (we both favorited each other) -->
+  <section class="match-row">
+    <div class="match-row-header">
+      <div>
+        <h2 class="match-row-title">🔥 Mutual interest <span class="pill">3</span></h2>
+        <p class="match-row-subtitle">You both favorited each other — start a conversation!</p>
+      </div>
+    </div>
+    <div class="scroller">
+      <div class="match-card">
+        <div class="match-card-photo photo-1">P
+          <span class="match-card-score">88%</span>
+          <span class="match-card-online"></span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Priya R. 🔥</div>
+          <div class="match-card-meta">28 · Tampa, FL</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-3">A
+          <span class="match-card-score">85%</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Anjali N. 🔥</div>
+          <div class="match-card-meta">30 · SF, CA</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-7">M
+          <span class="match-card-score">81%</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Meera K. 🔥</div>
+          <div class="match-card-meta">31 · Seattle, WA</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROW 5: SF Tech (other saved search) -->
+  <section class="match-row">
+    <div class="match-row-header">
+      <div>
+        <h2 class="match-row-title">⭐ SF tech professionals <span class="pill">3 new</span></h2>
+        <p class="match-row-subtitle">From your saved search · runs weekly</p>
+      </div>
+      <a href="#" class="match-row-link">Open search →</a>
+    </div>
+    <div class="scroller">
+      <div class="match-card">
+        <div class="match-card-photo photo-1">A
+          <span class="match-card-score">92%</span>
+          <span class="match-card-new">New</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Aditi M.</div>
+          <div class="match-card-meta">29 · SF, CA</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-4">S
+          <span class="match-card-score">81%</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Sara T.</div>
+          <div class="match-card-meta">31 · SF, CA</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-5">R
+          <span class="match-card-score">78%</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Riya V.</div>
+          <div class="match-card-meta">28 · Oakland, CA</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-2">B
+          <span class="match-card-score">76%</span>
+          <span class="match-card-new">New</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Bhavna J.</div>
+          <div class="match-card-meta">30 · Berkeley, CA</div>
+        </div>
+      </div>
+      <div class="match-card">
+        <div class="match-card-photo photo-6">N
+          <span class="match-card-score">75%</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-card-name">Neha P.</div>
+          <div class="match-card-meta">32 · San Jose, CA</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- UTILITY STRIP — small inbox/stats at bottom -->
+  <section class="utility-strip">
+    <div class="util-tile">
+      <div class="util-tile-icon">💬</div>
+      <div class="util-tile-num">2</div>
+      <div class="util-tile-label">Unread msgs</div>
+    </div>
+    <div class="util-tile">
+      <div class="util-tile-icon">📬</div>
+      <div class="util-tile-num">3</div>
+      <div class="util-tile-label">Pending requests</div>
+    </div>
+    <div class="util-tile">
+      <div class="util-tile-icon">👁</div>
+      <div class="util-tile-num">42</div>
+      <div class="util-tile-label">Profile views</div>
+    </div>
+    <div class="util-tile">
+      <div class="util-tile-icon">⭐</div>
+      <div class="util-tile-num">15</div>
+      <div class="util-tile-label">My favorites</div>
+    </div>
+    <div class="util-tile">
+      <div class="util-tile-icon">📋</div>
+      <div class="util-tile-num">7</div>
+      <div class="util-tile-label">Shortlist</div>
+    </div>
+    <div class="util-tile">
+      <div class="util-tile-icon">🔍</div>
+      <div class="util-tile-num">5</div>
+      <div class="util-tile-label">Saved searches</div>
+    </div>
+  </section>
+
+  <!-- DESIGN NOTES -->
+  <section style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--spacing-lg); margin-top: var(--spacing-xl);">
+    <h3 style="margin-top: 0;">Design rationale</h3>
+    <p><strong>Hypothesis:</strong> The dashboard's primary job is to make users <em>discover new people</em>. Stats and inbox-management are secondary; surface as much fresh content as possible.</p>
+    <ul>
+      <li><strong>Match of the day</strong> hero — anchors the visit. Rotates daily, picks highest L3V3L score from new arrivals.</li>
+      <li><strong>Netflix-style horizontal rows</strong> — each row is a curated lens: <em>New this week</em>, <em>Saved search results</em> (one row per saved search!), <em>Favorited you</em>, <em>Mutual interest</em>, etc.</li>
+      <li><strong>Compact match cards</strong> with L3V3L score badge + online dot + "New" badge. Hover/click to view profile.</li>
+      <li><strong>Saved searches become first-class content</strong> — instead of a stat card showing "5 saved searches", each one becomes a row of fresh results.</li>
+      <li><strong>Inbox/stats relegated to a small utility strip</strong> at the bottom — they're a 1-click escape, not the main event.</li>
+      <li><strong>Banners → notification drawer</strong> (bell, top-right). Same as Mockups A & B.</li>
+    </ul>
+    <p><strong>Trade-offs:</strong> Heavier API load (more profiles fetched per visit). Visually busy if user has many saved searches (could become 10+ rows of scroll). Less optimal for "I just want to reply to messages" users — they have to scroll to bottom.</p>
+  </section>
+
+</main>
+
+</body>
+</html>

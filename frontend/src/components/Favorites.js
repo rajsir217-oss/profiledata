@@ -5,6 +5,7 @@ import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import PIIRequestModal from './PIIRequestModal';
 import ChatFirstPrompt from './ChatFirstPrompt';
+import logger from '../utils/logger';
 import './SearchPage2.css';
 
 const Favorites = () => {
@@ -32,6 +33,12 @@ const Favorites = () => {
   const navigate = useNavigate();
   const currentUsername = localStorage.getItem('username');
 
+  const [cardsPerRow, setCardsPerRow] = useState(() => {
+    const raw = localStorage.getItem('searchCardsPerRow');
+    const parsed = raw ? parseInt(raw, 10) : 3;
+    return [2, 3, 4, 5, 6].includes(parsed) ? parsed : 3;
+  });
+
   useEffect(() => {
     loadFavorites();
     loadPiiRequests();
@@ -50,7 +57,7 @@ const Favorites = () => {
       const response = await api.get(`/favorites/${username}`);
       setFavorites(response.data.favorites || []);
     } catch (err) {
-      console.error('Error loading favorites:', err);
+      logger.error('Error loading favorites:', err);
       setError('Failed to load favorites');
     } finally {
       setLoading(false);
@@ -64,7 +71,7 @@ const Favorites = () => {
       const response = await api.get(`/profile/${username}?requester=${username}`);
       setCurrentUserProfile(response.data);
     } catch (err) {
-      console.error('Error loading current user profile:', err);
+      logger.error('Error loading current user profile:', err);
     }
   };
 
@@ -120,7 +127,7 @@ const Favorites = () => {
       setPiiAccessMap(piiMap);
       setPiiRequestsMap(piiReqMap);
     } catch (err) {
-      console.error('Error loading PII requests:', err);
+      logger.error('Error loading PII requests:', err);
     }
   };
 
@@ -162,7 +169,7 @@ const Favorites = () => {
       });
       setShowPIIRequestModal(true);
     } catch (err) {
-      console.error('Failed to fetch profile for PII modal:', err);
+      logger.error('Failed to fetch profile for PII modal:', err);
       setSelectedUserForPII(user);
       setShowPIIRequestModal(true);
     }
@@ -194,7 +201,7 @@ const Favorites = () => {
       setStatusMessage('✅ Removed from favorites!');
       setTimeout(() => setStatusMessage(''), 3000);
     } catch (err) {
-      console.error('Error removing from favorites:', err);
+      logger.error('Error removing from favorites:', err);
       setError('Failed to remove from favorites');
       setStatusMessage('❌ Failed to remove from favorites');
       setTimeout(() => setStatusMessage(''), 3000);
@@ -208,7 +215,7 @@ const Favorites = () => {
         const response = await api.get(`/profile/${user.username}?requester=${currentUsername}`);
         setSelectedUser(response.data);
       } catch (err) {
-        console.error('Error loading user profile:', err);
+        logger.error('Error loading user profile:', err);
         // Fallback to existing user object
         setSelectedUser(user);
       }
@@ -226,6 +233,28 @@ const Favorites = () => {
       <div className="container-fluid">
         <h2 className="mb-4">⭐ Favorites</h2>
 
+        {favorites.length > 0 && (
+          <div className="results-controls-top-centered">
+            <div className="cards-per-row-selector">
+              <span className="selector-label">Cards:</span>
+              {[2, 3, 4, 5, 6].map(num => (
+                <button
+                  key={num}
+                  className={`cards-btn ${cardsPerRow === num ? 'active' : ''}`}
+                  onClick={() => {
+                    setCardsPerRow(num);
+                    localStorage.setItem('searchCardsPerRow', num.toString());
+                  }}
+                  title={`${num} cards per row`}
+                  type="button"
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {statusMessage && (
           <div className={`alert ${statusMessage.includes('❌') ? 'alert-danger' : 'alert-success'} alert-dismissible fade show`} role="alert">
             {statusMessage}
@@ -238,7 +267,7 @@ const Favorites = () => {
             <p className="mb-0">No favorites yet. Start browsing and add profiles you like!</p>
           </div>
         ) : (
-          <div className="results-grid">
+          <div className={`results-grid results-grid-centered cards-per-row-${cardsPerRow}`}>
             {favorites.map(user => (
               <SearchResultCard
                 key={user.username}

@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup D — 2-Column Dashboard (preserves current containers)</title>
+<style>
+  :root {
+    --primary-color: #d4736a;
+    --primary-dark: #b85b53;
+    --secondary-color: #e9b384;
+    --accent-color: #6ba8a0;
+    --bg-color: #faf6f1;
+    --surface-color: #fff;
+    --card-background: #fff;
+    --border-color: #e8dfd5;
+    --text-color: #3a2e2a;
+    --text-secondary: #7a6b65;
+    --text-muted: #a89b94;
+    --success-color: #6ba87f;
+    --warning-color: #e0a458;
+    --danger-color: #c4685a;
+    --info-color: #5a8eb5;
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --shadow-sm: 0 2px 4px rgba(58, 46, 42, 0.06);
+    --shadow-md: 0 4px 12px rgba(58, 46, 42, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.5;
+  }
+
+  /* ============ MOCKUP BANNER ============ */
+  .mockup-banner {
+    background: var(--text-color);
+    color: white;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 13px;
+  }
+  .mockup-banner a { color: var(--secondary-color); margin-left: 12px; text-decoration: none; }
+  .mockup-banner a:hover { text-decoration: underline; }
+
+  /* ============ TOP BAR ============ */
+  .topbar {
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px var(--spacing-xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .topbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .topbar-logo .logo-icon {
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .topbar-logo-text { line-height: 1.1; }
+  .topbar-logo-text .name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+  .topbar-logo-text .tagline { font-size: 11px; color: var(--text-muted); }
+
+  .topbar-actions { display: flex; gap: var(--spacing-sm); align-items: center; }
+  .icon-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    position: relative;
+  }
+  .icon-btn:hover { background: var(--bg-color); }
+  .icon-btn .badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: var(--danger-color);
+    color: white;
+    font-size: 10px;
+    border-radius: 10px;
+    min-width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    padding: 0 4px;
+  }
+  .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  /* ============ OPEN PROFILE TABS ============ */
+  .profile-tabs {
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px var(--spacing-md);
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    align-items: center;
+  }
+  .profile-tabs::-webkit-scrollbar { height: 4px; }
+  .profile-tab {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 6px 12px 6px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .profile-tab:hover { border-color: var(--primary-color); }
+  .profile-tab.active {
+    background: linear-gradient(135deg, rgba(212, 115, 106, 0.1), rgba(233, 179, 132, 0.1));
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    font-weight: 600;
+  }
+  .profile-tab .pt-avatar {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-color), var(--info-color));
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .profile-tab .pt-close {
+    color: var(--text-muted);
+    margin-left: 4px;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .profile-tab .pt-close:hover { color: var(--danger-color); }
+
+  /* ============ PAGE HEADER ============ */
+  .page-header {
+    padding: var(--spacing-md) var(--spacing-xl);
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .page-header h1 {
+    font-size: 18px;
+    margin: 0;
+    color: var(--text-color);
+  }
+  .page-header .subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  /* ============ CONTAINER ============ */
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-xl);
+  }
+
+  /* ============ BANNERS ============ */
+  .banner-mfa {
+    background: linear-gradient(135deg, #2d4a7a 0%, #1e3a6f 100%);
+    color: white;
+    padding: 16px 24px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    box-shadow: var(--shadow-md);
+  }
+  .banner-mfa .banner-icon { font-size: 32px; flex-shrink: 0; }
+  .banner-mfa .banner-text { flex: 1; }
+  .banner-mfa .banner-text strong { display: block; font-size: 16px; margin-bottom: 2px; }
+  .banner-mfa .banner-text p { margin: 0; font-size: 13px; opacity: 0.85; }
+  .banner-mfa .banner-actions { display: flex; gap: 8px; }
+  .banner-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 18px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .banner-btn:hover { background: rgba(255, 255, 255, 0.25); }
+  .banner-dismiss {
+    background: rgba(0, 0, 0, 0.2);
+    width: 36px; height: 36px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  /* ============ STATS STRIP (preserved from current) ============ */
+  .stats-strip {
+    display: flex;
+    gap: 8px;
+    margin-bottom: var(--spacing-md);
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .stats-strip::-webkit-scrollbar { height: 4px; }
+  .stat-tile {
+    flex: 1;
+    min-width: 72px;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .stat-tile:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-color);
+  }
+  .stat-tile .stat-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    margin: 0 auto 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .stat-tile.color-views .stat-icon { background: rgba(90, 142, 181, 0.15); color: var(--info-color); }
+  .stat-tile.color-favs .stat-icon { background: rgba(196, 104, 122, 0.15); color: #c4687a; }
+  .stat-tile.color-msgs .stat-icon { background: rgba(107, 168, 160, 0.15); color: var(--accent-color); }
+  .stat-tile.color-inbox .stat-icon { background: rgba(224, 164, 88, 0.15); color: var(--warning-color); }
+  .stat-tile.color-access .stat-icon { background: rgba(140, 111, 176, 0.15); color: #8c6fb0; }
+  .stat-tile.color-myfavs .stat-icon { background: rgba(212, 115, 106, 0.15); color: var(--primary-color); }
+  .stat-tile.color-shortlist .stat-icon { background: rgba(107, 168, 160, 0.15); color: var(--accent-color); }
+  .stat-tile.color-shortme .stat-icon { background: rgba(90, 142, 181, 0.15); color: var(--info-color); }
+  .stat-tile.color-search .stat-icon { background: rgba(107, 168, 127, 0.15); color: var(--success-color); }
+  .stat-tile.color-poll .stat-icon { background: rgba(224, 164, 88, 0.15); color: var(--warning-color); }
+
+  .stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-color);
+    margin-bottom: 2px;
+  }
+  .stat-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  /* ============ 2-COLUMN GRID (THE NEW LAYOUT) ============ */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: var(--spacing-md);
+    align-items: start;
+  }
+  @media (max-width: 1024px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .col-left { display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0; }
+  .col-right { display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0; }
+
+  /* ============ ACTIVITY GROUP CONTAINERS (preserved from current) ============ */
+  .activity-group {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Color-coded section headers (matching current dashboard) */
+  .activity-group-header {
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+    font-weight: 600;
+  }
+  .activity-group-header-my {
+    background: linear-gradient(135deg, #5a6fd6 0%, #4a5fc5 100%);
+  }
+  .activity-group-header-others {
+    background: linear-gradient(135deg, #c4687a 0%, #a85064 100%);
+  }
+  .activity-group-header-pii {
+    background: linear-gradient(135deg, #d4a574 0%, #c9944a 100%);
+  }
+  .activity-group-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+  }
+  .activity-group-title h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .activity-group-icon { font-size: 18px; }
+  .activity-group-count {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .section-refresh-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .section-refresh-btn:hover { background: rgba(255, 255, 255, 0.25); }
+  .activity-group-toggle {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: none;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-left: 8px;
+    font-size: 12px;
+  }
+
+  /* Category pills (preserved) */
+  .category-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-color);
+  }
+  .category-pill {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 18px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .category-pill:hover { border-color: var(--primary-color); color: var(--primary-color); }
+  .category-pill .pill-icon { font-size: 13px; }
+  .category-pill .pill-count {
+    background: var(--bg-color);
+    color: var(--text-secondary);
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  /* Pill active states — color-coded per type */
+  .category-pill.pill-messages.active { background: #5a6fd6; color: white; border-color: #5a6fd6; }
+  .category-pill.pill-notes.active { background: #8c6fb0; color: white; border-color: #8c6fb0; }
+  .category-pill.pill-favorites.active { background: #d4a574; color: white; border-color: #d4a574; }
+  .category-pill.pill-shortlists.active { background: var(--accent-color); color: white; border-color: var(--accent-color); }
+  .category-pill.pill-exclusions.active { background: var(--danger-color); color: white; border-color: var(--danger-color); }
+  .category-pill.pill-views.active { background: #c9944a; color: white; border-color: #c9944a; }
+  .category-pill.pill-their-favorites.active { background: #c4687a; color: white; border-color: #c4687a; }
+  .category-pill.pill-their-shortlists.active { background: var(--info-color); color: white; border-color: var(--info-color); }
+  .category-pill.pill-inbox.active { background: var(--warning-color); color: white; border-color: var(--warning-color); }
+  .category-pill.pill-sent.active { background: #5a8eb5; color: white; border-color: #5a8eb5; }
+  .category-pill.pill-history.active { background: #8c6fb0; color: white; border-color: #8c6fb0; }
+  .category-pill.active .pill-count {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+  }
+
+  /* Sub-section bar (matching screenshot's "Search Exclude 12" / "Shortlisted Me 0") */
+  .subsection-bar {
+    padding: 10px 18px;
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .subsection-bar .sub-count {
+    background: rgba(0,0,0,0.2);
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .subsection-bar.tone-exclude { background: var(--danger-color); }
+  .subsection-bar.tone-shortlist-me { background: var(--info-color); }
+  .subsection-bar.tone-pii-inbox { background: var(--warning-color); }
+  .subsection-bar .view-toggle {
+    display: flex;
+    gap: 4px;
+  }
+  .subsection-bar .view-toggle button {
+    background: rgba(0,0,0,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+    width: 26px; height: 26px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  /* Content area (preserved) */
+  .category-content {
+    padding: var(--spacing-md);
+  }
+
+  /* ============ PROFILE CARD GRID (preserved from current) ============ */
+  .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+  }
+  .profile-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .profile-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .pc-photo {
+    aspect-ratio: 4/5;
+    position: relative;
+    background: linear-gradient(135deg, var(--accent-color), var(--info-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 36px;
+    font-weight: 700;
+  }
+  .pc-photo.color-1 { background: linear-gradient(135deg, #5a8eb5, #2d4a7a); }
+  .pc-photo.color-2 { background: linear-gradient(135deg, #6ba8a0, #4f8262); }
+  .pc-photo.color-3 { background: linear-gradient(135deg, #b4a0d4, #826ba8); }
+  .pc-photo.color-4 { background: linear-gradient(135deg, #d4a574, #c9944a); }
+  .pc-photo.color-5 { background: linear-gradient(135deg, #c4687a, #a85064); }
+
+  .pc-age-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .pc-menu-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .pc-body {
+    padding: 10px 12px 12px;
+  }
+  .pc-name {
+    font-weight: 700;
+    font-size: 14px;
+    margin: 0 0 6px;
+    color: var(--text-color);
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .pc-name .pc-age { color: var(--text-muted); font-weight: 500; font-size: 12px; }
+  .pc-attrs {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .pc-attr {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    padding: 3px 8px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .pc-attr .attr-icon { color: var(--primary-color); flex-shrink: 0; }
+  .pc-meta {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+    font-size: 10px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .pc-actions {
+    display: flex;
+    gap: 4px;
+    padding: 8px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-color);
+  }
+  .pc-action-btn {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+  }
+  .pc-action-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+
+  /* ============ EMPTY STATE ============ */
+  .empty-state {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .empty-state .empty-icon {
+    font-size: 36px;
+    opacity: 0.4;
+    margin-bottom: 8px;
+  }
+  .empty-state p { margin: 0; font-size: 13px; }
+
+  /* ============ DESIGN NOTES ============ */
+  .design-notes {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+  }
+  .design-notes h3 { margin-top: 0; }
+</style>
+</head>
+<body>
+
+<div class="mockup-banner">
+  <strong>📐 Mockup D — 2-Column Layout (current containers, rearranged).</strong>
+  <a href="./index.html">← Back to comparison</a>
+  <a href="./A-action-first.html">A</a>
+  <a href="./B-activity-timeline.html">B</a>
+  <a href="./C-match-discovery.html">C</a>
+</div>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="topbar-logo">
+    <span class="logo-icon">L3V3L</span>
+    <div class="topbar-logo-text">
+      <div class="name">USVEDIKA</div>
+      <div class="tagline">Matrimonial Match Making Platform</div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button class="icon-btn" title="Search">🔍</button>
+    <button class="icon-btn" title="Notifications">🔔 <span class="badge">5</span></button>
+    <button class="icon-btn" title="Favorites">❤️</button>
+    <button class="icon-btn" title="Messages">💬 <span class="badge">2</span></button>
+    <div class="avatar">SK</div>
+  </div>
+</header>
+
+<!-- OPEN PROFILE TABS -->
+<div class="profile-tabs">
+  <div class="profile-tab">
+    <div class="pt-avatar">NM</div>
+    <span>1d ago</span>
+    <span class="pt-close">×</span>
+  </div>
+  <div class="profile-tab">
+    <div class="pt-avatar">NM</div>
+    <span>Neil Mishra viewed your profile · 153d ago</span>
+    <span class="pt-close">×</span>
+  </div>
+  <div class="profile-tab">
+    <div class="pt-avatar">AM</div>
+    <span>Aarav Mishra viewed your profile · 153d ago</span>
+    <span class="pt-close">×</span>
+  </div>
+  <div class="profile-tab">
+    <div class="pt-avatar">SD</div>
+    <span>Siddharth Das viewed your profile · 150d ago</span>
+    <span class="pt-close">×</span>
+  </div>
+  <button class="icon-btn" title="More tabs" style="flex-shrink: 0;">⋯</button>
+</div>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <h1>📊 My Dashboard</h1>
+  <span class="subtitle">// View your matches and activity</span>
+</div>
+
+<main class="container">
+
+  <!-- MFA BANNER -->
+  <div class="banner-mfa">
+    <div class="banner-icon">🔒</div>
+    <div class="banner-text">
+      <strong>Secure your account with Multi-Factor Authentication</strong>
+      <p>Add an extra layer of security by enabling MFA. It only takes a minute!</p>
+    </div>
+    <div class="banner-actions">
+      <button class="banner-btn">Enable MFA</button>
+      <button class="banner-dismiss">✕</button>
+    </div>
+  </div>
+
+  <!-- STATS STRIP (preserved 9 stat cards + poll) -->
+  <div class="stats-strip">
+    <div class="stat-tile color-views">
+      <div class="stat-icon">👁</div>
+      <div class="stat-value">179</div>
+      <div class="stat-label">Views</div>
+    </div>
+    <div class="stat-tile color-favs">
+      <div class="stat-icon">❤️</div>
+      <div class="stat-value">0</div>
+      <div class="stat-label">Fav'd By</div>
+    </div>
+    <div class="stat-tile color-msgs">
+      <div class="stat-icon">💬</div>
+      <div class="stat-value">9</div>
+      <div class="stat-label">Messages</div>
+    </div>
+    <div class="stat-tile color-inbox">
+      <div class="stat-icon">📬</div>
+      <div class="stat-value">0</div>
+      <div class="stat-label">Reqs Inbox</div>
+    </div>
+    <div class="stat-tile color-access">
+      <div class="stat-icon">🔓</div>
+      <div class="stat-value">0</div>
+      <div class="stat-label">Access Recvd</div>
+    </div>
+    <div class="stat-tile color-myfavs">
+      <div class="stat-icon">⭐</div>
+      <div class="stat-value">5</div>
+      <div class="stat-label">My Favs</div>
+    </div>
+    <div class="stat-tile color-shortlist">
+      <div class="stat-icon">📋</div>
+      <div class="stat-value">5</div>
+      <div class="stat-label">My Shortlsts</div>
+    </div>
+    <div class="stat-tile color-shortme">
+      <div class="stat-icon">🔖</div>
+      <div class="stat-value">0</div>
+      <div class="stat-label">Shortd Me</div>
+    </div>
+    <div class="stat-tile color-search">
+      <div class="stat-icon">🔍</div>
+      <div class="stat-value">0</div>
+      <div class="stat-label">Saved Srch</div>
+    </div>
+    <div class="stat-tile color-poll">
+      <div class="stat-icon">📣</div>
+      <div class="stat-value">—</div>
+      <div class="stat-label">No Polls</div>
+    </div>
+  </div>
+
+  <!-- ============ 2-COLUMN GRID (NEW LAYOUT) ============ -->
+  <div class="dashboard-grid">
+
+    <!-- ======= LEFT COLUMN: 1 BIG CONTAINER = MY ACTIVITIES ======= -->
+    <div class="col-left">
+
+      <div class="activity-group">
+        <div class="activity-group-header activity-group-header-my">
+          <div class="activity-group-title">
+            <span class="activity-group-icon">📊</span>
+            <h2>My Activities</h2>
+            <span class="activity-group-count">31</span>
+            <button class="section-refresh-btn" title="Refresh">⟳</button>
+          </div>
+          <button class="activity-group-toggle">▼</button>
+        </div>
+
+        <div class="category-pills">
+          <button class="category-pill pill-messages">
+            <span class="pill-icon">💬</span>
+            <span>Messages</span>
+            <span class="pill-count">9</span>
+          </button>
+          <button class="category-pill pill-notes">
+            <span class="pill-icon">📝</span>
+            <span>Notes</span>
+            <span class="pill-count">0</span>
+          </button>
+          <button class="category-pill pill-favorites">
+            <span class="pill-icon">⭐</span>
+            <span>Favorites</span>
+            <span class="pill-count">5</span>
+          </button>
+          <button class="category-pill pill-shortlists">
+            <span class="pill-icon">📋</span>
+            <span>Shortlists</span>
+            <span class="pill-count">5</span>
+          </button>
+          <button class="category-pill pill-exclusions active">
+            <span class="pill-icon">🚫</span>
+            <span>Search Exclude</span>
+            <span class="pill-count">12</span>
+          </button>
+        </div>
+
+        <div class="subsection-bar tone-exclude">
+          <span>🚫 Search Exclude <span class="sub-count">12</span></span>
+          <div class="view-toggle">
+            <button title="Card view">⊞</button>
+            <button title="List view">☰</button>
+          </div>
+        </div>
+
+        <div class="category-content">
+          <div class="profile-grid">
+
+            <div class="profile-card">
+              <div class="pc-photo color-1">
+                <span class="pc-age-badge">25yrs</span>
+                <button class="pc-menu-btn">⋯</button>
+                AM
+              </div>
+              <div class="pc-body">
+                <div class="pc-name">Aarav Mishra <span class="pc-age">25y</span></div>
+                <div class="pc-attrs">
+                  <div class="pc-attr"><span class="attr-icon">📍</span>Fort Worth, TX</div>
+                  <div class="pc-attr"><span class="attr-icon">💼</span>Content Writer</div>
+                  <div class="pc-attr"><span class="attr-icon">🎓</span>Business Degree</div>
+                </div>
+                <div class="pc-meta">
+                  5'8" · 09/2002 (23 yrs)<br>
+                  Serious Relationship · Same as mine + 4...
+                </div>
+              </div>
+              <div class="pc-actions">
+                <button class="pc-action-btn" title="View">👁</button>
+                <button class="pc-action-btn" title="Message">💬</button>
+              </div>
+            </div>
+
+            <div class="profile-card">
+              <div class="pc-photo color-2">
+                <span class="pc-age-badge">22yrs</span>
+                <button class="pc-menu-btn">⋯</button>
+                AB
+              </div>
+              <div class="pc-body">
+                <div class="pc-name">Advait Bhat <span class="pc-age">22y</span></div>
+                <div class="pc-attrs">
+                  <div class="pc-attr"><span class="attr-icon">📍</span>Indianapolis, IN</div>
+                  <div class="pc-attr"><span class="attr-icon">💼</span>Teacher</div>
+                  <div class="pc-attr"><span class="attr-icon">🎓</span>MBA</div>
+                </div>
+                <div class="pc-meta">
+                  5'10" · 04/2003 (22 yrs)<br>
+                  Manage · Open · Same region
+                </div>
+              </div>
+              <div class="pc-actions">
+                <button class="pc-action-btn" title="View">👁</button>
+                <button class="pc-action-btn" title="Message">💬</button>
+              </div>
+            </div>
+
+            <div class="profile-card">
+              <div class="pc-photo color-3">
+                <span class="pc-age-badge">25yrs</span>
+                <button class="pc-menu-btn">⋯</button>
+                RS
+              </div>
+              <div class="pc-body">
+                <div class="pc-name">Rajender Siripuram <span class="pc-age">25y</span></div>
+                <div class="pc-attrs">
+                  <div class="pc-attr"><span class="attr-icon">📍</span>San Francisco</div>
+                  <div class="pc-attr"><span class="attr-icon">💼</span>Marketing Manager in Health Care S...</div>
+                  <div class="pc-attr"><span class="attr-icon">🎓</span>BS</div>
+                </div>
+                <div class="pc-meta">
+                  5'5" · 02/2000 (24 yrs)
+                </div>
+              </div>
+              <div class="pc-actions">
+                <button class="pc-action-btn" title="View">👁</button>
+                <button class="pc-action-btn" title="Message">💬</button>
+              </div>
+            </div>
+
+            <div class="profile-card">
+              <div class="pc-photo color-3">
+                <span class="pc-age-badge">31yrs</span>
+                <button class="pc-menu-btn">⋯</button>
+                RS
+              </div>
+              <div class="pc-body">
+                <div class="pc-name">Rahul Shah <span class="pc-age">31y</span></div>
+                <div class="pc-attrs">
+                  <div class="pc-attr"><span class="attr-icon">📍</span>Boston, MA</div>
+                  <div class="pc-attr"><span class="attr-icon">💼</span>Marketing Manager</div>
+                  <div class="pc-attr"><span class="attr-icon">🎓</span>MBA</div>
+                </div>
+                <div class="pc-meta">
+                  6'2" · 10/1994 (31 yrs)<br>
+                  Life Partner · Within 50 miles
+                </div>
+              </div>
+              <div class="pc-actions">
+                <button class="pc-action-btn" title="View">👁</button>
+                <button class="pc-action-btn" title="Message">💬</button>
+              </div>
+            </div>
+
+            <div class="profile-card">
+              <div class="pc-photo color-3">
+                <span class="pc-age-badge">38yrs</span>
+                <button class="pc-menu-btn">⋯</button>
+                RS
+              </div>
+              <div class="pc-body">
+                <div class="pc-name">raj Siripuram <span class="pc-age">38y</span></div>
+                <div class="pc-attrs">
+                  <div class="pc-attr"><span class="attr-icon">📍</span>San Francisco</div>
+                  <div class="pc-attr"><span class="attr-icon">💼</span>Marketing Manager in Health Care S...</div>
+                  <div class="pc-attr"><span class="attr-icon">🎓</span>BS</div>
+                </div>
+                <div class="pc-meta">
+                  6'0" · 08/1987 (38 yrs)
+                </div>
+              </div>
+              <div class="pc-actions">
+                <button class="pc-action-btn" title="View">👁</button>
+                <button class="pc-action-btn" title="Message">💬</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======= RIGHT COLUMN: 2 STACKED CONTAINERS ======= -->
+    <div class="col-right">
+
+      <!-- CONTAINER 1: PROSPECTS -->
+      <div class="activity-group">
+        <div class="activity-group-header activity-group-header-others">
+          <div class="activity-group-title">
+            <span class="activity-group-icon">💕</span>
+            <h2>Prospects</h2>
+            <span class="activity-group-count">0</span>
+            <button class="section-refresh-btn" title="Refresh">⟳</button>
+          </div>
+          <button class="activity-group-toggle">▼</button>
+        </div>
+
+        <div class="category-pills">
+          <button class="category-pill pill-views">
+            <span class="pill-icon">👁</span>
+            <span>Profile Views</span>
+            <span class="pill-count">0</span>
+          </button>
+          <button class="category-pill pill-their-favorites">
+            <span class="pill-icon">💕</span>
+            <span>Favorited Me</span>
+            <span class="pill-count">0</span>
+          </button>
+          <button class="category-pill pill-their-shortlists active">
+            <span class="pill-icon">🔖</span>
+            <span>Shortlisted Me</span>
+            <span class="pill-count">0</span>
+          </button>
+        </div>
+
+        <div class="subsection-bar tone-shortlist-me">
+          <span>🔖 Shortlisted Me <span class="sub-count">0</span></span>
+        </div>
+
+        <div class="category-content">
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <p>No shortlisted me yet</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTAINER 2: CONTACTS & PHOTO REQUESTS (PII) -->
+      <div class="activity-group">
+        <div class="activity-group-header activity-group-header-pii">
+          <div class="activity-group-title">
+            <span class="activity-group-icon">🔐</span>
+            <h2>Contacts &amp; Photo Requests</h2>
+            <span class="activity-group-count">0</span>
+            <button class="section-refresh-btn" title="Refresh">⟳</button>
+          </div>
+          <button class="activity-group-toggle">▼</button>
+        </div>
+
+        <div class="category-pills">
+          <button class="category-pill pill-inbox active">
+            <span class="pill-icon">📬</span>
+            <span>Requests Inbox</span>
+            <span class="pill-count">0</span>
+          </button>
+          <button class="category-pill pill-sent">
+            <span class="pill-icon">📤</span>
+            <span>Requests Sent</span>
+            <span class="pill-count">0</span>
+          </button>
+          <button class="category-pill pill-history">
+            <span class="pill-icon">🔓</span>
+            <span>Access Received</span>
+            <span class="pill-count">0</span>
+          </button>
+        </div>
+
+        <div class="subsection-bar tone-pii-inbox">
+          <span>📬 Requests Inbox <span class="sub-count">0</span></span>
+        </div>
+
+        <div class="category-content">
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>No requests</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- DESIGN NOTES -->
+  <section class="design-notes">
+    <h3>Design rationale</h3>
+    <p><strong>Hypothesis:</strong> The current containers (My Activities, Prospects, Contacts &amp; Photo Requests) are good — they're just stacked vertically, so users have to scroll and toggle accordions. <em>Rearrange, don't redesign.</em></p>
+
+    <h4 style="margin-bottom: 8px;">What stayed the same</h4>
+    <ul style="margin-top: 0;">
+      <li>All 3 container components, their gradient headers, pills, sub-section bars, and content rendering — pixel-identical to current implementation.</li>
+      <li>9-card stats strip + poll widget — preserved as-is.</li>
+      <li>Top profile-view tabs row (as shown in your screenshot).</li>
+      <li>MFA banner styling.</li>
+    </ul>
+
+    <h4 style="margin-bottom: 8px;">What changed</h4>
+    <ul style="margin-top: 0;">
+      <li><strong>2-column grid</strong> body replaces the vertical stack of accordions.</li>
+      <li><strong>Left column (wider, 1.4fr):</strong> 1 container — My Activities (the section users spend the most time in).</li>
+      <li><strong>Right column (narrower, 1fr):</strong> 2 stacked containers — Prospects + Contacts &amp; Photo Requests (the section users skim).</li>
+      <li><strong>All sections expanded by default</strong> — the whole point of the 2-column layout is no more "click to expand" friction. Toggle (▼) is still there for users who want to collapse.</li>
+      <li><strong>Mobile:</strong> collapses to single column (My Activities → Prospects → PII), preserving information hierarchy.</li>
+    </ul>
+
+    <h4 style="margin-bottom: 8px;">Implementation effort</h4>
+    <ul style="margin-top: 0;">
+      <li><strong>~1-2 days</strong>. Zero new components, zero new APIs. Just a grid wrapper around the existing 3 <code>@/Users/rajsiripuram02/opt/appsrc/profiledata/frontend/src/components/Dashboard2.js</code> sections.</li>
+      <li>Risk: low. Falls back to current behavior on mobile.</li>
+      <li>Can ship behind <code>?layout=2col</code> flag for A/B testing.</li>
+    </ul>
+
+    <h4 style="margin-bottom: 8px;">Trade-offs</h4>
+    <ul style="margin-top: 0;">
+      <li><strong>Pro:</strong> Lowest-risk improvement of the 4 mockups. Everything users know is preserved.</li>
+      <li><strong>Pro:</strong> All 3 sections visible without scroll on a 1080p+ display.</li>
+      <li><strong>Con:</strong> Doesn't solve any of the deeper problems (banner pile-up, no search, no fresh content, no L3V3L surfacing) — see Mockups A/B/C for those.</li>
+      <li><strong>Con:</strong> Below 1024px, falls back to the same stacked layout as today.</li>
+    </ul>
+  </section>
+
+</main>
+
+</body>
+</html>

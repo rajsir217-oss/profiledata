@@ -146,6 +146,38 @@
   min-width: 0;
 }
 
+.results-controls-top-centered {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+.results-grid-centered {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.results-grid.cards-per-row-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.results-grid.cards-per-row-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.results-grid.cards-per-row-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.results-grid.cards-per-row-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.results-grid.cards-per-row-6 {
+  grid-template-columns: repeat(6, 1fr);
+}
+
 /* Scroll container for rows view - enables horizontal & vertical scrolling */
 .rows-scroll-container {
   width: 100%;

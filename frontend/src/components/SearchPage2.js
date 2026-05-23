@@ -181,6 +181,8 @@ const SearchPage2 = () => {
   // list state + CRUD + inline schedule editor live in useSavedSearches).
   const [selectedSearch, setSelectedSearch] = useState(null);
   const [showSavedSearches, setShowSavedSearches] = useState(false);
+  const [inlineTabsDefaultTab, setInlineTabsDefaultTab] = useState(null);
+  const [inlineTabsNonce, setInlineTabsNonce] = useState(0);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [editingScheduleFor, setEditingScheduleFor] = useState(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -1173,6 +1175,11 @@ const SearchPage2 = () => {
 
     if (pendingSearchAction.type === 'openFilters') {
       openFiltersPanel();
+    } else if (pendingSearchAction.type === 'openSavedSearches') {
+      setInlineTabsDefaultTab('saved');
+      setInlineTabsNonce((n) => n + 1);
+      openFiltersPanel();
+      requestAnimationFrame(() => setInlineTabsDefaultTab(null));
     } else if (pendingSearchAction.type === 'loadSavedSearch' && pendingSearchAction.savedSearch) {
       handleLoadSavedSearch(pendingSearchAction.savedSearch);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1564,9 +1571,9 @@ const SearchPage2 = () => {
             <div className="search-filters-panel">
               <div className="search-filters-panel-body is-expanded">
                 <UniversalTabContainer
-                  key={`search-inline-tabs-${savedSearches.length}`}
+                  key={`search-inline-tabs-${savedSearches.length}-${inlineTabsNonce}`}
                   variant="underlined"
-                  defaultTab={savedSearches.length > 0 ? 'saved' : 'search'}
+                  defaultTab={inlineTabsDefaultTab || (savedSearches.length > 0 ? 'saved' : 'search')}
                   tabs={[
                     {
                       id: 'search',
@@ -1667,7 +1674,7 @@ const SearchPage2 = () => {
           {/* Only render the empty state after the first search completes, so
               we never flash 'No profiles found' while the initial fetch is still
               in flight or between a refresh's clear→fetch render gap. */}
-          {initialSearchComplete && !loading && currentRecords.length === 0 && (
+          {initialSearchComplete && !loading && !error && currentRecords.length === 0 && (
             <div className="no-results">
               {excludedProfileMessage ? (
                 <>

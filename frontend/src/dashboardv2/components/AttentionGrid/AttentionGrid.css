@@ -1,0 +1,27 @@
+.dv2-attention-subtitle {
+  display: block;
+  width: 100%;
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  margin-top: 4px;
+}
+
+.dv2-attention-card {
+  position: relative;
+}
+
+.dv2-attention-card .dv2-attention-subtitle {
+  position: absolute;
+  left: 64px;
+  right: 16px;
+  bottom: 12px;
+  margin-top: 0;
+}
+
+@media (max-width: 560px) {
+  .dv2-attention-card .dv2-attention-subtitle {
+    position: static;
+    margin-top: 6px;
+  }
+}

@@ -1,0 +1,209 @@
+.dv2-conv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dv2-link {
+  background: transparent;
+  border: none;
+  color: var(--primary-color, #d4736a);
+  cursor: pointer;
+  font: inherit;
+  padding: 4px 0;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.dv2-empty {
+  padding: var(--spacing-md, 16px);
+  color: var(--text-muted, #888);
+  font-size: 13px;
+  border: 1px dashed var(--border-color, #e5e5e5);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--background-color, #fafafa);
+}
+
+.dv2-conv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dv2-conv-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: var(--surface-color, #fff);
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-md, 10px);
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+  font: inherit;
+  color: inherit;
+}
+
+.dv2-conv-row:hover {
+  border-color: var(--primary-color, #d4736a);
+  transform: translateY(-1px);
+}
+
+.dv2-conv-row.is-active {
+  border-color: var(--primary-color, #d4736a);
+  background: var(--selected-background, rgba(99, 102, 241, 0.1));
+  transform: none;
+}
+
+.dv2-conv-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--border-color, #e5e5e5);
+  flex-shrink: 0;
+  background: var(--background-color, #fafafa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dv2-conv-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dv2-conv-initials {
+  font-weight: 800;
+  color: var(--primary-color, #d4736a);
+  font-size: 14px;
+}
+
+.dv2-conv-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.dv2-conv-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dv2-conv-name {
+  font-weight: 700;
+  color: var(--text-color, #222);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dv2-conv-time {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  flex-shrink: 0;
+}
+
+.dv2-conv-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dv2-conv-snippet {
+  font-size: 13px;
+  color: var(--text-muted, #888);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.dv2-conv-unread {
+  background: var(--primary-color, #d4736a);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.dv2-conv-drawer {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: max-height 0.25s ease, opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.dv2-conv-drawer.is-open {
+  max-height: 720px;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  margin-top: 10px;
+}
+
+.dv2-conv-drawer-inner {
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-md, 10px);
+  background: var(--surface-color, #fff);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  height: 620px;
+}
+
+.dv2-conv-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color, #e5e5e5);
+}
+
+.dv2-conv-drawer-title {
+  font-weight: 800;
+  color: var(--text-color, #222);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dv2-conv-drawer-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #e5e5e5);
+  background: var(--surface-color, #fff);
+  cursor: pointer;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.dv2-conv-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dv2-conv-drawer-loading,
+.dv2-conv-drawer-error {
+  padding: var(--spacing-md, 16px);
+  color: var(--text-secondary, #666);
+  font-size: 13px;
+}

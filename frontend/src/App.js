@@ -25,6 +25,7 @@ import Exclusions from './components/Exclusions';
 import Messages from './components/Messages';
 import Requests from './components/Requests';
 import Dashboard from './components/Dashboard2'; // Main dashboard
+import DashboardV2Page from './dashboardv2/DashboardV2Page'; // New action-first dashboard (Mockup A) — coexists with /dashboard
 import UnifiedPreferences from './components/UnifiedPreferences';
 import PIIManagement from './components/PIIManagement';
 import Testimonials from './components/Testimonials';
@@ -399,6 +400,7 @@ function AppContent() {
               {/* Protected routes - require active status except profile/edit-profile/preferences */}
               {/* Old dashboard route removed - file renamed to .toberemoved */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboardv2" element={<ProtectedRoute><DashboardV2Page /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

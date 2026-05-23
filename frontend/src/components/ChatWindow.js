@@ -403,7 +403,6 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
                 )}
               </h4>
               <p className="chat-user-subtitle">
-                {console.log('🔍 ChatWindow otherUser fields:', { height: otherUser.height, heightInches: otherUser.heightInches, age: otherUser.age, birthYear: otherUser.birthYear, birthMonth: otherUser.birthMonth, eatingPreference: otherUser.eatingPreference, location: otherUser.location, keys: Object.keys(otherUser).join(', ') })}
                 {otherUser.location || 'Location not specified'}
                 {(() => {
                   const h = otherUser.height || (otherUser.heightInches ? `${Math.floor(otherUser.heightInches / 12)}'${otherUser.heightInches % 12}"` : null);
@@ -435,22 +434,6 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
               onClick={handleStayInTouch}
               title="Stay in Touch — acknowledge conversation, stop reminders"
               disabled={acknowledgingConversation}
-              style={{
-                background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                fontSize: '20px',
-                cursor: acknowledgingConversation ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s ease',
-                opacity: acknowledgingConversation ? 0.6 : 1,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-              }}
             >
               {acknowledgingConversation ? '⏳' : '🙏'}
             </button>

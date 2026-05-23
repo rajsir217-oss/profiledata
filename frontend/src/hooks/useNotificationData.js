@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getBackendApiUrl } from '../utils/urlHelper';
 import useCancellableRequest from './useCancellableRequest';
 import { API_ENDPOINTS, REFRESH_INTERVALS } from '../constants/notificationTriggers';
+import logger from '../utils/logger';
 
 const useNotificationData = (endpoint, refreshInterval = null, options = {}) => {
   const [data, setData] = useState([]);
@@ -95,7 +96,7 @@ const useNotificationData = (endpoint, refreshInterval = null, options = {}) => 
       }
     } catch (err) {
       if (err.name !== 'AbortError' && mountedRef.current) {
-        console.error(`Error loading ${endpoint}:`, err);
+        logger.error(`Error loading ${endpoint}:`, err);
         setError(err.message);
         setData(initialData);
       }

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard Redesign — 4 Mockups</title>
+<style>
+  :root {
+    --primary-color: #d4736a;
+    --secondary-color: #e9b384;
+    --accent-color: #6ba8a0;
+    --bg-color: #faf6f1;
+    --surface-color: #fff;
+    --border-color: #e8dfd5;
+    --text-color: #3a2e2a;
+    --text-secondary: #7a6b65;
+    --text-muted: #a89b94;
+    --success-color: #6ba87f;
+    --warning-color: #e0a458;
+    --info-color: #5a8eb5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.55;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px;
+  }
+  h1 {
+    font-size: 32px;
+    margin: 0 0 8px;
+  }
+  .lede {
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin: 0 0 32px;
+  }
+  .lede strong { color: var(--text-color); }
+  .audit-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 40px;
+  }
+  .audit-card h2 {
+    margin: 0 0 16px;
+    font-size: 18px;
+  }
+  .audit-card ul { margin: 0 0 0 18px; padding: 0; }
+  .audit-card ul li { margin-bottom: 6px; font-size: 14px; }
+
+  .mockup-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+  @media (max-width: 1100px) { .mockup-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .mockup-grid { grid-template-columns: 1fr; } }
+
+  .mockup-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+  .mockup-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(58, 46, 42, 0.12);
+    border-color: var(--primary-color);
+  }
+  .mockup-thumb {
+    aspect-ratio: 4/3;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 24px;
+    font-weight: 700;
+    font-size: 56px;
+    position: relative;
+  }
+  .mockup-thumb-A { background: linear-gradient(135deg, #d4736a 0%, #e9b384 100%); }
+  .mockup-thumb-B { background: linear-gradient(135deg, #6ba8a0 0%, #5a8eb5 100%); }
+  .mockup-thumb-C { background: linear-gradient(135deg, #b85b53 0%, #826ba8 100%); }
+  .mockup-thumb-D { background: linear-gradient(135deg, #2d4a7a 0%, #6ba8a0 100%); }
+  .mockup-thumb-D::before {
+    content: '';
+    position: absolute;
+    inset: 16px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 6px;
+    opacity: 0.35;
+  }
+  .mockup-thumb-D::after {
+    content: '';
+    position: absolute;
+    inset: 16px;
+    background:
+      linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55)) 0 0 / calc(58.3% - 4px) 100% no-repeat,
+      linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55)) 100% 0 / calc(41.7% - 4px) calc(50% - 3px) no-repeat,
+      linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55)) 100% 100% / calc(41.7% - 4px) calc(50% - 3px) no-repeat;
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .mockup-thumb-tag {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: rgba(0,0,0,0.25);
+    backdrop-filter: blur(6px);
+    color: white;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .mockup-body {
+    padding: 18px 22px 22px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .mockup-body h3 {
+    margin: 0 0 6px;
+    font-size: 18px;
+  }
+  .mockup-body p {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+  .mockup-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 8px;
+  }
+  .mockup-cta {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+
+  /* comparison table */
+  .compare-table {
+    width: 100%;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-bottom: 40px;
+  }
+  .compare-table th, .compare-table td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+  }
+  .compare-table th {
+    background: var(--bg-color);
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+  .compare-table td.dim { color: var(--text-secondary); font-weight: 600; width: 220px; }
+  .compare-table tbody tr:last-child td { border-bottom: none; }
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .pill-good { background: rgba(107, 168, 127, 0.15); color: var(--success-color); }
+  .pill-warn { background: rgba(224, 164, 88, 0.15); color: var(--warning-color); }
+  .pill-bad { background: rgba(196, 104, 90, 0.12); color: var(--primary-color); }
+
+  .next-steps {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+  .next-steps h2 { margin: 0 0 12px; font-size: 18px; }
+  .next-steps ol { margin: 0 0 0 18px; padding: 0; }
+  .next-steps li { margin-bottom: 8px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1>Dashboard redesign — 4 mockups</h1>
+  <p class="lede">
+    Self-contained HTML mockups. Click any card to open. <strong>No build, no server, no React.</strong>
+    Realistic mock data; you can interact with the notification drawer, scrollers, etc.
+    All four use the same theme variables as production.
+  </p>
+
+  <!-- Current state audit -->
+  <div class="audit-card">
+    <h2>📋 Why redesign — audit of current dashboard</h2>
+    <ul>
+      <li><strong>6 conditional banners</strong> can stack vertically and push real content below the fold (MFA, pause, photos, invites, reconnect, MFA enable).</li>
+      <li><strong>9 stat cards</strong> at top — most duplicate counts already shown in the accordion section pills below.</li>
+      <li><strong>3 collapsible accordions</strong> (Data Requests / My Activities / Prospects) — heavy navigation cost; most users see a wall of toggles.</li>
+      <li><strong>No fresh content</strong>: zero new-match feed, zero saved-search preview, zero L3V3L suggestions surfaced.</li>
+      <li><strong>No quick search</strong>: primary action of the app requires navigating to <code>/search</code>.</li>
+      <li><strong>No timeline / "since last visit"</strong> framing — user can't tell what's new.</li>
+      <li><strong>Profile completeness</strong> only surfaces when photos are missing (one-shot banner).</li>
+      <li><strong>Poll widget buried</strong> inline among stat cards — easy to miss.</li>
+    </ul>
+  </div>
+
+  <!-- 3 mockup cards -->
+  <div class="mockup-grid">
+
+    <a href="./A-action-first.html" class="mockup-card">
+      <div class="mockup-thumb mockup-thumb-A">
+        <span class="mockup-thumb-tag">Mockup A</span>
+        🔍
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-meta">Hypothesis: do</div>
+        <h3>Action-first</h3>
+        <p>
+          Big <strong>quick-search hero</strong> at top with saved-search chips for 1-click re-runs.
+          Below: "What needs your attention" task cards (3 unread, 7 favorited you, 12 new in saved search).
+          Stats compressed to 4 tiles. Banners → notification drawer.
+        </p>
+        <div class="mockup-cta">Open mockup A →</div>
+      </div>
+    </a>
+
+    <a href="./B-activity-timeline.html" class="mockup-card">
+      <div class="mockup-thumb mockup-thumb-B">
+        <span class="mockup-thumb-tag">Mockup B</span>
+        📜
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-meta">Hypothesis: catch up</div>
+        <h3>Activity timeline</h3>
+        <p>
+          LinkedIn-style <strong>chronological feed</strong>: "23 things happened since 2 days ago".
+          Every event has inline actions (Reply / Approve / View). Left nav by event type with live counts.
+          Right rail = stats + suggestions + poll.
+        </p>
+        <div class="mockup-cta">Open mockup B →</div>
+      </div>
+    </a>
+
+    <a href="./C-match-discovery.html" class="mockup-card">
+      <div class="mockup-thumb mockup-thumb-C">
+        <span class="mockup-thumb-tag">Mockup C</span>
+        💎
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-meta">Hypothesis: discover</div>
+        <h3>Match discovery</h3>
+        <p>
+          Netflix-style. <strong>"Match of the day" hero</strong> + horizontal rows: New this week,
+          Saved search results (one row per saved search!), Favorited you, Mutual interest.
+          Inbox/stats relegated to a small utility strip at bottom.
+        </p>
+        <div class="mockup-cta">Open mockup C →</div>
+      </div>
+    </a>
+
+    <a href="./D-two-column.html" class="mockup-card">
+      <div class="mockup-thumb mockup-thumb-D">
+        <span class="mockup-thumb-tag">Mockup D</span>
+        ⧉
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-meta">Hypothesis: rearrange</div>
+        <h3>2-column layout</h3>
+        <p>
+          <strong>Keep current containers; just rearrange them.</strong>
+          Left column = My Activities (wide).
+          Right column = Prospects + Contacts &amp; Photo Requests stacked.
+          All sections expanded by default. Lowest-risk improvement.
+        </p>
+        <div class="mockup-cta">Open mockup D →</div>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- comparison table -->
+  <h2 style="margin-top: 40px;">Side-by-side comparison</h2>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>A — Action-first</th>
+        <th>B — Timeline</th>
+        <th>C — Discovery</th>
+        <th>D — 2-column</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="dim">Best for user mode</td>
+        <td>"I want to <em>do</em> something"</td>
+        <td>"I want to <em>catch up</em>"</td>
+        <td>"I want to <em>browse</em>"</td>
+        <td>"I want what I have, less scrolling"</td>
+      </tr>
+      <tr>
+        <td class="dim">Primary CTA above the fold</td>
+        <td>Quick search bar</td>
+        <td>Filter timeline</td>
+        <td>View Match of the day</td>
+        <td>Same as today (stat tiles)</td>
+      </tr>
+      <tr>
+        <td class="dim">Saved searches</td>
+        <td>Side rail with "new" counts</td>
+        <td>Filter tab + suggestions</td>
+        <td><strong>One full row per search</strong></td>
+        <td>Stat tile only (same as today)</td>
+      </tr>
+      <tr>
+        <td class="dim">L3V3L scoring surfaced</td>
+        <td>Quick chip ("L3V3L 80%+")</td>
+        <td>Highlighted timeline events</td>
+        <td><strong>Score badge on every card</strong></td>
+        <td>Not surfaced (same as today)</td>
+      </tr>
+      <tr>
+        <td class="dim">Inbox/messages</td>
+        <td>Inline preview list</td>
+        <td>Each message = timeline event with inline reply</td>
+        <td>Bottom utility strip only</td>
+        <td>Inside My Activities pill (same as today)</td>
+      </tr>
+      <tr>
+        <td class="dim">Banners</td>
+        <td>Notification drawer (bell)</td>
+        <td>Notification drawer (bell)</td>
+        <td>Notification drawer (bell)</td>
+        <td><strong>Same as today (vertical stack)</strong></td>
+      </tr>
+      <tr>
+        <td class="dim">Stats density</td>
+        <td><span class="pill pill-good">4 tiles</span> Low</td>
+        <td><span class="pill pill-good">4 mini-stats</span> Low</td>
+        <td><span class="pill pill-good">6 micro-tiles</span> Lowest</td>
+        <td><span class="pill pill-warn">10 tiles</span> Same as today</td>
+      </tr>
+      <tr>
+        <td class="dim">API load (per visit)</td>
+        <td><span class="pill pill-good">Light</span> Same as today</td>
+        <td><span class="pill pill-warn">Medium</span> Need event log API</td>
+        <td><span class="pill pill-bad">Heavy</span> N saved searches × M profiles</td>
+        <td><span class="pill pill-good">Identical</span> Zero new calls</td>
+      </tr>
+      <tr>
+        <td class="dim">Mobile experience</td>
+        <td>Side rail collapses below</td>
+        <td>3-col → 1-col, nav hides</td>
+        <td>Horizontal scrollers stay great</td>
+        <td>Falls back to today's stacked layout</td>
+      </tr>
+      <tr>
+        <td class="dim">Implementation effort</td>
+        <td><span class="pill pill-good">~3 days</span> Reuses existing data</td>
+        <td><span class="pill pill-warn">~5-7 days</span> Backend event aggregator</td>
+        <td><span class="pill pill-warn">~5-7 days</span> Per-search batch endpoint</td>
+        <td><span class="pill pill-good">~1-2 days</span> CSS grid wrapper only</td>
+      </tr>
+      <tr>
+        <td class="dim">Risk</td>
+        <td>Medium — new component patterns</td>
+        <td>Medium-High — new backend</td>
+        <td>Medium-High — new backend</td>
+        <td><strong>Lowest — zero behavior change</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- next steps -->
+  <div class="next-steps">
+    <h2>🛣️ Recommended next steps</h2>
+    <ol>
+      <li>
+        <strong>If risk-averse → ship Mockup D first.</strong> 1-2 days, zero new APIs, zero behavior change.
+        Solves the "too much scrolling" pain without touching anything else.
+        Buys time to validate A/B/C with real users in parallel.
+      </li>
+      <li>
+        <strong>If ambitious → pick a direction (or hybrid)</strong> — A/B/C aren't mutually exclusive. Common hybrid:
+        Mockup A's hero search + Mockup C's saved-search rows below + Mockup B's notification drawer.
+      </li>
+      <li>
+        <strong>Validate with 2-3 users.</strong> Show the 4 mockups, ask "which most matches what you actually do here?"
+        Their answer often surprises you vs. what we'd guess.
+      </li>
+      <li>
+        <strong>Pick the lowest-risk slice to ship first</strong> — the notification drawer is shared across all 3 mockups
+        and reduces banner pile-up immediately. That alone is a 1-day shippable improvement.
+      </li>
+      <li>
+        <strong>Write the data contracts before code.</strong> If we go with B or C, define the new
+        endpoints (e.g. <code>GET /dashboard/timeline</code>, <code>GET /saved-searches/{id}/preview</code>) so
+        backend and frontend can move in parallel.
+      </li>
+      <li>
+        <strong>Don't ship in place.</strong> Add a feature flag or <code>/dashboard?v=new</code> query param
+        so users can switch between old + new while we iterate.
+      </li>
+    </ol>
+  </div>
+
+</div>
+
+</body>
+</html>
