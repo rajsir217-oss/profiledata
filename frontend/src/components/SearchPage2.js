@@ -1195,7 +1195,21 @@ const SearchPage2 = () => {
   // Thin adapter: SaveSearchModal calls onSave(saveData) without knowing
   // about current criteria / minMatchScore. The hook expects them explicit.
   const handleSaveSearch = useCallback(
-    (saveData) => handleSaveSearchHook(saveData, { criteria: searchCriteria, minMatchScore }),
+    (saveData) => {
+      const isUpdate =
+        typeof saveData === 'object' &&
+        saveData !== null &&
+        (saveData.isUpdate === true || Boolean(saveData.id || saveData._id));
+
+      const effectiveCriteria = isUpdate && saveData?.criteria ? saveData.criteria : searchCriteria;
+      const effectiveMinScore =
+        isUpdate && typeof saveData?.minMatchScore === 'number' ? saveData.minMatchScore : minMatchScore;
+
+      return handleSaveSearchHook(saveData, {
+        criteria: effectiveCriteria,
+        minMatchScore: effectiveMinScore,
+      });
+    },
     [handleSaveSearchHook, searchCriteria, minMatchScore]
   );
 

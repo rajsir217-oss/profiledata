@@ -5880,6 +5880,13 @@ async def save_search(username: str, search_data: dict, db = Depends(get_databas
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        existing_count = await db.saved_searches.count_documents({"username": username})
+        if existing_count >= 5:
+            raise HTTPException(
+                status_code=400,
+                detail="Maximum 5 saved searches allowed. Please delete one before saving a new search."
+            )
+
         # Create saved search document - save ALL fields from frontend
         from datetime import datetime
         saved_search = {
