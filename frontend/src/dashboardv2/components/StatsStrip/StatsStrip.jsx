@@ -7,7 +7,7 @@ const StatsStrip = ({ tiles, loading }) => {
   return (
     <section className="dv2-stats">
       <h2 className="dv2-section-title">Your activity</h2>
-      <div className="dv2-stats-strip">
+      <div className={`dv2-stats-strip dv2-stats-strip-cols-${tiles.length}`}>
         {tiles.map((t) => (
           <button
             key={t.key}

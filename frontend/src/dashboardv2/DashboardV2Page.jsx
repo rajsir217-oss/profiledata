@@ -31,6 +31,7 @@ import { useDashboardData } from './hooks/useDashboardData';
 import { useNewestMatch } from './hooks/useNewestMatch';
 import { useStaleMessages } from './hooks/useStaleMessages';
 import HeroNewestMatch from './components/HeroNewestMatch/HeroNewestMatch';
+import DashboardBanners from './components/DashboardBanners/DashboardBanners';
 import AttentionGrid from './components/AttentionGrid/AttentionGrid';
 import StatsStrip from './components/StatsStrip/StatsStrip';
 import RecentConversations from './components/RecentConversations/RecentConversations';
@@ -112,6 +113,7 @@ const DashboardV2Page = () => {
 
   return (
     <div className="dv2-container">
+      <DashboardBanners userProfile={data.userProfile} onRefetch={refetch} />
       {/* ============ HERO ============ */}
       <section className="dv2-hero">
         <div className="dv2-hero-greeting">

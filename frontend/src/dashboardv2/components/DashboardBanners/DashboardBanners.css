@@ -1,0 +1,264 @@
+.dv2-banners {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 16px);
+}
+
+.dv2-banner {
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-color);
+  background: var(--card-background);
+  padding: var(--spacing-md, 16px);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md, 16px);
+}
+
+.dv2-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.dv2-banner-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md, 12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--selected-background);
+  border: 1px solid var(--border-color);
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.dv2-banner-text {
+  min-width: 0;
+}
+
+.dv2-banner-title {
+  font-weight: 900;
+  color: var(--text-color);
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.dv2-banner-subtitle {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.dv2-banner-subtitle--alert {
+  color: var(--text-on-gradient);
+  font-weight: 800;
+}
+
+.dv2-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.dv2-banner-btn {
+  border-radius: 999px;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--surface-color);
+  color: var(--text-color);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.dv2-banner-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+  border-color: color-mix(in srgb, var(--border-color) 55%, var(--primary-color) 45%);
+}
+
+.dv2-banner-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.dv2-banner-btn--primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: var(--text-on-gradient);
+  border-color: color-mix(in srgb, var(--primary-color) 65%, var(--border-color) 35%);
+}
+
+.dv2-banner-btn--inverse {
+  background: color-mix(in srgb, var(--card-background) 92%, transparent);
+  color: var(--text-color);
+  border-color: color-mix(in srgb, var(--card-background) 65%, var(--border-color) 35%);
+}
+
+.dv2-banner-btn--ghost {
+  background: transparent;
+}
+
+.dv2-banner-btn--success {
+  background: var(--success-color);
+  color: var(--text-on-gradient);
+  border-color: color-mix(in srgb, var(--success-color) 65%, var(--border-color) 35%);
+}
+
+.dv2-banner-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  font-size: 20px;
+}
+
+.dv2-banner--mfa {
+  background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+  border-color: color-mix(in srgb, var(--secondary-color) 55%, var(--border-color) 45%);
+  color: var(--text-on-gradient);
+}
+
+.dv2-banner--mfa .dv2-banner-title,
+.dv2-banner--mfa .dv2-banner-subtitle {
+  color: var(--text-on-gradient);
+}
+
+.dv2-banner--mfa .dv2-banner-icon {
+  background: color-mix(in srgb, var(--card-background) 75%, var(--secondary-color) 25%);
+}
+
+.dv2-banner--photo {
+  background: linear-gradient(135deg, var(--warning-color) 0%, var(--primary-color) 120%);
+  border-color: color-mix(in srgb, var(--warning-color) 55%, var(--border-color) 45%);
+  color: var(--text-on-gradient);
+}
+
+.dv2-banner--photo .dv2-banner-title,
+.dv2-banner--photo .dv2-banner-subtitle {
+  color: var(--text-on-gradient);
+}
+
+.dv2-banner--photo .dv2-banner-icon {
+  background: color-mix(in srgb, var(--card-background) 75%, var(--warning-color) 25%);
+}
+
+.dv2-banner--invite {
+  border-left: 6px solid var(--primary-color);
+}
+
+.dv2-banner--pause {
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--danger-color) 100%);
+  border-color: color-mix(in srgb, var(--danger-color) 55%, var(--border-color) 45%);
+  color: var(--text-on-gradient);
+}
+
+.dv2-banner--pause .dv2-banner-title,
+.dv2-banner--pause .dv2-banner-subtitle {
+  color: var(--text-on-gradient);
+}
+
+.dv2-banner--pause .dv2-banner-icon {
+  background: color-mix(in srgb, var(--card-background) 75%, var(--danger-color) 25%);
+}
+
+.dv2-banner--warning {
+  background: linear-gradient(135deg, var(--warning-light) 0%, var(--warning-background) 100%);
+  border-color: color-mix(in srgb, var(--warning-color) 55%, var(--border-color) 45%);
+}
+
+.dv2-banner--warning .dv2-banner-icon {
+  background: var(--warning-light);
+}
+
+.dv2-banner--reconnect {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border-color: color-mix(in srgb, var(--primary-color) 55%, var(--border-color) 45%);
+  color: var(--text-on-gradient);
+  display: block;
+}
+
+.dv2-banner--reconnect .dv2-banner-left {
+  justify-content: space-between;
+}
+
+.dv2-banner--reconnect .dv2-banner-title,
+.dv2-banner--reconnect .dv2-banner-subtitle {
+  color: var(--text-on-gradient);
+}
+
+.dv2-banner--reconnect .dv2-banner-icon {
+  background: color-mix(in srgb, var(--card-background) 75%, var(--primary-color) 25%);
+}
+
+.dv2-banner-body {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dv2-reconnect-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: color-mix(in srgb, var(--card-background) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--card-background) 28%, transparent);
+  border-radius: var(--radius-md, 12px);
+  padding: 12px;
+}
+
+.dv2-reconnect-meta {
+  color: var(--text-on-gradient);
+}
+
+.dv2-reconnect-date {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+.dv2-reconnect-actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .dv2-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dv2-banner-actions {
+    justify-content: flex-start;
+  }
+
+  .dv2-reconnect-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dv2-reconnect-actions {
+    width: 100%;
+  }
+
+  .dv2-reconnect-actions .dv2-banner-btn {
+    flex: 1;
+  }
+}

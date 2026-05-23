@@ -98,6 +98,10 @@
   margin-left: 4px;
   transition: opacity 0.2s;
   color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .item-dismiss:hover {
@@ -192,6 +196,11 @@
 .ticker-stat.ticker-profile_view {
   background: rgba(99, 102, 241, 0.4);
   border: 1px solid rgba(129, 140, 248, 0.5);
+}
+
+.ticker-stat.ticker-profile_view .item-icon {
+  font-size: 12px;
+  line-height: 1;
 }
 
 /* Favorites - Golden/amber */
