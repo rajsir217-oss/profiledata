@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../api';
 import useToast from '../../../hooks/useToast';
 import { formatRelativeTime } from '../../../utils/timeFormatter';
+import { getImageUrl } from '../../../utils/urlHelper';
 import './HeroNewestMatch.css';
 
 const getProfileImage = (profile) => {
@@ -11,7 +12,7 @@ const getProfileImage = (profile) => {
     (Array.isArray(profile?.publicImages) && profile.publicImages[0]) ||
     (Array.isArray(profile?.images) && profile.images[0]) ||
     null;
-  return img || null;
+  return img ? getImageUrl(img) : null;
 };
 
 const getDisplayName = (profile) => {
@@ -36,9 +37,16 @@ const HeroNewestMatch = ({
   const navigate = useNavigate();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
 
   const profile = pick?.profile || null;
   const savedSearch = pick?.savedSearch || null;
+
+  const photo = profile ? getProfileImage(profile) : null;
+
+  useEffect(() => {
+    setPhotoFailed(false);
+  }, [photo]);
 
   const isFavorited = useMemo(() => {
     if (!profile?.username) return false;
@@ -128,13 +136,11 @@ const HeroNewestMatch = ({
     return null;
   }
 
-  const photo = getProfileImage(profile);
-
   return (
     <div className="dv2-hero-card dv2-variant-primary">
       <div className="dv2-hero-photo" aria-hidden="true">
-        {photo ? (
-          <img className="dv2-hero-img" src={photo} alt="" />
+        {photo && !photoFailed ? (
+          <img className="dv2-hero-img" src={photo} alt="" onError={() => setPhotoFailed(true)} />
         ) : (
           <div className="dv2-hero-initials">
             {(profile.firstName?.[0] || profile.username?.[0] || '?').toUpperCase()}

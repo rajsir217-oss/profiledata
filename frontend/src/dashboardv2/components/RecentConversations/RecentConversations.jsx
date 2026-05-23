@@ -4,6 +4,7 @@ import { formatRelativeTime } from '../../../utils/timeFormatter';
 import api from '../../../api';
 import socketService from '../../../services/socketService';
 import ChatWindow from '../../../components/ChatWindow';
+import { getImageUrl } from '../../../utils/urlHelper';
 import './RecentConversations.css';
 
 const getAvatarUrl = (userProfile) => {
@@ -13,7 +14,7 @@ const getAvatarUrl = (userProfile) => {
     (Array.isArray(userProfile.images) && userProfile.images[0]) ||
     (Array.isArray(userProfile.publicImages) && userProfile.publicImages[0]) ||
     null;
-  return img || null;
+  return img ? getImageUrl(img) : null;
 };
 
 const getInitials = (userProfile, username) => {
@@ -36,6 +37,7 @@ const RecentConversations = ({ conversations }) => {
   const [messages, setMessages] = useState([]);
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [conversationError, setConversationError] = useState(null);
+  const [failedAvatars, setFailedAvatars] = useState({});
 
   const rows = useMemo(() => {
     const list = Array.isArray(conversations) ? conversations : [];
@@ -181,6 +183,7 @@ const RecentConversations = ({ conversations }) => {
             const avatarUrl = getAvatarUrl(c.userProfile);
             const initials = getInitials(c.userProfile, other);
             const time = c.lastMessageTime ? formatRelativeTime(c.lastMessageTime) : '';
+            const showAvatar = Boolean(avatarUrl) && !failedAvatars?.[other];
             return (
               <React.Fragment key={other}>
                 <button
@@ -189,8 +192,13 @@ const RecentConversations = ({ conversations }) => {
                   type="button"
                 >
                   <div className="dv2-conv-avatar">
-                    {avatarUrl ? (
-                      <img className="dv2-conv-img" src={avatarUrl} alt={other} />
+                    {showAvatar ? (
+                      <img
+                        className="dv2-conv-img"
+                        src={avatarUrl}
+                        alt={other}
+                        onError={() => setFailedAvatars((prev) => ({ ...(prev || {}), [other]: true }))}
+                      />
                     ) : (
                       <div className="dv2-conv-initials">{initials}</div>
                     )}
