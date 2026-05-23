@@ -14,6 +14,10 @@
   gap: var(--spacing-lg, 24px);
 }
 
+.dv2-poll-popup-host .stat-card-compact {
+  display: none;
+}
+
 /* ===== HERO ===== */
 
 .dv2-hero {

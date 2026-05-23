@@ -27,6 +27,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileViewsModal from '../components/ProfileViewsModal';
 import ProfileNotes from '../components/ProfileNotes';
+import PollWidget from '../components/PollWidget';
 import { useDashboardData } from './hooks/useDashboardData';
 import { useNewestMatch } from './hooks/useNewestMatch';
 import { useStaleMessages } from './hooks/useStaleMessages';
@@ -114,6 +115,14 @@ const DashboardV2Page = () => {
   return (
     <div className="dv2-container">
       <DashboardBanners userProfile={data.userProfile} onRefetch={refetch} />
+      <div className="dv2-poll-popup-host">
+        <PollWidget
+          inline={true}
+          autoPopup={true}
+          onPollResponded={() => refetch?.()}
+          renderPlaceholder={() => null}
+        />
+      </div>
       {/* ============ HERO ============ */}
       <section className="dv2-hero">
         <div className="dv2-hero-greeting">
