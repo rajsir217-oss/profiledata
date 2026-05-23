@@ -619,6 +619,8 @@ body.theme-ultra-light-gray {
   --primary-color: #94a3b8;
   --secondary-color: #cbd5e1;
   --accent-color: #38bdf8;
+  --dv2-hero-section-bg: var(--surface-color);
+  --dv2-hero-card-bg: var(--card-background);
   
   /* Backgrounds - Maximum whitespace with subtle tint */
   --background-color: #5e5e6a;

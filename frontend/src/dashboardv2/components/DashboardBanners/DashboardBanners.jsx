@@ -8,11 +8,17 @@ import './DashboardBanners.css';
 
 const getUsername = () => localStorage.getItem('username');
 
+const isNonEmptyValue = (value) => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  return true;
+};
+
 const hasAnyPhoto = (profile) => {
   if (!profile) return false;
-  if (profile.profileImage) return true;
-  if (Array.isArray(profile.images) && profile.images.length > 0) return true;
-  if (Array.isArray(profile.publicImages) && profile.publicImages.length > 0) return true;
+  if (isNonEmptyValue(profile.profileImage)) return true;
+  if (Array.isArray(profile.images) && profile.images.some(isNonEmptyValue)) return true;
+  if (Array.isArray(profile.publicImages) && profile.publicImages.some(isNonEmptyValue)) return true;
   return false;
 };
 
@@ -20,6 +26,7 @@ const DashboardBanners = ({ userProfile, onRefetch }) => {
   const navigate = useNavigate();
 
   const noPhotoLoginRemaining = useMemo(() => {
+    if (!userProfile) return null;
     const roleRaw = String(userProfile?.role_name || userProfile?.role || '').toLowerCase();
     const isPrivileged = roleRaw === 'admin' || roleRaw === 'moderator' || userProfile?.username === 'admin';
     if (isPrivileged) return null;
@@ -144,6 +151,8 @@ const DashboardBanners = ({ userProfile, onRefetch }) => {
       setShowPhotoReminder(false);
       return;
     }
+
+    if (!userProfile) return;
 
     const anyPhoto = hasAnyPhoto(userProfile);
     setShowPhotoReminder(!anyPhoto);
