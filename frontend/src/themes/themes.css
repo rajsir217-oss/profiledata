@@ -1231,6 +1231,9 @@ body.theme-ultra-black {
   --secondary-color: #264d73;
   --link-color: #60a5fa;
   --accent-color: #f59e0b;
+  --primary-color-light: rgba(30, 58, 95, 0.25);
+  --dv2-hero-section-bg: var(--surface-color);
+  --dv2-hero-card-bg: var(--card-background);
   
   /* Backgrounds - True blacks for OLED */
   --background-color: #000000;
