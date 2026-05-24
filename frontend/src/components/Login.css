@@ -13,8 +13,7 @@ html {
 }
 
 .login-page-wrapper {
-  min-height: 100vh;
-  height: 100vh;
+  min-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -26,6 +25,8 @@ html {
   right: 0;
   bottom: 0;
   overflow: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .login-page-overlay {
@@ -481,7 +482,7 @@ html {
 }
 
 /* Override inline styles to prevent scaling issues */
-.login-page-wrapper > div {
+.login-page-wrapper > .login-container {
   max-width: 440px !important;
   font-size: 1rem !important;
 }
