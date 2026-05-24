@@ -430,7 +430,7 @@ class UserBase(BaseModel):
 
     @validator('themePreference')
     def validate_theme(cls, v):
-        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'ultra-black', 'indian-wedding', 'newspaper', 'cute-bubble']
+        valid_themes = ['light-blue', 'sky-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'ultra-black', 'indian-wedding', 'newspaper', 'cute-bubble']
         if v and v not in valid_themes:
             raise ValueError(f'Theme must be one of: {", ".join(valid_themes)}')
         return v
@@ -687,7 +687,7 @@ class UserPreferencesUpdate(BaseModel):
 
     @validator('themePreference')
     def validate_theme(cls, v):
-        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'ultra-black', 'indian-wedding', 'newspaper', 'cute-bubble']
+        valid_themes = ['light-blue', 'sky-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'ultra-black', 'indian-wedding', 'newspaper', 'cute-bubble']
         if v not in valid_themes:
             raise ValueError(f'Theme must be one of: {", ".join(valid_themes)}')
         return v

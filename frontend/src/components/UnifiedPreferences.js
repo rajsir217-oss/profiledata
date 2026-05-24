@@ -158,7 +158,14 @@ const UnifiedPreferences = () => {
       name: 'Cozy Light',
       icon: '☀️',
       description: 'Warm and inviting light theme with soft colors',
-      preview: { primary: '#6366f1', secondary: '#a78bfa', background: '#fffbf7', text: '#374151' }
+      preview: { primary: '#3b82f6', secondary: '#60a5fa', background: '#f0f7ff', text: '#1f2937' }
+    },
+    {
+      id: 'sky-blue',
+      name: 'Sky Blue',
+      icon: '🩵',
+      description: 'Calm light blue theme with airy sky tones',
+      preview: { primary: '#0ea5e9', secondary: '#7dd3fc', background: '#f0f9ff', text: '#0f172a' }
     },
     {
       id: 'dark',
