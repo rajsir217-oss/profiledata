@@ -1,7 +1,7 @@
 import React from 'react';
 import './AttentionGrid.css';
 
-const AttentionGrid = ({ items }) => {
+const AttentionGrid = ({ items, loading = false }) => {
   if (!items?.length) return null;
 
   return (
@@ -11,15 +11,21 @@ const AttentionGrid = ({ items }) => {
         {items.map((item) => (
           <button
             key={item.key}
-            className={`dv2-attention-card dv2-variant-${item.variant || 'default'}`}
-            onClick={item.onClick}
+            className={`dv2-attention-card dv2-variant-${item.variant || 'default'}${loading ? ' is-loading' : ''}`}
+            onClick={loading ? undefined : item.onClick}
             type="button"
+            disabled={loading}
+            aria-busy={loading || undefined}
           >
             <span className="dv2-attention-icon-wrap" aria-hidden="true">
               <span className="dv2-attention-icon">{item.icon}</span>
             </span>
             <span className="dv2-attention-title">{item.title}</span>
-            {item.count > 0 && <span className="dv2-attention-count">{item.count}</span>}
+            {loading ? (
+              <span className="dv2-attention-count dv2-attention-count-skeleton" aria-hidden="true" />
+            ) : item.count > 0 ? (
+              <span className="dv2-attention-count">{item.count}</span>
+            ) : null}
             {item.subtitle ? <span className="dv2-attention-subtitle">{item.subtitle}</span> : null}
           </button>
         ))}

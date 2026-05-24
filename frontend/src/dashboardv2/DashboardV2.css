@@ -33,10 +33,29 @@
   padding: var(--spacing-lg, 24px);
   box-shadow: var(--shadow-sm);
 }
+.dv2-hero-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm, 12px);
+  flex-wrap: wrap;
+}
 .dv2-hero-greeting {
   font-size: 13px;
   color: var(--text-muted, #888);
   margin-bottom: var(--spacing-xs, 6px);
+}
+.dv2-hero-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-md, 16px);
+  flex-wrap: wrap;
+}
+.dv2-hero-last-login {
+  font-size: 13px;
+  color: var(--text-muted, #888);
+  white-space: nowrap;
 }
 .dv2-hero-title {
   margin: 0 0 var(--spacing-md, 16px);

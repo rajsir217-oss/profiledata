@@ -1040,6 +1040,9 @@ const ContributionManagement = () => {
                     <th onClick={() => toggleUnpaidSort('joinedAt')} style={{ cursor: 'pointer', userSelect: 'none' }}>
                       Joined{renderSortIndicator('joinedAt')}
                     </th>
+                    <th title="Days since joined">
+                      ActiveDays
+                    </th>
                     <th onClick={() => toggleUnpaidSort('lastLogin')} style={{ cursor: 'pointer', userSelect: 'none' }}>
                       Last Login{renderSortIndicator('lastLogin')}
                     </th>
@@ -1076,6 +1079,7 @@ const ContributionManagement = () => {
                         ) : '-'}
                       </td>
                       <td className="date-cell">{formatDate(user.joinedAt)}</td>
+                      <td title="Days since joined">{formatDaysElapsed(user.joinedAt)}</td>
                       <td className="date-cell">{formatDate(user.lastLogin)}</td>
                       <td className="status-cell" style={{ fontSize: '0.85em', lineHeight: 1.4 }}>
                         {user.lastEmailReminderAt && (

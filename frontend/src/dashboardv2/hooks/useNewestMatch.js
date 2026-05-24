@@ -231,12 +231,20 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
     [currentUserProfile, orderedSearches]
   );
 
-  // Initial load + reload when saved searches change
+  // Initial load + reload when saved searches change.
+  // Skip the run entirely when neither saved searches nor a user profile are
+  // available yet — otherwise compute() would flip loading on/off for no work,
+  // causing an unnecessary re-render on mount.
   useEffect(() => {
+    const hasSearches = orderedSearches.length > 0;
+    const hasProfile =
+      !!currentUserProfile && Object.keys(currentUserProfile).length > 0;
+    if (!hasSearches && !hasProfile) return;
+
     setPosition({ searchIndex: 0, page: 1 });
     compute(0, 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderedSearches]);
+  }, [orderedSearches, currentUserProfile]);
 
   // Skip = advance to next page within current saved search; fall through if needed
   const skipPick = useCallback(() => {

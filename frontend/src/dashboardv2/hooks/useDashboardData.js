@@ -40,10 +40,12 @@ const initialData = {
 export function useDashboardData() {
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(true);
+  const [criticalLoading, setCriticalLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const refetch = useCallback(async () => {
     setLoading(true);
+    setCriticalLoading(true);
     setError(null);
     try {
       const [
@@ -90,6 +92,7 @@ export function useDashboardData() {
       setError(err);
     } finally {
       setLoading(false);
+      setCriticalLoading(false);
     }
   }, []);
 
@@ -97,5 +100,5 @@ export function useDashboardData() {
     refetch();
   }, [refetch]);
 
-  return { data, loading, error, refetch };
+  return { data, loading, criticalLoading, error, refetch };
 }
