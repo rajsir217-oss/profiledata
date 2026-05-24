@@ -14,6 +14,12 @@
   gap: var(--spacing-lg, 24px);
 }
 
+@media (max-width: 560px) {
+  .dv2-container {
+    padding: var(--spacing-md, 16px);
+  }
+}
+
 .dv2-poll-popup-host .stat-card-compact {
   display: none;
 }
@@ -174,6 +180,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg, 24px);
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* ===== STATS STRIP (7 tiles, auto-fit) ===== */
@@ -182,6 +190,19 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: var(--spacing-sm, 12px);
+}
+
+@media (max-width: 900px) {
+  .dv2-stats-strip,
+  .dv2-stats-strip.dv2-stats-strip-cols-7 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .dv2-stats-strip {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (min-width: 1180px) {
@@ -260,6 +281,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md, 16px);
+  min-width: 0;
 }
 .dv2-rail-card {
   background: var(--surface-color, #fff);
@@ -302,6 +324,7 @@
   border: 1px solid var(--border-color, #e5e5e5);
   border-radius: var(--radius-md, 10px);
   padding: var(--spacing-md, 16px);
+  min-width: 0;
 }
 
 /* ===== PLACEHOLDER (scaffold only — removed when components are wired) ===== */
