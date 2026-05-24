@@ -2145,7 +2145,13 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               alignItems: 'center', 
               gap: '2px'
             }}>
-              <div style={{ fontSize: '40px', lineHeight: '1' }}>🦋</div>
+              <div className="auth-logo">
+                <img
+                  className="auth-logo-img"
+                  src="/android-chrome-192x192.png"
+                  alt="L3V3L"
+                />
+              </div>
               <div style={{ 
                 fontSize: '28px', 
                 fontWeight: '800',
