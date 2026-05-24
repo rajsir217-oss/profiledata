@@ -101,38 +101,44 @@
    COZY LIGHT THEME (Default)
    ======================================== */
 body.theme-light-blue {
-  /* Primary Colors - Warm indigo */
-  --primary-color: #6366f1;
-  --secondary-color: #a78bfa;
-  --accent-color: #f59e0b;
+  /* Primary Colors - Light blue */
+  --primary-color: #3b82f6;
+  --secondary-color: #60a5fa;
+  --accent-color: #0ea5e9;
   
-  /* Backgrounds - Warm whites with purple tint */
-  --background-color: #fffbf7;
-  --surface-color: #fef6ee;
-  --card-background: #faf9ff; /* Ultra light purple */
-  --card-bg: #faf9ff;
+  /* Backgrounds - Soft blue tones */
+  --background-color: #f0f7ff;
+  --surface-color: #e6f2ff;
+  --card-background: #f7fbff;
+  --card-bg: #f7fbff;
   --input-bg: #ffffff;
   --error-bg: #fee2e2;
   
   /* Bootstrap Modal Variables Override */
-  --bs-modal-bg: #faf9ff;
+  --bs-modal-bg: #f7fbff;
   --bs-modal-color: #374151;
-  --bs-modal-border-color: #f9fafb;
+  --bs-modal-border-color: #dbeafe;
   
   /* Text Colors - Soft contrast */
-  --text-color: #374151;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  --text-color: #1f2937;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
   --text-on-gradient: #ffffff; /* Text color for gradient backgrounds */
   
-  /* Borders & Dividers - Soft */
-  --border-color: #f9fafb;
-  --divider-color: #fef3c7;
+  /* Borders & Dividers - Soft blue */
+  --border-color: #dbeafe;
+  --divider-color: #bfdbfe;
   
-  /* Interactive States - Warm */
-  --hover-background: #fef3c7;
-  --active-background: #fed7aa;
-  --selected-background: rgba(99, 102, 241, 0.08);
+  /* Interactive States - Blue glow */
+  --hover-background: #dbeafe;
+  --active-background: #bfdbfe;
+  --selected-background: rgba(59, 130, 246, 0.08);
+
+  /* Shadow Variables */
+  --primary-shadow: rgba(59, 130, 246, 0.3);
+  --primary-shadow-hover: rgba(59, 130, 246, 0.4);
+  --primary-color-light: rgba(59, 130, 246, 0.25);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -162,8 +168,7 @@ body.theme-light-blue {
 
 .theme-light-blue .dashboard-header,
 .theme-light-blue .preferences-header {
-  background: var(--primary-color);
-  background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
 }
 
 .theme-light-blue .section-header {
@@ -181,6 +186,89 @@ body.theme-light-blue {
 /* Exception: Card titles in gradient sections always use white */
 .theme-light-blue .result-card .card-title-section .card-title,
 .theme-light-blue .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+body.theme-sky-blue {
+  --primary-color: #0ea5e9;
+  --secondary-color: #7dd3fc;
+  --accent-color: #38bdf8;
+  
+  --background-color: #f0f9ff;
+  --surface-color: #e0f2fe;
+  --card-background: #f8fcff;
+  --card-bg: #f8fcff;
+  --input-bg: #ffffff;
+  --error-bg: #fee2e2;
+  
+  --bs-modal-bg: #f8fcff;
+  --bs-modal-color: #0f172a;
+  --bs-modal-border-color: #bae6fd;
+  
+  --text-color: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #475569;
+  --text-on-gradient: #ffffff;
+  
+  --border-color: #bae6fd;
+  --divider-color: #7dd3fc;
+  
+  --hover-background: #e0f2fe;
+  --active-background: #bae6fd;
+  --selected-background: rgba(14, 165, 233, 0.1);
+
+  --primary-shadow: rgba(14, 165, 233, 0.3);
+  --primary-shadow-hover: rgba(14, 165, 233, 0.4);
+  --primary-color-light: rgba(14, 165, 233, 0.25);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
+  
+  --dv2-hero-section-bg: linear-gradient(135deg, var(--surface-color) 0%, var(--card-background) 100%);
+  --dv2-hero-card-bg: var(--card-background);
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+
+.theme-sky-blue .dashboard-container,
+.theme-sky-blue .search-page,
+.theme-sky-blue .profile-container,
+.theme-sky-blue .preferences-container {
+  background: var(--background-color);
+}
+
+.theme-sky-blue .user-card,
+.theme-sky-blue .dashboard-section,
+.theme-sky-blue .stat-card,
+.theme-sky-blue .search-filters,
+.theme-sky-blue .preferences-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-sky-blue .sidebar {
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-sky-blue .dashboard-header,
+.theme-sky-blue .preferences-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+
+.theme-sky-blue .section-header {
+  background: transparent;
+  border-bottom: 2px solid var(--primary-color);
+  color: var(--text-color);
+  padding: 12px 0;
+}
+
+.theme-sky-blue .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+.theme-sky-blue .result-card .card-title-section .card-title,
+.theme-sky-blue .result-card .card-title-section h6 {
   color: var(--text-on-gradient, #ffffff) !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }

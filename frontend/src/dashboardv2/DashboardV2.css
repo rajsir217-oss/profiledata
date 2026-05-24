@@ -49,6 +49,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  margin-left: auto;
   gap: var(--spacing-md, 16px);
   flex-wrap: wrap;
 }
@@ -56,6 +57,20 @@
   font-size: 13px;
   color: var(--text-muted, #888);
   white-space: nowrap;
+}
+
+.dv2-hero-meta .dv2-link {
+  align-self: flex-end;
+  width: fit-content;
+}
+
+@media (max-width: 560px) {
+  .dv2-hero-meta {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--spacing-xs, 6px);
+  }
 }
 .dv2-hero-title {
   margin: 0 0 var(--spacing-md, 16px);

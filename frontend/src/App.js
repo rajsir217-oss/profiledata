@@ -104,7 +104,8 @@ import sessionManager from './services/sessionManager';
 
 // Theme configuration
 const themes = {
-  'light-blue': { primary: '#6366f1', secondary: '#a78bfa', background: '#fffbf7', text: '#374151' },
+  'light-blue': { primary: '#3b82f6', secondary: '#60a5fa', background: '#f0f7ff', text: '#1f2937' },
+  'sky-blue': { primary: '#0ea5e9', secondary: '#7dd3fc', background: '#f0f9ff', text: '#0f172a' },
   'dark': { primary: '#a78bfa', secondary: '#c4b5fd', background: '#1a1625', text: '#e5e7eb' },
   'light-pink': { primary: '#ec4899', secondary: '#f9a8d4', background: '#fff5f7', text: '#374151' },
   'light-gray': { primary: '#64748b', secondary: '#94a3b8', background: '#f9fafb', text: '#1f2937' },
