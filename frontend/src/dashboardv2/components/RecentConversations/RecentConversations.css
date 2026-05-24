@@ -147,6 +147,7 @@
 }
 
 .dv2-conv-drawer.is-open {
+  overflow: visible;
   max-height: 720px;
   opacity: 1;
   transform: translateY(0);
@@ -198,7 +199,7 @@
 .dv2-conv-drawer-body {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .dv2-conv-drawer-loading,
