@@ -190,13 +190,20 @@
 
 .dv2-hero-card-loading {
   grid-template-columns: 1fr;
+  min-height: 360px;
 }
 
 .dv2-hero-skeleton {
-  height: 120px;
+  height: 160px;
   border-radius: var(--radius-md, 10px);
   border: 1px dashed var(--border-color, #e5e5e5);
   background: var(--background-color, #fafafa);
+}
+
+@media (max-width: 640px) {
+  .dv2-hero-card-loading {
+    min-height: 480px;
+  }
 }
 
 .dv2-hero-empty {

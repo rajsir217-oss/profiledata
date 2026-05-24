@@ -45,7 +45,11 @@ const DashboardBanners = ({ userProfile, onRefetch }) => {
   const [mfaWarning, setMfaWarning] = useState(null);
   const [showMfaNotification, setShowMfaNotification] = useState(false);
 
-  const [showPhotoReminder, setShowPhotoReminder] = useState(false);
+  const [photoReminderDismissed, setPhotoReminderDismissed] = useState(() => {
+    const current = getUsername();
+    if (!current) return false;
+    return sessionStorage.getItem(`photoReminderDismissed:${current}`) === 'true';
+  });
 
   const [showInviteFriendsBanner, setShowInviteFriendsBanner] = useState(false);
   const [inviteFriendsRemaining, setInviteFriendsRemaining] = useState(null);
@@ -73,31 +77,30 @@ const DashboardBanners = ({ userProfile, onRefetch }) => {
 
   const checkMfaStatus = useCallback(async () => {
     const current = getUsername();
-    if (!current) return;
+    if (!current) return { showMfa: false };
 
     const dismissedKey = `mfaNotificationDismissed:${current}`;
     const dismissed = sessionStorage.getItem(dismissedKey);
-    if (dismissed === 'true') return;
+    if (dismissed === 'true') return { showMfa: false };
 
     try {
       const { data } = await axios.get(`${getBackendUrl()}/api/auth/mfa/status`, {
         headers: authHeaders(),
       });
-      if (!data?.mfa_enabled) {
-        setShowMfaNotification(true);
-      }
+      return { showMfa: !data?.mfa_enabled };
     } catch (err) {
       logger.error('Error checking MFA status:', err);
+      return { showMfa: false };
     }
   }, [authHeaders]);
 
   const loadInviteFriendsStats = useCallback(async () => {
     const current = getUsername();
-    if (!current) return;
+    if (!current) return { remaining: null, show: false };
 
     const dismissedKey = `inviteFriendsBannerDismissed:${current}`;
     const dismissed = sessionStorage.getItem(dismissedKey);
-    if (dismissed === 'true') return;
+    if (dismissed === 'true') return { remaining: null, show: false };
 
     try {
       const { data } = await axios.get(`${getBackendUrl()}/api/user-invitations/stats`, {
@@ -106,10 +109,10 @@ const DashboardBanners = ({ userProfile, onRefetch }) => {
       const remaining = data?.remaining;
       const remainingInt = Number.isFinite(remaining) ? remaining : parseInt(remaining, 10);
       const safeRemaining = Number.isFinite(remainingInt) ? remainingInt : 0;
-      setInviteFriendsRemaining(safeRemaining);
-      setShowInviteFriendsBanner(safeRemaining > 0);
+      return { remaining: safeRemaining, show: safeRemaining > 0 };
     } catch (err) {
       logger.debug('Invite friends stats unavailable:', err);
+      return { remaining: null, show: false };
     }
   }, [authHeaders]);
 
@@ -118,45 +121,51 @@ const DashboardBanners = ({ userProfile, onRefetch }) => {
       const { data } = await axios.get(`${getBackendUrl()}/api/account/pause-status`, {
         headers: authHeaders(),
       });
-      setPauseStatus(data);
+      return data;
     } catch (err) {
       logger.error('Error loading pause status:', err);
+      return null;
     }
   }, [authHeaders]);
 
   const loadReconnectRequests = useCallback(async () => {
     try {
       const { data } = await api.get('/exclusions/reconnect-requests/pending');
-      setReconnectRequests(data?.requests || []);
+      return data?.requests || [];
     } catch (err) {
       logger.debug('Reconnect requests unavailable:', err);
-      setReconnectRequests([]);
+      return [];
     }
   }, []);
 
+  // Batch all 4 banner-data fetches into one render transition to avoid
+  // banner area growing/shrinking multiple times as each request resolves.
   useEffect(() => {
-    checkMfaStatus();
-    loadInviteFriendsStats();
-    loadPauseStatus();
-    loadReconnectRequests();
+    let cancelled = false;
+    (async () => {
+      const [mfaRes, inviteRes, pauseRes, reconnectRes] = await Promise.all([
+        checkMfaStatus(),
+        loadInviteFriendsStats(),
+        loadPauseStatus(),
+        loadReconnectRequests(),
+      ]);
+      if (cancelled) return;
+      // Single batched state update so banners appear atomically.
+      setShowMfaNotification(!!mfaRes?.showMfa);
+      setInviteFriendsRemaining(inviteRes?.remaining ?? null);
+      setShowInviteFriendsBanner(!!inviteRes?.show);
+      setPauseStatus(pauseRes || null);
+      setReconnectRequests(reconnectRes || []);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [checkMfaStatus, loadInviteFriendsStats, loadPauseStatus, loadReconnectRequests]);
 
-  useEffect(() => {
-    const current = getUsername();
-    if (!current) return;
-
-    const dismissedKey = `photoReminderDismissed:${current}`;
-    const dismissed = sessionStorage.getItem(dismissedKey);
-    if (dismissed === 'true') {
-      setShowPhotoReminder(false);
-      return;
-    }
-
-    if (!userProfile) return;
-
-    const anyPhoto = hasAnyPhoto(userProfile);
-    setShowPhotoReminder(!anyPhoto);
-  }, [userProfile]);
+  // Derived synchronously to avoid an extra render where userProfile is
+  // present but the photo-reminder state hasn't been recomputed yet.
+  const showPhotoReminder =
+    !photoReminderDismissed && !!userProfile && !hasAnyPhoto(userProfile);
 
   const handleDismissMfaNotification = useCallback(() => {
     setShowMfaNotification(false);
@@ -172,7 +181,7 @@ const DashboardBanners = ({ userProfile, onRefetch }) => {
   }, [navigate]);
 
   const handleDismissPhotoReminder = useCallback(() => {
-    setShowPhotoReminder(false);
+    setPhotoReminderDismissed(true);
     const current = getUsername();
     if (!current) return;
     const dismissedKey = `photoReminderDismissed:${current}`;
@@ -181,7 +190,7 @@ const DashboardBanners = ({ userProfile, onRefetch }) => {
 
   const handleUploadPhotos = useCallback(() => {
     navigate('/edit-profile');
-    setShowPhotoReminder(false);
+    setPhotoReminderDismissed(true);
   }, [navigate]);
 
   const handleInviteFriends = useCallback(() => {
@@ -204,7 +213,8 @@ const DashboardBanners = ({ userProfile, onRefetch }) => {
         {},
         { headers: authHeaders() }
       );
-      await loadPauseStatus();
+      const fresh = await loadPauseStatus();
+      setPauseStatus(fresh || null);
       if (onRefetch) await onRefetch();
     } catch (err) {
       logger.error('Error unpausing account:', err);

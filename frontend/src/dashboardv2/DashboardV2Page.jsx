@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom';
 import ProfileViewsModal from '../components/ProfileViewsModal';
 import ProfileNotes from '../components/ProfileNotes';
 import PollWidget from '../components/PollWidget';
+import { formatShortDateTime } from '../utils/timeFormatter';
 import { useDashboardData } from './hooks/useDashboardData';
 import { useNewestMatch } from './hooks/useNewestMatch';
 import { useStaleMessages } from './hooks/useStaleMessages';
@@ -41,7 +42,7 @@ import './DashboardV2.css';
 
 const DashboardV2Page = () => {
   const navigate = useNavigate();
-  const { data, loading, error, refetch } = useDashboardData();
+  const { data, loading, criticalLoading, error, refetch } = useDashboardData();
   const newestMatch = useNewestMatch(data.savedSearches, data.userProfile);
   const staleMessages = useStaleMessages(data.conversations);
 
@@ -49,6 +50,12 @@ const DashboardV2Page = () => {
   const [showNotes, setShowNotes] = useState(false);
 
   const currentUsername = useMemo(() => localStorage.getItem('username'), []);
+  const lastLoginAt = data.userProfile?.security?.last_login_at;
+
+  const heroBusy =
+    criticalLoading ||
+    newestMatch.loading ||
+    (Boolean(data.userProfile) && !newestMatch.pick && !newestMatch.isEmpty && !newestMatch.error);
 
   const favoritedUsernames = useMemo(() => {
     const set = new Set();
@@ -115,23 +122,39 @@ const DashboardV2Page = () => {
   return (
     <div className="dv2-container">
       <DashboardBanners userProfile={data.userProfile} onRefetch={refetch} />
-      <div className="dv2-poll-popup-host">
-        <PollWidget
-          inline={true}
-          autoPopup={true}
-          onPollResponded={() => refetch?.()}
-          renderPlaceholder={() => null}
-        />
-      </div>
+      {data.activePolls?.length > 0 ? (
+        <div className="dv2-poll-popup-host">
+          <PollWidget
+            inline={true}
+            autoPopup={true}
+            onPollResponded={() => refetch?.()}
+            renderPlaceholder={() => null}
+          />
+        </div>
+      ) : null}
       {/* ============ HERO ============ */}
       <section className="dv2-hero">
-        <div className="dv2-hero-greeting">
-          {new Date().toLocaleDateString(undefined, {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          })}{' '}
-          · Welcome back
+        <div className="dv2-hero-header">
+          <div className="dv2-hero-greeting">
+            {new Date().toLocaleDateString(undefined, {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}{' '}
+            · Welcome back
+          </div>
+
+          <div className="dv2-hero-meta">
+            {lastLoginAt ? (
+              <div className="dv2-hero-last-login" title={formatShortDateTime(lastLoginAt)}>
+                Last login: {formatShortDateTime(lastLoginAt)}
+              </div>
+            ) : null}
+
+            <button className="dv2-link" type="button" onClick={() => navigate('/dashboard')}>
+              Legacy dashboard
+            </button>
+          </div>
         </div>
         <h1 className="dv2-hero-title">
           {data.userProfile?.firstName ? (
@@ -155,9 +178,9 @@ const DashboardV2Page = () => {
 
         <HeroNewestMatch
           pick={newestMatch.pick}
-          loading={loading || newestMatch.loading}
+          loading={heroBusy}
           error={newestMatch.error}
-          isEmpty={!loading && newestMatch.isEmpty}
+          isEmpty={!heroBusy && newestMatch.isEmpty}
           onSkip={newestMatch.skipPick}
           onOpenSearch={(s) => openSavedSearch(s)}
           favoritedUsernames={favoritedUsernames}
@@ -167,6 +190,7 @@ const DashboardV2Page = () => {
       </section>
 
       <AttentionGrid
+        loading={loading}
         items={[
           {
             key: 'contactRequests',

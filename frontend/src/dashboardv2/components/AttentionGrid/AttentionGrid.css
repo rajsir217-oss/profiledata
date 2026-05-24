@@ -25,3 +25,35 @@
     margin-top: 6px;
   }
 }
+
+/* ===== Loading skeleton ===== */
+.dv2-attention-card.is-loading {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.dv2-attention-count-skeleton {
+  display: inline-block;
+  width: 28px;
+  height: 18px;
+  border-radius: 9px;
+  background: linear-gradient(
+    90deg,
+    var(--background-color, #f5f5f5) 0%,
+    var(--selected-background, #ececec) 50%,
+    var(--background-color, #f5f5f5) 100%
+  );
+  background-size: 200% 100%;
+  animation: dv2-attention-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes dv2-attention-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dv2-attention-count-skeleton {
+    animation: none;
+  }
+}
