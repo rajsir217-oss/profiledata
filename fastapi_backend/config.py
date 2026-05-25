@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     use_gcs: bool = False  # Set to True in production
     gcs_bucket_name: Optional[str] = None
     gcs_project_id: Optional[str] = None
+
+    # Mobile Builds (Android APK download)
+    android_apk_gcs_bucket_name: Optional[str] = None
+    android_apk_gcs_object: Optional[str] = None
+    android_apk_signed_url_expiration_minutes: int = 30
     
     # Email Configuration
     email_provider: Optional[str] = "resend"  # Options: "resend", "smtp"

@@ -59,6 +59,7 @@ import ContributionPopupWrapper from './components/ContributionPopupWrapper';
 import { ContributionProvider } from './contexts/ContributionContext';
 import ImpersonationBanner from './components/ImpersonationBanner';
 import TipOfTheDay from './components/TipOfTheDay';
+import AndroidApkDownload from './components/AndroidApkDownload';
 import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import InactiveUsersPage from './components/InactiveUsersPage';
@@ -408,6 +409,7 @@ function AppContent() {
               <Route path="/p/:profileId" element={<ProtectedRoute><ProfileRedirect /></ProtectedRoute>} />
               <Route path="/edit-profile" element={<ProtectedRoute><Register2 mode="edit" /></ProtectedRoute>} />
               <Route path="/preferences" element={<ProtectedRoute><UnifiedPreferences /></ProtectedRoute>} />
+              <Route path="/android-apk" element={<ProtectedRoute><AndroidApkDownload /></ProtectedRoute>} />
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
               {/* Support unified page */}
               <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />

@@ -22,6 +22,7 @@ What it does:
   - Copies/syncs Capacitor Android (cap copy/sync)
   - Builds an Android APK via Gradle (debug or release)
   - Copies the APK to your Desktop
+  - (Optional) Uploads the RELEASE APK to GCS (if configured)
   - Installs + launches on an emulator (if available)
   - Restores your prior frontend config files after the build
 
@@ -33,6 +34,9 @@ Notes:
   - Run this from the deploy_gcp folder
   - ANDROID_HOME defaults to ~/Library/Android/sdk
   - Requires Java 21 (preferred) or Java 17
+  - Optional GCS upload requires gsutil and these env vars:
+      GCS_BUCKET_NAME
+      ANDROID_APK_GCS_OBJECT   (example: mobile/android/l3v3lmatches-latest.apk)
 EOF
 }
 
@@ -275,6 +279,27 @@ echo -e "${BLUE}📋 Step 5: Copying APK to Desktop...${NC}"
 cp "$APK_PATH" ~/Desktop/"$APK_NAME"
 echo -e "${GREEN}✅ APK copied to ~/Desktop/${APK_NAME}${NC}"
 echo ""
+
+# Optional: Upload RELEASE APK to GCS for website download
+if [ "$BUILD_TYPE" = "release" ]; then
+    echo -e "${BLUE}☁️  Step 5b: Uploading RELEASE APK to GCS (optional)...${NC}"
+
+    APK_BUCKET_NAME="${ANDROID_APK_GCS_BUCKET_NAME:-${GCS_BUCKET_NAME:-}}"
+    if [ -z "${APK_BUCKET_NAME}" ] || [ -z "${ANDROID_APK_GCS_OBJECT:-}" ]; then
+        echo -e "${YELLOW}⚠️  Skipping GCS upload (missing ANDROID_APK_GCS_BUCKET_NAME/GCS_BUCKET_NAME and/or ANDROID_APK_GCS_OBJECT env var)${NC}"
+        echo ""
+    elif ! command -v gsutil >/dev/null 2>&1; then
+        echo -e "${YELLOW}⚠️  Skipping GCS upload (gsutil not found). Install gcloud/gsutil and retry.${NC}"
+        echo ""
+    else
+        APK_OBJECT_PATH="${ANDROID_APK_GCS_OBJECT#/}"
+        GCS_DEST="gs://${APK_BUCKET_NAME}/${APK_OBJECT_PATH}"
+        echo "   Uploading: ${APK_PATH} -> ${GCS_DEST}"
+        gsutil -q cp "$APK_PATH" "$GCS_DEST"
+        echo -e "${GREEN}✅ Uploaded APK to ${GCS_DEST}${NC}"
+        echo ""
+    fi
+fi
 
 # Install on emulator (skip for release if no emulator)
 echo -e "${BLUE}📲 Step 6: Installing on emulator...${NC}"

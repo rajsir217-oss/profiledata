@@ -1054,7 +1054,16 @@ const UnifiedPreferences = () => {
             content: (
               <div className="account-settings">
           {/* Home Page Selection */}
-          <section className="settings-section">
+          <section className="settings-section my-home-page-section">
+            <button
+              type="button"
+              className="btn-secondary apk-download-mini-btn"
+              onClick={() => navigate('/android-apk')}
+              aria-label="Download Android APK"
+              title="Download Android APK"
+            >
+              📲
+            </button>
             <h2>🏠 My Home Page</h2>
             <p className="section-description">Choose which page to show after login</p>
             

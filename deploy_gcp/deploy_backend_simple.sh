@@ -13,6 +13,8 @@ PROJECT_ID="matrimonial-staging"
 SERVICE_NAME="matrimonial-backend"
 REGION="us-central1"
 GCS_BUCKET="matrimonial-uploads-matrimonial-staging"
+APK_GCS_BUCKET_NAME="${ANDROID_APK_GCS_BUCKET_NAME:-l3v3lmatchesMainAPK}"
+APK_GCS_OBJECT="${ANDROID_APK_GCS_OBJECT:-mobile/android/l3v3lmatches-latest.apk}"
 
 # Production environment variables
 # Sensitive values (MONGODB_URL, REDIS_URL, etc.) are stored in Secret Manager
@@ -65,6 +67,8 @@ APP_URL=https://l3v3lmatches.com,\
 USE_GCS=true,\
 GCS_BUCKET_NAME=$GCS_BUCKET,\
 GCS_PROJECT_ID=$PROJECT_ID,\
+ANDROID_APK_GCS_BUCKET_NAME=$APK_GCS_BUCKET_NAME,\
+ANDROID_APK_GCS_OBJECT=$APK_GCS_OBJECT,\
 ALGORITHM=HS256,\
 ACCESS_TOKEN_EXPIRE_MINUTES=30,\
 EMAIL_PROVIDER=resend,\

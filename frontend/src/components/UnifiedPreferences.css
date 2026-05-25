@@ -387,6 +387,27 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.my-home-page-section {
+  position: relative;
+}
+
+.apk-download-mini-btn {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  padding: 0 var(--spacing-sm) !important;
+  min-height: calc(var(--spacing-md) + var(--spacing-sm)) !important;
+  height: calc(var(--spacing-md) + var(--spacing-sm)) !important;
+  font-size: var(--font-size-sm);
+  border-radius: 9999px !important;
+  line-height: 1;
+}
+
+.apk-download-mini-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
 .settings-section h2 {
   font-size: 1.8rem;
   margin-bottom: 10px;
