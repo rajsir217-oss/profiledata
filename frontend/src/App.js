@@ -101,6 +101,7 @@ import { onMessageListener, requestNotificationPermission } from './services/pus
 import toastService from './services/toastService';
 import logger from './utils/logger';
 import sessionManager from './services/sessionManager';
+import { isNativePlatform } from './services/biometricAuth';
 
 // Theme configuration
 const themes = {
@@ -152,6 +153,7 @@ function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
   const location = useLocation();
+  const native = isNativePlatform();
   
   // Routes where sidebar and topbar should be hidden
   const hideNavigation = ['/', '/login', '/register', '/register2', '/register-interest', '/verify-email', '/verify-email-sent'].includes(location.pathname) || location.pathname.startsWith('/messenger/public-reply');
@@ -477,14 +479,14 @@ function AppContent() {
               <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
               <Route path="/payment/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
               <Route path="/payment-cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
-              <Route path="/contribution/cancel" element={<ProtectedRoute><ContributionCancel /></ProtectedRoute>} />
-              <Route path="/contribution/clover-success" element={<ProtectedRoute><CloverPaymentReturn status="success" /></ProtectedRoute>} />
-              <Route path="/contribution/clover-failure" element={<ProtectedRoute><CloverPaymentReturn status="failure" /></ProtectedRoute>} />
+              <Route path="/contribution/cancel" element={native ? <Navigate to="/settings" replace /> : <ProtectedRoute><ContributionCancel /></ProtectedRoute>} />
+              <Route path="/contribution/clover-success" element={native ? <Navigate to="/settings" replace /> : <ProtectedRoute><CloverPaymentReturn status="success" /></ProtectedRoute>} />
+              <Route path="/contribution/clover-failure" element={native ? <Navigate to="/settings" replace /> : <ProtectedRoute><CloverPaymentReturn status="failure" /></ProtectedRoute>} />
               <Route path="/lead-generation" element={<Navigate to="/marketing-pricing?tab=lead-generation" replace />} />
-              <Route path="/contribution-management" element={<ProtectedRoute><ContributionManagement /></ProtectedRoute>} />
-              <Route path="/admin/recurring-contributions" element={<ProtectedRoute><AdminRecurringContributions /></ProtectedRoute>} />
-              <Route path="/paypal-recurring-setup" element={<ProtectedRoute><PayPalRecurringSetup /></ProtectedRoute>} />
-              <Route path="/paypal-recurring-return" element={<ProtectedRoute><PayPalRecurringReturn /></ProtectedRoute>} />
+              <Route path="/contribution-management" element={native ? <Navigate to="/settings" replace /> : <ProtectedRoute><ContributionManagement /></ProtectedRoute>} />
+              <Route path="/admin/recurring-contributions" element={native ? <Navigate to="/settings" replace /> : <ProtectedRoute><AdminRecurringContributions /></ProtectedRoute>} />
+              <Route path="/paypal-recurring-setup" element={native ? <Navigate to="/settings" replace /> : <ProtectedRoute><PayPalRecurringSetup /></ProtectedRoute>} />
+              <Route path="/paypal-recurring-return" element={native ? <Navigate to="/settings" replace /> : <ProtectedRoute><PayPalRecurringReturn /></ProtectedRoute>} />
               <Route path="/poll-management" element={<Navigate to="/announcement-management?tab=polls" replace />} />
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/whatsapp-verification" element={<Navigate to="/admin-utilities?tab=whatsapp" replace />} />
@@ -503,6 +505,8 @@ function AppContent() {
 
 // Main App Component (wrapper for Router)
 function App() {
+  const native = isNativePlatform();
+
   return (
     <HelmetProvider>
       <Router>
@@ -512,7 +516,7 @@ function App() {
           </AuthGuard>
           <ToastContainer />
           <PIIAccessRefreshNotification />
-          <ContributionPopupWrapper />
+          {!native && <ContributionPopupWrapper />}
           <ImpersonationBanner />
           <TipOfTheDay />
         </ContributionProvider>
