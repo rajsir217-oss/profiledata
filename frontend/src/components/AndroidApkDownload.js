@@ -15,7 +15,10 @@ const AndroidApkDownload = () => {
       }
 
       setDownloading(true);
-      const res = await fetch(`${getBackendUrl()}/api/mobile/android/apk-url`, {
+      const endpointUrl = new URL(`${getBackendUrl()}/api/mobile/android/apk-url`);
+      endpointUrl.searchParams.set('app', 'main');
+
+      const res = await fetch(endpointUrl.toString(), {
         headers: { Authorization: `Bearer ${token}` },
       });
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from config import settings
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 
@@ -6,19 +6,52 @@ router = APIRouter(prefix="/api/mobile", tags=["mobile"])
 
 
 @router.get("/android/apk-url")
-async def get_android_apk_url(current_user: dict = Depends(get_current_user)):
-    apk_bucket_name = (settings.android_apk_gcs_bucket_name or settings.gcs_bucket_name or "").strip()
+async def get_android_apk_url(
+    app: str = Query("main"),
+    current_user: dict = Depends(get_current_user),
+):
+    app_key = (app or "").strip().lower()
+    if app_key in ("main", "matrimony"):
+        apk_bucket_name = (
+            settings.android_apk_main_gcs_bucket_name
+            or settings.android_apk_gcs_bucket_name
+            or settings.gcs_bucket_name
+            or ""
+        ).strip()
+        gcs_object = (
+            settings.android_apk_main_gcs_object
+            or settings.android_apk_gcs_object
+            or ""
+        ).strip().lstrip("/")
+        bucket_env_hint = "ANDROID_APK_MAIN_GCS_BUCKET_NAME"
+        object_env_hint = "ANDROID_APK_MAIN_GCS_OBJECT"
+    elif app_key in ("msgr", "messenger"):
+        apk_bucket_name = (
+            settings.android_apk_msgr_gcs_bucket_name
+            or settings.android_apk_gcs_bucket_name
+            or settings.gcs_bucket_name
+            or ""
+        ).strip()
+        gcs_object = (
+            settings.android_apk_msgr_gcs_object
+            or settings.android_apk_gcs_object
+            or ""
+        ).strip().lstrip("/")
+        bucket_env_hint = "ANDROID_APK_MSGR_GCS_BUCKET_NAME"
+        object_env_hint = "ANDROID_APK_MSGR_GCS_OBJECT"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid app. Use app=main or app=msgr")
+
     if not apk_bucket_name:
         raise HTTPException(
             status_code=404,
-            detail="Android APK download is not configured (missing ANDROID_APK_GCS_BUCKET_NAME or GCS_BUCKET_NAME)",
+            detail=f"Android APK download is not configured (missing {bucket_env_hint} or GCS_BUCKET_NAME)",
         )
 
-    gcs_object = (settings.android_apk_gcs_object or "").strip().lstrip("/")
     if not gcs_object:
         raise HTTPException(
             status_code=404,
-            detail="Android APK download is not configured (missing ANDROID_APK_GCS_OBJECT)",
+            detail=f"Android APK download is not configured (missing {object_env_hint})",
         )
 
     if "/" not in gcs_object:

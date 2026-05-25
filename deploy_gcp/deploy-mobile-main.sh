@@ -36,7 +36,8 @@ Notes:
   - Requires Java 21 (preferred) or Java 17
   - Optional GCS upload requires gsutil and these env vars:
       GCS_BUCKET_NAME
-      ANDROID_APK_GCS_OBJECT   (example: mobile/android/l3v3lmatches-latest.apk)
+      ANDROID_APK_MAIN_GCS_BUCKET_NAME
+      ANDROID_APK_MAIN_GCS_OBJECT   (example: mobile/android/l3v3lmatches-latest.apk)
 EOF
 }
 
@@ -284,15 +285,16 @@ echo ""
 if [ "$BUILD_TYPE" = "release" ]; then
     echo -e "${BLUE}☁️  Step 5b: Uploading RELEASE APK to GCS (optional)...${NC}"
 
-    APK_BUCKET_NAME="${ANDROID_APK_GCS_BUCKET_NAME:-${GCS_BUCKET_NAME:-}}"
-    if [ -z "${APK_BUCKET_NAME}" ] || [ -z "${ANDROID_APK_GCS_OBJECT:-}" ]; then
-        echo -e "${YELLOW}⚠️  Skipping GCS upload (missing ANDROID_APK_GCS_BUCKET_NAME/GCS_BUCKET_NAME and/or ANDROID_APK_GCS_OBJECT env var)${NC}"
+    APK_BUCKET_NAME="${ANDROID_APK_MAIN_GCS_BUCKET_NAME:-${ANDROID_APK_GCS_BUCKET_NAME:-${GCS_BUCKET_NAME:-}}}"
+    APK_OBJECT_PATH_RAW="${ANDROID_APK_MAIN_GCS_OBJECT:-${ANDROID_APK_GCS_OBJECT:-}}"
+    if [ -z "${APK_BUCKET_NAME}" ] || [ -z "${APK_OBJECT_PATH_RAW}" ]; then
+        echo -e "${YELLOW}⚠️  Skipping GCS upload (missing ANDROID_APK_MAIN_GCS_BUCKET_NAME/GCS_BUCKET_NAME and/or ANDROID_APK_MAIN_GCS_OBJECT env var)${NC}"
         echo ""
     elif ! command -v gsutil >/dev/null 2>&1; then
         echo -e "${YELLOW}⚠️  Skipping GCS upload (gsutil not found). Install gcloud/gsutil and retry.${NC}"
         echo ""
     else
-        APK_OBJECT_PATH="${ANDROID_APK_GCS_OBJECT#/}"
+        APK_OBJECT_PATH="${APK_OBJECT_PATH_RAW#/}"
         GCS_DEST="gs://${APK_BUCKET_NAME}/${APK_OBJECT_PATH}"
         echo "   Uploading: ${APK_PATH} -> ${GCS_DEST}"
         gsutil -q cp "$APK_PATH" "$GCS_DEST"

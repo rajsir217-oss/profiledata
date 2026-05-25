@@ -21,6 +21,10 @@ Notes:
       - ANDROID_HOME (defaults to ~/Library/Android/sdk)
       - adb/emulator available on PATH
   - Release APKs are saved to messenger-web/android/app/build/outputs/apk/release/
+  - Optional GCS upload requires gsutil and these env vars:
+      GCS_BUCKET_NAME
+      ANDROID_APK_MSGR_GCS_BUCKET_NAME
+      ANDROID_APK_MSGR_GCS_OBJECT   (example: mobile/android/l3v3lmatchesMsgr-latest.apk)
 EOF
 }
 
@@ -538,6 +542,25 @@ run_capacitor_android() {
         fi
       fi
       echo "✅ Release APK built: $apk_path"
+
+      local desktop_apk_name="L3V3L-Messenger-release.apk"
+      cp "$apk_path" ~/Desktop/"$desktop_apk_name"
+      echo "✅ APK copied to ~/Desktop/${desktop_apk_name}"
+
+      echo "☁️  Uploading RELEASE APK to GCS (optional)..."
+      local APK_BUCKET_NAME="${ANDROID_APK_MSGR_GCS_BUCKET_NAME:-${ANDROID_APK_GCS_BUCKET_NAME:-${GCS_BUCKET_NAME:-}}}"
+      local APK_OBJECT_PATH_RAW="${ANDROID_APK_MSGR_GCS_OBJECT:-${ANDROID_APK_GCS_OBJECT:-}}"
+      if [[ -z "${APK_BUCKET_NAME}" || -z "${APK_OBJECT_PATH_RAW}" ]]; then
+        echo "⚠️  Skipping GCS upload (missing ANDROID_APK_MSGR_GCS_BUCKET_NAME/GCS_BUCKET_NAME and/or ANDROID_APK_MSGR_GCS_OBJECT env var)"
+      elif ! command -v gsutil >/dev/null 2>&1; then
+        echo "⚠️  Skipping GCS upload (gsutil not found). Install gcloud/gsutil and retry."
+      else
+        local APK_OBJECT_PATH="${APK_OBJECT_PATH_RAW#/}"
+        local GCS_DEST="gs://${APK_BUCKET_NAME}/${APK_OBJECT_PATH}"
+        echo "   Uploading: ${apk_path} -> ${GCS_DEST}"
+        gsutil -q cp "$apk_path" "$GCS_DEST"
+        echo "✅ Uploaded APK to ${GCS_DEST}"
+      fi
     else
       echo "⚠️  APK not found at expected path, listing output directory:"
       ls -la "$MSG_WEB_DIR/android/app/build/outputs/apk/release/" 2>/dev/null || echo "Directory not found"
