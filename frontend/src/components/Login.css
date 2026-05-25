@@ -188,8 +188,37 @@ html {
 .login-captcha-container {
   display: flex;
   justify-content: center;
+  align-items: center;
   margin: 1rem 0; /* 16px top and bottom */
   clear: both; /* Clear the float from forgot link */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.login-captcha-container > div {
+  display: flex;
+  justify-content: center;
+  max-width: 100%;
+}
+
+@media (max-width: 480px) {
+  .login-captcha-container > div {
+    transform: scale(0.9);
+    transform-origin: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-captcha-container > div {
+    transform: scale(0.82);
+  }
+}
+
+@media (max-width: 320px) {
+  .login-captcha-container > div {
+    transform: scale(0.72);
+  }
 }
 
 /* Add spacing between password field and captcha */
@@ -251,6 +280,15 @@ html {
   margin-top: 0.75rem;
   display: flex;
   justify-content: center;
+  align-items: center;
+  width: 100%;
+  gap: 0.75rem;
+}
+
+.login-biometric-row.with-button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  justify-content: stretch;
 }
 
 .login-biometric-toggle {
@@ -260,6 +298,16 @@ html {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-color);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.login-biometric-toggle-text-short {
+  display: none;
+}
+
+.login-biometric-btn-text-short {
+  display: none;
 }
 
 .login-biometric-toggle input {
@@ -269,6 +317,9 @@ html {
 
 .login-biometric-btn {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  margin: 0;
+  width: auto;
+  padding: 0.625rem 1rem;
 }
 
 .login-biometric-clear {
@@ -429,6 +480,26 @@ html {
 @media (max-width: 480px) {
   .login-page-wrapper {
     padding: 1rem; /* 16px */
+  }
+
+  .login-biometric-row.with-button {
+    gap: 0.5rem;
+  }
+
+  .login-biometric-toggle-text-full {
+    display: none;
+  }
+
+  .login-biometric-toggle-text-short {
+    display: inline;
+  }
+
+  .login-biometric-btn-text-full {
+    display: none;
+  }
+
+  .login-biometric-btn-text-short {
+    display: inline;
   }
 
   .login-container {
