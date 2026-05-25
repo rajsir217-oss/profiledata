@@ -1455,6 +1455,7 @@
   }
 
   .btn-get-started,
+  .btn-register-profile,
   .btn-learn-more {
     width: 100%;
   }
@@ -1482,6 +1483,10 @@
 }
 
 @media (max-width: 768px) {
+  .hero-section {
+    padding: 56px 20px 80px;
+  }
+
   .already-member {
     font-size: 13px;
   }
@@ -1498,15 +1503,29 @@
 }
 
 @media (max-width: 640px) {
+  .hero-section {
+    padding: 44px 16px 72px;
+  }
+
   .landing-header-content {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0 16px;
     gap: 12px;
   }
 
   .header-actions {
-    width: 100%;
-    justify-content: center;
+    width: auto;
+    justify-content: flex-end;
     gap: 8px;
+  }
+
+  .logo-icon {
+    font-size: 28px;
+  }
+
+  .logo-text {
+    font-size: 24px;
   }
 
   .already-member {
@@ -1548,6 +1567,7 @@
   }
 
   .btn-get-started,
+  .btn-register-profile,
   .btn-learn-more {
     padding: 14px 32px;
     font-size: 16px;
