@@ -6048,6 +6048,450 @@ async def delete_saved_search(username: str, search_id: str, db = Depends(get_da
         logger.error(f"❌ Error deleting saved search: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/{username}/search-criteria-breakdown")
+async def get_search_criteria_breakdown(username: str, criteria: dict, current_user: dict = Depends(get_current_user), db = Depends(get_database)):
+    """Get breakdown of matches by location, education, and profession based on provided search criteria"""
+    logger.info(f"📊 Getting search criteria breakdown for user '{username}'")
+    logger.info(f"📊 Criteria received: {criteria}")
+    logger.info(f"📊 Criteria type: {type(criteria)}, keys: {criteria.keys() if criteria else 'None'}")
+
+    try:
+        # Verify user is requesting their own data
+        if current_user.get("username") != username:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        # Build MongoDB query from provided criteria (same logic as search endpoint)
+        query = {}
+        and_conditions = []
+
+        # Account status filter - only active users
+        and_conditions.append({
+            "$or": [
+                {"accountStatus": "active"},
+                {"status.status": "active"}
+            ]
+        })
+        and_conditions.append({
+            "accountStatus": {"$nin": ["paused", "inactive", "deactivated", "suspended", "deleted", "pending_email_verification", "pending_admin_approval"]}
+        })
+
+        # Gender filter
+        if criteria.get("gender"):
+            query["gender"] = criteria["gender"].capitalize()
+            logger.info(f"📊 Applied gender filter: {criteria['gender']}")
+
+        # Age filter - convert age range to birthYear/birthMonth filter
+        age_min = criteria.get("ageMin") or criteria.get("age_min")
+        age_max = criteria.get("ageMax") or criteria.get("age_max")
+        if age_min or age_max:
+            from datetime import datetime
+            current_year = datetime.now().year
+            current_month = datetime.now().month
+
+            if age_min and int(age_min) > 0:
+                max_birth_year = current_year - int(age_min)
+                max_birth_month = current_month
+                and_conditions.append({
+                    "$or": [
+                        {"birthYear": {"$lt": max_birth_year}},
+                        {"$and": [
+                            {"birthYear": max_birth_year},
+                            {"birthMonth": {"$lte": max_birth_month}}
+                        ]}
+                    ]
+                })
+                logger.info(f"📊 Applied age min filter: {age_min}")
+
+            if age_max and int(age_max) > 0:
+                min_birth_year = current_year - int(age_max)
+                min_birth_month = current_month
+                and_conditions.append({
+                    "$or": [
+                        {"birthYear": {"$gt": min_birth_year}},
+                        {"$and": [
+                            {"birthYear": min_birth_year},
+                            {"birthMonth": {"$gte": min_birth_month}}
+                        ]}
+                    ]
+                })
+                logger.info(f"📊 Applied age max filter: {age_max}")
+
+        # Height filter
+        height_min = criteria.get("heightMin") or criteria.get("height_min")
+        height_max = criteria.get("heightMax") or criteria.get("height_max")
+        if height_min and int(height_min) > 0:
+            and_conditions.append({"heightInches": {"$gte": int(height_min)}})
+            logger.info(f"📊 Applied height min filter: {height_min}")
+        if height_max and int(height_max) > 0:
+            and_conditions.append({"heightInches": {"$lte": int(height_max)}})
+            logger.info(f"📊 Applied height max filter: {height_max}")
+
+        # Location filter
+        if criteria.get("locations") and len(criteria["locations"]) > 0:
+            location_or_conditions = []
+            for loc in criteria["locations"]:
+                if loc.strip():
+                    location_or_conditions.extend([
+                        {"city": {"$regex": loc, "$options": "i"}},
+                        {"state": {"$regex": loc, "$options": "i"}},
+                        {"aboutYou": {"$regex": loc, "$options": "i"}}
+                    ])
+            if location_or_conditions:
+                and_conditions.append({"$or": location_or_conditions})
+            logger.info(f"📊 Applied locations filter: {criteria['locations']}")
+        elif criteria.get("location") and criteria["location"].strip():
+            and_conditions.append({
+                "$or": [
+                    {"city": {"$regex": criteria["location"], "$options": "i"}},
+                    {"state": {"$regex": criteria["location"], "$options": "i"}},
+                    {"aboutYou": {"$regex": criteria["location"], "$options": "i"}}
+                ]
+            })
+            logger.info(f"📊 Applied location filter: {criteria['location']}")
+
+        # Occupation filter
+        if criteria.get("occupations") and len(criteria["occupations"]) > 0:
+            occupation_queries = []
+            for occ in criteria["occupations"]:
+                if occ.strip():
+                    occupation_queries.append({"workExperience.workType": occ.strip()})
+                    occupation_queries.append({"workExperience.workType": occ.strip().lower()})
+                    occupation_queries.append({"occupation": {"$regex": occ.strip(), "$options": "i"}})
+            if occupation_queries:
+                and_conditions.append({"$or": occupation_queries})
+            logger.info(f"📊 Applied occupations filter: {criteria['occupations']}")
+        elif criteria.get("occupation") and criteria["occupation"].strip():
+            and_conditions.append({
+                "$or": [
+                    {"workExperience.workType": criteria["occupation"]},
+                    {"workExperience.workType": criteria["occupation"].lower()},
+                    {"occupation": {"$regex": criteria["occupation"], "$options": "i"}}
+                ]
+            })
+            logger.info(f"📊 Applied occupation filter: {criteria['occupation']}")
+
+        # Education filter
+        if criteria.get("education"):
+            query["education"] = {"$regex": criteria["education"], "$options": "i"}
+            logger.info(f"📊 Applied education filter: {criteria['education']}")
+
+        # Religion filter
+        if criteria.get("religion"):
+            query["religion"] = criteria["religion"]
+            logger.info(f"📊 Applied religion filter: {criteria['religion']}")
+
+        # Caste filter
+        if criteria.get("caste"):
+            query["castePreference"] = criteria["caste"]
+            logger.info(f"📊 Applied caste filter: {criteria['caste']}")
+
+        # Eating preference filter
+        if criteria.get("eatingPreference"):
+            query["eatingPreference"] = criteria["eatingPreference"]
+            logger.info(f"📊 Applied eatingPreference filter: {criteria['eatingPreference']}")
+
+        # Drinking filter
+        if criteria.get("drinking"):
+            query["drinking"] = criteria["drinking"]
+            logger.info(f"📊 Applied drinking filter: {criteria['drinking']}")
+
+        # Smoking filter
+        if criteria.get("smoking"):
+            query["smoking"] = criteria["smoking"]
+            logger.info(f"📊 Applied smoking filter: {criteria['smoking']}")
+
+        # Relationship status filter
+        if criteria.get("relationshipStatus"):
+            query["relationshipStatus"] = criteria["relationshipStatus"]
+            logger.info(f"📊 Applied relationshipStatus filter: {criteria['relationshipStatus']}")
+
+        # Body type filter
+        if criteria.get("bodyType"):
+            query["bodyType"] = criteria["bodyType"]
+            logger.info(f"📊 Applied bodyType filter: {criteria['bodyType']}")
+
+        # Has photo filter
+        if criteria.get("hasPhoto"):
+            and_conditions.append({"images": {"$exists": True}})
+            and_conditions.append({"images": {"$ne": []}})
+            and_conditions.append({"images": {"$ne": None}})
+            and_conditions.append({"$expr": {"$gt": [{"$size": {"$ifNull": ["$images", []]}}, 0]}})
+            logger.info(f"📊 Applied hasPhoto filter")
+
+        # Days back filter
+        days_back = criteria.get("daysBack") or criteria.get("days_back")
+        if days_back and int(days_back) > 0:
+            from datetime import datetime, timedelta
+            cutoff_date = datetime.utcnow() - timedelta(days=int(days_back))
+            cutoff_iso = cutoff_date.isoformat()
+            days_back_query = {"$or": [
+                {"adminApprovedAt": {"$gte": cutoff_date, "$type": "date"}},
+                {"adminApprovedAt": {"$gte": cutoff_iso, "$type": "string"}},
+                {"$and": [
+                    {"$or": [{"adminApprovedAt": {"$exists": False}}, {"adminApprovedAt": None}]},
+                    {"createdAt": {"$gte": cutoff_date, "$type": "date"}}
+                ]},
+                {"$and": [
+                    {"$or": [{"adminApprovedAt": {"$exists": False}}, {"adminApprovedAt": None}]},
+                    {"createdAt": {"$gte": cutoff_iso, "$type": "string"}}
+                ]}
+            ]}
+            and_conditions.append(days_back_query)
+            logger.info(f"📊 Applied daysBack filter: {days_back}")
+
+        # Merge and_conditions into query
+        if and_conditions:
+            if "$and" in query:
+                query["$and"].extend(and_conditions)
+            else:
+                query["$and"] = and_conditions
+
+        logger.info(f"📊 Built query: {query}")
+
+        # Exclude self
+        query["username"] = {"$ne": username}
+
+        logger.info(f"🔍 Query: {query}")
+
+        # First, get total matches for the full criteria
+        total_matches = await db.users.count_documents(query)
+        logger.info(f"✅ Total matches for full criteria: {total_matches}")
+
+        # If no matches, return empty breakdown
+        if total_matches == 0:
+            return {
+                "criteria": criteria,
+                "totalMatches": 0,
+                "breakdown": {
+                    "location": {"total": 0, "top": []},
+                    "education": {"total": 0, "top": []},
+                    "profession": {"total": 0, "top": []}
+                }
+            }
+
+        # Aggregate counts by location (handle both single city field and potential locations array)
+        # Count unique locations among matching profiles (deduplicate per user)
+        location_pipeline = [
+            {"$match": query},
+            {
+                "$project": {
+                    "username": 1,
+                    "city": 1,
+                    "locations": {"$ifNull": ["$locations", []]}
+                }
+            },
+            {
+                "$project": {
+                    "username": 1,
+                    "location": {
+                        "$cond": {
+                            "if": {"$gt": [{"$size": "$locations"}, 0]},
+                            "then": "$locations",
+                            "else": [{"$ifNull": ["$city", ""]}]
+                        }
+                    }
+                }
+            },
+            {"$unwind": "$location"},
+            {"$match": {"location": {"$ne": "", "$ne": None}}},
+            {"$group": {"_id": {"username": "$username", "location": "$location"}}},
+            {"$group": {"_id": "$_id.location", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 10}
+        ]
+        location_results = await db.users.aggregate(location_pipeline).to_list(length=10)
+        location_counts = [{"location": r["_id"], "count": r["count"]} for r in location_results if r["_id"]]
+        logger.info(f"📍 Location top 10: {location_counts}")
+
+        # Count total unique locations (not just top 10)
+        total_unique_locations = await db.users.aggregate([
+            {"$match": query},
+            {
+                "$project": {
+                    "username": 1,
+                    "city": 1,
+                    "locations": {"$ifNull": ["$locations", []]}
+                }
+            },
+            {
+                "$project": {
+                    "username": 1,
+                    "location": {
+                        "$cond": {
+                            "if": {"$gt": [{"$size": "$locations"}, 0]},
+                            "then": "$locations",
+                            "else": [{"$ifNull": ["$city", ""]}]
+                        }
+                    }
+                }
+            },
+            {"$unwind": "$location"},
+            {"$match": {"location": {"$ne": "", "$ne": None}}},
+            {"$group": {"_id": {"username": "$username", "location": "$location"}}},
+            {"$group": {"_id": "$_id.location", "count": {"$sum": 1}}},
+            {"$count": "total"}
+        ]).to_list(length=1)
+        total_unique_locations_count = total_unique_locations[0]["total"] if total_unique_locations else 0
+        logger.info(f"📍 Total unique locations count: {total_unique_locations_count}")
+
+        # Aggregate counts by education (educationHistory is an array, education is legacy field)
+        # Count unique education degrees among matching profiles (deduplicate per user)
+        # Use same pattern as location: check array first, then fall back to legacy field
+        education_pipeline = [
+            {"$match": query},
+            {
+                "$project": {
+                    "username": 1,
+                    "educationHistory": {"$ifNull": ["$educationHistory", []]},
+                    "education": {"$ifNull": ["$education", ""]}
+                }
+            },
+            {
+                "$project": {
+                    "username": 1,
+                    "education": {
+                        "$cond": {
+                            "if": {"$gt": [{"$size": "$educationHistory"}, 0]},
+                            "then": "$educationHistory.degree",
+                            "else": [{"$ifNull": ["$education", ""]}]
+                        }
+                    }
+                }
+            },
+            {"$unwind": "$education"},
+            {"$match": {"education": {"$ne": "", "$ne": None}}},
+            {"$group": {"_id": {"username": "$username", "education": "$education"}}},
+            {"$group": {"_id": "$_id.education", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 10}
+        ]
+        education_results = await db.users.aggregate(education_pipeline).to_list(length=10)
+        education_counts = [{"education": r["_id"], "count": r["count"]} for r in education_results if r["_id"]]
+        logger.info(f"🎓 Education top 10: {education_counts}")
+
+        # Count total unique education degrees (not just top 10)
+        total_unique_education = await db.users.aggregate([
+            {"$match": query},
+            {
+                "$project": {
+                    "username": 1,
+                    "educationHistory": {"$ifNull": ["$educationHistory", []]},
+                    "education": {"$ifNull": ["$education", ""]}
+                }
+            },
+            {
+                "$project": {
+                    "username": 1,
+                    "education": {
+                        "$cond": {
+                            "if": {"$gt": [{"$size": "$educationHistory"}, 0]},
+                            "then": "$educationHistory.degree",
+                            "else": [{"$ifNull": ["$education", ""]}]
+                        }
+                    }
+                }
+            },
+            {"$unwind": "$education"},
+            {"$match": {"education": {"$ne": "", "$ne": None}}},
+            {"$group": {"_id": {"username": "$username", "education": "$education"}}},
+            {"$group": {"_id": "$_id.education", "count": {"$sum": 1}}},
+            {"$count": "total"}
+        ]).to_list(length=1)
+        total_unique_education_count = total_unique_education[0]["total"] if total_unique_education else 0
+        logger.info(f"🎓 Total unique education count: {total_unique_education_count}")
+
+        # Aggregate counts by profession/occupation (workExperience is an array, occupation is legacy field)
+        # Count unique professions among matching profiles (deduplicate per user)
+        # Use same pattern as location: check array first, then fall back to legacy field
+        profession_pipeline = [
+            {"$match": query},
+            {
+                "$project": {
+                    "username": 1,
+                    "workExperience": {"$ifNull": ["$workExperience", []]},
+                    "occupation": {"$ifNull": ["$occupation", ""]}
+                }
+            },
+            {
+                "$project": {
+                    "username": 1,
+                    "profession": {
+                        "$cond": {
+                            "if": {"$gt": [{"$size": "$workExperience"}, 0]},
+                            "then": "$workExperience.workType",
+                            "else": [{"$ifNull": ["$occupation", ""]}]
+                        }
+                    }
+                }
+            },
+            {"$unwind": "$profession"},
+            {"$match": {"profession": {"$ne": "", "$ne": None}}},
+            {"$group": {"_id": {"username": "$username", "profession": "$profession"}}},
+            {"$group": {"_id": "$_id.profession", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 10}
+        ]
+        profession_results = await db.users.aggregate(profession_pipeline).to_list(length=10)
+        profession_counts = [{"profession": r["_id"], "count": r["count"]} for r in profession_results if r["_id"]]
+        logger.info(f"💼 Profession top 10: {profession_counts}")
+
+        # Count total unique professions (not just top 10)
+        total_unique_profession = await db.users.aggregate([
+            {"$match": query},
+            {
+                "$project": {
+                    "username": 1,
+                    "workExperience": {"$ifNull": ["$workExperience", []]},
+                    "occupation": {"$ifNull": ["$occupation", ""]}
+                }
+            },
+            {
+                "$project": {
+                    "username": 1,
+                    "profession": {
+                        "$cond": {
+                            "if": {"$gt": [{"$size": "$workExperience"}, 0]},
+                            "then": "$workExperience.workType",
+                            "else": [{"$ifNull": ["$occupation", ""]}]
+                        }
+                    }
+                }
+            },
+            {"$unwind": "$profession"},
+            {"$match": {"profession": {"$ne": "", "$ne": None}}},
+            {"$group": {"_id": {"username": "$username", "profession": "$profession"}}},
+            {"$group": {"_id": "$_id.profession", "count": {"$sum": 1}}},
+            {"$count": "total"}
+        ]).to_list(length=1)
+        total_unique_profession_count = total_unique_profession[0]["total"] if total_unique_profession else 0
+        logger.info(f"💼 Total unique profession count: {total_unique_profession_count}")
+
+        logger.info(f"✅ Total matches: {total_matches}, Location breakdown: {total_unique_locations_count}, Education: {total_unique_education_count}, Profession: {total_unique_profession_count}")
+
+        return {
+            "criteria": criteria,
+            "totalMatches": total_matches,
+            "breakdown": {
+                "location": {
+                    "total": total_unique_locations_count,
+                    "top": location_counts
+                },
+                "education": {
+                    "total": total_unique_education_count,
+                    "top": education_counts
+                },
+                "profession": {
+                    "total": total_unique_profession_count,
+                    "top": profession_counts
+                }
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting search criteria breakdown: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.put("/{username}/saved-searches/{search_id}/set-default")
 async def set_default_saved_search(username: str, search_id: str, db = Depends(get_database)):
     """Set a saved search as default (unsets any other default)"""

@@ -23,7 +23,7 @@
 // components (HeroNewestMatch, AttentionGrid, StatsStrip, etc.) are
 // added in the next commit.
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileViewsModal from '../components/ProfileViewsModal';
 import ProfileNotes from '../components/ProfileNotes';
@@ -42,7 +42,7 @@ import './DashboardV2.css';
 
 const DashboardV2Page = () => {
   const navigate = useNavigate();
-  const { data, loading, criticalLoading, error, refetch } = useDashboardData();
+  const { data, loading, criticalLoading, error, refetch, fetchBreakdown } = useDashboardData();
   const newestMatch = useNewestMatch(data.savedSearches, data.userProfile);
   const staleMessages = useStaleMessages(data.conversations);
 
@@ -65,6 +65,13 @@ const DashboardV2Page = () => {
     });
     return set;
   }, [data.favorites]);
+
+  // Fetch breakdown using hero's actual criteria
+  useEffect(() => {
+    if (newestMatch.pick?.savedSearch?.criteria) {
+      fetchBreakdown(newestMatch.pick.savedSearch.criteria);
+    }
+  }, [newestMatch.pick, fetchBreakdown]);
 
   const openSavedSearch = (savedSearchOrEvent) => {
     const isEventLike =
@@ -106,6 +113,10 @@ const DashboardV2Page = () => {
     ).length,
     staleMessages: staleMessages.length,
     activePolls: data.activePolls?.length ?? 0,
+    // Search criteria breakdown - unique values count
+    locationUnique: data.searchCriteriaBreakdown?.breakdown?.location?.total ?? 0,
+    educationUnique: data.searchCriteriaBreakdown?.breakdown?.education?.total ?? 0,
+    professionUnique: data.searchCriteriaBreakdown?.breakdown?.profession?.total ?? 0,
   };
 
   if (error) {
@@ -233,11 +244,35 @@ const DashboardV2Page = () => {
             onClick: () => navigate('/messages'),
           },
           {
-            key: 'runSavedSearch',
+            key: 'searchMatches',
             icon: '🔍',
-            title: 'Run a saved search',
+            title: 'Matches in your search',
             count: counts.savedSearches,
             variant: 'secondary',
+            onClick: () => openSavedSearch(),
+          },
+          {
+            key: 'locationUnique',
+            icon: '📍',
+            title: 'Matches by location',
+            count: counts.locationUnique,
+            variant: 'info',
+            onClick: () => openSavedSearch(),
+          },
+          {
+            key: 'educationUnique',
+            icon: '🎓',
+            title: 'Matches by education',
+            count: counts.educationUnique,
+            variant: 'primary',
+            onClick: () => openSavedSearch(),
+          },
+          {
+            key: 'professionUnique',
+            icon: '💼',
+            title: 'Matches by profession',
+            count: counts.professionUnique,
+            variant: 'success',
             onClick: () => openSavedSearch(),
           },
         ]}

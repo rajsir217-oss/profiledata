@@ -272,3 +272,18 @@ export async function fetchCurrentUserProfile() {
     return null;
   }
 }
+
+// ============================================================================
+// Search criteria breakdown (for attention cards)
+// ============================================================================
+
+export async function fetchSearchCriteriaBreakdown(username, criteria) {
+  if (!username) return null;
+  try {
+    const { data } = await api.post(`/${username}/search-criteria-breakdown`, criteria);
+    return data;
+  } catch (err) {
+    logger.error('fetchSearchCriteriaBreakdown failed:', err);
+    return null;
+  }
+}

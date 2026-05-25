@@ -21,7 +21,10 @@ import {
   fetchIncomingPiiRequests,
   fetchActivePolls,
   fetchCurrentUserProfile,
+  fetchSearchCriteriaBreakdown,
 } from '../api';
+
+const getCurrentUsername = () => localStorage.getItem('username');
 
 const initialData = {
   userProfile: null,
@@ -35,6 +38,7 @@ const initialData = {
   theirFavorites: [],
   incomingPiiRequests: [],
   activePolls: [],
+  searchCriteriaBreakdown: null,
 };
 
 export function useDashboardData() {
@@ -48,6 +52,7 @@ export function useDashboardData() {
     setCriticalLoading(true);
     setError(null);
     try {
+      // Critical data fetches (blocking)
       const [
         userProfile,
         savedSearches,
@@ -86,6 +91,7 @@ export function useDashboardData() {
         theirFavorites,
         incomingPiiRequests,
         activePolls,
+        searchCriteriaBreakdown: null, // Will be loaded separately
       });
     } catch (err) {
       logger.error('useDashboardData refetch failed:', err);
@@ -96,9 +102,24 @@ export function useDashboardData() {
     }
   }, []);
 
+  const fetchBreakdown = useCallback(async (criteria) => {
+    const username = getCurrentUsername();
+    if (!criteria || !username) return;
+
+    try {
+      const breakdown = await fetchSearchCriteriaBreakdown(username, criteria);
+      setData((prev) => ({
+        ...prev,
+        searchCriteriaBreakdown: breakdown,
+      }));
+    } catch (err) {
+      logger.warn('Failed to fetch search criteria breakdown (non-critical):', err);
+    }
+  }, []);
+
   useEffect(() => {
     refetch();
   }, [refetch]);
 
-  return { data, loading, criticalLoading, error, refetch };
+  return { data, loading, criticalLoading, error, refetch, fetchBreakdown };
 }
