@@ -28,6 +28,10 @@ const PollManagement = () => {
   const [selectedPoll, setSelectedPoll] = useState(null);
   const [pollResults, setPollResults] = useState(null);
   const [resultsLoading, setResultsLoading] = useState(false);
+  const [adminActionUsername, setAdminActionUsername] = useState('');
+  const [adminActionComment, setAdminActionComment] = useState('');
+  const [adminActionBusy, setAdminActionBusy] = useState(false);
+  const [usernameSuggestions, setUsernameSuggestions] = useState([]);
   
   // Response table sorting and filtering
   const [responseSortBy, setResponseSortBy] = useState('responded_at');
@@ -136,6 +140,44 @@ const PollManagement = () => {
       setLoading(false);
     }
   };
+
+  const fetchPollResults = async (pollId) => {
+    try {
+      setResultsLoading(true);
+      const response = await pollsApi.get(`/api/polls/admin/${pollId}/results`);
+      if (response.data.success) {
+        setPollResults(response.data);
+      }
+    } catch (err) {
+      showToast('Failed to load results', 'error');
+    } finally {
+      setResultsLoading(false);
+    }
+  };
+
+  const fetchUsernameSuggestions = async (query) => {
+    if (!query || query.trim().length < 2) {
+      setUsernameSuggestions([]);
+      return;
+    }
+    try {
+      const res = await pollsApi.get('/api/admin/users', {
+        params: { search: query.trim(), limit: 10 }
+      });
+      const users = res.data?.users || [];
+      const usernames = users.map(u => u.username).filter(Boolean);
+      setUsernameSuggestions(usernames);
+    } catch (err) {
+      setUsernameSuggestions([]);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchUsernameSuggestions(adminActionUsername);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [adminActionUsername]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -398,18 +440,59 @@ const PollManagement = () => {
   const handleViewResults = async (poll) => {
     setSelectedPoll(poll);
     setShowResultsModal(true);
-    setResultsLoading(true);
-    
+    setAdminActionUsername('');
+    setAdminActionComment('');
+    fetchPollResults(poll._id);
+  };
+
+  const handleAdminAddMember = async () => {
+    if (!selectedPoll?._id) return;
+    const username = (adminActionUsername || '').trim();
+    if (!username) {
+      showToast('Enter a username to add', 'error');
+      return;
+    }
+
     try {
-      const response = await pollsApi.get(`/api/polls/admin/${poll._id}/results`);
-      if (response.data.success) {
-        setPollResults(response.data);
+      setAdminActionBusy(true);
+      const res = await pollsApi.post(`/api/polls/admin/${selectedPoll._id}/members`, null, {
+        params: { username },
+      });
+      if (res.data?.success) {
+        showToast(`Added ${username} to poll`, 'success');
+        await fetchPollResults(selectedPoll._id);
       }
     } catch (err) {
-      console.error('Error fetching results:', err);
-      showToast('Failed to load results', 'error');
+      showToast(err?.response?.data?.detail || 'Failed to add member', 'error');
     } finally {
-      setResultsLoading(false);
+      setAdminActionBusy(false);
+    }
+  };
+
+  const handleAdminRespondOnBehalf = async (rsvpResponse) => {
+    if (!selectedPoll?._id) return;
+    const username = (adminActionUsername || '').trim();
+    if (!username) {
+      showToast('Enter a username first', 'error');
+      return;
+    }
+
+    try {
+      setAdminActionBusy(true);
+      const payload = {
+        username,
+        rsvp_response: rsvpResponse,
+        comment: adminActionComment?.trim() || null,
+      };
+      const res = await pollsApi.post(`/api/polls/admin/${selectedPoll._id}/respond-on-behalf`, payload);
+      if (res.data?.success) {
+        showToast(`Recorded ${rsvpResponse.toUpperCase()} for ${username}`, 'success');
+        await fetchPollResults(selectedPoll._id);
+      }
+    } catch (err) {
+      showToast(err?.response?.data?.detail || 'Failed to submit response', 'error');
+    } finally {
+      setAdminActionBusy(false);
     }
   };
 
@@ -1109,6 +1192,65 @@ const PollManagement = () => {
                         </span>
                       </div>
                     </div>
+
+                    <div className="poll-admin-actions">
+                      <div className="poll-admin-field">
+                        <label className="poll-admin-label" htmlFor="poll-admin-username">On behalf of (username)</label>
+                        <input
+                          id="poll-admin-username"
+                          className="poll-admin-input"
+                          list="poll-username-datalist"
+                          value={adminActionUsername}
+                          onChange={(e) => setAdminActionUsername(e.target.value)}
+                          placeholder="username"
+                          disabled={adminActionBusy}
+                          autoComplete="off"
+                        />
+                        <datalist id="poll-username-datalist">
+                          {usernameSuggestions.map((u, i) => (
+                            <option key={i} value={u} />
+                          ))}
+                        </datalist>
+                      </div>
+                      <div className="poll-admin-field">
+                        <label className="poll-admin-label" htmlFor="poll-admin-comment">Comment (optional)</label>
+                        <input
+                          id="poll-admin-comment"
+                          className="poll-admin-input"
+                          value={adminActionComment}
+                          onChange={(e) => setAdminActionComment(e.target.value)}
+                          placeholder="note"
+                          disabled={adminActionBusy}
+                        />
+                      </div>
+                      <div className="poll-admin-actions-btns">
+                        <button
+                          type="button"
+                          className="poll-btn-secondary"
+                          onClick={handleAdminAddMember}
+                          disabled={adminActionBusy}
+                        >
+                          ➕ Add member
+                        </button>
+                        <button
+                          type="button"
+                          className="poll-btn-primary"
+                          onClick={() => handleAdminRespondOnBehalf('yes')}
+                          disabled={adminActionBusy}
+                        >
+                          ✅ Accept (Yes)
+                        </button>
+                        <button
+                          type="button"
+                          className="poll-btn-secondary"
+                          onClick={() => handleAdminRespondOnBehalf('no')}
+                          disabled={adminActionBusy}
+                        >
+                          ❌ Deny (No)
+                        </button>
+                      </div>
+                    </div>
+
                     {pollResults.responses?.length > 0 ? (
                       <div className="poll-responses-table-wrapper">
                         <table className="poll-responses-table">
@@ -1166,6 +1308,9 @@ const PollManagement = () => {
                                   <span className={`poll-response-badge poll-response-${resp.rsvp_response || 'other'}`}>
                                     {resp.rsvp_response || 'Selected'}
                                   </span>
+                                  {resp.admin_on_behalf ? (
+                                    <span className="poll-admin-on-behalf" title="Recorded by admin on behalf">🛡</span>
+                                  ) : null}
                                 </td>
                                 <td>{resp.comment || '-'}</td>
                                 <td>{formatDate(resp.responded_at)}</td>
