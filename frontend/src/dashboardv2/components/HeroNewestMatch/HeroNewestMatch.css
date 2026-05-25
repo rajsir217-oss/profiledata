@@ -99,6 +99,60 @@
   color: var(--text-muted, #888);
 }
 
+.dv2-hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.dv2-hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--surface-color);
+  color: var(--text-color);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dv2-hero-pill-soft {
+  background: var(--selected-background, var(--background-color));
+}
+
+.dv2-hero-looking-for {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-color);
+  background: var(--selected-background, var(--background-color));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.dv2-hero-looking-for-label {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: var(--primary-color);
+}
+
+.dv2-hero-looking-for-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
 .dv2-hero-bio {
   margin: 12px 0 0;
   color: var(--text-color, #222);

@@ -23,6 +23,134 @@ const getDisplayName = (profile) => {
   return combined || profile.username || '';
 };
 
+const formatHeight = (profile) => {
+  if (!profile) return null;
+  if (profile.height) return String(profile.height);
+
+  const heightInches = profile.heightInches;
+  if (Number.isFinite(heightInches)) {
+    const feet = Math.floor(heightInches / 12);
+    const inches = heightInches % 12;
+    return `${feet}'${inches}"`;
+  }
+
+  const feet = profile.heightFeet;
+  const inches = profile.heightInches;
+  if (Number.isFinite(feet) && Number.isFinite(inches)) {
+    return `${feet}'${inches}"`;
+  }
+
+  return null;
+};
+
+const getDobMonthYear = (profile) => {
+  if (!profile) return { dob: null, birthMonth: null, birthYear: null };
+
+  if (profile.birthMonth && profile.birthYear) {
+    const month = String(profile.birthMonth).padStart(2, '0');
+    return {
+      dob: `${month}/${profile.birthYear}`,
+      birthMonth: Number(profile.birthMonth),
+      birthYear: Number(profile.birthYear),
+    };
+  }
+
+  if (profile.dateOfBirth) {
+    try {
+      const date = new Date(profile.dateOfBirth);
+      if (Number.isNaN(date.getTime())) return { dob: null, birthMonth: null, birthYear: null };
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      return {
+        dob: `${month}/${date.getFullYear()}`,
+        birthMonth: date.getMonth() + 1,
+        birthYear: date.getFullYear(),
+      };
+    } catch {
+      return { dob: null, birthMonth: null, birthYear: null };
+    }
+  }
+
+  return { dob: null, birthMonth: null, birthYear: null };
+};
+
+const calculateAge = ({ birthMonth, birthYear }) => {
+  if (!birthYear) return null;
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+
+  let age = currentYear - birthYear;
+  if (birthMonth && currentMonth < birthMonth) {
+    age -= 1;
+  }
+  if (!Number.isFinite(age) || age <= 0) return null;
+  return age;
+};
+
+const normalizeEducation = (profile) => {
+  const list = Array.isArray(profile?.educationHistory) ? profile.educationHistory : [];
+  const items = [];
+
+  for (const edu of list) {
+    const degree = (edu?.degree || '').trim();
+    const institution = (edu?.institution || '').trim();
+    const text = degree && institution ? `${degree}, ${institution}` : degree || institution;
+    if (text) items.push(text);
+    if (items.length >= 2) break;
+  }
+
+  return items;
+};
+
+const normalizeOccupation = (profile) => {
+  const direct = (profile?.occupation || '').trim();
+  if (direct) return direct;
+
+  const list = Array.isArray(profile?.workExperience) ? profile.workExperience : [];
+  const current = list.find(
+    (job) => job?.isCurrent === true || String(job?.status || '').toLowerCase() === 'current'
+  );
+  const job = current || list[0] || null;
+  const text = (job?.description || job?.position || job?.title || '').trim();
+  return text || null;
+};
+
+const generateHeroLookingForSummary = (profile) => {
+  if (!profile) return '';
+  const criteria = profile.partnerCriteria || profile;
+  const parts = [];
+
+  if (criteria.educationLevel) {
+    const eduArray = Array.isArray(criteria.educationLevel) ? criteria.educationLevel : [criteria.educationLevel];
+    const first = eduArray.find((e) => String(e || '').trim());
+    if (first) parts.push(String(first));
+  }
+
+  if (criteria.profession) {
+    const profArray = Array.isArray(criteria.profession) ? criteria.profession : [criteria.profession];
+    const first = profArray.find(
+      (p) => String(p || '').trim() && !['any', 'no preference'].includes(String(p).trim().toLowerCase())
+    );
+    if (first) parts.push(String(first));
+  }
+
+  const loc = criteria.location || criteria.partnerLocation;
+  if (loc) {
+    const locArray = Array.isArray(loc) ? loc : [loc];
+    const raw = locArray.find((l) => String(l || '').trim());
+    if (raw) {
+      const text = String(raw);
+      if (['any', 'any location', 'no preference'].includes(text.trim().toLowerCase())) {
+        parts.push('Any Location');
+      } else {
+        parts.push(text);
+      }
+    }
+  }
+
+  return parts.join(', ');
+};
+
 const HeroNewestMatch = ({
   pick,
   loading,
@@ -56,6 +184,20 @@ const HeroNewestMatch = ({
 
   const joinedTime = profile?.createdAt ? formatRelativeTime(profile.createdAt) : null;
   const score = profile?.l3v3lScore || profile?.l3v3l_score || profile?.matchScore || null;
+
+  const heightText = formatHeight(profile);
+  const { dob, birthMonth, birthYear } = getDobMonthYear(profile);
+  const age = profile?.age || calculateAge({ birthMonth, birthYear });
+  const religion = profile?.religion && profile.religion !== 'Prefer not to say' ? String(profile.religion) : null;
+  const caste = profile?.caste && profile.caste !== 'Prefer not to say' ? String(profile.caste) : null;
+  const locationText =
+    profile?.location ||
+    [profile?.city, profile?.state].filter(Boolean).join(', ') ||
+    profile?.countryOfResidence ||
+    null;
+  const occupationText = normalizeOccupation(profile);
+  const educationItems = normalizeEducation(profile);
+  const lookingForSummary = generateHeroLookingForSummary(profile);
 
   const handleFavoriteToggle = async () => {
     if (!profile?.username) return;
@@ -155,13 +297,28 @@ const HeroNewestMatch = ({
           {score ? <span className="dv2-hero-score">💎 {Math.round(score)}% match</span> : null}
         </div>
 
-        <div className="dv2-hero-attrs">
-          {profile.location ? <span>📍 {profile.location}</span> : null}
-          {profile.occupation ? <span>💼 {profile.occupation}</span> : null}
-          {profile.height ? <span>🎓 {profile.height}</span> : null}
-          {profile.eatingPreference ? <span>🌱 {profile.eatingPreference}</span> : null}
-          {joinedTime ? <span>🗓 Joined {joinedTime}</span> : null}
+        <div className="dv2-hero-pills" aria-label="Profile highlights">
+          {heightText ? <span className="dv2-hero-pill">{heightText}</span> : null}
+          {dob ? <span className="dv2-hero-pill">{dob}</span> : null}
+          {religion ? <span className="dv2-hero-pill">{religion}</span> : null}
+          {age ? <span className="dv2-hero-pill">{age}yrs</span> : null}
+          {caste ? <span className="dv2-hero-pill">{caste}</span> : null}
         </div>
+
+        <div className="dv2-hero-pills dv2-hero-pills-secondary" aria-label="Profile details">
+          {locationText ? <span className="dv2-hero-pill dv2-hero-pill-soft">📍 {locationText}</span> : null}
+          {occupationText ? <span className="dv2-hero-pill dv2-hero-pill-soft">💼 {occupationText}</span> : null}
+          {educationItems.map((edu) => (
+            <span key={edu} className="dv2-hero-pill dv2-hero-pill-soft">🎓 {edu}</span>
+          ))}
+        </div>
+
+        {lookingForSummary ? (
+          <div className="dv2-hero-looking-for" aria-label="Looking for">
+            <span className="dv2-hero-looking-for-label">LOOKING FOR:</span>
+            <span className="dv2-hero-looking-for-text">{lookingForSummary}</span>
+          </div>
+        ) : null}
 
         {profile.aboutYou ? (
           <p className="dv2-hero-bio">“{String(profile.aboutYou).slice(0, 160)}”</p>
