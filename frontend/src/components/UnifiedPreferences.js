@@ -6,7 +6,6 @@ import ContributionPopup from './ContributionPopup';
 import SystemStatus from './SystemStatus';
 import PauseSettings from './PauseSettings';
 import { getBackendUrl } from '../config/apiConfig';
-import { isNativePlatform } from '../services/biometricAuth';
 import './UnifiedPreferences.css';
 import { 
   getUserPreferences, 
@@ -26,7 +25,6 @@ import {
 
 const UnifiedPreferences = () => {
   const location = useLocation();
-  const native = isNativePlatform();
   const [toast, setToast] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   
@@ -1617,90 +1615,88 @@ const UnifiedPreferences = () => {
         </div>
             )
           },
-          ...(!native ? [
-            {
-              id: 'contributions',
-              icon: '💝',
-              label: 'Contributions',
-              content: (
-                <div className="contributions-settings">
-                  {/* Contribution Overview */}
-                  <section className="settings-section">
-                    <h2>💝 Contribution History</h2>
-                    <p className="section-description">Support the platform with a contribution</p>
+          {
+            id: 'contributions',
+            icon: '💝',
+            label: 'Contributions',
+            content: (
+              <div className="contributions-settings">
+                {/* Contribution Overview */}
+                <section className="settings-section">
+                  <h2>💝 Contribution History</h2>
+                  <p className="section-description">Support the platform with a contribution</p>
+                  
+                  {/* Make a Contribution Button - Top Center */}
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+                    <button 
+                      className="btn-primary contribution-btn"
+                      onClick={() => setShowContributionPopup(true)}
+                      style={{ fontSize: '16px', padding: '12px 32px' }}
+                    >
+                      💝 Make a Contribution
+                    </button>
+                  </div>
+
+                  {/* Last Contribution Info */}
+                  {contributionHistory.length > 0 ? (
+                    <div className="last-contribution-card">
+                      <div className="last-contribution-row">
+                        <span className="last-contribution-label">💰 Last Contribution:</span>
+                        <span className="last-contribution-value">${contributionHistory[0].amount.toFixed(2)}</span>
+                      </div>
+                      <div className="last-contribution-row">
+                        <span className="last-contribution-label">📅 Date:</span>
+                        <span className="last-contribution-value">{new Date(contributionHistory[0].date).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="last-contribution-card">
+                      <p style={{ textAlign: 'center', color: 'var(--text-color)', opacity: 0.7 }}>
+                        No contributions yet. Your support helps keep the platform running!
+                      </p>
+                    </div>
+                  )}
+                </section>
+
+                {/* Admin-only Contribution Settings */}
+                {isAdmin && (
+                  <section className="settings-section admin-section">
+                    <h2>⚙️ Contribution Settings (Admin)</h2>
+                    <p className="section-description">Configure platform-wide contribution settings</p>
                     
-                    {/* Make a Contribution Button - Top Center */}
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-                      <button 
-                        className="btn-primary contribution-btn"
-                        onClick={() => setShowContributionPopup(true)}
-                        style={{ fontSize: '16px', padding: '12px 32px' }}
+                    <div className="contribution-settings-form">
+                      <div className="form-row">
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                            Enable Contribution Popup
+                          </label>
+                          <label className="toggle-switch">
+                            <input
+                              type="checkbox"
+                              checked={contributionEnabled}
+                              onChange={(e) => setContributionEnabled(e.target.checked)}
+                              disabled={savingContributionSettings}
+                            />
+                            <span className="toggle-slider"></span>
+                          </label>
+                        </div>
+
+                      </div>
+
+                      <button
+                        onClick={handleSaveContributionSettings}
+                        disabled={savingContributionSettings}
+                        className="btn-primary"
+                        style={{ whiteSpace: 'nowrap' }}
                       >
-                        💝 Make a Contribution
+                        {savingContributionSettings ? '💾 Saving...' : '💾 Save Contribution Settings'}
                       </button>
                     </div>
-
-                    {/* Last Contribution Info */}
-                    {contributionHistory.length > 0 ? (
-                      <div className="last-contribution-card">
-                        <div className="last-contribution-row">
-                          <span className="last-contribution-label">💰 Last Contribution:</span>
-                          <span className="last-contribution-value">${contributionHistory[0].amount.toFixed(2)}</span>
-                        </div>
-                        <div className="last-contribution-row">
-                          <span className="last-contribution-label">📅 Date:</span>
-                          <span className="last-contribution-value">{new Date(contributionHistory[0].date).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="last-contribution-card">
-                        <p style={{ textAlign: 'center', color: 'var(--text-color)', opacity: 0.7 }}>
-                          No contributions yet. Your support helps keep the platform running!
-                        </p>
-                      </div>
-                    )}
                   </section>
-
-                  {/* Admin-only Contribution Settings */}
-                  {isAdmin && (
-                    <section className="settings-section admin-section">
-                      <h2>⚙️ Contribution Settings (Admin)</h2>
-                      <p className="section-description">Configure platform-wide contribution settings</p>
-                      
-                      <div className="contribution-settings-form">
-                        <div className="form-row">
-                          <div>
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                              Enable Contribution Popup
-                            </label>
-                            <label className="toggle-switch">
-                              <input
-                                type="checkbox"
-                                checked={contributionEnabled}
-                                onChange={(e) => setContributionEnabled(e.target.checked)}
-                                disabled={savingContributionSettings}
-                              />
-                              <span className="toggle-slider"></span>
-                            </label>
-                          </div>
-
-                        </div>
-
-                        <button
-                          onClick={handleSaveContributionSettings}
-                          disabled={savingContributionSettings}
-                          className="btn-primary"
-                          style={{ whiteSpace: 'nowrap' }}
-                        >
-                          {savingContributionSettings ? '💾 Saving...' : '💾 Save Contribution Settings'}
-                        </button>
-                      </div>
-                    </section>
-                  )}
-                </div>
-              )
-            }
-          ] : []),
+                )}
+              </div>
+            )
+          },
           {
             id: 'notifications',
             icon: '🔔',
@@ -2752,13 +2748,11 @@ const UnifiedPreferences = () => {
       )}
       
       {/* Contribution Popup */}
-      {!native && (
-        <ContributionPopup
-          isOpen={showContributionPopup}
-          onClose={() => setShowContributionPopup(false)}
-          contributionConfig={contributionPopupConfig}
-        />
-      )}
+      <ContributionPopup
+        isOpen={showContributionPopup}
+        onClose={() => setShowContributionPopup(false)}
+        contributionConfig={contributionPopupConfig}
+      />
     </div>
   );
 };

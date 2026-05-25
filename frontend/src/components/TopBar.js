@@ -12,7 +12,6 @@ import InfoTicker from './InfoTicker';
 import EventCountdown from './EventCountdown';
 import { getFirstName, getShortName } from '../utils/userDisplay';
 import { useContribution } from '../contexts/ContributionContext';
-import { isNativePlatform } from '../services/biometricAuth';
 import logger from '../utils/logger';
 import { loadWhitelabelConfig } from '../utils/whitelabelConfig';
 import useActivityLogger from '../hooks/useActivityLogger';
@@ -36,7 +35,6 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const [showUserMenu, setShowUserMenu] = useState(false); // User avatar dropdown
   const userMenuRef = useRef(null);
   const { openPopup } = useContribution();
-  const native = isNativePlatform();
   const [unreadResponseCount, setUnreadResponseCount] = useState(0); // User unread admin responses
   const [urgencyCounts, setUrgencyCounts] = useState({ pending: 0, medium: 0, high: 0, critical: 0 }); // All urgency levels
   const [unattendedConversations, setUnattendedConversations] = useState([]); // For alert panel
@@ -850,18 +848,16 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
                     </div>
                   </div>
                   <div className="user-menu-divider" />
-                  {!native && (
-                    <button
-                      className="user-menu-item support-l3v3l"
-                      onClick={() => { openPopup(); setShowUserMenu(false); }}
-                    >
-                      <span className="user-menu-icon">💜</span>
-                      <div className="user-menu-item-content">
-                        <span className="user-menu-item-label">Support L3V3L</span>
-                        <span className="user-menu-item-sublabel">Keep us free & ad-free</span>
-                      </div>
-                    </button>
-                  )}
+                  <button
+                    className="user-menu-item support-l3v3l"
+                    onClick={() => { openPopup(); setShowUserMenu(false); }}
+                  >
+                    <span className="user-menu-icon">💜</span>
+                    <div className="user-menu-item-content">
+                      <span className="user-menu-item-label">Support L3V3L</span>
+                      <span className="user-menu-item-sublabel">Keep us free & ad-free</span>
+                    </div>
+                  </button>
                   <button
                     className="user-menu-item"
                     onClick={() => { navigate('/preferences'); setShowUserMenu(false); }}
