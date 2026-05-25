@@ -1633,6 +1633,7 @@ const SearchPage2 = () => {
                           onStartScheduleEdit={startInlineScheduleEdit}
                           onCancelScheduleEdit={cancelInlineScheduleEdit}
                           onSaveSchedule={saveInlineSchedule}
+                          onUpdateSavedSearch={handleSaveSearchHook}
                           onSetDefault={handleSetDefaultSearch}
                           onDelete={handleDeleteSavedSearch}
                           onLoad={handleLoadSavedSearch}

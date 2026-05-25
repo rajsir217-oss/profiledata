@@ -200,9 +200,9 @@ export async function fetchTheirFavorites() {
   }
 }
 
-export async function fetchIncomingPiiRequests() {
+export async function fetchIncomingPiiRequests(username) {
   try {
-    const { data } = await axios.get(`${getBackendUrl()}/api/pii-requests`, {
+    const { data } = await axios.get(`${getBackendUrl()}/api/users/pii-requests/${username}/incoming`, {
       headers: authHeaders(),
     });
     return data.requests || data || [];
@@ -284,6 +284,17 @@ export async function fetchSearchCriteriaBreakdown(username, criteria) {
     return data;
   } catch (err) {
     logger.error('fetchSearchCriteriaBreakdown failed:', err);
+    return null;
+  }
+}
+
+export async function updateSavedSearch(username, searchId, updates) {
+  if (!username || !searchId) return null;
+  try {
+    const { data } = await api.put(`/${username}/saved-searches/${searchId}`, updates);
+    return data;
+  } catch (err) {
+    logger.error('updateSavedSearch failed:', err);
     return null;
   }
 }
