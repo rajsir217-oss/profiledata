@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pydantic import BaseModel
 
 from database import get_database
 from auth.jwt_auth import get_current_user_dependency as get_current_user
@@ -20,6 +21,13 @@ from services.poll_service import PollService
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/polls", tags=["polls"])
+
+
+class AdminOnBehalfRsvpRequest(BaseModel):
+    username: str
+    rsvp_response: str
+    comment: Optional[str] = None
+    payment_status: Optional[str] = None
 
 
 # ==================== USER ENDPOINTS ====================
@@ -345,3 +353,38 @@ async def export_poll_responses(
         "total_responses": len(export_data),
         "data": export_data
     }
+
+
+@router.post("/admin/{poll_id}/members")
+async def admin_add_poll_member(
+    poll_id: str,
+    username: str,
+    current_user: dict = Depends(require_admin_or_moderator),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    service = PollService(db)
+    result = await service.add_member_to_poll(poll_id=poll_id, username=username, acted_by=current_user["username"])
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("message") or "Failed to add member")
+    return result
+
+
+@router.post("/admin/{poll_id}/respond-on-behalf")
+async def admin_respond_on_behalf(
+    poll_id: str,
+    payload: AdminOnBehalfRsvpRequest,
+    current_user: dict = Depends(require_admin_or_moderator),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    service = PollService(db)
+    result = await service.admin_upsert_rsvp_response(
+        poll_id=poll_id,
+        target_username=payload.username,
+        rsvp_response=payload.rsvp_response,
+        acted_by=current_user["username"],
+        comment=payload.comment,
+        payment_status=payload.payment_status,
+    )
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("message") or "Failed to submit response")
+    return result

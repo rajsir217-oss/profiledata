@@ -800,6 +800,62 @@
   color: var(--text-secondary);
 }
 
+.poll-admin-actions {
+  margin: 0 0 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-color);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .poll-admin-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.poll-admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.poll-admin-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.poll-admin-input {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text-color);
+}
+
+.poll-admin-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.poll-admin-actions-btns {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.poll-admin-on-behalf {
+  margin-left: 6px;
+  color: var(--info-color);
+  font-weight: 700;
+}
+
 /* Sortable table headers */
 .sortable-header {
   cursor: pointer;

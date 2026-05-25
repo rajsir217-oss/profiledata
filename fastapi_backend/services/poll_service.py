@@ -707,6 +707,216 @@ class PollService:
                 "success": False,
                 "message": f"Failed to update response: {str(e)}"
             }
+
+    # ==================== ADMIN ON-BEHALF ACTIONS ====================
+
+    async def add_member_to_poll(self, poll_id: str, username: str, acted_by: str) -> Dict[str, Any]:
+        try:
+            poll = await self.get_poll(poll_id)
+            if not poll:
+                return {"success": False, "message": "Poll not found"}
+
+            user = await self.users_collection.find_one({"username": username})
+            if not user:
+                return {"success": False, "message": "User not found"}
+
+            now = datetime.now(timezone.utc)
+            result = await self.polls_collection.update_one(
+                {"_id": ObjectId(poll_id)},
+                {
+                    "$addToSet": {"target_usernames": username},
+                    "$set": {"updated_at": now, "member_added_by": acted_by, "member_added_at": now},
+                },
+            )
+
+            if result.matched_count == 0:
+                return {"success": False, "message": "Poll not found"}
+
+            return {"success": True, "message": "Member added", "username": username}
+        except Exception as e:
+            logger.error(f"❌ Error adding poll member: {e}")
+            return {"success": False, "message": f"Failed to add member: {str(e)}"}
+
+    async def admin_upsert_rsvp_response(
+        self,
+        poll_id: str,
+        target_username: str,
+        rsvp_response: str,
+        acted_by: str,
+        comment: Optional[str] = None,
+        payment_status: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        try:
+            poll = await self.get_poll(poll_id)
+            if not poll:
+                return {"success": False, "message": "Poll not found"}
+
+            if poll.get("poll_type") != PollType.RSVP.value:
+                return {"success": False, "message": "Only RSVP polls support yes/no responses"}
+
+            if poll.get("status") != PollStatus.ACTIVE.value:
+                return {"success": False, "message": "This poll is not currently active"}
+
+            user = await self.users_collection.find_one({"username": target_username})
+            if not user:
+                return {"success": False, "message": "User not found"}
+
+            now = datetime.now(timezone.utc)
+
+            await self.polls_collection.update_one(
+                {"_id": ObjectId(poll_id)},
+                {"$addToSet": {"target_usernames": target_username}, "$set": {"updated_at": now}},
+            )
+
+            normalized = (rsvp_response or "").strip().lower()
+            if normalized in ("accept", "accepted", "yes", "y"):
+                normalized = "yes"
+            elif normalized in ("deny", "denied", "no", "n"):
+                normalized = "no"
+            elif normalized in ("maybe", "m"):
+                normalized = "maybe"
+            else:
+                return {"success": False, "message": "Invalid rsvp_response. Use yes or no"}
+
+            option_id = None
+            for opt in poll.get("options", []):
+                opt_text = str(opt.get("text") or "").lower()
+                if normalized == "yes" and "yes" in opt_text:
+                    option_id = opt.get("id")
+                    break
+                if normalized == "no" and "no" in opt_text:
+                    option_id = opt.get("id")
+                    break
+                if normalized == "maybe" and "maybe" in opt_text:
+                    option_id = opt.get("id")
+                    break
+
+            if not option_id:
+                return {"success": False, "message": "Could not map response to a poll option"}
+
+            user_full_name = None
+            user_email = None
+            user_phone = None
+            if poll.get("collect_contact_info", True):
+                encryptor = get_encryptor()
+
+                first_name = user.get("firstName", "")
+                last_name = user.get("lastName", "")
+                if first_name and isinstance(first_name, str) and first_name.startswith("gAAAAA"):
+                    try:
+                        first_name = encryptor.decrypt(first_name)
+                    except Exception:
+                        pass
+                if last_name and isinstance(last_name, str) and last_name.startswith("gAAAAA"):
+                    try:
+                        last_name = encryptor.decrypt(last_name)
+                    except Exception:
+                        pass
+                user_full_name = f"{first_name} {last_name}".strip() or None
+
+                email = user.get("contactEmail") or user.get("email")
+                if email and isinstance(email, str) and email.startswith("gAAAAA"):
+                    try:
+                        email = encryptor.decrypt(email)
+                    except Exception:
+                        pass
+                user_email = email
+
+                phone = user.get("contactNumber")
+                if phone and isinstance(phone, str) and phone.startswith("gAAAAA"):
+                    try:
+                        phone = encryptor.decrypt(phone)
+                    except Exception:
+                        pass
+                user_phone = phone
+
+            payment_required = False
+            effective_payment_status = "not_required"
+            effective_payment_amount = None
+            effective_payment_method = None
+            effective_payment_id = None
+
+            event_fee = float(poll.get("virtual_meet_payment_amount", 5.00) or 0)
+            is_paid_event = (
+                poll.get("event_type")
+                and poll.get("event_type") in ["in-person", "virtual", "zoom-call", "hybrid"]
+                and normalized == "yes"
+                and event_fee > 0
+            )
+
+            if is_paid_event:
+                payment_required = True
+                effective_payment_amount = event_fee
+                effective_payment_status = (payment_status or "completed").strip().lower()
+                if effective_payment_status not in ("pending", "completed", "not_required"):
+                    effective_payment_status = "completed"
+                if effective_payment_status == "completed":
+                    effective_payment_method = "admin_override"
+                    effective_payment_id = f"admin:{acted_by}:{int(now.timestamp())}"
+                else:
+                    effective_payment_method = None
+                    effective_payment_id = None
+
+            existing = await self.responses_collection.find_one(
+                {"poll_id": poll_id, "username": target_username}
+            )
+
+            admin_fields = {
+                "admin_on_behalf": True,
+                "admin_username": acted_by,
+                "admin_action_at": now,
+            }
+
+            if existing:
+                update_doc = {
+                    "selected_options": [option_id],
+                    "rsvp_response": normalized,
+                    "comment": comment,
+                    "updated_at": now,
+                    "payment_required": payment_required,
+                    "payment_status": effective_payment_status,
+                    "payment_amount": effective_payment_amount,
+                    "payment_method": effective_payment_method,
+                    "payment_id": effective_payment_id,
+                    **admin_fields,
+                }
+
+                result = await self.responses_collection.update_one(
+                    {"poll_id": poll_id, "username": target_username},
+                    {"$set": update_doc},
+                )
+
+                if result.matched_count == 0:
+                    return {"success": False, "message": "Response not found"}
+
+                return {"success": True, "message": "Response updated", "action": "updated"}
+
+            response_doc = {
+                "poll_id": poll_id,
+                "username": target_username,
+                "user_full_name": user_full_name,
+                "user_email": user_email,
+                "user_phone": user_phone,
+                "selected_options": [option_id],
+                "rsvp_response": normalized,
+                "text_response": None,
+                "comment": comment,
+                "payment_required": payment_required,
+                "payment_status": effective_payment_status,
+                "payment_amount": effective_payment_amount,
+                "payment_id": effective_payment_id,
+                "payment_method": effective_payment_method,
+                "responded_at": now,
+                "updated_at": None,
+                **admin_fields,
+            }
+
+            await self.responses_collection.insert_one(response_doc)
+            return {"success": True, "message": "Response submitted", "action": "created"}
+
+        except Exception as e:
+            logger.error(f"❌ Error submitting admin poll response: {e}")
+            return {"success": False, "message": f"Failed to submit response: {str(e)}"}
     
     # ==================== ADMIN RESULTS ====================
     

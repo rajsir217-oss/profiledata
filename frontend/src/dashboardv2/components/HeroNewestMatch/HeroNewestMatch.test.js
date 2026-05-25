@@ -47,7 +47,7 @@ describe('HeroNewestMatch', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("5'5\""))..toBeInTheDocument();
+    expect(screen.getByText("5'5\"")) .toBeInTheDocument();
     expect(screen.getByText('10/1998')).toBeInTheDocument();
     expect(screen.getByText('Hindu')).toBeInTheDocument();
     expect(screen.getByText('27yrs')).toBeInTheDocument();
