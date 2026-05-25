@@ -9,7 +9,6 @@ import { getAuthenticatedImageUrl } from '../utils/imageUtils';
 import { getProfilePicUrl } from '../utils/urlHelper';
 import './Sidebar.css';
 import { useContribution } from '../contexts/ContributionContext';
-import { isNativePlatform } from '../services/biometricAuth';
 
 const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -20,7 +19,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
   const [localIsPinned, setLocalIsPinned] = useState(false); // Local pin state
   const navigate = useNavigate();
   const { openPopup } = useContribution();
-  const native = isNativePlatform();
 
   // Use prop if provided, otherwise use local state
   const isPinned = propIsPinned !== undefined ? propIsPinned : localIsPinned;
@@ -222,7 +220,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
     ];
 
     // Support L3V3L — always-visible voluntary contribution for regular users
-    if (!native && !isAdmin && !isModerator) {
+    if (!isAdmin && !isModerator) {
       items.push({
         icon: '💜',
         label: 'Support L3V3L',
@@ -301,15 +299,13 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         subLabel: 'Promos, pricing & leads',
         action: () => navigate('/marketing-pricing')
       });
-
-      if (!native) {
-        items.push({
-          icon: '💝',
-          label: 'Contributions',
-          subLabel: 'View all contributions',
-          action: () => navigate('/contribution-management')
-        });
-      }
+      
+      items.push({
+        icon: '💝',
+        label: 'Contributions',
+        subLabel: 'View all contributions',
+        action: () => navigate('/contribution-management')
+      });
       
       // === ANALYTICS & REPORTS ===
       items.push({ isHeader: true, label: 'ANALYTICS & REPORTS' });
@@ -540,12 +536,8 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
             <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/about'))}>About Us</span>
             <span className="footer-separator">|</span>
             <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/trademark'))}>Trademark</span>
-            {!native && (
-              <>
-                <span className="footer-separator">|</span>
-                <span className="footer-link" onClick={() => handleMenuClick(openPopup)}>💜 Support L3V3L</span>
-              </>
-            )}
+            <span className="footer-separator">|</span>
+            <span className="footer-link" onClick={() => handleMenuClick(openPopup)}>💜 Support L3V3L</span>
             <span className="footer-separator">|</span>
             <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/testimonials'))}>💬 Testimonials</span>
             <span className="footer-separator">|</span>
