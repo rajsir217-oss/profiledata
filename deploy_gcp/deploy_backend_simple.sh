@@ -9,14 +9,20 @@ set -e  # Exit on error
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-PROJECT_ID="matrimonial-staging"
-SERVICE_NAME="matrimonial-backend"
-REGION="us-central1"
-GCS_BUCKET="matrimonial-uploads-matrimonial-staging"
-APK_MAIN_GCS_BUCKET_NAME="${ANDROID_APK_MAIN_GCS_BUCKET_NAME:-matrimonial-uploads-matrimonial-staging}"
-APK_MAIN_GCS_OBJECT="${ANDROID_APK_MAIN_GCS_OBJECT:-mobile/android/l3v3lmatches-latest.apk}"
-APK_MSGR_GCS_BUCKET_NAME="${ANDROID_APK_MSGR_GCS_BUCKET_NAME:-matrimonial-uploads-matrimonial-staging}"
-APK_MSGR_GCS_OBJECT="${ANDROID_APK_MSGR_GCS_OBJECT:-mobile/android/l3v3lmatches-msgr-latest.apk}"
+# Load centralized configuration
+. "$SCRIPT_DIR/deploy.config.sh"
+
+# Parse command-line arguments
+for arg in "$@"; do
+  case $arg in
+    --non-interactive)
+      NON_INTERACTIVE=true
+      ;;
+    --verbose)
+      VERBOSE=true
+      ;;
+  esac
+done
 
 # Production environment variables
 # Sensitive values (MONGODB_URL, REDIS_URL, etc.) are stored in Secret Manager
@@ -30,10 +36,13 @@ echo "🚀 Simple Backend Deployment"
 echo "======================================"
 echo ""
 echo "Project:   $PROJECT_ID"
-echo "Service:   $SERVICE_NAME"
+echo "Service:   $BACKEND_SERVICE"
 echo "Region:    $REGION"
 echo "Log Level: $LOG_LEVEL"
 echo ""
+
+# Pre-deployment validation
+pre_deployment_check standard || exit 1
 
 # Set project
 gcloud config set project $PROJECT_ID
@@ -46,20 +55,20 @@ cd "$PROJECT_ROOT"
 
 # Build and deploy in one command
 echo "📦 Building and deploying..."
-gcloud run deploy $SERVICE_NAME \
+gcloud run deploy $BACKEND_SERVICE \
   --source "$PROJECT_ROOT/fastapi_backend" \
   --region $REGION \
   --platform managed \
   --allow-unauthenticated \
-  --port 8080 \
-  --memory 1Gi \
-  --cpu 1 \
-  --timeout 300 \
-  --min-instances 1 \
-  --max-instances 3 \
-  --concurrency 80 \
+  --port $BACKEND_PORT \
+  --memory $BACKEND_MEMORY \
+  --cpu $BACKEND_CPU \
+  --timeout $BACKEND_TIMEOUT \
+  --min-instances $BACKEND_MIN_INSTANCES \
+  --max-instances $BACKEND_MAX_INSTANCES \
+  --concurrency $BACKEND_CONCURRENCY \
   --no-cpu-throttling \
-  --liveness-probe=httpGet.path=/health,httpGet.port=8080,initialDelaySeconds=180,periodSeconds=60,timeoutSeconds=15,failureThreshold=5 \
+  --liveness-probe=httpGet.path=/health,httpGet.port=$BACKEND_PORT,initialDelaySeconds=180,periodSeconds=60,timeoutSeconds=15,failureThreshold=5 \
   --set-env-vars "\
 ENV=production,\
 DATABASE_NAME=matrimonialDB,\
@@ -68,11 +77,11 @@ BACKEND_URL=https://matrimonial-backend-7cxoxmouuq-uc.a.run.app,\
 APP_URL=https://l3v3lmatches.com,\
 USE_GCS=true,\
 GCS_BUCKET_NAME=$GCS_BUCKET,\
-GCS_PROJECT_ID=$PROJECT_ID,\
-ANDROID_APK_MAIN_GCS_BUCKET_NAME=$APK_MAIN_GCS_BUCKET_NAME,\
-ANDROID_APK_MAIN_GCS_OBJECT=$APK_MAIN_GCS_OBJECT,\
-ANDROID_APK_MSGR_GCS_BUCKET_NAME=$APK_MSGR_GCS_BUCKET_NAME,\
-ANDROID_APK_MSGR_GCS_OBJECT=$APK_MSGR_GCS_OBJECT,\
+GCS_PROJECT_ID=$GCS_PROJECT_ID,\
+ANDROID_APK_MAIN_GCS_BUCKET_NAME=$ANDROID_APK_MAIN_GCS_BUCKET_NAME,\
+ANDROID_APK_MAIN_GCS_OBJECT=$ANDROID_APK_MAIN_GCS_OBJECT,\
+ANDROID_APK_MSGR_GCS_BUCKET_NAME=$ANDROID_APK_MSGR_GCS_BUCKET_NAME,\
+ANDROID_APK_MSGR_GCS_OBJECT=$ANDROID_APK_MSGR_GCS_OBJECT,\
 ALGORITHM=HS256,\
 ACCESS_TOKEN_EXPIRE_MINUTES=30,\
 EMAIL_PROVIDER=resend,\
@@ -121,7 +130,7 @@ echo "✅ Backend deployment complete!"
 echo ""
 
 # Get the actual deployed URL
-BACKEND_URL=$(gcloud run services describe $SERVICE_NAME \
+BACKEND_URL=$(gcloud run services describe $BACKEND_SERVICE \
   --region $REGION \
   --format "value(status.url)")
 
@@ -131,7 +140,7 @@ echo "Service URL: $BACKEND_URL"
 # IMPORTANT: Recommend frontend redeployment
 # Skip this prompt if called from deploy-production.sh (SKIP_FRONTEND_PROMPT=true)
 # ============================================================================
-if [[ "$SKIP_FRONTEND_PROMPT" != "true" ]]; then
+if [[ "$SKIP_FRONTEND_PROMPT" != "true" ]] && [[ "$NON_INTERACTIVE" != "true" ]]; then
   echo ""
   echo "⚠️  IMPORTANT: You may need to redeploy frontend to clear caches"
   echo ""
@@ -140,10 +149,7 @@ if [[ "$SKIP_FRONTEND_PROMPT" != "true" ]]; then
   echo "  ./deploy-production.sh"
   echo "  Choose: 2 (Frontend only)"
   echo ""
-  read -p "Deploy frontend now? (y/N): " -n 1 -r
-  echo ""
-
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
+  if confirm_action "Deploy frontend now?"; then
     echo "🚀 Deploying frontend..."
     cd "$PROJECT_ROOT"
     LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_frontend_full.sh
@@ -151,6 +157,9 @@ if [[ "$SKIP_FRONTEND_PROMPT" != "true" ]]; then
     echo "⏭️  Skipping frontend deployment"
     echo "   You can deploy it later with: ./deploy_gcp/deploy-production.sh"
   fi
+elif [[ "$NON_INTERACTIVE" == "true" ]]; then
+  echo ""
+  echo "⏭️  Skipping frontend deployment (non-interactive mode)"
 fi
 
 echo ""

@@ -2,6 +2,28 @@
 
 set -euo pipefail
 
+# Get script directory and project root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Load centralized configuration
+. "$SCRIPT_DIR/deploy.config.sh"
+
+# Parse command-line arguments
+for arg in "$@"; do
+  case $arg in
+    --non-interactive)
+      NON_INTERACTIVE=true
+      ;;
+    --verbose)
+      VERBOSE=true
+      ;;
+  esac
+done
+
+MSG_DIR="${MSG_DIR:-$REPO_ROOT/messenger}"
+MSG_WEB_DIR="${MSG_WEB_DIR:-$REPO_ROOT/messenger-web}"
+
 show_usage() {
   cat << 'EOF'
 Usage:
@@ -652,7 +674,7 @@ run_capacitor_android() {
     echo "📦 Installing $debug_apk_path to emulator..."
     adb install -r "$debug_apk_path"
     echo "🚀 Launching app..."
-    adb shell am start -n com.l3v3lmessenger.debug/com.l3v3lmessenger.MainActivity
+    adb shell am start -n ${MSGR_APP_PACKAGE}.debug/${MSGR_APP_PACKAGE}.MainActivity
     echo "✅ Debug APK installed and launched"
   else
     echo "⚠️  Debug APK not found at expected path: $debug_apk_path"

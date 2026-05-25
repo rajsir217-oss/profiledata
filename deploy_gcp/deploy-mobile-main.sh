@@ -8,6 +8,25 @@
 
 set -e  # Exit on error
 
+# Get script directory and project root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Load centralized configuration
+. "$SCRIPT_DIR/deploy.config.sh"
+
+# Parse command-line arguments
+for arg in "$@"; do
+  case $arg in
+    --non-interactive)
+      NON_INTERACTIVE=true
+      ;;
+    --verbose)
+      VERBOSE=true
+      ;;
+  esac
+done
+
 show_usage() {
     cat << 'EOF'
 Usage:
@@ -124,10 +143,12 @@ set -a
 . ./.env.production
 set +a
 
-# Load backend env for APK GCS configuration
+# Load backend env for APK GCS configuration (allow unbound vars for production secrets)
+set +u  # Temporarily disable nounset for env loading
 set -a
 . ../fastapi_backend/.env.production
 set +a
+set -u  # Re-enable nounset
 
 # Production backend URL for Android APK
 BACKEND_URL="${REACT_APP_BACKEND_URL:-https://matrimonial-backend-7cxoxmouuq-uc.a.run.app}"
@@ -168,7 +189,7 @@ fi
 
 # Set up Android SDK paths
 if [ -z "$ANDROID_HOME" ]; then
-    export ANDROID_HOME=$HOME/Library/Android/sdk
+  export ANDROID_HOME=$HOME/Library/Android/sdk
 fi
 export PATH=$PATH:$ANDROID_HOME/emulator
 export PATH=$PATH:$ANDROID_HOME/platform-tools
@@ -316,7 +337,7 @@ echo ""
 
 # Launch app
 echo -e "${BLUE}🚀 Step 7: Launching app...${NC}"
-$ADB_CMD shell am start -n com.l3v3l.matrimony/.MainActivity
+$ADB_CMD shell am start -n ${MAIN_APP_PACKAGE}/.MainActivity
 echo -e "${GREEN}✅ App launched${NC}"
 echo ""
 
@@ -333,8 +354,8 @@ echo ""
 echo "🔍 Debug Tools:"
 echo "   • Chrome DevTools: chrome://inspect"
 echo "   • View logs: $ADB_CMD logcat | grep L3V3L"
-echo "   • Stop app: $ADB_CMD shell am force-stop com.l3v3l.matrimony"
-echo "   • Uninstall: $ADB_CMD uninstall com.l3v3l.matrimony"
+echo "   • Stop app: $ADB_CMD shell am force-stop ${MAIN_APP_PACKAGE}"
+echo "   • Uninstall: $ADB_CMD uninstall ${MAIN_APP_PACKAGE}"
 echo ""
 echo "♻️  Rebuild & redeploy:"
 echo "   ./deploy-mobile-main.sh"
@@ -367,11 +388,13 @@ if [ -f "capacitor.config.json.dev.backup" ]; then
 fi
 echo ""
 
-# Optional: Show live logs
-read -p "Show live logs? (y/n): " SHOW_LOGS
-if [ "$SHOW_LOGS" = "y" ] || [ "$SHOW_LOGS" = "Y" ]; then
-    echo ""
-    echo "📋 Live Logs (Ctrl+C to stop):"
-    echo "----------------------------------------------"
-    $ADB_CMD logcat | grep -i "matrimony\|chromium\|capacitor"
+# Optional: Show live logs (skipped in non-interactive mode)
+if [[ "$NON_INTERACTIVE" != "true" ]]; then
+    read -p "Show live logs? (y/n): " SHOW_LOGS
+    if [ "$SHOW_LOGS" = "y" ] || [ "$SHOW_LOGS" = "Y" ]; then
+        echo ""
+        echo "📋 Live Logs (Ctrl+C to stop):"
+        echo "----------------------------------------------"
+        $ADB_CMD logcat | grep -i "matrimony\|chromium\|capacitor"
+    fi
 fi
