@@ -75,7 +75,7 @@ export function useDashboardData() {
         fetchNotes(),
         fetchConversations(),
         fetchTheirFavorites(),
-        fetchIncomingPiiRequests(),
+        fetchIncomingPiiRequests(getCurrentUsername()),
         fetchActivePolls(),
       ]);
 

@@ -163,6 +163,15 @@ export const unsetDefaultSavedSearch = async () => {
   }
 };
 
+export const updateSavedSearch = async (username, searchId, updates) => {
+  try {
+    const response = await api.put(`/${username}/saved-searches/${searchId}`, updates);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export const addToFavorites = async (userId) => {
   try {
     const response = await api.post(`/favorites/${userId}`);

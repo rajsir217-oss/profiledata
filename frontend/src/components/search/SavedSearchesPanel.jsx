@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { generateSearchDescription } from '../../utils/searchDescription';
 import InlineScheduleEditor from './InlineScheduleEditor';
 
@@ -16,14 +16,77 @@ const SavedSearchesPanel = ({
   scheduleEnabled,
   setScheduleEnabled,
   savingSchedule,
-  onStartScheduleEdit,
   onCancelScheduleEdit,
   onSaveSchedule,
   // Saved-search actions
+  onUpdateSavedSearch,
   onSetDefault,
   onDelete,
   onLoad
 }) => {
+  const [editingId, setEditingId] = useState(null);
+  const [editFormData, setEditFormData] = useState({ name: '', notificationsEnabled: false });
+
+  const handleStartEdit = (search) => {
+    const searchId = search.id || search._id;
+    setEditingId(searchId);
+    setEditFormData({
+      name: search.name || '',
+      notificationsEnabled: search.notifications?.enabled !== false
+    });
+  };
+
+  const handleSaveEdit = async (search) => {
+    const searchId = search.id || search._id;
+    if (!onUpdateSavedSearch || !searchId || !editFormData.name.trim()) return;
+
+    const existingNotifications = search.notifications || {};
+    const nextNotifications = {
+      ...existingNotifications,
+      enabled: Boolean(editFormData.notificationsEnabled)
+    };
+
+    if (nextNotifications.enabled && !nextNotifications.frequency) {
+      nextNotifications.frequency = 'daily';
+    }
+
+    await onUpdateSavedSearch({
+      isUpdate: true,
+      id: searchId,
+      name: editFormData.name.trim(),
+      notifications: nextNotifications
+    });
+
+    setEditingId(null);
+    setEditFormData({ name: '', notificationsEnabled: false });
+  };
+
+  const handleToggleNotifications = async (search, enabled) => {
+    const searchId = search.id || search._id;
+    if (!onUpdateSavedSearch || !searchId) return;
+
+    const existingNotifications = search.notifications || {};
+    const nextNotifications = {
+      ...existingNotifications,
+      enabled: Boolean(enabled)
+    };
+
+    if (nextNotifications.enabled && !nextNotifications.frequency) {
+      nextNotifications.frequency = 'daily';
+    }
+
+    await onUpdateSavedSearch({
+      isUpdate: true,
+      id: searchId,
+      name: (search.name || '').trim(),
+      notifications: nextNotifications
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditFormData({ name: '', notificationsEnabled: false });
+  };
   return (
     <div className="saved-searches-tab">
       {editingScheduleSearch && (
@@ -50,68 +113,108 @@ const SavedSearchesPanel = ({
               {savedSearches.map(search => {
                 const searchId = search.id || search._id;
                 const isActive = selectedSearch?.id === searchId || selectedSearch?._id === searchId;
+                const isEditing = editingId === searchId;
+                const notificationsEnabled = search.notifications?.enabled !== false;
                 return (
                   <div
                     key={searchId}
-                    className={`saved-search-card ${search.isDefault ? 'is-default' : ''} ${isActive ? 'is-active' : ''}`}
+                    className={`saved-search-card ${search.isDefault ? 'is-default' : ''} ${isActive ? 'is-active' : ''} ${isEditing ? 'is-editing' : ''}`}
                   >
-                    <div className="saved-search-header">
-                      <h5 className="saved-search-name">
-                        {search.isDefault && (
-                          <button
-                            type="button"
-                            className="default-badge-btn"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onSetDefault(searchId, search.name, true);
-                            }}
-                            title="Click to remove as default"
-                          >
-                            ⭐
-                          </button>
+                    <div className="saved-search-row">
+                      <div className="saved-search-col-name">
+                        {isEditing ? (
+                          <>
+                            <input
+                              type="text"
+                              value={editFormData.name}
+                              onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                              className="saved-search-name-input-inline"
+                              placeholder="Name"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              className="btn-save-edit"
+                              onClick={(e) => { e.preventDefault(); handleSaveEdit(search); }}
+                              title="Save"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-cancel-edit"
+                              onClick={(e) => { e.preventDefault(); handleCancelEdit(); }}
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <span className="saved-search-name-text">{search.name}</span>
                         )}
-                        {search.name}
-                      </h5>
-                      <div className="saved-search-actions">
+                      </div>
+
+                      <div className="saved-search-col-description">
+                        <div className="saved-search-description">
+                          <p>{search.description || generateSearchDescription(search.criteria, search.minMatchScore)}</p>
+                        </div>
+                      </div>
+
+                      <div className="saved-search-col-actions">
+                        <label className="saved-search-notif-inline" title="Email notifications">
+                          <input
+                            type="checkbox"
+                            checked={isEditing ? Boolean(editFormData.notificationsEnabled) : notificationsEnabled}
+                            onChange={(e) => {
+                              if (isEditing) {
+                                setEditFormData({ ...editFormData, notificationsEnabled: e.target.checked });
+                                return;
+                              }
+                              handleToggleNotifications(search, e.target.checked);
+                            }}
+                          />
+                          <span className={`email-icon ${isEditing ? (editFormData.notificationsEnabled ? 'checked' : '') : (notificationsEnabled ? 'checked' : '')}`}>📧</span>
+                        </label>
                         <button
                           type="button"
-                          className="btn-schedule-saved"
-                          onClick={(e) => { e.preventDefault(); onStartScheduleEdit(search); }}
-                          title="Edit schedule"
+                          className={`btn-set-default ${search.isDefault ? 'is-default' : ''}`}
+                          onClick={(e) => { e.preventDefault(); onSetDefault(searchId, search.name, search.isDefault); }}
+                          title={search.isDefault ? 'Remove as default' : 'Set as default'}
+                          disabled={isEditing}
                         >
-                          ⏰
+                          <span className="default-icon">{search.isDefault ? '⭐' : '☆'}</span>
+                          <span className="default-text">{search.isDefault ? ' Unset' : ' Default'}</span>
                         </button>
+
+                        <button
+                          type="button"
+                          className="btn-edit-schedule"
+                          onClick={(e) => { e.preventDefault(); handleStartEdit(search); }}
+                          title="Edit name and notifications"
+                          disabled={isEditing}
+                        >
+                          ✏️
+                        </button>
+
                         <button
                           type="button"
                           className="btn-delete-saved"
                           onClick={(e) => { e.preventDefault(); onDelete(searchId); }}
                           title="Delete"
+                          disabled={isEditing}
                         >
                           🗑️
                         </button>
+
+                        <button
+                          type="button"
+                          className="btn-load-saved"
+                          onClick={(e) => { e.preventDefault(); onLoad(search); }}
+                          disabled={isEditing}
+                        >
+                          📂 Load
+                        </button>
                       </div>
-                    </div>
-                    <div className="saved-search-description">
-                      <p>{search.description || generateSearchDescription(search.criteria, search.minMatchScore)}</p>
-                    </div>
-                    <div className="saved-search-footer">
-                      <button
-                        type="button"
-                        className={`btn-set-default ${search.isDefault ? 'is-default' : ''}`}
-                        onClick={(e) => { e.preventDefault(); onSetDefault(searchId, search.name, search.isDefault); }}
-                        title={search.isDefault ? 'Remove as default' : 'Set as default'}
-                      >
-                        <span className="default-icon">{search.isDefault ? '⭐' : '☆'}</span>
-                        <span className="default-text">{search.isDefault ? ' Unset' : ' Default'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-load-saved"
-                        onClick={(e) => { e.preventDefault(); onLoad(search); }}
-                      >
-                        📂 Load
-                      </button>
                     </div>
                   </div>
                 );
