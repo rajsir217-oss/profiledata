@@ -700,27 +700,40 @@ const Login = () => {
           </div>
 
           {biometricSupported && (
-            <div className="login-biometric-row">
+            <div className={`login-biometric-row${biometricSaved ? ' with-button' : ''}`}>
               <label className="login-biometric-toggle">
                 <input
                   type="checkbox"
                   checked={enableBiometricOnDevice}
                   onChange={(e) => setEnableBiometricOnDevice(e.target.checked)}
+                  aria-label="Enable biometric login on this device"
                 />
-                Enable biometric login on this device
+                <span className="login-biometric-toggle-text-full">Enable biometric login on this device</span>
+                <span className="login-biometric-toggle-text-short">Enable 👆</span>
               </label>
-            </div>
-          )}
 
-          {biometricSupported && biometricSaved && (
-            <button
-              type="button"
-              className="login-button login-biometric-btn"
-              onClick={handleBiometricLogin}
-              disabled={loading}
-            >
-              {loading ? 'Authenticating...' : 'Sign In with Biometrics'}
-            </button>
+              {biometricSaved && (
+                <button
+                  type="button"
+                  className="login-button login-biometric-btn"
+                  onClick={handleBiometricLogin}
+                  disabled={loading}
+                  aria-label="Sign in with biometrics"
+                >
+                  {loading ? (
+                    <>
+                      <span className="login-biometric-btn-text-full">Authenticating...</span>
+                      <span className="login-biometric-btn-text-short">...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="login-biometric-btn-text-full">Sign In with Biometrics</span>
+                      <span className="login-biometric-btn-text-short">👆 Bio</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           )}
 
           {biometricSupported && biometricSaved && (
