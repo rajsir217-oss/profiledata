@@ -13,10 +13,10 @@ PROJECT_ID="matrimonial-staging"
 SERVICE_NAME="matrimonial-backend"
 REGION="us-central1"
 GCS_BUCKET="matrimonial-uploads-matrimonial-staging"
-APK_MAIN_GCS_BUCKET_NAME="${ANDROID_APK_MAIN_GCS_BUCKET_NAME:-l3v3lmatchesMainAPK}"
+APK_MAIN_GCS_BUCKET_NAME="${ANDROID_APK_MAIN_GCS_BUCKET_NAME:-matrimonial-uploads-matrimonial-staging}"
 APK_MAIN_GCS_OBJECT="${ANDROID_APK_MAIN_GCS_OBJECT:-mobile/android/l3v3lmatches-latest.apk}"
-APK_MSGR_GCS_BUCKET_NAME="${ANDROID_APK_MSGR_GCS_BUCKET_NAME:-l3v3lmatchesMsgrAPK}"
-APK_MSGR_GCS_OBJECT="${ANDROID_APK_MSGR_GCS_OBJECT:-mobile/android/l3v3lmatchesMsgr-latest.apk}"
+APK_MSGR_GCS_BUCKET_NAME="${ANDROID_APK_MSGR_GCS_BUCKET_NAME:-matrimonial-uploads-matrimonial-staging}"
+APK_MSGR_GCS_OBJECT="${ANDROID_APK_MSGR_GCS_OBJECT:-mobile/android/l3v3lmatches-msgr-latest.apk}"
 
 # Production environment variables
 # Sensitive values (MONGODB_URL, REDIS_URL, etc.) are stored in Secret Manager
