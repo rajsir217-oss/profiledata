@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     # Mobile Builds (Android APK download)
     android_apk_gcs_bucket_name: Optional[str] = None
     android_apk_gcs_object: Optional[str] = None
+    android_apk_main_gcs_bucket_name: Optional[str] = None
+    android_apk_main_gcs_object: Optional[str] = None
+    android_apk_msgr_gcs_bucket_name: Optional[str] = None
+    android_apk_msgr_gcs_object: Optional[str] = None
     android_apk_signed_url_expiration_minutes: int = 30
     
     # Email Configuration
