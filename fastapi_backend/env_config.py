@@ -82,7 +82,7 @@ class EnvironmentManager:
             
         # Load the environment file
         if env_path.exists():
-            load_dotenv(env_path, override=True)
+            load_dotenv(env_path, override=False)
             logger.info(f"✅ Loaded configuration from {env_path.name}")
         else:
             logger.error(f"❌ No configuration file found at {env_path}")

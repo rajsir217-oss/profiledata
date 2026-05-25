@@ -115,7 +115,13 @@ class StorageService:
         else:
             return await self._save_to_local(unique_filename, content, folder, file_size_mb)
 
-    def generate_signed_url(self, filename: str, folder: str = "uploads", expiration_minutes: int = 15) -> Optional[str]:
+    def generate_signed_url(
+        self,
+        filename: str,
+        folder: str = "uploads",
+        expiration_minutes: int = 15,
+        bucket_name: Optional[str] = None,
+    ) -> Optional[str]:
         """
         Generate a signed URL for direct GCS access.
         This saves CPU/Network costs by offloading file serving to GCS directly.
@@ -129,7 +135,12 @@ class StorageService:
         try:
             from datetime import timedelta
             blob_path = f"{folder}/{filename}"
-            blob = self.gcs_bucket.blob(blob_path)
+
+            bucket = self.gcs_bucket
+            if bucket_name:
+                bucket = self.gcs_client.bucket(bucket_name)
+
+            blob = bucket.blob(blob_path)
             
             # Try standard signing first (works with service account key files)
             try:
