@@ -3,6 +3,7 @@ import { getBackendUrl } from '../config/apiConfig';
 import { isModeratorOrAdmin } from '../utils/permissions';
 import { isSilenceActive, silenceDaysRemaining } from '../utils/contributionSilence';
 import logger from '../utils/logger';
+import { isNativePlatform } from '../services/biometricAuth';
 
 /**
  * Hook: useContributionPopup
@@ -35,11 +36,17 @@ const useContributionPopup = () => {
   const [loading, setLoading] = useState(true);
   const [contributionConfig, setContributionConfig] = useState(null);
   const popupTimeoutRef = useRef(null);
+  const native = isNativePlatform();
 
   const checkEligibility = useCallback(async () => {
     // Reset at the top so re-runs can REVOKE eligibility (e.g., after a
     // successful payment the silence window is now active).
     setShouldShowContribution(false);
+
+    if (native) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -128,7 +135,7 @@ const useContributionPopup = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [native]);
 
   const scheduleCheck = useCallback((delay) => {
     if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
@@ -139,6 +146,13 @@ const useContributionPopup = () => {
   }, [checkEligibility]);
 
   useEffect(() => {
+    if (native) {
+      setShowPopup(false);
+      setShouldShowContribution(false);
+      setLoading(false);
+      return;
+    }
+
     const token = localStorage.getItem('token');
     if (token) scheduleCheck(POPUP_DELAY_MS);
 
@@ -163,18 +177,22 @@ const useContributionPopup = () => {
       window.removeEventListener('userLoggedIn', handleUserLoggedIn);
       window.removeEventListener('contributionMade', handleContributionMade);
     };
-  }, [scheduleCheck]);
+  }, [native, scheduleCheck]);
 
   // Closing the popup silences it for the rest of the browser session.
   // Banners remain visible (they only respect the amount-tier silence).
   const closePopup = useCallback(() => {
+    if (native) return;
     sessionStorage.setItem(SESSION_POPUP_DISMISSED, '1');
     setShowPopup(false);
-  }, []);
+  }, [native]);
 
   // Imperative open (e.g., banner "Contribute Now" click). Ignores the
   // session-dismissed flag so a deliberate click always opens the popup.
-  const openPopup = useCallback(() => setShowPopup(true), []);
+  const openPopup = useCallback(() => {
+    if (native) return;
+    setShowPopup(true);
+  }, [native]);
 
   return {
     showPopup,
