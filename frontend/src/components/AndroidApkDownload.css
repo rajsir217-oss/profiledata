@@ -30,6 +30,8 @@
   margin-top: var(--spacing-lg);
   display: flex;
   justify-content: flex-start;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
 .android-apk-download-btn {

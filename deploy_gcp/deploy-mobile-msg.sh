@@ -178,7 +178,7 @@ setup_adb_reverse() {
 
 load_messenger_env() {
   local env_file="$MSG_DIR/.env.local"
-  if [[ "${NODE_ENV:-}" = "production" ]]; then
+  if [[ "${NODE_ENV:-}" = "production" ]] || [[ "${BUILD_TYPE:-}" = "release" ]]; then
     env_file="$MSG_DIR/.env.production"
   fi
 
@@ -186,6 +186,16 @@ load_messenger_env() {
     set -a
     . "$env_file"
     set +a
+  fi
+
+  # Load backend env for APK GCS configuration (allow unbound vars for production secrets)
+  local backend_env_file="$REPO_ROOT/fastapi_backend/.env.production"
+  if [[ -f "$backend_env_file" ]]; then
+    set +u  # Temporarily disable nounset for env loading
+    set -a
+    . "$backend_env_file"
+    set +a
+    set -u  # Re-enable nounset
   fi
 }
 
@@ -422,6 +432,7 @@ run_capacitor_android() {
     exit 1
   fi
 
+  load_messenger_env
   ensure_java
   ensure_android_paths
   ensure_capacitor_android_launcher_icons
@@ -548,6 +559,12 @@ run_capacitor_android() {
       echo "✅ APK copied to ~/Desktop/${desktop_apk_name}"
 
       echo "☁️  Uploading RELEASE APK to GCS (optional)..."
+      # Load backend env for APK GCS configuration (allow unbound vars for production secrets)
+      set +u  # Temporarily disable nounset for env loading
+      set -a
+      . "$REPO_ROOT/fastapi_backend/.env.production"
+      set +a
+      set -u  # Re-enable nounset
       local APK_BUCKET_NAME="${ANDROID_APK_MSGR_GCS_BUCKET_NAME:-${ANDROID_APK_GCS_BUCKET_NAME:-${GCS_BUCKET_NAME:-}}}"
       local APK_OBJECT_PATH_RAW="${ANDROID_APK_MSGR_GCS_OBJECT:-${ANDROID_APK_GCS_OBJECT:-}}"
       if [[ -z "${APK_BUCKET_NAME}" || -z "${APK_OBJECT_PATH_RAW}" ]]; then
