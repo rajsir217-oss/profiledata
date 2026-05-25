@@ -124,6 +124,11 @@ set -a
 . ./.env.production
 set +a
 
+# Load backend env for APK GCS configuration
+set -a
+. ../fastapi_backend/.env.production
+set +a
+
 # Production backend URL for Android APK
 BACKEND_URL="${REACT_APP_BACKEND_URL:-https://matrimonial-backend-7cxoxmouuq-uc.a.run.app}"
 
