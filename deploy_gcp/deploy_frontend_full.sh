@@ -12,15 +12,29 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 FRONTEND_DIR="$REPO_ROOT/frontend"
 
+# Load centralized configuration
+. "$SCRIPT_DIR/deploy.config.sh"
+
+# Parse command-line arguments
+for arg in "$@"; do
+  case $arg in
+    --non-interactive)
+      NON_INTERACTIVE=true
+      ;;
+    --verbose)
+      VERBOSE=true
+      ;;
+    --backend-url=*)
+      BACKEND_URL="${arg#*=}"
+      ;;
+  esac
+done
+
 # -----------------------------------------------------------------------------
 # Configuration (can be overridden via environment variables or .env.deploy)
 # -----------------------------------------------------------------------------
-PROJECT_ID="${PROJECT_ID:-matrimonial-staging}"
-REGION="${REGION:-us-central1}"
-SERVICE_NAME="${SERVICE_NAME:-matrimonial-frontend}"
-BACKEND_SERVICE="${BACKEND_SERVICE:-matrimonial-backend}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
-IMAGE_URI="${IMAGE_URI:-gcr.io/${PROJECT_ID}/${SERVICE_NAME}:${IMAGE_TAG}}"
+IMAGE_URI="${IMAGE_URI:-gcr.io/${PROJECT_ID}/${FRONTEND_SERVICE}:${IMAGE_TAG}}"
 CONFIG_FILE="${CONFIG_FILE:-${FRONTEND_DIR}/.env.deploy}"
 
 # Optional config file (bash KEY=VALUE per line)
@@ -60,11 +74,14 @@ gcloud services enable cloudbuild.googleapis.com >/dev/null
 gcloud services enable artifactregistry.googleapis.com >/dev/null
 
 echo "============================================="
-echo "🚀 Deploying $SERVICE_NAME to Cloud Run"
+echo "🚀 Deploying $FRONTEND_SERVICE to Cloud Run"
 echo "   Project : $PROJECT_ID"
 echo "   Region  : $REGION"
 echo "   Image   : $IMAGE_URI"
 echo "============================================="
+
+# Pre-deployment validation
+pre_deployment_check frontend || exit 1
 
 # Resolve backend URL if not provided
 if [[ -z "$BACKEND_URL" ]]; then
@@ -80,6 +97,13 @@ if [[ -z "$BACKEND_URL" ]]; then
 fi
 
 echo "✅ Backend URL: $BACKEND_URL"
+
+# Validate backend URL format to prevent injection attacks
+if ! [[ "$BACKEND_URL" =~ ^https?://[a-zA-Z0-9.-]+(:[0-9]+)?(/.*)?$ ]]; then
+  echo "❌ Invalid backend URL format: $BACKEND_URL"
+  echo "   URL must start with http:// or https:// and contain valid characters"
+  exit 1
+fi
 
 # Verify backend is accessible (with retries for cold start)
 echo "🔍 Verifying backend health..."
@@ -190,18 +214,18 @@ echo "📦 Building container image via Cloud Build..."
 gcloud builds submit frontend --tag "$IMAGE_URI"
 
 echo "☁️  Deploying to Cloud Run..."
-gcloud run deploy "$SERVICE_NAME" \
+gcloud run deploy "$FRONTEND_SERVICE" \
   --image "$IMAGE_URI" \
   --region "$REGION" \
   --platform managed \
   --allow-unauthenticated \
-  --port 8080 \
-  --cpu 1 \
-  --memory 512Mi \
-  --timeout 60 \
-  --max-instances 2 \
-  --min-instances 0 \
-  --concurrency 100 \
+  --port $FRONTEND_PORT \
+  --cpu $FRONTEND_CPU \
+  --memory $FRONTEND_MEMORY \
+  --timeout $FRONTEND_TIMEOUT \
+  --max-instances $FRONTEND_MAX_INSTANCES \
+  --min-instances $FRONTEND_MIN_INSTANCES \
+  --concurrency $FRONTEND_CONCURRENCY \
   --cpu-throttling >/dev/null
 
 echo "🔄 Restoring local configuration files"
@@ -210,7 +234,7 @@ trap - EXIT
 
 echo "✅ Local configuration restored"
 
-SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --format='value(status.url)')
+SERVICE_URL=$(gcloud run services describe "$FRONTEND_SERVICE" --region "$REGION" --format='value(status.url)')
 
 echo "============================================="
 echo "🎉 Frontend deployment complete"

@@ -35,7 +35,7 @@
 # Environment variables loaded from: fastapi_backend/.env.production
 #
 # Usage:
-#   ./deploy-production.sh [--frontend|--f] [--backend|--b] [--messenger|--m] [--all|--a] [--show-logs=true|false]
+#   ./deploy-production.sh [--frontend|--f] [--backend|--b] [--messenger|--m] [--all|--a] [--show-logs=true|false] [--non-interactive]
 #   ./deploy-production.sh --setup-messenger-domain
 #
 # Options:
@@ -46,6 +46,7 @@
 #   --setup-messenger-domain       One-time setup: map messenger.l3v3lmatches.com to Cloud Run
 #   --show-logs=true              (default) Display all logs (LOG_LEVEL=INFO)
 #   --show-logs=false             Show only critical errors (LOG_LEVEL=ERROR)
+#   --non-interactive             Skip all interactive prompts (for CI/CD)
 #   (no target flag)              Interactive prompt to choose what to deploy
 #
 # Environment variable:
@@ -56,12 +57,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Configuration
-PROJECT="matrimonial-staging"
-DOMAIN="l3v3lmatches.com"
-MESSENGER_DOMAIN="messenger.l3v3lmatches.com"
-MESSENGER_SERVICE="matrimonial-messenger"
-REGION="us-central1"
+# Load centralized configuration
+. "$SCRIPT_DIR/deploy.config.sh"
 
 # Canonical production endpoints (override per-run via env if needed)
 PROD_MAIN_APP_URL="${PROD_MAIN_APP_URL:-https://l3v3lmatches.com}"
@@ -96,9 +93,12 @@ for arg in "$@"; do
     --no-logs)
       SHOW_LOGS="false"
       ;;
+    --non-interactive)
+      NON_INTERACTIVE=true
+      ;;
     *)
       echo "Unknown option: $arg"
-      echo "Usage: ./deploy-production.sh [--frontend|--f] [--backend|--b] [--messenger|--m] [--all|--a] [--show-logs=true|false]"
+      echo "Usage: ./deploy-production.sh [--frontend|--f] [--backend|--b] [--messenger|--m] [--all|--a] [--show-logs=true|false] [--non-interactive]"
       echo "       ./deploy-production.sh --setup-messenger-domain"
       exit 1
       ;;
@@ -257,17 +257,21 @@ verify_domain_mapping() {
     if [[ -z "$mapping" ]]; then
         echo "   ⚠️  Domain mapping not found"
         echo ""
-        read -p "Create domain mapping now? (y/N) " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            gcloud beta run domain-mappings create \
-                --service matrimonial-frontend \
-                --domain "$DOMAIN" \
-                --region "$REGION" \
-                --project "$PROJECT"
-            echo "   ✅ Domain mapping created"
+        if [[ "$NON_INTERACTIVE" != "true" ]]; then
+            read -p "Create domain mapping now? (y/N) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                gcloud beta run domain-mappings create \
+                    --service matrimonial-frontend \
+                    --domain "$DOMAIN" \
+                    --region "$REGION" \
+                    --project "$PROJECT"
+                echo "   ✅ Domain mapping created"
+            else
+                echo "   ⚠️  Continuing without domain mapping..."
+            fi
         else
-            echo "   ⚠️  Continuing without domain mapping..."
+            echo "   ⏭️  Skipping domain mapping (non-interactive mode)"
         fi
     else
         echo "   ✅ Domain mapping exists"
