@@ -171,7 +171,7 @@ echo ""
 # URLs are now set in initial deployment (lines 64-66)
 # No need for separate update
 echo "✅ Backend configured:"
-echo "   BACKEND_URL: https://matrimonial-backend-7cxoxmouuq-uc.a.run.app"
+echo "   BACKEND_URL: $BACKEND_URL"
 echo "   FRONTEND_URL: https://l3v3lmatches.com"
 echo "   APP_URL: https://l3v3lmatches.com"
 echo ""
@@ -181,11 +181,11 @@ echo "🔍 Validating critical environment variables..."
 VALIDATION_FAILED=false
 
 # Get all env vars in a format we can parse
-ENV_VARS=$(gcloud run services describe $SERVICE_NAME --region $REGION --format="value(spec.template.spec.containers[0].env)")
+ENV_VARS=$(gcloud run services describe "$BACKEND_SERVICE" --region "$REGION" --format="value(spec.template.spec.containers[0].env)")
 
 # Check GCS bucket
-if echo "$ENV_VARS" | grep -q "GCS_BUCKET_NAME.*matrimonial-uploads-matrimonial-staging"; then
-    echo "   ✅ GCS_BUCKET_NAME: matrimonial-uploads-matrimonial-staging"
+if echo "$ENV_VARS" | grep -q "GCS_BUCKET_NAME.*$GCS_BUCKET"; then
+    echo "   ✅ GCS_BUCKET_NAME: $GCS_BUCKET"
 else
     echo "   ❌ GCS_BUCKET_NAME not configured correctly"
     VALIDATION_FAILED=true
@@ -208,8 +208,8 @@ else
 fi
 
 # Check FRONTEND_URL for CORS
-if echo "$ENV_VARS" | grep -q "FRONTEND_URL.*l3v3lmatches.com"; then
-    echo "   ✅ FRONTEND_URL: https://l3v3lmatches.com (CORS enabled)"
+if echo "$ENV_VARS" | grep -q "FRONTEND_URL.*$DOMAIN"; then
+    echo "   ✅ FRONTEND_URL: https://$DOMAIN (CORS enabled)"
 else
     echo "   ❌ FRONTEND_URL not configured correctly - CORS will fail!"
     VALIDATION_FAILED=true

@@ -120,7 +120,7 @@ echo "============================================="
 echo "🚀 Production Deployment"
 echo "============================================="
 echo ""
-echo "Project:     $PROJECT"
+echo "Project:     $PROJECT_ID"
 echo "Domain:      $DOMAIN"
 echo "Region:      $REGION"
 echo "Log Level:   $LOG_LEVEL ($LOG_MODE)"
@@ -139,7 +139,7 @@ check_project_access() {
     else
         echo "   ❌ No access to $project"
         echo ""
-        echo "Please ensure you have access to: $PROJECT"
+        echo "Please ensure you have access to: $PROJECT_ID"
         exit 1
     fi
 }
@@ -149,7 +149,7 @@ verify_dns() {
     echo ""
     echo "🌐 Verifying DNS configuration..."
     
-    gcloud config set project "$PROJECT" &>/dev/null
+    gcloud config set project "$PROJECT_ID" &>/dev/null
     
     local dns_records=$(gcloud dns record-sets list \
         --zone=l3v3lmatches-zone \
@@ -172,7 +172,7 @@ verify_messenger_domain_mapping() {
     echo ""
     echo "🔗 Verifying messenger domain mapping ($MESSENGER_DOMAIN)..."
 
-    gcloud config set project "$PROJECT" &>/dev/null
+    gcloud config set project "$PROJECT_ID" &>/dev/null
 
     local mapping=$(gcloud beta run domain-mappings describe \
         --domain "$MESSENGER_DOMAIN" \
@@ -199,7 +199,7 @@ setup_messenger_domain() {
     echo "Region  : $REGION"
     echo ""
 
-    gcloud config set project "$PROJECT" &>/dev/null
+    gcloud config set project "$PROJECT_ID" &>/dev/null
 
     # Verify the messenger Cloud Run service exists first
     if ! gcloud run services describe "$MESSENGER_SERVICE" --region "$REGION" &>/dev/null; then
@@ -222,7 +222,7 @@ setup_messenger_domain() {
         --service "$MESSENGER_SERVICE" \
         --domain "$MESSENGER_DOMAIN" \
         --region "$REGION" \
-        --project "$PROJECT"
+        --project "$PROJECT_ID"
 
     echo ""
     echo "✅ Domain mapping created."
@@ -247,7 +247,7 @@ verify_domain_mapping() {
     echo ""
     echo "🔗 Verifying domain mapping..."
     
-    gcloud config set project "$PROJECT" &>/dev/null
+    gcloud config set project "$PROJECT_ID" &>/dev/null
     
     local mapping=$(gcloud beta run domain-mappings describe \
         --domain "$DOMAIN" \
@@ -265,7 +265,7 @@ verify_domain_mapping() {
                     --service matrimonial-frontend \
                     --domain "$DOMAIN" \
                     --region "$REGION" \
-                    --project "$PROJECT"
+                    --project "$PROJECT_ID"
                 echo "   ✅ Domain mapping created"
             else
                 echo "   ⚠️  Continuing without domain mapping..."
@@ -279,7 +279,7 @@ verify_domain_mapping() {
 }
 
 # Check access to project
-check_project_access "$PROJECT"
+check_project_access "$PROJECT_ID"
 
 # Handle one-time messenger domain setup and exit
 if [[ "$SETUP_MESSENGER_DOMAIN" == "true" ]]; then
@@ -364,7 +364,7 @@ case $choice in
         echo "   Domain  : https://$MESSENGER_DOMAIN"
         echo ""
         cd "$PROJECT_ROOT"
-        PROJECT_ID="$PROJECT" \
+        PROJECT_ID="$PROJECT_ID" \
         REGION="$REGION" \
         SERVICE_NAME="$MESSENGER_SERVICE" \
         BACKEND_URL="$PROD_BACKEND_URL" \
@@ -393,7 +393,7 @@ case $choice in
         echo "   Domain  : https://$MESSENGER_DOMAIN"
         echo ""
         cd "$PROJECT_ROOT"
-        PROJECT_ID="$PROJECT" \
+        PROJECT_ID="$PROJECT_ID" \
         REGION="$REGION" \
         SERVICE_NAME="$MESSENGER_SERVICE" \
         BACKEND_URL="$PROD_BACKEND_URL" \
@@ -426,7 +426,7 @@ echo "  https://www.$DOMAIN"
 echo ""
 echo "Cloud Run URLs (for testing):"
 
-gcloud config set project "$PROJECT" &>/dev/null
+gcloud config set project "$PROJECT_ID" &>/dev/null
 
 FRONTEND_URL=$(gcloud run services describe matrimonial-frontend \
     --region "$REGION" \
