@@ -45,6 +45,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const pageSEO = getPageSEO('login');
+  const isDevelopment = process.env.NODE_ENV !== 'production';
 
   const [biometricSupported, setBiometricSupported] = useState(false);
   const [biometricSaved, setBiometricSaved] = useState(false);
@@ -168,7 +169,7 @@ const Login = () => {
     setError("");
     
     // Verify CAPTCHA (allow bypass if Cloudflare is having issues after 3 retries)
-    if (!captchaToken && !canBypassCaptcha) {
+    if (!isDevelopment && !captchaToken && !canBypassCaptcha) {
       setError("Please complete the CAPTCHA verification");
       setLoading(false);
       return;
@@ -179,7 +180,7 @@ const Login = () => {
       const credentials = {
         username: form.username.trim(),
         password: form.password.trim(),
-        captchaToken: captchaToken  // Include CAPTCHA token
+        captchaToken: isDevelopment ? "XXXX.DUMMY.TOKEN.XXXX" : captchaToken
       };
       const res = await api.post("/login", credentials);
       
@@ -430,7 +431,7 @@ const Login = () => {
         username: form.username.trim(),
         password: form.password.trim(),
         mfa_code: mfaCode.trim(),
-        captchaToken: captchaToken
+        captchaToken: isDevelopment ? "XXXX.DUMMY.TOKEN.XXXX" : captchaToken
       };
       const res = await api.post("/login", credentials);
       
@@ -649,7 +650,6 @@ const Login = () => {
             <Link to="/forgot-password" className="login-forgot-link">Forgot Password?</Link>
           </div>
           
-          {/* Cloudflare Turnstile CAPTCHA with error handling */}
           <div className="login-captcha-container">
             {captchaError ? (
               <div style={{
@@ -686,17 +686,17 @@ const Login = () => {
                   </p>
                 )}
               </div>
-            ) : (
-              <Turnstile
-                ref={turnstileRef}
-                sitekey={getTurnstileSiteKey()}
-                onVerify={handleCaptchaChange}
-                onLoad={() => setCaptchaLoaded(true)}
-                onError={handleCaptchaError}
-                onExpire={handleCaptchaExpire}
-                theme="light"
-              />
-            )}
+              ) : (
+                <Turnstile
+                  ref={turnstileRef}
+                  sitekey={getTurnstileSiteKey()}
+                  onVerify={handleCaptchaChange}
+                  onLoad={() => setCaptchaLoaded(true)}
+                  onError={handleCaptchaError}
+                  onExpire={handleCaptchaExpire}
+                  theme="light"
+                />
+              )}
           </div>
 
           {biometricSupported && (
@@ -749,7 +749,7 @@ const Login = () => {
           
           <button 
             type="submit" 
-            disabled={loading || (!captchaToken && !canBypassCaptcha)}
+            disabled={loading || (!isDevelopment && !captchaToken && !canBypassCaptcha)}
             className="login-button"
           >
             {loading ? "Signing in..." : "Sign In"}

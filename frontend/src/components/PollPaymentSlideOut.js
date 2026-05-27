@@ -151,33 +151,25 @@ const PollPaymentSlideOut = ({ isOpen, onClose, onComplete, pollData }) => {
       onApprove: async (data) => {
         try {
           setLoading(true);
-          
-          // Use capture endpoint like ContributionPopup
-          const response = await pollsApi.post('/api/paypal/capture-order', {
-            order_id: data.orderID
-          });
-          
-          if (response.data.success) {
-            // Submit poll response after successful payment
-            const payload = {
-              poll_id: pollData.pollId,
-              selected_options: [pollData.optionId],
-              payment_required: true,
-              payment_status: 'completed',
-              payment_amount: amount,
-              payment_id: data.orderID,
-              payment_method: 'paypal'
-            };
 
-            const pollResponse = await pollsApi.post(`/api/polls/${pollData.pollId}/pay-and-respond`, payload);
-            
-            if (pollResponse.data.success) {
-              onComplete();
-            } else {
-              setError(pollResponse.data.detail || 'Failed to submit RSVP');
-            }
+          // Backend /pay-and-respond captures the PayPal order server-side,
+          // so we MUST NOT call /api/paypal/capture-order here (double capture causes 400).
+          const payload = {
+            poll_id: pollData.pollId,
+            selected_options: [pollData.optionId],
+            payment_required: true,
+            payment_status: 'completed',
+            payment_amount: amount,
+            payment_id: data.orderID,
+            payment_method: 'paypal'
+          };
+
+          const pollResponse = await pollsApi.post(`/api/polls/${pollData.pollId}/pay-and-respond`, payload);
+
+          if (pollResponse.data.success) {
+            onComplete();
           } else {
-            setError(response.data.detail || 'Payment failed');
+            setError(pollResponse.data.detail || 'Failed to submit RSVP');
           }
         } catch (err) {
           setError('Payment confirmation failed. Please contact support.');
