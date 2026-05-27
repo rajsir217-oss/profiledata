@@ -23,6 +23,7 @@ class JobExecutionContext:
     triggered_by: str = "scheduler"
     execution_id: Optional[str] = None
     logs: List[Dict[str, Any]] = field(default_factory=list)
+    job: Optional[Dict[str, Any]] = None  # Full job document for accessing job-level settings
     
     def log(self, level: str, message: str, **kwargs):
         """Add a log entry to the execution context"""

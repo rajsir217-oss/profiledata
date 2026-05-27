@@ -36,11 +36,12 @@ from utils.profile_display import (
     convert_to_gcs_url
 )
 from models.notification_models import (
-    NotificationTrigger, 
-    NotificationChannel, 
+    NotificationTrigger,
+    NotificationChannel,
     NotificationPriority,
     NotificationQueueCreate
 )
+from services.messenger_service import send_to_l3v3lagent
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +107,9 @@ class SavedSearchMatchesNotifierTemplate(JobTemplate):
     async def execute(self, context: JobExecutionContext) -> JobResult:
         """Execute the saved search matches notifier job"""
         logger.debug("CLASS EXECUTE METHOD CALLED")
-        return await run_saved_search_notifier(context.db, context.parameters)
+        # Pass job document to access notify_messenger_bot flag
+        job_doc = context.job if hasattr(context, 'job') else {}
+        return await run_saved_search_notifier(context.db, context.parameters, job_doc)
 
 
 def get_effective_notification_settings(search: Dict[str, Any]) -> Dict[str, Any]:
@@ -317,19 +320,25 @@ MATCH_CARD_TEMPLATE = """
 """
 
 
-async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
+async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[str, Any] = None) -> JobResult:
     """
     Main job execution function
-    
+
     Args:
         db: MongoDB database instance
         params: Job parameters from scheduler
-        
+        job_doc: Job document (contains notify_messenger_bot flag)
+
     Returns:
         JobResult with execution results
     """
     logger.info("🔍 Starting Saved Search Matches Notifier job...")
-    
+
+    # Check if messenger bot notifications are enabled
+    notify_messenger_bot = job_doc.get("notify_messenger_bot", False) if job_doc else False
+    if notify_messenger_bot:
+        logger.info("🤖 Messenger bot notifications ENABLED - will send to l3v3lagent topic")
+
     start_time = datetime.utcnow()
     stats = {
         'users_processed': 0,
@@ -337,6 +346,7 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
         'searches_with_schedule': 0,
         'searches_due_now': 0,
         'emails_sent': 0,
+        'messenger_messages_sent': 0,
         'total_matches_found': 0,
         'skipped_not_due': 0,
         'errors': 0
@@ -515,13 +525,39 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                         
                         if email_sent:
                             stats['emails_sent'] += 1
-                            
+
+                            # Send to messenger bot if enabled
+                            if notify_messenger_bot:
+                                try:
+                                    # Create a simple text message with match summary
+                                    match_names = [f"{m.get('firstName', '')} {m.get('lastName', '')}".strip() or m.get('username') for m in new_matches[:5]]
+                                    match_list = '\n'.join([f"• {name}" for name in match_names])
+                                    if len(new_matches) > 5:
+                                        match_list += f"\n• ... and {len(new_matches) - 5} more"
+
+                                    message = f"""🎉 New matches for your saved search: {search_name}
+
+Found {len(new_matches)} new profile(s):
+{match_list}
+
+Check your email for full details! 📧"""
+
+                                    await send_to_l3v3lagent(
+                                        db=db,
+                                        recipient_username=username,
+                                        content=message
+                                    )
+                                    stats['messenger_messages_sent'] += 1
+                                    logger.info(f"🤖 Sent messenger message to {username} for '{search_name}'")
+                                except Exception as e:
+                                    logger.error(f"❌ Failed to send messenger message to {username}: {e}")
+
                             # ATOMIC UPDATE: Mark matches as notified AND update timestamp in ONE operation
                             await mark_matches_notified_atomic(db, username, search_id, new_matches)
-                            
+
                             # Update saved_searches document with notification history (separate, non-critical)
                             await update_last_notification_time(db, username, search_id, len(new_matches))
-                            
+
                             logger.info(f"✅ Sent email to {username} with {len(new_matches)} new matches for '{search_name}'")
                         
                     except Exception as e:
@@ -535,13 +571,22 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
         duration = (datetime.utcnow() - start_time).total_seconds()
         logger.info(f"✅ Saved Search Matches Notifier completed in {duration:.2f}s")
         logger.info(f"📊 Stats: {stats}")
-        
+
+        message_parts = [
+            f"Processed {stats['users_processed']} users,",
+            f"{stats['searches_checked']} searches ({stats['searches_due_now']} due, {stats['skipped_not_due']} skipped),",
+            f"sent {stats['emails_sent']} emails",
+        ]
+        if notify_messenger_bot:
+            message_parts.append(f"{stats['messenger_messages_sent']} messenger messages")
+        message_parts.append(f"with {stats['total_matches_found']} total matches")
+
         return JobResult(
             status="success",
-            message=f"Processed {stats['users_processed']} users, {stats['searches_checked']} searches ({stats['searches_due_now']} due, {stats['skipped_not_due']} skipped), sent {stats['emails_sent']} emails with {stats['total_matches_found']} total matches",
+            message=", ".join(message_parts),
             details=stats,
             records_processed=stats['users_processed'],
-            records_affected=stats['emails_sent'],
+            records_affected=stats['emails_sent'] + stats['messenger_messages_sent'],
             errors=[],
             warnings=[],
             duration_seconds=duration

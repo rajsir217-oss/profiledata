@@ -54,6 +54,7 @@ class JobDefinition(BaseModel):
     enabled: bool = Field(default=True)
     timeout_seconds: int = Field(default=3600, ge=1, le=86400)
     retry_policy: RetryPolicy = Field(default_factory=RetryPolicy)
+    notify_messenger_bot: bool = Field(default=False, description="Send job output to L3V3L Agent messenger topic")
     notifications: NotificationConfig = Field(default_factory=NotificationConfig)
 
 
@@ -66,6 +67,7 @@ class JobUpdate(BaseModel):
     enabled: Optional[bool] = None
     timeout_seconds: Optional[int] = Field(None, ge=1, le=86400)
     retry_policy: Optional[RetryPolicy] = None
+    notify_messenger_bot: Optional[bool] = Field(None, description="Send job output to L3V3L Agent messenger topic")
     notifications: Optional[NotificationConfig] = None
 
 
