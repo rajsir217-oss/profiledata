@@ -279,27 +279,60 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
           });
         }
 
-        // Production Clover SDK requires merchantId for ecomPaymentConfig fetch.
-        const cloverOpts = config.merchant_id ? { merchantId: config.merchant_id } : undefined;
-        const clover = cloverOpts ? new window.Clover(config.public_key, cloverOpts) : new window.Clover(config.public_key);
-        cloverInstanceRef.current = clover;
-        const elements = clover.elements();
-
-        const styles = {
-          body: { fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontSize: '14px' },
-          input: { fontSize: '15px', padding: '10px 8px' }
+        // Catch async errors thrown inside Clover's own SDK bundle
+        // (e.g. "Cannot destructure property 'iframe_recaptcha_setting' of
+        // 'this.ecommPaymentConfig' as it is undefined") which happen when the
+        // merchant doesn't have iFrame Payments enabled on the Clover side.
+        const cloverErrorListener = (event) => {
+          const msg = event?.reason?.message || event?.message || '';
+          if (typeof msg === 'string' && (
+            msg.includes('ecommPaymentConfig') ||
+            msg.includes('ecomPaymentConfig') ||
+            msg.includes('iframe_recaptcha_setting')
+          )) {
+            setCloverInitError('Card payments are not enabled for this merchant. Please use PayPal.');
+            setCloverUnavailable(true);
+            event.preventDefault?.();
+          }
         };
-        const cardNumber = elements.create('CARD_NUMBER', styles);
-        const cardDate = elements.create('CARD_DATE', styles);
-        const cardCvv = elements.create('CARD_CVV', styles);
-        const cardPostalCode = elements.create('CARD_POSTAL_CODE', styles);
+        window.addEventListener('error', cloverErrorListener);
+        window.addEventListener('unhandledrejection', cloverErrorListener);
 
-        // Store elements in refs for later mounting
-        cloverInstanceRef.current.elements = {
-          cardNumber, cardDate, cardCvv, cardPostalCode
-        };
+        try {
+          // Production Clover SDK requires merchantId for ecomPaymentConfig fetch.
+          const cloverOpts = config.merchant_id ? { merchantId: config.merchant_id } : undefined;
+          const clover = cloverOpts ? new window.Clover(config.public_key, cloverOpts) : new window.Clover(config.public_key);
+          cloverInstanceRef.current = clover;
+          const elements = clover.elements();
 
-        cloverMountedRef.current = true;
+          const styles = {
+            body: { fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontSize: '14px' },
+            input: { fontSize: '15px', padding: '10px 8px' }
+          };
+          const cardNumber = elements.create('CARD_NUMBER', styles);
+          const cardDate = elements.create('CARD_DATE', styles);
+          const cardCvv = elements.create('CARD_CVV', styles);
+          // CARD_POSTAL_CODE depends on ecomPaymentConfig; create defensively.
+          let cardPostalCode = null;
+          try {
+            cardPostalCode = elements.create('CARD_POSTAL_CODE', styles);
+          } catch (postalErr) {
+            cardPostalCode = null;
+          }
+
+          cloverInstanceRef.current.elements = {
+            cardNumber, cardDate, cardCvv, cardPostalCode
+          };
+
+          cloverMountedRef.current = true;
+        } finally {
+          // Keep listeners during the lifetime of init; remove shortly after to
+          // avoid catching unrelated app errors.
+          setTimeout(() => {
+            window.removeEventListener('error', cloverErrorListener);
+            window.removeEventListener('unhandledrejection', cloverErrorListener);
+          }, 5000);
+        }
       } catch (err) {
         setCloverInitError('Card payments are temporarily unavailable. Please use PayPal.');
         setCloverUnavailable(true);
@@ -321,7 +354,9 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
             elements.cardNumber.mount('#poll-clover-card-number');
             elements.cardDate.mount('#poll-clover-card-date');
             elements.cardCvv.mount('#poll-clover-card-cvv');
-            elements.cardPostalCode.mount('#poll-clover-card-zip');
+            if (elements.cardPostalCode) {
+              elements.cardPostalCode.mount('#poll-clover-card-zip');
+            }
             setCloverReady(true);
           } catch (mountErr) {
             setCloverInitError('Card form failed to load. Please use PayPal.');
