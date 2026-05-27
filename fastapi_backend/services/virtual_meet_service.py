@@ -28,6 +28,33 @@ class VirtualMeetService:
         Get or lazily create a virtual meet session for a user+poll.
         Called when user accesses the Virtual Meets page.
         """
+        # Get poll details (needed for both heal and create paths)
+        poll = await db.polls.find_one({"_id": ObjectId(poll_id)})
+        if not poll:
+            return None
+
+        event_type = poll.get("event_type")
+        is_exempt = user_role in ("admin", "moderator")
+
+        # Look up the user's RSVP-paid status (single source of truth: poll_responses).
+        # The RSVP payment flow (/api/polls/{id}/pay-and-respond) writes
+        # payment_status='completed' on the poll_responses document. We use that
+        # as authoritative evidence that the user has paid for this event.
+        paid_via_rsvp = False
+        rsvp_payment_id = None
+        rsvp_payment_amount = None
+        try:
+            rsvp = await db.poll_responses.find_one(
+                {"poll_id": poll_id, "username": username},
+                {"payment_status": 1, "payment_id": 1, "payment_amount": 1, "payment_method": 1}
+            )
+            if rsvp and (rsvp.get("payment_status") or "").lower() == "completed":
+                paid_via_rsvp = True
+                rsvp_payment_id = rsvp.get("payment_id")
+                rsvp_payment_amount = rsvp.get("payment_amount")
+        except Exception as e:
+            logger.warning(f"get_or_create_session: failed to read poll_responses for {username}/{poll_id}: {e}")
+
         # Check if session already exists
         session = await db.virtual_meet_sessions.find_one({
             "poll_id": poll_id,
@@ -35,13 +62,37 @@ class VirtualMeetService:
         })
 
         if session:
+            # Self-heal: if the user has already paid via the RSVP flow but the
+            # VM session was created before the payment (or before the payment
+            # bridge existed), promote it to unlocked now. Fixes the dual
+            # source-of-truth bug retroactively for users who paid via the
+            # poll widget.
+            needs_heal = (
+                paid_via_rsvp
+                and not session.get("access_unlocked")
+                and (session.get("payment_status") or "").lower() != "completed"
+            )
+            if needs_heal:
+                heal_set = {
+                    "payment_status": "completed",
+                    "access_unlocked": True,
+                    "updated_at": datetime.now(timezone.utc),
+                }
+                if rsvp_payment_id and not session.get("payment_id"):
+                    heal_set["payment_id"] = rsvp_payment_id
+                if rsvp_payment_amount and not session.get("payment_amount"):
+                    heal_set["payment_amount"] = rsvp_payment_amount
+                await db.virtual_meet_sessions.update_one(
+                    {"_id": session["_id"]},
+                    {"$set": heal_set}
+                )
+                logger.info(
+                    f"[VM heal] Promoted session to unlocked for user={username} "
+                    f"poll={poll_id} (paid via RSVP flow)"
+                )
+                session.update(heal_set)
             session["_id"] = str(session["_id"])
             return session
-
-        # Get poll details
-        poll = await db.polls.find_one({"_id": ObjectId(poll_id)})
-        if not poll:
-            return None
 
         # Get user profile for gender
         user = await db.users.find_one(
@@ -56,14 +107,17 @@ class VirtualMeetService:
             logger.warning(f"User {username} has invalid gender '{gender}' for Virtual Meets")
             return None
 
-        # Determine payment requirement
-        event_type = poll.get("event_type")
-        is_exempt = user_role in ("admin", "moderator")
+        # Determine payment requirement / unlock state for new session.
         payment_amount = poll.get("virtual_meet_payment_amount", 5.00) or 5.00
 
         if event_type == "zoom-call" and not is_exempt:
-            payment_status = "pending"
-            access_unlocked = False
+            if paid_via_rsvp:
+                # User already paid via RSVP flow; create session pre-unlocked.
+                payment_status = "completed"
+                access_unlocked = True
+            else:
+                payment_status = "pending"
+                access_unlocked = False
         else:
             payment_status = "not_required"
             access_unlocked = True
@@ -75,8 +129,8 @@ class VirtualMeetService:
             "gender": gender,
             "event_type": event_type,
             "payment_status": payment_status,
-            "payment_amount": payment_amount,
-            "payment_id": None,
+            "payment_amount": (rsvp_payment_amount if paid_via_rsvp and rsvp_payment_amount else payment_amount),
+            "payment_id": (rsvp_payment_id if paid_via_rsvp else None),
             "payment_provider": None,
             "paypal_order_id": None,
             "clover_order_id": None,
@@ -89,6 +143,11 @@ class VirtualMeetService:
 
         result = await db.virtual_meet_sessions.insert_one(session_doc)
         session_doc["_id"] = str(result.inserted_id)
+        if paid_via_rsvp and event_type == "zoom-call":
+            logger.info(
+                f"[VM heal] Created pre-unlocked session for user={username} "
+                f"poll={poll_id} (paid via RSVP flow)"
+            )
         return session_doc
 
     # ─── Events List ──────────────────────────────────────────────────────
