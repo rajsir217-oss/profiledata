@@ -276,6 +276,23 @@ const VirtualMeets = () => {
     }
   };
 
+  const handleBackfillSessions = async (pollId) => {
+    setToast({ message: 'Backfilling sessions from Yes RSVPs...', type: 'info' });
+    try {
+      const response = await vmApi.post(`/api/virtual-meets/${pollId}/admin/backfill-sessions`);
+      const r = response.data || {};
+      setToast({
+        message: `Backfill: ${r.created || 0} created, ${r.already_existed || 0} existed` +
+          (r.skipped_no_gender ? `, ${r.skipped_no_gender} skipped (no gender)` : '') +
+          (r.skipped_no_user ? `, ${r.skipped_no_user} skipped (no user)` : ''),
+        type: 'success'
+      });
+      loadAdminOverview(pollId);
+    } catch (err) {
+      setToast({ message: err.response?.data?.detail || 'Failed to backfill sessions', type: 'error' });
+    }
+  };
+
   const handleExpireRooms = async (pollId) => {
     try {
       const response = await vmApi.post(`/api/virtual-meets/${pollId}/admin/expire-rooms`);
@@ -988,6 +1005,13 @@ const VirtualMeets = () => {
               onClick={() => setShowAnalytics(!showAnalytics)}
             >
               📊 {showAnalytics ? 'Hide' : 'Show'} Analytics
+            </button>
+            <button
+              className="vm-btn vm-btn-primary"
+              onClick={() => handleBackfillSessions(selectedEvent.poll_id)}
+              title="Create Virtual Meet sessions for every Yes-voter who hasn't opened the page yet"
+            >
+              👥 Backfill Sessions from Yes RSVPs
             </button>
             <button
               className="vm-btn vm-btn-decline"

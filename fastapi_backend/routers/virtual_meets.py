@@ -304,6 +304,30 @@ async def admin_expire_rooms(
     return {"success": True, **result}
 
 
+@router.post("/{poll_id}/admin/backfill-sessions")
+async def admin_backfill_sessions(
+    poll_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Admin: create virtual_meet_sessions for every "Yes" RSVP that does not
+    already have a session. Use this so all Yes-voters become eligible for
+    1:1 room allocation, even if they never opened the Virtual Meets page.
+    Idempotent: safe to call multiple times.
+    """
+    user_role = current_user.get("role") or current_user.get("role_name") or "free_user"
+    if user_role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    result = await VirtualMeetService.backfill_sessions_from_rsvps(db, poll_id)
+
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+
+    return result
+
+
 @router.delete("/{poll_id}/admin/delete")
 async def admin_delete_event(
     poll_id: str,
