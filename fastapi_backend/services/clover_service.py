@@ -276,6 +276,63 @@ class CloverService:
             return {"success": False, "error": str(e)}
 
 
+    async def get_charge(self, charge_id: str) -> Dict[str, Any]:
+        """
+        Retrieve a Clover charge by ID. Used for server-side payment
+        verification before granting access to paid resources.
+
+        Returns dict with success, status, amount (cents), currency on success.
+        """
+        if not self.is_configured():
+            return {"success": False, "error": "Clover not configured"}
+
+        if not charge_id or not isinstance(charge_id, str):
+            return {"success": False, "error": "Invalid charge id"}
+
+        try:
+            endpoint = f"{self.charge_url}/v1/charges/{charge_id}"
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.get(
+                    endpoint,
+                    headers={
+                        "Authorization": f"Bearer {self.private_token}",
+                        "Accept": "application/json",
+                    },
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return {
+                        "success": True,
+                        "charge_id": data.get("id"),
+                        "status": data.get("status"),
+                        "amount": data.get("amount"),
+                        "currency": data.get("currency"),
+                    }
+
+                error_text = response.text
+                try:
+                    error_data = response.json()
+                    error_text = error_data.get("message", error_text)
+                except Exception:
+                    pass
+
+                logger.warning(
+                    f"Clover get_charge failed (status {response.status_code}): {error_text}"
+                )
+                return {
+                    "success": False,
+                    "error": error_text,
+                    "status_code": response.status_code,
+                }
+
+        except httpx.TimeoutException:
+            logger.error("Clover get_charge request timed out")
+            return {"success": False, "error": "Request timed out"}
+        except Exception as e:
+            logger.error(f"Error retrieving Clover charge: {e}")
+            return {"success": False, "error": str(e)}
+
     async def create_customer(
         self,
         source_token: str,

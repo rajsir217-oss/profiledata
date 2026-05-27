@@ -71,7 +71,9 @@ const PollPaymentSlideOut = ({ isOpen, onClose, onComplete, pollData }) => {
       if (!window.paypal) {
         console.log('📦 Loading PayPal SDK...');
         const script = document.createElement('script');
-        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
+        // Only disable the legacy PayPal Credit funding source. Keep 'card'
+        // so the "Debit or Credit Card" button renders alongside PayPal.
+        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&disable-funding=credit`;
         script.async = true;
         script.onload = () => {
           console.log('✅ PayPal SDK loaded, rendering buttons...');
