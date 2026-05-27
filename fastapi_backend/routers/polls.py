@@ -229,6 +229,55 @@ async def pay_and_respond(
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])
 
+    # Bridge the payment into the Virtual Meet session so the user is not
+    # asked to pay again on the Virtual Meets page. This upsert is idempotent
+    # and only flips access_unlocked to True for the matching poll/user.
+    # Failures here must NOT roll back the successful RSVP payment - we log
+    # and return success; get_or_create_session() will self-heal on next visit.
+    try:
+        username = current_user["username"]
+        now = datetime.utcnow()
+
+        # Look up gender so a freshly-inserted session is usable for matching.
+        # (Existing sessions keep their gender via $set excluding gender.)
+        user_doc = await db.users.find_one(
+            {"username": username},
+            {"gender": 1, "Gender": 1},
+        ) or {}
+        gender = user_doc.get("gender") or user_doc.get("Gender") or ""
+
+        set_on_insert = {
+            "poll_id": poll_id,
+            "username": username,
+            "event_type": poll.get("event_type"),
+            "rsvp_response": "yes",
+            "match_list_generated": False,
+            "created_at": now,
+        }
+        if gender in ("Male", "Female"):
+            set_on_insert["gender"] = gender
+
+        await db.virtual_meet_sessions.update_one(
+            {"poll_id": poll_id, "username": username},
+            {
+                "$set": {
+                    "payment_status": "completed",
+                    "payment_id": response_data.payment_id,
+                    "payment_provider": response_data.payment_method,
+                    "payment_amount": response_data.payment_amount,
+                    "access_unlocked": True,
+                    "updated_at": now,
+                },
+                "$setOnInsert": set_on_insert,
+            },
+            upsert=True,
+        )
+    except Exception as e:
+        logger.error(
+            f"[pay-and-respond] Failed to bridge payment to virtual_meet_sessions "
+            f"user={current_user.get('username')} poll={poll_id} error={e}"
+        )
+
     return result
 
 
