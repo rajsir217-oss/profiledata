@@ -36,8 +36,9 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
   const [cloverSuccess, setCloverSuccess] = useState(false);
   const [cloverUnavailable, setCloverUnavailable] = useState(false);
   const [cloverInitError, setCloverInitError] = useState('');
+  const [cloverInitialized, setCloverInitialized] = useState(false);
   const cloverInstanceRef = useRef(null);
-  const cloverMountedRef = useRef(false);
+  const cloverInitInFlightRef = useRef(false);
 
   const amounts = [10, 15, 25, 50];
 
@@ -245,12 +246,31 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
     initPayPal();
   }, [isVisible, paypalFailed, loadPayPalScript, renderPayPalButtons]);
 
+  // Re-render PayPal buttons when switching back to PayPal tab.
+  // PayPal's iframe-based buttons render at 0 dimensions if the container was
+  // display:none when first rendered (happens when user picks Card before
+  // PayPal SDK finishes loading). Forcing a re-render with the container
+  // visible fixes the missing buttons.
+  useEffect(() => {
+    if (paymentMethod !== 'paypal') return;
+    if (!paypalInitialized.current || !window.paypal) return;
+    if (paypalFailed) return;
+
+    const timer = setTimeout(() => {
+      if (paypalContainerRef.current) {
+        renderPayPalButtons(true);
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [paymentMethod, paypalFailed, renderPayPalButtons]);
+
   // Lazily initialize Clover SDK only when user actually selects the Card tab.
   // Failures here disable the Card option but never surface a global error.
   useEffect(() => {
     if (paymentMethod !== 'clover') return;
-    if (cloverMountedRef.current || cloverUnavailable) return;
+    if (cloverInitialized || cloverInitInFlightRef.current || cloverUnavailable) return;
     if (parseFloat(pollData?.paymentAmount) === 0) return;
+    cloverInitInFlightRef.current = true;
 
     const initClover = async () => {
       try {
@@ -324,7 +344,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
             cardNumber, cardDate, cardCvv, cardPostalCode
           };
 
-          cloverMountedRef.current = true;
+          setCloverInitialized(true);
         } finally {
           // Keep listeners during the lifetime of init; remove shortly after to
           // avoid catching unrelated app errors.
@@ -343,7 +363,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
 
   // Mount/unmount Clover card elements when switching to/from Card tab
   useEffect(() => {
-    if (!cloverMountedRef.current) return;
+    if (!cloverInitialized) return;
 
     if (paymentMethod === 'clover' && !cloverReady) {
       // Mount the elements
@@ -372,14 +392,14 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
           elements.cardNumber.unmount();
           elements.cardDate.unmount();
           elements.cardCvv.unmount();
-          elements.cardPostalCode.unmount();
+          if (elements.cardPostalCode) elements.cardPostalCode.unmount();
         } catch (e) {
           // Ignore unmount errors
         }
         setCloverReady(false);
       }
     }
-  }, [paymentMethod, cloverMountedRef, cloverReady]);
+  }, [paymentMethod, cloverInitialized, cloverReady]);
 
   // Handle Clover card payment submission
   const handleCloverPay = useCallback(async () => {
