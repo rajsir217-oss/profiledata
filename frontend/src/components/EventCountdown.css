@@ -109,13 +109,17 @@
   }
 }
 
-/* Mobile responsive - show only bell icon */
+/* Mobile responsive - show only the timer (tiny), hide bell + labels */
 @media (max-width: 768px) {
   .event-countdown-container {
-    padding: 0 8px;
-    margin: 0 4px;
+    padding: 0 4px;
+    margin: 0 2px;
     border-left: none;
     border-right: none;
+  }
+
+  .event-countdown-icon {
+    display: none;
   }
 
   .event-countdown-label {
@@ -131,11 +135,11 @@
   }
 
   .event-countdown-timer {
-    display: none;
-  }
-
-  .event-countdown-icon {
-    font-size: 18px;
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 2px 5px;
+    border-radius: 4px;
   }
 
   .countdown-nav-btn {
