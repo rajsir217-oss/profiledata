@@ -1296,6 +1296,129 @@ class VirtualMeetService:
             "rooms": rooms
         }
 
+    # ─── Admin: Backfill Sessions from Yes RSVPs ─────────────────────────
+
+    @staticmethod
+    async def backfill_sessions_from_rsvps(
+        db: AsyncIOMotorDatabase,
+        poll_id: str
+    ) -> Dict[str, Any]:
+        """
+        Create virtual_meet_sessions for every "Yes" RSVP on the poll that
+        does not already have a session. Used by admins to ensure every
+        Yes-voter is eligible for 1:1 room allocation, even if they never
+        opened the Virtual Meets page (which is what normally lazy-creates
+        their session row).
+
+        Honors RSVP-flow payment status: a session is pre-unlocked iff the
+        poll_responses doc has payment_status=='completed' or the user is
+        admin/moderator (exempt). Otherwise the session is created with
+        payment_status='pending' / access_unlocked=False so the user is
+        prompted to pay on the Virtual Meets page.
+        """
+        poll = await db.polls.find_one({"_id": ObjectId(poll_id)})
+        if not poll:
+            return {"success": False, "error": "Poll not found."}
+
+        event_type = poll.get("event_type")
+        requires_payment = event_type in ("zoom-call", "virtual")
+        event_fee = float(poll.get("virtual_meet_payment_amount", 5.00) or 0)
+
+        # All "Yes" RSVPs on the poll.
+        yes_rsvps = await db.poll_responses.find(
+            {"poll_id": poll_id, "rsvp_response": "yes"}
+        ).to_list(length=10000)
+
+        # Existing sessions for this poll, keyed by username.
+        existing_sessions = await db.virtual_meet_sessions.find(
+            {"poll_id": poll_id}, {"username": 1}
+        ).to_list(length=10000)
+        existing_usernames = {s["username"] for s in existing_sessions}
+
+        created = 0
+        already_existed = 0
+        skipped_no_gender = 0
+        skipped_no_user = 0
+        errors = 0
+        now = datetime.now(timezone.utc)
+
+        for rsvp in yes_rsvps:
+            username = rsvp.get("username")
+            if not username:
+                continue
+            if username in existing_usernames:
+                already_existed += 1
+                continue
+
+            try:
+                user = await db.users.find_one({"username": username})
+                if not user:
+                    skipped_no_user += 1
+                    continue
+                gender = user.get("gender") or user.get("Gender") or ""
+                if gender not in ("Male", "Female"):
+                    skipped_no_gender += 1
+                    continue
+
+                user_role = user.get("role") or user.get("role_name") or "free_user"
+                is_exempt = user_role in ("admin", "moderator")
+
+                rsvp_paid = (rsvp.get("payment_status") or "").lower() == "completed"
+
+                if requires_payment and not is_exempt:
+                    if rsvp_paid:
+                        payment_status = "completed"
+                        access_unlocked = True
+                    else:
+                        payment_status = "pending"
+                        access_unlocked = False
+                else:
+                    payment_status = "not_required"
+                    access_unlocked = True
+
+                session_doc = {
+                    "poll_id": poll_id,
+                    "username": username,
+                    "gender": gender,
+                    "event_type": event_type,
+                    "payment_status": payment_status,
+                    "payment_amount": event_fee if requires_payment else None,
+                    "payment_id": rsvp.get("payment_id"),
+                    "payment_provider": rsvp.get("payment_method"),
+                    "paypal_order_id": None,
+                    "clover_order_id": None,
+                    "access_unlocked": access_unlocked,
+                    "rsvp_response": "yes",
+                    "match_list_generated": False,
+                    "created_at": now,
+                    "updated_at": now,
+                    "backfilled": True,
+                }
+                await db.virtual_meet_sessions.insert_one(session_doc)
+                created += 1
+                existing_usernames.add(username)
+            except Exception as e:
+                logger.error(f"[VM backfill] Error for user={username} poll={poll_id}: {e}")
+                errors += 1
+
+        logger.info(
+            f"[VM backfill] poll={poll_id} yes_rsvps={len(yes_rsvps)} "
+            f"created={created} already_existed={already_existed} "
+            f"skipped_no_gender={skipped_no_gender} skipped_no_user={skipped_no_user} "
+            f"errors={errors}"
+        )
+
+        return {
+            "success": True,
+            "poll_id": poll_id,
+            "yes_rsvps": len(yes_rsvps),
+            "created": created,
+            "already_existed": already_existed,
+            "skipped_no_gender": skipped_no_gender,
+            "skipped_no_user": skipped_no_user,
+            "errors": errors,
+        }
+
     # ─── RSVP Change Cascade ─────────────────────────────────────────────
 
     @staticmethod
