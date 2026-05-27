@@ -34,6 +34,8 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
   const [cloverReady, setCloverReady] = useState(false);
   const [cloverLoading, setCloverLoading] = useState(false);
   const [cloverSuccess, setCloverSuccess] = useState(false);
+  const [cloverUnavailable, setCloverUnavailable] = useState(false);
+  const [cloverInitError, setCloverInitError] = useState('');
   const cloverInstanceRef = useRef(null);
   const cloverMountedRef = useRef(false);
 
@@ -146,41 +148,25 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
           setLoading(true);
           setError('');
           try {
-            // Capture payment
-            const captureResponse = await fetch(`${getBackendUrl()}/api/paypal/capture-order`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ order_id: data.orderID })
-            });
-            const captureData = await captureResponse.json();
+            const payload = {
+              poll_id: pollData.pollId,
+              selected_options: [pollData.optionId],
+              payment_required: true,
+              payment_status: 'completed',
+              payment_amount: amountRef.current,
+              payment_id: data.orderID,
+              payment_method: 'paypal'
+            };
 
-            if (captureData.success) {
-              // Submit poll response after successful payment
-              const payload = {
-                poll_id: pollData.pollId,
-                selected_options: [pollData.optionId],
-                payment_required: true,
-                payment_status: 'completed',
-                payment_amount: amountRef.current,
-                payment_id: data.orderID,
-                payment_method: 'paypal'
-              };
+            const pollResponse = await pollsApi.post(
+              `/api/polls/${pollData.pollId}/pay-and-respond`,
+              payload
+            );
 
-              const pollResponse = await pollsApi.post(
-                `/api/polls/${pollData.pollId}/pay-and-respond`,
-                payload
-              );
-
-              if (pollResponse.data.success) {
-                onComplete();
-              } else {
-                setError(pollResponse.data.detail || 'Failed to submit RSVP');
-              }
+            if (pollResponse.data.success) {
+              onComplete();
             } else {
-              setError(captureData.detail || 'Payment failed. Please try again.');
+              setError(pollResponse.data.detail || 'Failed to submit RSVP');
             }
           } catch (err) {
             setError('Payment confirmation failed. Please contact support.');
@@ -259,9 +245,12 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
     initPayPal();
   }, [isVisible, paypalFailed, loadPayPalScript, renderPayPalButtons]);
 
-  // Initialize Clover SDK once when component becomes visible
+  // Lazily initialize Clover SDK only when user actually selects the Card tab.
+  // Failures here disable the Card option but never surface a global error.
   useEffect(() => {
-    if (!isVisible || cloverMountedRef.current || parseFloat(pollData?.paymentAmount) === 0) return;
+    if (paymentMethod !== 'clover') return;
+    if (cloverMountedRef.current || cloverUnavailable) return;
+    if (parseFloat(pollData?.paymentAmount) === 0) return;
 
     const initClover = async () => {
       try {
@@ -269,9 +258,10 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
         const res = await fetch(`${getBackendUrl()}/api/clover/sdk-config`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const config = await res.json();
-        if (!config.public_key) {
-          setError('Clover card payments not available.');
+        const config = await res.json().catch(() => ({}));
+        if (!res.ok || !config?.public_key) {
+          setCloverInitError(config?.detail || 'Card payments are not available right now.');
+          setCloverUnavailable(true);
           return;
         }
         setCloverConfig(config);
@@ -289,7 +279,9 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
           });
         }
 
-        const clover = new window.Clover(config.public_key, { merchantId: config.merchant_id });
+        // Production Clover SDK requires merchantId for ecomPaymentConfig fetch.
+        const cloverOpts = config.merchant_id ? { merchantId: config.merchant_id } : undefined;
+        const clover = cloverOpts ? new window.Clover(config.public_key, cloverOpts) : new window.Clover(config.public_key);
         cloverInstanceRef.current = clover;
         const elements = clover.elements();
 
@@ -309,19 +301,12 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
 
         cloverMountedRef.current = true;
       } catch (err) {
-        setError('Failed to initialize card payment form.');
+        setCloverInitError('Card payments are temporarily unavailable. Please use PayPal.');
+        setCloverUnavailable(true);
       }
     };
     initClover();
-
-    // Only cleanup when component unmounts
-    return () => {
-      if (!isVisible) {
-        cloverMountedRef.current = false;
-        setCloverReady(false);
-      }
-    };
-  }, [isVisible]);
+  }, [paymentMethod, cloverUnavailable, pollData?.paymentAmount]);
 
   // Mount/unmount Clover card elements when switching to/from Card tab
   useEffect(() => {
@@ -339,7 +324,8 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
             elements.cardPostalCode.mount('#poll-clover-card-zip');
             setCloverReady(true);
           } catch (mountErr) {
-            setError('Failed to mount card form. Please try again.');
+            setCloverInitError('Card form failed to load. Please use PayPal.');
+            setCloverUnavailable(true);
           }
         }, 100);
       }
@@ -405,7 +391,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
           payment_status: 'completed',
           payment_amount: amount,
           payment_id: chargeData.charge_id || 'clover',
-          payment_method: 'card'
+          payment_method: 'clover'
         };
         const pollResponse = await pollsApi.post(
           `/api/polls/${pollData.pollId}/pay-and-respond`,
@@ -538,7 +524,8 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
           <button
             className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
             onClick={() => setPaymentMethod('clover')}
-            disabled={loading}
+            disabled={loading || cloverUnavailable}
+            title={cloverUnavailable ? (cloverInitError || 'Card payments unavailable') : undefined}
           >
             <span className="clover-icon">☘</span>
             Card
@@ -652,6 +639,11 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
       {/* Card / Clover - same as ContributionPopup */}
       {paymentMethod === 'clover' && (
         <div className="clover-card-section poll-clover-compact">
+          {cloverInitError && (
+            <div className="contribution-error" style={{ marginBottom: '8px' }}>
+              {cloverInitError}
+            </div>
+          )}
           {cloverSuccess ? (
             <div className="clover-success-msg">
               <div className="clover-success-icon">✓</div>

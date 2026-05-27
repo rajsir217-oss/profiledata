@@ -162,11 +162,20 @@ const VirtualMeetPaymentModal = ({ isOpen, onClose, onSuccess, event }) => {
 
     const initClover = async () => {
       try {
+        if (!window.isSecureContext) {
+          setError('Card payments require HTTPS. Please use PayPal.');
+          return;
+        }
+
         const token = localStorage.getItem('token');
         const res = await fetch(`${getBackendUrl()}/api/clover/sdk-config`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const config = await res.json();
+        if (!res.ok) {
+          setError(config?.detail || 'Card payments not available.');
+          return;
+        }
         if (!config.public_key) {
           setError('Card payments not available.');
           return;
@@ -185,7 +194,7 @@ const VirtualMeetPaymentModal = ({ isOpen, onClose, onSuccess, event }) => {
           });
         }
 
-        const clover = new window.Clover(config.public_key, { merchantId: config.merchant_id });
+        const clover = new window.Clover(config.public_key);
         cloverInstanceRef.current = clover;
         const elements = clover.elements();
         const styles = {

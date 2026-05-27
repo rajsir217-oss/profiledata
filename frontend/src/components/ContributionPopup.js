@@ -269,12 +269,21 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
     const initClover = async () => {
       try {
+        if (!window.isSecureContext) {
+          setError('Card payments require HTTPS. Please use PayPal.');
+          return;
+        }
+
         // Fetch SDK config from backend
         const token = localStorage.getItem('token');
         const res = await fetch(`${getBackendUrl()}/api/clover/sdk-config`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const config = await res.json();
+        if (!res.ok) {
+          setError(config?.detail || 'Clover card payments not available.');
+          return;
+        }
         if (!config.public_key) {
           setError('Clover card payments not available.');
           return;
@@ -296,7 +305,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         }
 
         // Initialize Clover instance
-        const clover = new window.Clover(config.public_key, { merchantId: config.merchant_id });
+        const clover = new window.Clover(config.public_key);
         cloverInstanceRef.current = clover;
         const elements = clover.elements();
 
