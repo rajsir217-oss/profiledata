@@ -77,6 +77,9 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
 
       return new Promise((resolve) => {
         const script = document.createElement('script');
+        // Only disable the legacy PayPal Credit funding source. Keep 'card'
+        // enabled so the "Debit or Credit Card" button renders for users who
+        // prefer paying directly without the Clover Card tab.
         script.src = `https://www.paypal.com/sdk/js?client-id=${config.client_id}&currency=USD&disable-funding=credit`;
         script.async = true;
         script.onload = () => {
@@ -246,15 +249,18 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
     initPayPal();
   }, [isVisible, paypalFailed, loadPayPalScript, renderPayPalButtons]);
 
-  // Re-render PayPal buttons when switching back to PayPal tab.
-  // PayPal's iframe-based buttons render at 0 dimensions if the container was
-  // display:none when first rendered (happens when user picks Card before
-  // PayPal SDK finishes loading). Forcing a re-render with the container
-  // visible fixes the missing buttons.
+  // Re-render PayPal buttons ONCE when user transitions back to the PayPal tab.
+  // Fixes the case where PayPal rendered into a hidden (display:none) container
+  // and ended up with 0-dim iframes. We deliberately do NOT depend on
+  // renderPayPalButtons (its identity changes every parent render and would
+  // cause a flicker loop).
+  const prevPaymentMethodRef = useRef(paymentMethod);
   useEffect(() => {
-    if (paymentMethod !== 'paypal') return;
-    if (!paypalInitialized.current || !window.paypal) return;
-    if (paypalFailed) return;
+    const prev = prevPaymentMethodRef.current;
+    prevPaymentMethodRef.current = paymentMethod;
+
+    if (paymentMethod !== 'paypal' || prev === 'paypal') return;
+    if (!paypalInitialized.current || !window.paypal || paypalFailed) return;
 
     const timer = setTimeout(() => {
       if (paypalContainerRef.current) {
@@ -262,7 +268,8 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
       }
     }, 50);
     return () => clearTimeout(timer);
-  }, [paymentMethod, paypalFailed, renderPayPalButtons]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentMethod]);
 
   // Lazily initialize Clover SDK only when user actually selects the Card tab.
   // Failures here disable the Card option but never surface a global error.
@@ -566,7 +573,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
             disabled={loading}
           >
             <span className="venmo-v">V</span>
-            Venmo QR
+            QR
           </button>
           <button
             className={`payment-method-btn ${paymentMethod === 'paypal-qr' ? 'active' : ''}`}
@@ -574,7 +581,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
             disabled={loading}
           >
             <span className="paypal-p">P</span>
-            PayPal QR
+            QR
           </button>
           <button
             className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}

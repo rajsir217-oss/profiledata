@@ -115,43 +115,120 @@ async def pay_and_respond(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Submit a poll response with payment for Virtual Meet events"""
+    """
+    Submit a poll response with payment for Virtual Meet / paid events.
+
+    Security:
+      - PayPal: server-side captures the order AND verifies the captured
+        amount matches the poll's expected amount (within 1 cent).
+      - Clover: server-side fetches the charge and verifies status="paid"
+        and amount matches the expected amount.
+      - The persisted payment_amount and payment_status are derived from the
+        verified provider response, never from the client-supplied payload.
+    """
     # Ensure poll_id matches
     response_data.poll_id = poll_id
-    
+
     service = PollService(db)
-    
+
     # First check if payment is required
     poll = await service.get_poll(poll_id)
     if not poll:
         raise HTTPException(status_code=404, detail="Poll not found")
-    
+
     # Check if this is a Virtual Meet poll with "Yes" response
     if not (poll.get("event_type") and poll.get("event_type") in ["in-person", "virtual", "zoom-call", "hybrid"]):
         raise HTTPException(status_code=400, detail="Payment not required for this poll")
-    
-    # Process payment first, then submit response
+
+    # Expected amount in dollars. Reject if poll has no configured amount.
+    expected_amount = poll.get("virtual_meet_payment_amount")
+    if expected_amount is None or float(expected_amount) <= 0:
+        raise HTTPException(status_code=400, detail="Poll payment amount is not configured")
+    expected_amount = float(expected_amount)
+
+    if not response_data.payment_id:
+        raise HTTPException(status_code=400, detail="Missing payment id")
+
+    # ---- PayPal verification ----
     if response_data.payment_method == "paypal":
         from services.paypal_service import paypal_service
+
         result = await paypal_service.capture_order(response_data.payment_id)
-        
         if not result.get("success"):
+            logger.warning(
+                f"[pay-and-respond] PayPal capture failed user={current_user.get('username')} "
+                f"poll={poll_id} order={response_data.payment_id} error={result.get('error')}"
+            )
             raise HTTPException(status_code=400, detail=result.get("error", "PayPal payment failed"))
-        
+
+        # PayPal returns amount as a string in dollars (e.g., "5.00").
+        try:
+            captured_amount = float(result.get("amount") or 0)
+        except (TypeError, ValueError):
+            captured_amount = 0.0
+
+        if abs(captured_amount - expected_amount) > 0.01:
+            logger.error(
+                f"[pay-and-respond] PayPal amount mismatch user={current_user.get('username')} "
+                f"poll={poll_id} expected={expected_amount} captured={captured_amount}"
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"Payment amount mismatch (expected ${expected_amount:.2f})",
+            )
+
         response_data.payment_status = "completed"
-        response_data.payment_amount = poll.get("virtual_meet_payment_amount", 5.00)
-        
+        response_data.payment_amount = captured_amount
+        # Persist the provider's capture id for traceability/idempotency.
+        response_data.payment_id = result.get("capture_id") or response_data.payment_id
+
+    # ---- Clover verification ----
     elif response_data.payment_method == "clover":
-        # For Clover, verify the payment was completed
+        from services.clover_service import clover_service
+
+        result = await clover_service.get_charge(response_data.payment_id)
+        if not result.get("success"):
+            logger.warning(
+                f"[pay-and-respond] Clover charge lookup failed user={current_user.get('username')} "
+                f"poll={poll_id} charge={response_data.payment_id} error={result.get('error')}"
+            )
+            raise HTTPException(status_code=400, detail="Could not verify card payment")
+
+        if (result.get("status") or "").lower() not in ("paid", "succeeded"):
+            logger.warning(
+                f"[pay-and-respond] Clover charge not paid user={current_user.get('username')} "
+                f"poll={poll_id} charge={response_data.payment_id} status={result.get('status')}"
+            )
+            raise HTTPException(status_code=400, detail="Card payment is not in a paid state")
+
+        # Clover returns amount in cents.
+        try:
+            captured_cents = int(result.get("amount") or 0)
+        except (TypeError, ValueError):
+            captured_cents = 0
+        expected_cents = round(expected_amount * 100)
+        if abs(captured_cents - expected_cents) > 1:
+            logger.error(
+                f"[pay-and-respond] Clover amount mismatch user={current_user.get('username')} "
+                f"poll={poll_id} expected_cents={expected_cents} captured_cents={captured_cents}"
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"Payment amount mismatch (expected ${expected_amount:.2f})",
+            )
+
         response_data.payment_status = "completed"
-        response_data.payment_amount = poll.get("virtual_meet_payment_amount", 5.00)
-    
-    # Now submit the response with payment info
+        response_data.payment_amount = captured_cents / 100.0
+
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported payment method")
+
+    # Now submit the response with verified payment info
     result = await service.submit_response(response_data, current_user["username"])
-    
+
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])
-    
+
     return result
 
 

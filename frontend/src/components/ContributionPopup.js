@@ -79,6 +79,8 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
       return new Promise((resolve) => {
         const script = document.createElement('script');
+        // Only disable the legacy PayPal Credit funding source. Keep 'card'
+        // so the "Debit or Credit Card" button shows alongside PayPal.
         script.src = `https://www.paypal.com/sdk/js?client-id=${config.client_id}&currency=USD&disable-funding=credit`;
         script.async = true;
         script.onload = () => {

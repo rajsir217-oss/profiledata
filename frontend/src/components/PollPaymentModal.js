@@ -43,7 +43,9 @@ const PollPaymentModal = ({ isOpen, onClose, onComplete, pollData }) => {
       }
 
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
+      // Only disable the legacy PayPal Credit funding source. Keep 'card'
+      // so the "Debit or Credit Card" button renders.
+      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&disable-funding=credit`;
       script.onload = () => renderPayPalButton(clientId);
       script.onerror = () => setError('Failed to load PayPal. Please refresh and try again.');
       document.body.appendChild(script);
