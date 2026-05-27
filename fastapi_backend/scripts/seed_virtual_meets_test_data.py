@@ -212,7 +212,9 @@ async def main():
     sessions_b = []
 
     def make_session(poll_id, username, gender, event_type, payment_amount, is_exempt=False):
-        if event_type == "zoom-call" and not is_exempt:
+        # Both 'zoom-call' and 'virtual' event types require payment (unless exempt).
+        requires_payment = event_type in ("zoom-call", "virtual")
+        if requires_payment and not is_exempt:
             payment_status = "pending"
             access_unlocked = False
         else:

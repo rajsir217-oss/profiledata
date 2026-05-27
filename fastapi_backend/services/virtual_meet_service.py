@@ -110,7 +110,9 @@ class VirtualMeetService:
         # Determine payment requirement / unlock state for new session.
         payment_amount = poll.get("virtual_meet_payment_amount", 5.00) or 5.00
 
-        if event_type == "zoom-call" and not is_exempt:
+        # Both 'zoom-call' and 'virtual' event types require payment (unless exempt).
+        requires_payment = event_type in ("zoom-call", "virtual")
+        if requires_payment and not is_exempt:
             if paid_via_rsvp:
                 # User already paid via RSVP flow; create session pre-unlocked.
                 payment_status = "completed"
@@ -143,10 +145,10 @@ class VirtualMeetService:
 
         result = await db.virtual_meet_sessions.insert_one(session_doc)
         session_doc["_id"] = str(result.inserted_id)
-        if paid_via_rsvp and event_type == "zoom-call":
+        if paid_via_rsvp and requires_payment:
             logger.info(
                 f"[VM heal] Created pre-unlocked session for user={username} "
-                f"poll={poll_id} (paid via RSVP flow)"
+                f"poll={poll_id} event_type={event_type} (paid via RSVP flow)"
             )
         return session_doc
 

@@ -302,12 +302,19 @@ class CloverService:
 
                 if response.status_code == 200:
                     data = response.json()
+                    # Clover's get-a-charge endpoint can return either a flat
+                    # charge object or a list-wrapped response of the form
+                    # {"object": "list", "data": [ {...} ]}. Normalize both.
+                    charge = data
+                    if isinstance(data, dict) and isinstance(data.get("data"), list):
+                        charge = data["data"][0] if data["data"] else {}
                     return {
                         "success": True,
-                        "charge_id": data.get("id"),
-                        "status": data.get("status"),
-                        "amount": data.get("amount"),
-                        "currency": data.get("currency"),
+                        "charge_id": charge.get("id"),
+                        "status": charge.get("status"),
+                        "amount": charge.get("amount"),
+                        "currency": charge.get("currency"),
+                        "paid": charge.get("paid"),
                     }
 
                 error_text = response.text

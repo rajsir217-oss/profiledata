@@ -555,7 +555,7 @@ const PollPaymentInline = ({ isVisible, onComplete, onCancel, pollData }) => {
 
       {/* Payment Method Tabs - same as ContributionPopup */}
       <div className="payment-method-section">
-        <div className="payment-method-label">Choose Payment Method:</div>
+        <div className="payment-method-label">Choose Payment Method(☘ Card):</div>
         <div className="payment-method-toggle">
           <button
             className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
