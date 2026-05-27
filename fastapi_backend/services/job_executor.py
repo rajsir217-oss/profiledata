@@ -45,8 +45,11 @@ class JobExecutor:
         template_type = job["template_type"]
         parameters = job["parameters"]
         timeout_seconds = job.get("timeout_seconds", 3600)
-        
+        notify_messenger_bot = job.get("notify_messenger_bot", False)
+
         logger.info(f"▶️ Executing job: {job_name} (template: {template_type})")
+        if notify_messenger_bot:
+            logger.info(f"🤖 Messenger bot notifications enabled for this job")
         
         # Create execution record
         execution_id = await self._create_execution_record(job, triggered_by)
@@ -68,7 +71,8 @@ class JobExecutor:
                 parameters=parameters_with_trigger,
                 db=self.db,
                 triggered_by=triggered_by,
-                execution_id=execution_id
+                execution_id=execution_id,
+                job=job  # Pass full job document for job-level settings like notify_messenger_bot
             )
             
             # Pre-execution hook

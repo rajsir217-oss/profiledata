@@ -597,3 +597,70 @@ async def link_us_vedika_history(
         "conversationsUpdated": conversations_updated,
         "conversationId": conv_id,
     }
+
+
+# ---------------------------------------------------------------------------
+# L3V3L Agent (System Bot) Messages
+# ---------------------------------------------------------------------------
+
+async def get_or_create_l3v3lagent_conversation(
+    db: AsyncIOMotorDatabase,
+    username: str
+) -> Optional[str]:
+    """
+    Get or create a l3v3lagent (system bot) conversation for a user.
+    Returns the conversation ID.
+    """
+    # Check if conversation already exists
+    existing = await db.messenger_conversations.find_one({
+        "type": "direct",
+        "participants.username": {"$all": [username, "l3v3lagent"]},
+    })
+    if existing:
+        return str(existing["_id"])
+
+    # Create new conversation with l3v3lagent
+    now = datetime.utcnow()
+    participants = [
+        {"username": username, "role": "member", "joinedAt": now},
+        {"username": "l3v3lagent", "role": "admin", "joinedAt": now},
+    ]
+
+    result = await db.messenger_conversations.insert_one({
+        "type": "direct",
+        "participants": participants,
+        "createdAt": now,
+        "updatedAt": now,
+        "lastMessageAt": now,
+        "isSystemBot": True,
+        "botName": "L3V3L Agent",
+    })
+
+    logger.info(f"🤖 Created l3v3lagent conversation for {username}")
+    return str(result.inserted_id)
+
+
+async def send_to_l3v3lagent(
+    db: AsyncIOMotorDatabase,
+    recipient_username: str,
+    content: str,
+    content_type: str = "text",
+) -> Optional[str]:
+    """
+    Send a message to a user's l3v3lagent (system bot) conversation.
+    Returns the message ID if successful, None otherwise.
+    """
+    # Get or create conversation
+    conv_id = await get_or_create_l3v3lagent_conversation(db, recipient_username)
+    if not conv_id:
+        logger.error(f"❌ Failed to get/create l3v3lagent conversation for {recipient_username}")
+        return None
+
+    # Send message as l3v3lagent
+    return await send_message(
+        db=db,
+        sender_username="l3v3lagent",
+        conversation_id=conv_id,
+        content=content,
+        content_type=content_type,
+    )

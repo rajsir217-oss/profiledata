@@ -203,6 +203,46 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     return fullUrl;
   };
 
+  const loadL3V3LAgentConversation = async () => {
+    try {
+      const api = useAuthStore.getState().getApi();
+      // Find the l3v3lagent conversation for the current user
+      const res = await api.get('/api/messenger/conversations');
+      const conversations = res.data?.conversations || res.data || [];
+      const l3v3lagentConv = conversations.find(conv => {
+        const participants = conv.participants || [];
+        return participants.some(p => p.username === 'l3v3lagent');
+      });
+
+      if (l3v3lagentConv) {
+        setSelectedChat({
+          id: l3v3lagentConv._id || l3v3lagentConv.id,
+          name: 'L3V3L Agent',
+          isGroup: false,
+          isBot: true,
+        });
+      } else {
+        // Create a new l3v3lagent conversation
+        const createRes = await api.post('/api/messenger/conversations', {
+          type: 'direct',
+          participantUsernames: ['l3v3lagent'],
+          isSystemBot: true,
+          botName: 'L3V3L Agent',
+        });
+        if (createRes.data?.conversation) {
+          setSelectedChat({
+            id: createRes.data.conversation._id || createRes.data.conversation.id,
+            name: 'L3V3L Agent',
+            isGroup: false,
+            isBot: true,
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load L3V3L Agent conversation:', e);
+    }
+  };
+
   const loadAllConversations = async () => {
     setError(null);
     setIsLoading(true);
@@ -447,6 +487,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     { id: 'profile', label: displayName, subLabel: user?.username || 'Your profile', icon: '👤', isProfile: true },
     { id: 'portal_members', label: 'Portal Members', subLabel: 'All active members', icon: '🦋', count: activeMembersCount },
     { id: 'messages', label: 'My Messages', subLabel: 'Direct conversations', icon: '💬' },
+    { id: 'l3v3lagent', label: 'L3V3L Agent', subLabel: 'System messages & notifications', icon: '🤖' },
   ];
 
   const handleMenuClick = (id) => {
@@ -460,6 +501,11 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         });
       }
       setActiveTab('portal_members');
+      return;
+    }
+    if (id === 'l3v3lagent') {
+      loadL3V3LAgentConversation();
+      setActiveTab('messages'); // Show chat panel like regular conversations
       return;
     }
     // US Vedika handler removed (menu item hidden).
@@ -801,7 +847,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                     {!isLoading && allConversations.length === 0 && (
                       <Text style={styles.subMenuHint}>No conversations</Text>
                     )}
-                    {!isLoading && allConversations.map((conv, index) => {
+                    {!isLoading && allConversations.filter(c => !c.participants?.some(p => p.username === 'l3v3lagent')).map((conv, index) => {
                       const display = getConvDisplay(conv);
                       const key = conv._id || conv.id || index;
                       const isLegacy = conv.type === 'direct_legacy';
@@ -1154,6 +1200,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 6,
   },
+  subMenuItemActive: {
+    backgroundColor: '#1a1a3e',
+  },
+  subMenuDivider: {
+    height: 1,
+    backgroundColor: '#1a1a3e',
+    marginVertical: 8,
+  },
   subMenuIconWrap: {
     position: 'relative', // anchor for absolutely positioned <OnlineDot />
     marginRight: 8,
@@ -1176,6 +1230,10 @@ const styles = StyleSheet.create({
   subMenuLabel: {
     color: '#ccc',
     fontSize: 13,
+  },
+  subMenuLabelActive: {
+    color: '#e94560',
+    fontWeight: '600',
   },
   subMenuMeta: {
     color: '#888',

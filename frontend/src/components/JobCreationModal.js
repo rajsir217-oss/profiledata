@@ -23,6 +23,7 @@ const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
         max_retries: 3,
         retry_delay_seconds: 300
       },
+      notify_messenger_bot: false,
       notifications: {
         on_success: [],
         on_failure: []
@@ -693,6 +694,18 @@ const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
           max="86400"
         />
         <small>Maximum time the job can run before timing out</small>
+      </div>
+
+      <div className="form-group">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={formData.notify_messenger_bot || false}
+            onChange={(e) => setFormData(prev => ({ ...prev, notify_messenger_bot: e.target.checked }))}
+          />
+          <span>Notify Messenger Bot 🤖</span>
+        </label>
+        <small>Send job output/messages to L3V3L Agent topic in messenger (in addition to email)</small>
       </div>
     </div>
   );
