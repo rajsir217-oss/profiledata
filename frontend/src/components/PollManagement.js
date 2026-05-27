@@ -265,7 +265,7 @@ const PollManagement = () => {
         event_timezone: formData.event_timezone || 'America/Los_Angeles',
         event_location: formData.event_location || null,
         event_details: formData.event_details || null,
-        virtual_meet_payment_amount: formData.event_type === 'zoom-call' ? (parseFloat(formData.virtual_meet_payment_amount) ?? 5.00) : null,
+        virtual_meet_payment_amount: ['in-person', 'virtual', 'zoom-call', 'hybrid'].includes(formData.event_type) ? (parseFloat(formData.virtual_meet_payment_amount) ?? 5.00) : null,
         end_date: formData.end_date ? `${formData.end_date}T00:00:00` : null,
         end_time: formData.end_time || null,
         end_timezone: formData.end_timezone || 'America/Los_Angeles',
@@ -364,7 +364,7 @@ const PollManagement = () => {
         event_timezone: formData.event_timezone || 'America/Los_Angeles',
         event_location: formData.event_location || null,
         event_details: formData.event_details || null,
-        virtual_meet_payment_amount: formData.event_type === 'zoom-call' ? (parseFloat(formData.virtual_meet_payment_amount) ?? 5.00) : null,
+        virtual_meet_payment_amount: ['in-person', 'virtual', 'zoom-call', 'hybrid'].includes(formData.event_type) ? (parseFloat(formData.virtual_meet_payment_amount) ?? 5.00) : null,
         end_date: formData.end_date ? `${formData.end_date}T00:00:00` : undefined,
         end_time: formData.end_time || null,
         end_timezone: formData.end_timezone || 'America/Los_Angeles',
@@ -823,7 +823,7 @@ const PollManagement = () => {
                       <option value="hybrid">Hybrid</option>
                     </select>
                   </div>
-                  {formData.event_type === 'zoom-call' && (
+                  {formData.event_type && ['in-person', 'virtual', 'zoom-call', 'hybrid'].includes(formData.event_type) && (
                     <div className="poll-form-group">
                       <label className="poll-checkbox-label poll-free-event-toggle">
                         <input
@@ -1027,7 +1027,7 @@ const PollManagement = () => {
                       <option value="hybrid">Hybrid</option>
                     </select>
                   </div>
-                  {formData.event_type === 'zoom-call' && (
+                  {formData.event_type && ['in-person', 'virtual', 'zoom-call', 'hybrid'].includes(formData.event_type) && (
                     <div className="poll-form-group">
                       <label className="poll-checkbox-label poll-free-event-toggle">
                         <input

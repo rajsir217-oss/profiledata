@@ -137,7 +137,9 @@ async def pay_and_respond(
         raise HTTPException(status_code=404, detail="Poll not found")
 
     # Check if this is a Virtual Meet poll with "Yes" response
-    if not (poll.get("event_type") and poll.get("event_type") in ["in-person", "virtual", "zoom-call", "hybrid"]):
+    # Payment is required for 'zoom-call' and 'virtual' event types.
+    event_type = poll.get("event_type")
+    if not (event_type and event_type in ["in-person", "virtual", "zoom-call", "hybrid"]):
         raise HTTPException(status_code=400, detail="Payment not required for this poll")
 
     # Expected amount in dollars. Reject if poll has no configured amount.
@@ -187,6 +189,10 @@ async def pay_and_respond(
         from services.clover_service import clover_service
 
         result = await clover_service.get_charge(response_data.payment_id)
+        logger.info(
+            f"[pay-and-respond] Clover get_charge result user={current_user.get('username')} "
+            f"poll={poll_id} charge={response_data.payment_id} result={result}"
+        )
         if not result.get("success"):
             logger.warning(
                 f"[pay-and-respond] Clover charge lookup failed user={current_user.get('username')} "
@@ -194,10 +200,15 @@ async def pay_and_respond(
             )
             raise HTTPException(status_code=400, detail="Could not verify card payment")
 
-        if (result.get("status") or "").lower() not in ("paid", "succeeded"):
+        # Accept any of the documented "successful" indicators. Clover's docs show
+        # status="succeeded" with paid=true; some responses use "paid" directly.
+        status_str = (result.get("status") or "").lower()
+        is_paid_flag = bool(result.get("paid"))
+        if status_str not in ("paid", "succeeded") and not is_paid_flag:
             logger.warning(
                 f"[pay-and-respond] Clover charge not paid user={current_user.get('username')} "
-                f"poll={poll_id} charge={response_data.payment_id} status={result.get('status')}"
+                f"poll={poll_id} charge={response_data.payment_id} status={result.get('status')} "
+                f"paid={result.get('paid')}"
             )
             raise HTTPException(status_code=400, detail="Card payment is not in a paid state")
 
