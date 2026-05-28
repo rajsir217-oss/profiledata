@@ -639,25 +639,55 @@ const SearchResultCard = ({
     );
   }
 
-  // Render card view (default) - Vertical layout matching reference design
+  // Render card view (default) - Full-bleed photo with overlay
   const hasImages = user.images && user.images.length > 0;
 
   return (
     <div className="result-card">
-      <div className="card">
-        {/* 1. Header: Name + Badges + Kebab Menu */}
-        <div 
-          className="card-title-section"
-          onClick={navigateToProfile}
-          style={{ cursor: 'pointer' }}
-          title="View Full Profile"
-        >
-          <h6 className="card-title">
-            {debugIndex && <span style={{ color: 'var(--primary-color)', fontWeight: 700, marginRight: '6px' }}>#{debugIndex}</span>}
-            {getShortName(user)}
-            <VerificationBadges badges={user.badges} size="small" />
-          </h6>
-          <div className="card-title-badges">
+      <div className="card card-photo-overlay" onClick={navigateToProfile}>
+
+        {/* 1. Background photo (fills entire card) */}
+        <div className="card-photo-bg">
+          {hasImages && imageUrlWithToken ? (
+            <img
+              src={imageUrlWithToken}
+              alt={`${user.firstName}'s profile`}
+              loading="lazy"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="card-photo-fallback">
+              <DefaultAvatar
+                gender={user.gender}
+                initials={(() => {
+                  const firstName = user.firstName || '';
+                  const lastName = user.lastName || '';
+                  if (firstName && lastName) return (firstName[0] + lastName[0]).toUpperCase();
+                  if (firstName) return firstName[0].toUpperCase();
+                  if (user.username) return user.username[0].toUpperCase();
+                  return '?';
+                })()}
+                size="medium"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* 2. Dark gradient for text readability */}
+        <div className="card-photo-gradient" />
+
+        {/* 3. Top header: name + kebab */}
+        <div className="card-photo-header" onClick={(e) => e.stopPropagation()}>
+          <div className="card-photo-name-row">
+            <h6 className="card-photo-name">
+              {debugIndex && <span className="card-photo-debug">#{debugIndex}</span>}
+              {getShortName(user)}
+            </h6>
+          </div>
+
+          <div className="card-photo-kebab">
             {hasKebabMenu && (
               <SimpleKebabMenu
                 user={user}
@@ -675,55 +705,20 @@ const SearchResultCard = ({
           </div>
         </div>
 
-        {/* 2. Large Profile Image - Full Width */}
-        <div 
-          className="card-image-section"
-          onClick={navigateToProfile}
-          style={{ cursor: 'pointer' }}
-        >
-          {hasImages && imageUrlWithToken ? (
-            <img
-              src={imageUrlWithToken}
-              alt={`${user.firstName}'s profile`}
-              className="card-profile-image"
-              loading="lazy"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
-              }}
-            />
-          ) : null}
-          <div 
-            className="card-image-placeholder"
-            style={{ display: hasImages && imageUrlWithToken ? 'none' : 'flex' }}
-          >
-            <DefaultAvatar 
-              gender={user.gender} 
-              initials={(() => {
-                const firstName = user.firstName || '';
-                const lastName = user.lastName || '';
-                if (firstName && lastName) return (firstName[0] + lastName[0]).toUpperCase();
-                if (firstName) return firstName[0].toUpperCase();
-                if (user.username) return user.username[0].toUpperCase();
-                return '?';
-              })()}
-              size="medium" 
-            />
-          </div>
-          
-          {/* Image Navigation */}
+        {/* 4. Top layer: image nav + counter */}
+        <div className="card-photo-top" onClick={(e) => e.stopPropagation()}>
           {hasImages && user.images.length > 1 && (
             <>
               <button
                 className="card-image-nav prev"
-                onClick={(e) => { e.stopPropagation(); handlePrevImage(e); }}
+                onClick={handlePrevImage}
                 disabled={currentImageIndex === 0}
               >
                 ‹
               </button>
               <button
                 className="card-image-nav next"
-                onClick={(e) => { e.stopPropagation(); handleNextImage(e); }}
+                onClick={handleNextImage}
                 disabled={currentImageIndex === user.images.length - 1}
               >
                 ›
@@ -735,72 +730,61 @@ const SearchResultCard = ({
           )}
         </div>
 
-        {/* 3. Card Body: Bio, Details, Actions */}
-        <div className="card-body">
-          {/* Bio Quote */}
-          <div className="card-bio-section">
-            {user?.bio || user?.aboutMe || user?.about || user?.description ? (
-              <p className="card-bio-quote">
-                "{(user.bio || user.aboutMe || user.about || user.description).substring(0, 120)}
-                {(user.bio || user.aboutMe || user.about || user.description).length > 120 ? '...' : ''}"
-              </p>
-            ) : (
-              <p className="card-bio-quote card-bio-placeholder">
-                "Click to view full profile..."
-              </p>
-            )}
-          </div>
+        {/* 5. Bottom overlay: stats + details + looking for + bio + actions */}
+        <div className="card-photo-content" onClick={(e) => e.stopPropagation()}>
 
-          {/* Quick Stats Pills Row - Height, DOB, Religion, Match Score, Age, Eating Preference */}
-          <div className="card-stats-pills">
-            {displayHeight && <span className="card-stat-pill">{displayHeight}</span>}
-            {displayDOB && <span className="card-stat-pill">{displayDOB}</span>}
-            {user.religion && <span className="card-stat-pill">{user.religion}</span>}
+          {/* Stats row */}
+          <div className="card-photo-stats">
+            {displayHeight && <span>{displayHeight}</span>}
+            {displayDOB && <span>{displayDOB}</span>}
+            <VerificationBadges badges={user.badges} size="small" />
+            {displayAge && displayAge !== 'N/A' && (
+              <span className="card-photo-age">{displayAge}y</span>
+            )}
+            {user.religion && <span>{user.religion}</span>}
+            {user.eatingPreference && <span>{user.eatingPreference}</span>}
             {Number(user.matchScore) > 0 && (
-              <span className="l3v3l-match-badge" title={user.compatibilityLevel || `${user.matchScore}% compatibility`}>
-                🦋{Math.round(Number(user.matchScore) * 10) / 10}%
-              </span>
-            )}
-            {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge}yrs</span>}
-            {user.eatingPreference && <span className="card-stat-pill">{user.eatingPreference}</span>}
-          </div>
-
-          {/* User Details - Pill Style */}
-          <div className="card-details-pills">
-            {user.location && (
-              <span className="card-detail-pill card-detail-pill--location" title={user.location}>
-                📍 {user.location}
-              </span>
-            )}
-            {displayOccupation && (
-              <span className="card-detail-pill card-detail-pill--occupation" title={displayOccupation}>
-                💼 {displayOccupation}
-              </span>
-            )}
-            {displayEducation && (
-              <span className="card-detail-pill card-detail-pill--education" title={displayEducation}>
-                🎓 {displayEducation}
+              <span className="card-photo-match" title={user.compatibilityLevel}>
+                🦋 {Math.round(Number(user.matchScore) * 10) / 10}%
               </span>
             )}
           </div>
 
-          {/* Looking For Summary */}
+          {/* Details row */}
+          <div className="card-photo-details">
+            {user.location && <span>📍 {user.location}</span>}
+            {displayOccupation && <span>💼 {displayOccupation}</span>}
+            {displayEducation && <span>🎓 {displayEducation}</span>}
+          </div>
+
+          {/* Looking For */}
           {(() => {
             const lookingForSummary = generateLookingForSummary(user);
-            return lookingForSummary ? (
-              <p className="card-looking-for">
+            if (!lookingForSummary) return null;
+            return (
+              <p className="card-photo-looking-for">
                 <span className="looking-for-label">LOOKING FOR:</span> {lookingForSummary}
               </p>
-            ) : null;
+            );
           })()}
 
-          {/* Action Buttons Row - Request Pics, Favorite & Message */}
-          <div className="card-action-buttons-row">
-            {/* Request Pics Button - Only show if no full image access */}
+          {/* Bio (short, 2 lines) */}
+          {(() => {
+            const raw = user?.bio || user?.aboutMe || user?.about || user?.description;
+            if (!raw) return null;
+            return (
+              <p className="card-photo-bio">
+                "{raw.substring(0, 100)}{raw.length > 100 ? '…' : ''}"
+              </p>
+            );
+          })()}
+
+          {/* Action buttons */}
+          <div className="card-photo-actions">
             {!hasImageAccess && currentUsername !== user.username && (
               !isImageRequestPending ? (
                 <button
-                  className="card-action-icon-btn"
+                  className="card-photo-action-btn"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onPIIRequest) onPIIRequest(user);
@@ -810,20 +794,15 @@ const SearchResultCard = ({
                   📷
                 </button>
               ) : (
-                <button
-                  className="card-action-icon-btn pending"
-                  disabled
-                  title="Photo Request Sent"
-                >
+                <button className="card-photo-action-btn pending" disabled title="Photo Request Sent">
                   ✓
                 </button>
               )
             )}
 
-            {/* Favorite Button */}
             {currentUsername !== user.username && (onToggleFavorite || onFavorite) && (
               <button
-                className={`card-action-icon-btn ${isFavorited ? 'active' : ''}`}
+                className={`card-photo-action-btn ${isFavorited ? 'active' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (onToggleFavorite) onToggleFavorite(user);
@@ -835,9 +814,8 @@ const SearchResultCard = ({
               </button>
             )}
 
-            {/* Message Button */}
             <button
-              className="card-action-icon-btn"
+              className="card-photo-action-btn"
               onClick={(e) => {
                 e.stopPropagation();
                 if (onMessage) onMessage(user);

@@ -1651,15 +1651,15 @@ const Profile = ({
               height: '100%',
               borderRadius: 'var(--radius-md)',
               overflow: 'hidden',
-              border: `4px solid ${user.gender === 'Female' ? '#ec4899' : 'var(--primary-color, #667eea)'}`,
+              border: '4px solid var(--primary-color)',
               boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-              backgroundColor: user.gender === 'Female' ? '#fce7f3' : '#e0e7ff',
+              backgroundColor: 'var(--surface-color)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '48px',
               fontWeight: 'bold',
-              color: user.gender === 'Female' ? '#ec4899' : '#667eea',
+              color: 'var(--primary-color)',
               cursor: canOpenAvatar ? 'pointer' : 'default',
               position: 'relative'
             }}
