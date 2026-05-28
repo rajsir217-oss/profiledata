@@ -151,6 +151,24 @@
   }
 }
 
+/* Analog Clock Styles for Mobile */
+.event-countdown-clock-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  transform: translateY(2px); /* Fine-tune vertical alignment */
+}
+
+/* Customizing the react-clock component */
+.react-clock__face {
+  border-color: #9ae6b4;
+}
+
+.react-clock__hand__body {
+  background-color: #c6f6d5;
+}
+
 /* Poll Modal Styles (reusing PollWidget styles) */
 .poll-modal-overlay {
   position: fixed;
