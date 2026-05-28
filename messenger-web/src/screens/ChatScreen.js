@@ -292,6 +292,13 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   const [sending, setSending] = useState(false);
   const [armedDeleteId, setArmedDeleteId] = useState(null);
   const [socketConnected, setSocketConnected] = useState(true);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // For non-legacy conversations, render directly from the store to avoid
   // an extra commit per real-time update. For legacy chats, keep the local
@@ -1101,7 +1108,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
               support rich content types like profile_card. */}
           {!isLegacy && name === 'Portal Members' && (
             <TouchableOpacity
-              style={styles.quickBtn}
+              style={[styles.quickBtn, isMobile && styles.quickBtnMobile]}
               onPress={() => setShowQuickMessages(true)}
               disabled={sendingProfileCard}
             >
@@ -1124,14 +1131,14 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
             }}
           />
           <TouchableOpacity
-            style={[styles.sendButton, !newMessage.trim() && styles.sendButtonDisabled]}
+            style={[styles.sendButton, isMobile && styles.sendButtonMobile, !newMessage.trim() && styles.sendButtonDisabled]}
             onPress={sendMessage}
             disabled={sending || !newMessage.trim()}
           >
             {sending ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.sendButtonText}>Send</Text>
+              <Text style={styles.sendButtonText}>{isMobile ? '➤' : 'Send'}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -1795,6 +1802,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  sendButtonMobile: {
+    paddingHorizontal: 0,
+    minWidth: 36,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
   sendButtonDisabled: {
     backgroundColor: '#333',
   },
@@ -2020,6 +2034,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1e3a5f',
   },
+  quickBtnMobile: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 6,
+  },
   quickBtnText: {
     fontSize: 18,
   },
@@ -2076,12 +2096,12 @@ const cardStyles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 120,
+    height: 120,
+    borderRadius: 12,
     marginRight: 12,
     backgroundColor: '#1e3a5f',
   },
