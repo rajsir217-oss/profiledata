@@ -908,8 +908,10 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         )}
       </View>
 
-      {/* Messages */}
-      {loading ? (
+      {/* Messages and Input container */}
+      <View style={{ flex: 1 }}>
+        {/* Messages */}
+        {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#e94560" />
           <Text style={styles.loadingText}>Loading messages...</Text>
@@ -1134,6 +1136,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      </View>
 
       {/* Quick Messages picker — opens from the ⚡ button. Only "Introduction"
           is wired up to a real action (sends a profile_card). The others are
