@@ -5,7 +5,9 @@ Communication & Notification Module endpoints
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from services.messenger_service import send_to_l3v3lagent
 
 from models.notification_models import (
     NotificationPreferences,
@@ -1009,4 +1011,366 @@ async def delete_scheduled_notification(
         
     except Exception as e:
         logger.error(f"❌ Error deleting scheduled notification: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete scheduled notification: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete scheduled notification: {str(e)}")
+
+
+# ============================================
+# Lazy On-Demand Notification Endpoints
+# ============================================
+
+async def collect_search_matches(
+    db: AsyncIOMotorDatabase,
+    username: str,
+    prefs: dict
+) -> dict:
+    """Collect search matches based on user preferences"""
+    fields = prefs.get("fields", {})
+    lookback_days = prefs.get("lookbackDays", 7)
+    
+    searches = await db.saved_searches.find({"username": username}).to_list(None)
+    
+    search_data = []
+    for search in searches:
+        lookback_hours = lookback_days * 24
+        last_notification_time = datetime.utcnow() - timedelta(hours=lookback_hours)
+        
+        matches = await db.users.find({
+            "createdAt": {"$gte": last_notification_time}
+        }).to_list(None)
+        
+        detailed_matches = []
+        for match in matches:
+            match_data = {}
+            if fields.get("name"):
+                match_data["name"] = f"{match.get('firstName', '')} {match.get('lastName', '')}".strip() or match.get("username")
+            if fields.get("age"):
+                match_data["age"] = match.get("age")
+            if fields.get("height"):
+                match_data["height"] = match.get("height")
+            if fields.get("location"):
+                match_data["location"] = match.get("location")
+            if fields.get("education"):
+                match_data["education"] = match.get("education")
+            if fields.get("profession"):
+                match_data["profession"] = match.get("profession")
+            detailed_matches.append(match_data)
+        
+        search_data.append({
+            "searchId": str(search["_id"]),
+            "searchName": search["name"],
+            "newProfilesCount": len(detailed_matches),
+            "matches": detailed_matches
+        })
+    
+    return {"searches": search_data}
+
+
+async def collect_pending_messages(
+    db: AsyncIOMotorDatabase,
+    username: str
+) -> dict:
+    """Collect pending message statistics"""
+    conversations = await db.messenger_conversations.find({
+        "participants.username": username
+    }).to_list(None)
+    
+    unreadCount = 0
+    pendingReplyCount = 0
+    convDetails = []
+    
+    for conv in conversations:
+        unread = await db.messenger_messages.count_documents({
+            "conversationId": conv["_id"],
+            "senderUsername": {"$ne": username},
+            "readAt": None
+        })
+        
+        if unread > 0:
+            unreadCount += unread
+            pendingReplyCount += 1
+            
+            otherUser = [p for p in conv["participants"] if p["username"] != username][0]
+            convDetails.append({
+                "conversationId": str(conv["_id"]),
+                "otherUser": otherUser["username"],
+                "lastMessageAt": conv.get("lastMessageAt"),
+                "unreadCount": unread
+            })
+    
+    return {
+        "unreadCount": unreadCount,
+        "pendingReplyCount": pendingReplyCount,
+        "conversations": convDetails
+    }
+
+
+async def collect_tip(username: str) -> dict:
+    """Collect a random tip"""
+    tips = [
+        "Tip: Update your profile photo to get more matches!",
+        "Tip: Be honest in your profile to attract genuine connections.",
+        "Tip: Respond to messages promptly to keep conversations active.",
+        "Tip: Add more details to your profile to improve match quality.",
+        "Tip: Complete your education and profession fields for better matches."
+    ]
+    
+    import random
+    return {"tip": random.choice(tips)}
+
+
+async def collect_poll_expirations(
+    db: AsyncIOMotorDatabase,
+    username: str
+) -> dict:
+    """Collect expiring polls"""
+    seven_days_ahead = datetime.utcnow() + timedelta(days=7)
+    
+    expiring_polls = await db.polls.find({
+        "createdBy": username,
+        "expiresAt": {"$lte": seven_days_ahead, "$gte": datetime.utcnow()}
+    }).to_list(None)
+    
+    poll_data = [
+        {
+            "pollId": str(p["_id"]),
+            "pollName": p.get("name", "Untitled Poll"),
+            "expiresAt": p.get("expiresAt")
+        }
+        for p in expiring_polls
+    ]
+    
+    return {"expiringPolls": poll_data}
+
+
+async def collect_notification_data(
+    db: AsyncIOMotorDatabase,
+    username: str,
+    prefs: dict
+) -> dict:
+    """Collect all notification data based on user preferences"""
+    data = {}
+    
+    if prefs.get("newMatches", {}).get("enabled"):
+        data["searchMatches"] = await collect_search_matches(db, username, prefs["newMatches"])
+    
+    if prefs.get("pendingMessages", {}).get("enabled"):
+        data["pendingMessages"] = await collect_pending_messages(db, username)
+    
+    if prefs.get("tips", {}).get("enabled"):
+        data["tips"] = await collect_tip(username)
+    
+    if prefs.get("pollExpiration", {}).get("enabled"):
+        data["pollExpirations"] = await collect_poll_expirations(db, username)
+    
+    return data
+
+
+async def _send_notifications_to_agent(db, username: str, data: dict, prefs: dict):
+    """
+    Format notification data and send each enabled category as a message
+    to the user's L3V3L Agent conversation.
+    Only sends if there is something meaningful to report.
+    """
+    try:
+        messages = []
+
+        # New Matches
+        if prefs.get("newMatches", {}).get("enabled") and data.get("searchMatches", {}).get("searches"):
+            searches = data["searchMatches"]["searches"]
+            lines = ["🔍 *New Matches*"]
+            for s in searches:
+                count = s.get("newProfilesCount", 0)
+                name = s.get("searchName", "Search")
+                lines.append(f"• {name}: {count} new profile{'s' if count != 1 else ''}")
+            messages.append("\n".join(lines))
+
+        # Pending Messages
+        if prefs.get("pendingMessages", {}).get("enabled"):
+            pm = data.get("pendingMessages", {})
+            pending = pm.get("pendingReplyCount", 0)
+            unread = pm.get("unreadCount", 0)
+            if pending > 0 or unread > 0:
+                messages.append(
+                    f"💬 *Pending Messages*\n"
+                    f"• {pending} conversation{'s' if pending != 1 else ''} need reply ({unread} unread)"
+                )
+
+        # Tip
+        if prefs.get("tips", {}).get("enabled") and data.get("tips", {}).get("tip"):
+            tip = data["tips"]["tip"]
+            messages.append(f"💡 *Tip*\n• {tip}")
+
+        # Poll Expirations
+        if prefs.get("pollExpiration", {}).get("enabled"):
+            polls = data.get("pollExpirations", {}).get("expiringPolls", [])
+            if polls:
+                lines = [f"📊 *Poll Expirations* ({len(polls)} expiring soon)"]
+                for p in polls[:5]:
+                    lines.append(f"• {p.get('title', 'Poll')}")
+                messages.append("\n".join(lines))
+
+        # Send each block as a separate message
+        for msg in messages:
+            await send_to_l3v3lagent(db=db, recipient_username=username, content=msg)
+
+        if messages:
+            logger.info(f"📬 Sent {len(messages)} notification messages to L3V3L Agent for {username}")
+
+    except Exception as e:
+        logger.error(f"❌ Failed to send notifications to L3V3L Agent for {username}: {e}")
+
+
+@router.get("/{username}")
+async def get_lazy_notifications(
+    username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get notifications for user (lazy on-demand).
+    Returns cached data if valid (< 24hrs), otherwise fetches fresh data.
+    """
+    if current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Check if valid cache exists
+    cache = await db.notification_cache.find_one({
+        "username": username,
+        "expiresAt": {"$gt": datetime.utcnow()}
+    })
+    
+    if cache:
+        logger.info(f"✅ Returning cached data for {username}")
+        return {
+            "source": "cache",
+            "data": cache["data"],
+            "cachedAt": cache["createdAt"],
+            "expiresAt": cache["expiresAt"]
+        }
+    
+    # No valid cache - fetch fresh data
+    logger.info(f"🔄 Fetching fresh data for {username}")
+    
+    # Get user preferences
+    prefs = await db.user_preferences.find_one({"username": username})
+    if not prefs:
+        # Create default preferences
+        prefs = {
+            "newMatches": {
+                "enabled": True,
+                "fields": {
+                    "name": True,
+                    "age": True,
+                    "height": True,
+                    "location": True,
+                    "education": True,
+                    "profession": True
+                },
+                "lookbackDays": 7
+            },
+            "pendingMessages": {"enabled": True},
+            "tips": {"enabled": True},
+            "pollExpiration": {"enabled": True},
+            "profileCardWeeklyPost": {"enabled": True},
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow()
+        }
+        await db.user_preferences.update_one(
+            {"username": username},
+            {"$set": prefs},
+            upsert=True
+        )
+    
+    # Collect data based on preferences
+    data = await collect_notification_data(db, username, prefs)
+    
+    # Send collected data as messages to the user's L3V3L Agent conversation
+    await _send_notifications_to_agent(db, username, data, prefs)
+    
+    # Cache for 24 hours
+    now = datetime.utcnow()
+    await db.notification_cache.update_one(
+        {"username": username},
+        {
+            "$set": {
+                "data": data,
+                "createdAt": now,
+                "expiresAt": now + timedelta(hours=24),
+                "ttl": 86400
+            }
+        },
+        upsert=True
+    )
+    
+    return {
+        "source": "fresh",
+        "data": data,
+        "cachedAt": now,
+        "expiresAt": now + timedelta(hours=24)
+    }
+
+
+@router.get("/user-prefs")
+async def get_user_notification_prefs(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Get user notification preferences for lazy notification system"""
+    username = current_user["username"]
+    
+    prefs = await db.user_preferences.find_one({"username": username})
+    if not prefs:
+        prefs = {
+            "newMatches":           {"enabled": True, "fields": {"name": True, "age": True, "height": True, "location": True, "education": True, "profession": True}, "lookbackDays": 7},
+            "pendingMessages":      {"enabled": True},
+            "tips":                 {"enabled": True},
+            "pollExpiration":       {"enabled": True},
+            "profileCardWeeklyPost":{"enabled": True},
+        }
+        await db.user_preferences.update_one({"username": username}, {"$set": prefs}, upsert=True)
+    
+    prefs.pop("_id", None)
+    return prefs
+
+
+@router.put("/user-prefs")
+async def save_user_notification_prefs(
+    prefs_data: dict,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Save user notification preferences and invalidate cache"""
+    username = current_user["username"]
+    
+    prefs_data["updatedAt"] = datetime.utcnow()
+    await db.user_preferences.update_one(
+        {"username": username},
+        {"$set": prefs_data},
+        upsert=True
+    )
+    
+    # Invalidate notification cache so next fetch uses updated preferences
+    await db.notification_cache.delete_one({"username": username})
+    
+    logger.info(f"✅ Saved notification prefs for {username}")
+    return {"success": True}
+
+
+@router.post("/track-login")
+async def track_login_telemetry(
+    platform: str = "web",
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Track user login for analytics"""
+    username = current_user["username"]
+    
+    await db.messenger_usage_telemetry.insert_one({
+        "username": username,
+        "action": "login",
+        "platform": platform,
+        "timestamp": datetime.utcnow()
+    })
+    
+    logger.info(f"📊 Tracked login for {username} on {platform}")
+    return {"success": True}
