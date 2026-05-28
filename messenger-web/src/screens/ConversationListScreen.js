@@ -1012,14 +1012,19 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    height: '100dvh',
     minHeight: '100vh',
+    maxHeight: '100dvh',
     backgroundColor: '#1a1a2e',
     flexDirection: 'row',
+    overflow: 'hidden',
   },
   rightColumn: {
     flex: 1,
     flexDirection: 'column',
-    minHeight: '100vh',
+    height: '100dvh',
+    maxHeight: '100dvh',
+    overflow: 'hidden',
   },
 
   // Header
@@ -1094,7 +1099,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#1a1a3e',
     flexDirection: 'column',
-    minHeight: '100vh',
+    height: '100dvh',
   },
   sidebarExpanded: {
     width: 280,
