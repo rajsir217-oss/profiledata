@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>L3V3L Matches Messenger — Asset Generator</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 40px; background: #1a1a2e; color: #fff; }
+  h1 { color: #e94560; }
+  .asset { margin: 30px 0; padding: 20px; background: #16213e; border-radius: 12px; }
+  canvas { display: block; margin: 15px 0; border-radius: 8px; border: 1px solid #333; }
+  button { background: #e94560; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+  button:hover { background: #ff6b81; }
+  .note { color: #aaa; font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>Play Store Asset Generator</h1>
+<p>Open this file in any browser. Click each button to download the PNG.</p>
+
+<div class="asset">
+  <h2>1. App Icon — 512×512</h2>
+  <canvas id="iconCanvas" width="512" height="512"></canvas>
+  <button onclick="downloadIcon()">Download icon-512.png</button>
+  <p class="note">Use this for the Play Store listing and as your launcher icon source.</p>
+</div>
+
+<div class="asset">
+  <h2>2. Feature Graphic — 1024×500</h2>
+  <canvas id="featureCanvas" width="1024" height="500"></canvas>
+  <button onclick="downloadFeature()">Download feature-graphic.png</button>
+  <p class="note">Upload this to Play Console → Store presence → Main store listing → Feature graphic.</p>
+</div>
+
+<script>
+const PRIMARY = '#e94560';
+const SECONDARY = '#667eea';
+const DARK_BG = '#1a1a2e';
+
+function drawRoundedRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawButterfly(ctx, cx, cy, size, color) {
+  ctx.fillStyle = color;
+  const s = size;
+  // Left wing
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - s/4);
+  ctx.lineTo(cx - s/2, cy - s/2);
+  ctx.lineTo(cx - s/3, cy);
+  ctx.lineTo(cx - s/2, cy + s/2);
+  ctx.lineTo(cx, cy + s/4);
+  ctx.closePath();
+  ctx.fill();
+  // Right wing
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - s/4);
+  ctx.lineTo(cx + s/2, cy - s/2);
+  ctx.lineTo(cx + s/3, cy);
+  ctx.lineTo(cx + s/2, cy + s/2);
+  ctx.lineTo(cx, cy + s/4);
+  ctx.closePath();
+  ctx.fill();
+  // Body
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, s/12, s/3, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ── App Icon ──
+function drawIcon() {
+  const c = document.getElementById('iconCanvas');
+  const ctx = c.getContext('2d');
+  const s = 512;
+
+  // Background
+  ctx.fillStyle = PRIMARY;
+  drawRoundedRect(ctx, 0, 0, s, s, s/8);
+  ctx.fill();
+
+  // Top highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  drawRoundedRect(ctx, 0, 0, s, s/2, s/8);
+  ctx.fill();
+
+  // Butterfly
+  drawButterfly(ctx, s/2, s/2 - 30, s/3, '#fff');
+
+  // Text
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 42px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText('L3V3L', s/2, s - 110);
+  ctx.font = '28px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText('Messenger', s/2, s - 60);
+}
+
+// ── Feature Graphic ──
+function drawFeature() {
+  const c = document.getElementById('featureCanvas');
+  const ctx = c.getContext('2d');
+  const w = 1024, h = 500;
+
+  // Dark background
+  ctx.fillStyle = DARK_BG;
+  ctx.fillRect(0, 0, w, h);
+
+  // Gradient overlay
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, 'rgba(233,69,96,0.15)');
+  grad.addColorStop(1, 'rgba(102,126,234,0.05)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Decorative circles
+  ctx.fillStyle = 'rgba(233,69,96,0.15)';
+  ctx.beginPath();
+  ctx.arc(w - 100, 50, 150, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(102,126,234,0.12)';
+  ctx.beginPath();
+  ctx.arc(100, h - 50, 150, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Butterfly
+  drawButterfly(ctx, w/2, h/2 - 70, 120, '#fff');
+
+  // Title
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 56px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText('L3V3L Matches Messenger', w/2, h/2 + 40);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = '28px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText('Real-time chat for your matchmaking journey', w/2, h/2 + 100);
+
+  // CTA pill
+  const text = 'Download on Google Play';
+  ctx.font = '20px -apple-system, BlinkMacSystemFont, sans-serif';
+  const tw = ctx.measureText(text).width;
+  const pad = 20;
+  const pillW = tw + pad * 2;
+  const pillH = 40;
+  const pillX = (w - pillW) / 2;
+  const pillY = h/2 + 150;
+  ctx.fillStyle = PRIMARY;
+  drawRoundedRect(ctx, pillX, pillY, pillW, pillH, pillH/2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.fillText(text, w/2, pillY + 28);
+}
+
+function downloadCanvas(c, filename) {
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = c.toDataURL('image/png');
+  link.click();
+}
+
+function downloadIcon() { downloadCanvas(document.getElementById('iconCanvas'), 'play-store-icon-512.png'); }
+function downloadFeature() { downloadCanvas(document.getElementById('featureCanvas'), 'play-store-feature-graphic-1024x500.png'); }
+
+// Draw on load
+drawIcon();
+drawFeature();
+</script>
+</body>
+</html>

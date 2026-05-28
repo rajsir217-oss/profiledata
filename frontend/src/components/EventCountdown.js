@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Clock from 'react-clock';
-import 'react-clock/dist/Clock.css';
 import { getBackendUrl } from '../config/apiConfig';
 import './EventCountdown.css';
 
@@ -344,13 +342,7 @@ const EventCountdown = () => {
           <span className="event-countdown-label">Event:</span>
           <span className="event-countdown-name">{currentEvent.title}</span>
           <span className="event-countdown-text">in</span>
-          {isMobile ? (
-            <div className="event-countdown-clock-wrapper">
-              <Clock value={currentEvent.eventDateTime} size={24} renderNumbers={false} />
-            </div>
-          ) : (
-            <span className="event-countdown-timer">{countdownStr}</span>
-          )}
+          <span className="event-countdown-timer">{isMobile ? '⏰' : countdownStr}</span>
         </div>
         
         {/* Navigation arrow for multiple events */}
