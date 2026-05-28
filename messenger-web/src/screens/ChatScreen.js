@@ -1097,7 +1097,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         <View style={styles.inputContainer}>
           {/* ⚡ Quick Messages — hidden for legacy 1:1 chats since they don't
               support rich content types like profile_card. */}
-          {!isLegacy && (
+          {!isLegacy && name === 'Portal Members' && (
             <TouchableOpacity
               style={styles.quickBtn}
               onPress={() => setShowQuickMessages(true)}

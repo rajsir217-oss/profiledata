@@ -37,6 +37,8 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [unblockingUser, setUnblockingUser] = useState(null); // username currently being unblocked
   // Active members count for Portal Members menu item badge
   const [activeMembersCount, setActiveMembersCount] = useState(null);
+  const [myMessagesCount, setMyMessagesCount] = useState(0);
+  const [l3v3lAgentCount, setL3v3lAgentCount] = useState(0);
 
   const {
     conversations,
@@ -78,6 +80,30 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   // Real-time-ish online presence (polled every 30s). Used to render
   // small green/gray dots on user avatars across the messenger UI.
   const { isOnline, onlineSet } = useOnlinePresence();
+
+  useEffect(() => {
+    if (allConversations && allConversations.length > 0) {
+      let myMessagesUnread = 0;
+      let l3v3lAgentUnread = 0;
+
+      allConversations.forEach(conv => {
+        const isBotConv = conv.isSystemBot || conv.participants?.some(p => p.username === 'l3v3lagent');
+        const unread = conv.unreadCount || 0;
+
+        if (isBotConv) {
+          l3v3lAgentUnread += unread;
+        } else {
+          myMessagesUnread += unread;
+        }
+      });
+
+      setMyMessagesCount(myMessagesUnread);
+      setL3v3lAgentCount(l3v3lAgentUnread);
+    } else {
+      setMyMessagesCount(0);
+      setL3v3lAgentCount(0);
+    }
+  }, [allConversations]);
 
   // Fetch conversations on mount and when tab changes
   useEffect(() => {
@@ -440,7 +466,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
   // Group conversations
   const groupConversations = allConversations.filter(c => c.type === 'group');
-  const directConversations = allConversations.filter(c => c.type !== 'group');
+  const directConversations = allConversations.filter(c => c.type !== 'group' && !c.isSystemBot);
 
   // Helper: get display name for a conversation (L3V3L Messenger structure).
   // Returns `username` for direct chats so callers can do online-presence lookups.
@@ -486,8 +512,8 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const menuItems = [
     { id: 'profile', label: displayName, subLabel: user?.username || 'Your profile', icon: '👤', isProfile: true },
     { id: 'portal_members', label: 'Portal Members', subLabel: 'All active members', icon: '🦋', count: activeMembersCount },
-    { id: 'messages', label: 'My Messages', subLabel: 'Direct conversations', icon: '💬' },
-    { id: 'l3v3lagent', label: 'L3V3L Agent', subLabel: 'System messages & notifications', icon: '🤖' },
+    { id: 'messages', label: 'My Messages', subLabel: 'Direct conversations', icon: '💬', count: myMessagesCount },
+    { id: 'l3v3lagent', label: 'L3V3L Agent', subLabel: 'System messages & notifications', icon: '🤖', count: l3v3lAgentCount },
   ];
 
   const handleMenuClick = (id) => {
@@ -505,7 +531,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     }
     if (id === 'l3v3lagent') {
       loadL3V3LAgentConversation();
-      setActiveTab('messages'); // Show chat panel like regular conversations
+      setActiveTab('l3v3lagent');
       return;
     }
     // US Vedika handler removed (menu item hidden).
@@ -847,7 +873,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                     {!isLoading && allConversations.length === 0 && (
                       <Text style={styles.subMenuHint}>No conversations</Text>
                     )}
-                    {!isLoading && allConversations.filter(c => !c.participants?.some(p => p.username === 'l3v3lagent')).map((conv, index) => {
+                    {!isLoading && allConversations.filter(c => !c.isSystemBot).map((conv, index) => {
                       const display = getConvDisplay(conv);
                       const key = conv._id || conv.id || index;
                       const isLegacy = conv.type === 'direct_legacy';
