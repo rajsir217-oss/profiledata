@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Clock from 'react-clock';
+import 'react-clock/dist/Clock.css';
 import { getBackendUrl } from '../config/apiConfig';
 import './EventCountdown.css';
 
@@ -14,6 +16,7 @@ const EventCountdown = () => {
   const [countdown, setCountdown] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPollModal, setShowPollModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   // ESC key handler to close modal
   useEffect(() => {
@@ -26,6 +29,15 @@ const EventCountdown = () => {
     document.addEventListener('keydown', handleEscKey);
     return () => document.removeEventListener('keydown', handleEscKey);
   }, [showPollModal]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Fetch polls user responded "Yes" to
   useEffect(() => {
@@ -332,7 +344,13 @@ const EventCountdown = () => {
           <span className="event-countdown-label">Event:</span>
           <span className="event-countdown-name">{currentEvent.title}</span>
           <span className="event-countdown-text">in</span>
-          <span className="event-countdown-timer">{countdownStr}</span>
+          {isMobile ? (
+            <div className="event-countdown-clock-wrapper">
+              <Clock value={currentEvent.eventDateTime} size={24} renderNumbers={false} />
+            </div>
+          ) : (
+            <span className="event-countdown-timer">{countdownStr}</span>
+          )}
         </div>
         
         {/* Navigation arrow for multiple events */}
