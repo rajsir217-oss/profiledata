@@ -172,8 +172,8 @@
 
 .profile-header-inner .profile-avatar-container {
   grid-area: avatar;
-  width: 88px;
-  height: 88px;
+  width: 160px;
+  height: 160px;
   flex-shrink: 0;
 }
 
@@ -1733,8 +1733,8 @@
   }
 
   .profile-header-inner .profile-avatar-container {
-    width: 76px;
-    height: 76px;
+    width: 120px;
+    height: 120px;
   }
 
   .profile-identity-row {
