@@ -1651,7 +1651,7 @@ const Profile = ({
               height: '100%',
               borderRadius: 'var(--radius-md)',
               overflow: 'hidden',
-              border: '4px solid var(--primary-color)',
+              border: '1px solid var(--border-color)',
               boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
               backgroundColor: 'var(--surface-color)',
               display: 'flex',
