@@ -39,6 +39,20 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [activeMembersCount, setActiveMembersCount] = useState(null);
   const [myMessagesCount, setMyMessagesCount] = useState(0);
   const [l3v3lAgentCount, setL3v3lAgentCount] = useState(0);
+  // Lazy notification system state
+  const [notifications, setNotifications] = useState(null);
+  const [notificationLoading, setNotificationLoading] = useState(false);
+  const [showNotificationBanner, setShowNotificationBanner] = useState(false);
+  // Notification preferences (for Settings section)
+  const [notifPrefs, setNotifPrefs] = useState({
+    newMatches: { enabled: true, fields: { name: true, age: true, height: true, location: true, education: true, profession: true }, lookbackDays: 7 },
+    pendingMessages: { enabled: true },
+    tips: { enabled: true },
+    pollExpiration: { enabled: true },
+    profileCardWeeklyPost: { enabled: true },
+  });
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [prefsToast, setPrefsToast] = useState(null); // { message, type }
 
   const {
     conversations,
@@ -80,6 +94,78 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   // Real-time-ish online presence (polled every 30s). Used to render
   // small green/gray dots on user avatars across the messenger UI.
   const { isOnline, onlineSet } = useOnlinePresence();
+
+  // Fetch lazy notifications on mount
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user?.username) return;
+
+      setNotificationLoading(true);
+      try {
+        const api = useAuthStore.getState().getApi();
+        const response = await api.get(`/api/notifications/${user.username}`);
+        const { source, data } = response.data;
+
+        setNotifications(data);
+
+        if (source === 'fresh') {
+          console.log('🔄 Fresh notification data loaded from backend');
+        } else {
+          console.log('✅ Cached notification data loaded');
+        }
+
+        // Show agent nudge only when fresh data was just dispatched to L3V3L Agent
+        if (source === 'fresh') {
+          setShowNotificationBanner(true);
+          setTimeout(() => setShowNotificationBanner(false), 6000);
+        }
+      } catch (e) {
+        console.error('Failed to fetch notifications:', e);
+      } finally {
+        setNotificationLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, [user?.username]);
+
+  // Load notification preferences on mount
+  useEffect(() => {
+    const loadNotifPrefs = async () => {
+      if (!user?.username) return;
+      try {
+        const api = useAuthStore.getState().getApi();
+        const res = await api.get('/api/notifications/user-prefs');
+        setNotifPrefs(prev => ({ ...prev, ...res.data }));
+      } catch (e) {
+        // Silently fail — defaults are fine
+      }
+    };
+    loadNotifPrefs();
+  }, [user?.username]);
+
+  const saveNotifPrefs = async (updatedPrefs) => {
+    setSavingPrefs(true);
+    try {
+      const api = useAuthStore.getState().getApi();
+      await api.put('/api/notifications/user-prefs', updatedPrefs);
+      setNotifPrefs(updatedPrefs);
+      setPrefsToast({ message: 'Settings saved!', type: 'success' });
+    } catch (e) {
+      setPrefsToast({ message: 'Failed to save settings', type: 'error' });
+    } finally {
+      setSavingPrefs(false);
+      setTimeout(() => setPrefsToast(null), 3000);
+    }
+  };
+
+  const togglePref = (key) => {
+    const updated = {
+      ...notifPrefs,
+      [key]: { ...notifPrefs[key], enabled: !notifPrefs[key].enabled },
+    };
+    saveNotifPrefs(updated);
+  };
 
   useEffect(() => {
     if (allConversations && allConversations.length > 0) {
@@ -704,6 +790,42 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
               Opens the main app in a new tab
             </Text>
 
+            {/* ---- Settings ---- */}
+            <View style={styles.profileSection}>
+              <Text style={styles.profileSectionTitle}>⚙️  Notification Settings</Text>
+              <Text style={styles.settingsHint}>Choose what to see when you log in</Text>
+
+              {prefsToast && (
+                <View style={[styles.settingsToast, prefsToast.type === 'success' ? styles.settingsToastSuccess : styles.settingsToastError]}>
+                  <Text style={styles.settingsToastText}>{prefsToast.message}</Text>
+                </View>
+              )}
+
+              {[
+                { key: 'newMatches',           icon: '🔍', label: 'New Matches',         sub: 'Profiles matching your saved searches' },
+                { key: 'pendingMessages',       icon: '💬', label: 'Pending Messages',    sub: 'Conversations awaiting your reply' },
+                { key: 'tips',                  icon: '💡', label: 'Tips',                sub: 'Helpful tips to improve your profile' },
+                { key: 'pollExpiration',        icon: '📊', label: 'Poll Expirations',    sub: 'Polls expiring in the next 7 days' },
+                { key: 'profileCardWeeklyPost', icon: '📌', label: 'Post Profile Card',  sub: 'Share profile card to Portal Members weekly' },
+              ].map(({ key, icon, label, sub }) => (
+                <TouchableOpacity
+                  key={key}
+                  style={styles.settingsRow}
+                  onPress={() => togglePref(key)}
+                  disabled={savingPrefs}
+                >
+                  <Text style={styles.settingsRowIcon}>{icon}</Text>
+                  <View style={styles.settingsRowText}>
+                    <Text style={styles.settingsRowLabel}>{label}</Text>
+                    <Text style={styles.settingsRowSub}>{sub}</Text>
+                  </View>
+                  <View style={[styles.settingsToggle, notifPrefs[key]?.enabled ? styles.settingsToggleOn : styles.settingsToggleOff]}>
+                    <Text style={styles.settingsToggleText}>{notifPrefs[key]?.enabled ? 'ON' : 'OFF'}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             {/* ---- Blocked users ---- */}
             <View style={styles.profileSection}>
               <Text style={styles.profileSectionTitle}>
@@ -732,40 +854,44 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                 </Text>
               )}
 
-              {!blockedLoading && blockedUsers.map((u) => {
-                const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username;
-                const avatarUrl = getProfilePicUrl(u);
-                const isBusy = unblockingUser === u.username;
-                return (
-                  <View key={u.username} style={styles.blockedRow}>
-                    <View style={styles.blockedAvatarWrap}>
-                      {avatarUrl ? (
-                        <Image source={{ uri: avatarUrl }} style={styles.blockedAvatar} />
-                      ) : (
-                        <View style={[styles.blockedAvatar, styles.blockedAvatarFallback]}>
-                          <Text style={styles.blockedAvatarInitial}>
-                            {(name?.[0] || '?').toUpperCase()}
-                          </Text>
+              {!blockedLoading && blockedUsers.length > 0 && (
+                <ScrollView style={styles.blockedGrid} nestedScrollEnabled showsVerticalScrollIndicator>
+                  <View style={styles.blockedGridInner}>
+                    {blockedUsers.map((u) => {
+                      const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username;
+                      const avatarUrl = getProfilePicUrl(u);
+                      const isBusy = unblockingUser === u.username;
+                      return (
+                        <View key={u.username} style={styles.blockedCard}>
+                          <View style={styles.blockedCardAvatarWrap}>
+                            {avatarUrl ? (
+                              <Image source={{ uri: avatarUrl }} style={styles.blockedCardAvatar} />
+                            ) : (
+                              <View style={[styles.blockedCardAvatar, styles.blockedAvatarFallback]}>
+                                <Text style={styles.blockedAvatarInitial}>
+                                  {(name?.[0] || '?').toUpperCase()}
+                                </Text>
+                              </View>
+                            )}
+                            <OnlineDot online={isOnline(u.username)} size={9} />
+                          </View>
+                          <Text style={styles.blockedCardName} numberOfLines={1}>{name}</Text>
+                          <Text style={styles.blockedCardUsername} numberOfLines={1}>@{u.username}</Text>
+                          <TouchableOpacity
+                            style={[styles.blockedCardUnblockBtn, isBusy && styles.unblockButtonBusy]}
+                            onPress={() => handleUnblock(u.username)}
+                            disabled={isBusy}
+                          >
+                            <Text style={styles.unblockButtonText}>
+                              {isBusy ? '…' : 'Unblock'}
+                            </Text>
+                          </TouchableOpacity>
                         </View>
-                      )}
-                      <OnlineDot online={isOnline(u.username)} size={11} />
-                    </View>
-                    <View style={styles.blockedInfo}>
-                      <Text style={styles.blockedName} numberOfLines={1}>{name}</Text>
-                      <Text style={styles.blockedUsername} numberOfLines={1}>@{u.username}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[styles.unblockButton, isBusy && styles.unblockButtonBusy]}
-                      onPress={() => handleUnblock(u.username)}
-                      disabled={isBusy}
-                    >
-                      <Text style={styles.unblockButtonText}>
-                        {isBusy ? 'Unblocking…' : 'Unblock'}
-                      </Text>
-                    </TouchableOpacity>
+                      );
+                    })}
                   </View>
-                );
-              })}
+                </ScrollView>
+              )}
             </View>
 
             {/* ---- About ---- */}
@@ -957,6 +1083,19 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       {/* Right column: header + content + footer all sit to the right of
           the sidebar, so the sidebar visually spans full height. */}
       <View style={styles.rightColumn}>
+        {/* Agent notification nudge — shows briefly after fresh data is loaded */}
+        {showNotificationBanner && (
+          <TouchableOpacity
+            style={styles.agentNudge}
+            onPress={() => { setShowNotificationBanner(false); handleMenuClick('l3v3lagent'); }}
+          >
+            <Text style={styles.agentNudgeText}>🤖 Notifications sent to L3V3L Agent ↗</Text>
+            <TouchableOpacity onPress={() => setShowNotificationBanner(false)}>
+              <Text style={styles.agentNudgeClose}>✕</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTitleWrap}>
@@ -1636,26 +1775,38 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
 
-  // Blocked-user row
-  blockedRow: {
+  // Blocked-user grid
+  blockedGrid: {
+    maxHeight: 430, // ~3.3 rows × 130px — shows ≈10 cards; scroll for more
+  },
+  blockedGridInner: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  blockedCard: {
+    width: '31%',
+    margin: '1%',
+    backgroundColor: '#0f3460',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1f2a4d',
+    borderWidth: 1,
+    borderColor: '#1f2a4d',
   },
-  blockedAvatarWrap: {
-    position: 'relative', // anchor for absolutely positioned <OnlineDot />
-    width: 40,
-    height: 40,
+  blockedCardAvatarWrap: {
+    position: 'relative',
+    width: 46,
+    height: 46,
+    marginBottom: 8,
   },
-  blockedAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  blockedCardAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
   },
   blockedAvatarFallback: {
-    backgroundColor: '#0f3460',
+    backgroundColor: '#16213e',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1664,25 +1815,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  blockedInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  blockedName: {
+  blockedCardName: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  blockedUsername: {
-    color: '#8892b0',
     fontSize: 12,
-    marginTop: 1,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 2,
+    width: '100%',
   },
-  unblockButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
+  blockedCardUsername: {
+    color: '#8892b0',
+    fontSize: 10,
+    textAlign: 'center',
+    marginBottom: 10,
+    width: '100%',
+  },
+  blockedCardUnblockBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
     borderRadius: 6,
-    backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: '#e94560',
   },
@@ -1691,7 +1842,7 @@ const styles = StyleSheet.create({
   },
   unblockButtonText: {
     color: '#e94560',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
 
@@ -1730,5 +1881,104 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',
+  },
+
+  // Settings Section
+  settingsHint: {
+    color: '#8892b0',
+    fontSize: 12,
+    marginBottom: 14,
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1f2a4d',
+  },
+  settingsRowIcon: {
+    fontSize: 18,
+    width: 32,
+  },
+  settingsRowText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  settingsRowLabel: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  settingsRowSub: {
+    color: '#8892b0',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  settingsToggle: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    minWidth: 42,
+    alignItems: 'center',
+  },
+  settingsToggleOn: {
+    backgroundColor: '#0f3460',
+    borderWidth: 1,
+    borderColor: '#e94560',
+  },
+  settingsToggleOff: {
+    backgroundColor: '#1a1a2e',
+    borderWidth: 1,
+    borderColor: '#2d2d5a',
+  },
+  settingsToggleText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  settingsToast: {
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  settingsToastSuccess: {
+    backgroundColor: '#0f3d1e',
+    borderWidth: 1,
+    borderColor: '#22c55e',
+  },
+  settingsToastError: {
+    backgroundColor: '#3d0f0f',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  settingsToastText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // Agent nudge (replaces banner — messages go directly to L3V3L Agent chat)
+  agentNudge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#0f3460',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e94560',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  agentNudgeText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
+  agentNudgeClose: {
+    color: '#8892b0',
+    fontSize: 16,
+    paddingLeft: 12,
   },
 });

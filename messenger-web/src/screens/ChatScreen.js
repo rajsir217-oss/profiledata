@@ -527,6 +527,25 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     setUsernameModalTarget(uname);
   };
 
+  // Returns the main-app URL to open when a L3V3L Agent notification bubble is tapped.
+  // Returns null for non-notification messages.
+  const getNotificationLink = (content) => {
+    if (!content) return null;
+    const base = getMainAppUrl();
+    if (content.includes('*New Matches*'))       return `${base}/search`;
+    if (content.includes('*Pending Messages*'))  return `${base}/messages`;
+    if (content.includes('*Tip*'))               return `${base}/edit-profile`;
+    if (content.includes('*Poll Expirations*'))  return `${base}/polls`;
+    return null;
+  };
+
+  const openNotificationLink = (url) => {
+    if (!url) return;
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const handleViewProfile = () => {
     const uname = usernameModalTarget;
     setUsernameModalTarget(null);
@@ -960,13 +979,19 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                 (msg.cardSnapshot.systemTag === 'newly_activated' || msg.cardSnapshot.systemTag === 'reactivated');
               const senderName = isGroup && !isOwn ? (msg.senderUsername || msg.fromUsername || 'Unknown') : null;
               const publicEmailsSent = Array.isArray(msg.publicEmailsSent) ? msg.publicEmailsSent : [];
+              const notifUrl = msg.senderUsername === 'l3v3lagent' ? getNotificationLink(msg.content) : null;
+              const BubbleWrapper = notifUrl ? TouchableOpacity : View;
               return (
                 <View key={msg.id} style={[styles.messageRow, isOwn && styles.messageRowOwn]}>
-                  <View style={[
+                  <BubbleWrapper
+                    onPress={notifUrl ? () => openNotificationLink(notifUrl) : undefined}
+                    activeOpacity={notifUrl ? 0.75 : 1}
+                    style={[
                     styles.messageBubble,
                     isOwn && styles.messageBubbleOwn,
                     isPublicEmail && styles.messageBubblePublic,
                     msg.contentType === 'profile_card' && styles.messageBubbleCard,
+                    notifUrl && styles.messageBubbleNotif,
                   ]}>
                     {isPublicEmail ? (
                       <Text style={styles.publicEmailBadge}>📧 {msg.publicEmail || msg.senderUsername}</Text>
@@ -1047,6 +1072,9 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                       </View>
                     )}
 
+                    {notifUrl && (
+                      <Text style={styles.notifBubbleTapHint}>Tap to open in main app ↗</Text>
+                    )}
                     <View style={styles.messageMetaRow}>
                       <Text style={styles.messageTime}>
                         {msg.status === 'sending' ? 'Sending…'
@@ -1078,7 +1106,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                         </TouchableOpacity>
                       )}
                     </View>
-                  </View>
+                  </BubbleWrapper>
                 </View>
               );
             })
@@ -1741,6 +1769,18 @@ const styles = StyleSheet.create({
   messageBubbleCard: {
     width: '85%',
     maxWidth: 520,
+  },
+  messageBubbleNotif: {
+    borderWidth: 1,
+    borderColor: '#e9456080',
+    cursor: 'pointer',
+  },
+  notifBubbleTapHint: {
+    color: '#e94560',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 6,
+    marginBottom: 2,
   },
   sendErrorBanner: {
     flexDirection: 'row',
