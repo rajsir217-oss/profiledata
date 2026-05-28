@@ -85,6 +85,22 @@ const LoginScreen = () => {
     }
   };
 
+  const trackLogin = async (username) => {
+    try {
+      const platform = isNativePlatform() ? 'mobile' : 'web';
+      await fetch(`${API_BASE_URL}/api/notifications/track-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ platform })
+      });
+    } catch (e) {
+      console.error('Failed to track login:', e);
+    }
+  };
+
   const handleBiometricLogin = async () => {
     setLoading(true);
     setError('');
@@ -100,6 +116,11 @@ const LoginScreen = () => {
       if (!loginRes?.ok) {
         setError(loginRes?.error || 'Biometric login failed.');
         return;
+      }
+
+      // Track login after successful authentication
+      if (loginRes?.user?.username) {
+        await trackLogin(loginRes.user.username);
       }
     } catch (e) {
       setError(e?.message || 'Biometric login failed.');
@@ -151,7 +172,13 @@ const LoginScreen = () => {
         captchaTokenForBackend
       );
 
-      if (result?.ok) return; // Auth state will route us to chats.
+      if (result?.ok) {
+        // Track login after successful authentication
+        if (result?.user?.username) {
+          await trackLogin(result.user.username);
+        }
+        return; // Auth state will route us to chats.
+      }
 
       // Backend says MFA is required → transition UI to OTP entry screen
       // and trigger code delivery to the user's email/SMS.
@@ -239,7 +266,13 @@ const LoginScreen = () => {
         mfaCode.trim()
       );
 
-      if (result?.ok) return;
+      if (result?.ok) {
+        // Track login after successful MFA verification
+        if (result?.user?.username) {
+          await trackLogin(result.user.username);
+        }
+        return;
+      }
       setError(result?.error || 'Invalid verification code');
     } catch (e) {
       setError(e.message || 'Verification failed');
