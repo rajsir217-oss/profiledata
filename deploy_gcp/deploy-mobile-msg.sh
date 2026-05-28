@@ -556,8 +556,8 @@ run_capacitor_android() {
     echo "🧹 Cleaning Android build to avoid stale merged assets..."
     (cd "$MSG_WEB_DIR/android" && ./gradlew clean)
 
-    echo "🔨 Running Gradle assembleRelease..."
-    (cd "$MSG_WEB_DIR/android" && ./gradlew assembleRelease)
+    echo "🔨 Running Gradle bundleRelease (AAB for Play Store)..."
+    (cd "$MSG_WEB_DIR/android" && ./gradlew bundleRelease)
 
     local merged_release_config="$MSG_WEB_DIR/android/app/build/intermediates/assets/release/mergeReleaseAssets/capacitor.config.json"
     if [[ -f "$merged_release_config" ]] && grep -q "10\.0\.2\.2:3030" "$merged_release_config"; then
@@ -565,48 +565,149 @@ run_capacitor_android() {
       echo "   Check: $merged_release_config"
       exit 1
     fi
-    
-    local apk_path="$MSG_WEB_DIR/android/app/build/outputs/apk/release/msgr-app-release-${new_build_num}.apk"
-    if [[ -f "$apk_path" ]]; then
-      if command -v unzip >/dev/null 2>&1; then
-        if unzip -p "$apk_path" assets/capacitor.config.json 2>/dev/null | grep -q "10\.0\.2\.2:3030"; then
-          echo "❌ Release APK contains dev server URL (10.0.2.2:3030) in assets/capacitor.config.json"
-          exit 1
-        fi
-      fi
-      echo "✅ Release APK built: $apk_path"
 
-      local desktop_apk_name="L3V3L-Messenger-release.apk"
-      cp "$apk_path" ~/Desktop/"$desktop_apk_name"
-      echo "✅ APK copied to ~/Desktop/${desktop_apk_name}"
+    local aab_path="$MSG_WEB_DIR/android/app/build/outputs/bundle/release/app-release.aab"
+    if [[ -f "$aab_path" ]]; then
+      echo "✅ Release AAB built: $aab_path"
 
-      echo "☁️  Uploading RELEASE APK to GCS (optional)..."
+      local desktop_aab_name="L3V3L-Messenger-release.aab"
+      cp "$aab_path" ~/Desktop/"$desktop_aab_name"
+      echo "✅ AAB copied to ~/Desktop/${desktop_aab_name}"
+
+      echo "☁️  Uploading RELEASE AAB to GCS (optional)..."
       # Load backend env for APK GCS configuration (allow unbound vars for production secrets)
       set +u  # Temporarily disable nounset for env loading
       set -a
       . "$REPO_ROOT/fastapi_backend/.env.production"
       set +a
       set -u  # Re-enable nounset
-      local APK_BUCKET_NAME="${ANDROID_APK_MSGR_GCS_BUCKET_NAME:-${ANDROID_APK_GCS_BUCKET_NAME:-${GCS_BUCKET_NAME:-}}}"
-      local APK_OBJECT_PATH_RAW="${ANDROID_APK_MSGR_GCS_OBJECT:-${ANDROID_APK_GCS_OBJECT:-}}"
-      if [[ -z "${APK_BUCKET_NAME}" || -z "${APK_OBJECT_PATH_RAW}" ]]; then
+      local AAB_BUCKET_NAME="${ANDROID_APK_MSGR_GCS_BUCKET_NAME:-${ANDROID_APK_GCS_BUCKET_NAME:-${GCS_BUCKET_NAME:-}}}"
+      local AAB_OBJECT_PATH_RAW="${ANDROID_APK_MSGR_GCS_OBJECT:-${ANDROID_APK_GCS_OBJECT:-}}"
+      if [[ -z "${AAB_BUCKET_NAME}" || -z "${AAB_OBJECT_PATH_RAW}" ]]; then
         echo "⚠️  Skipping GCS upload (missing ANDROID_APK_MSGR_GCS_BUCKET_NAME/GCS_BUCKET_NAME and/or ANDROID_APK_MSGR_GCS_OBJECT env var)"
       elif ! command -v gsutil >/dev/null 2>&1; then
         echo "⚠️  Skipping GCS upload (gsutil not found). Install gcloud/gsutil and retry."
       else
-        local APK_OBJECT_PATH="${APK_OBJECT_PATH_RAW#/}"
-        local GCS_DEST="gs://${APK_BUCKET_NAME}/${APK_OBJECT_PATH}"
-        echo "   Uploading: ${apk_path} -> ${GCS_DEST}"
-        gsutil -q cp "$apk_path" "$GCS_DEST"
-        echo "✅ Uploaded APK to ${GCS_DEST}"
+        local AAB_OBJECT_PATH="${AAB_OBJECT_PATH_RAW#/}"
+        # Update extension to .aab if it ends with .apk
+        if [[ "$AAB_OBJECT_PATH" == *.apk ]]; then
+          AAB_OBJECT_PATH="${AAB_OBJECT_PATH%.apk}.aab"
+        fi
+        local GCS_DEST="gs://${AAB_BUCKET_NAME}/${AAB_OBJECT_PATH}"
+        echo "   Uploading: ${aab_path} -> ${GCS_DEST}"
+        gsutil -q cp "$aab_path" "$GCS_DEST"
+        echo "✅ Uploaded AAB to ${GCS_DEST}"
       fi
     else
-      echo "⚠️  APK not found at expected path, listing output directory:"
-      ls -la "$MSG_WEB_DIR/android/app/build/outputs/apk/release/" 2>/dev/null || echo "Directory not found"
+      echo "⚠️  AAB not found at expected path, listing output directory:"
+      ls -la "$MSG_WEB_DIR/android/app/build/outputs/bundle/release/" 2>/dev/null || echo "Directory not found"
     fi
     
-    # Keep only 3 most recent release APKs
-    cleanup_old_apks "$MSG_WEB_DIR/android/app/build/outputs/apk/release" "msgr-app-release"
+    # ── Optional: Upload directly to Google Play Console ──
+    upload_aab_to_play_console() {
+      local aab_path="$1"
+      local package_name="com.l3v3lmessenger"
+      local track="production"
+
+      if [[ -z "${PLAY_CONSOLE_SERVICE_KEY:-}" ]]; then
+        echo "⚠️  Skipping Play Console upload (PLAY_CONSOLE_SERVICE_KEY not set)"
+        echo "   To enable:"
+        echo "     1. Go to Google Cloud Console → IAM → Service Accounts"
+        echo "     2. Create a service account with 'Android Management User' role"
+        echo "     3. In Play Console → Users & permissions → Invite the service account"
+        echo "     4. Grant 'Release Manager' (or 'Admin') permission"
+        echo "     5. Download JSON key and set:"
+        echo "        export PLAY_CONSOLE_SERVICE_KEY=/path/to/key.json"
+        return 0
+      fi
+
+      if ! command -v gcloud >/dev/null 2>&1; then
+        echo "⚠️  Skipping Play Console upload (gcloud not found)"
+        return 0
+      fi
+
+      # Parse JSON: prefer jq, fallback to python3
+      _json_get() {
+        local key="$1"
+        if command -v jq >/dev/null 2>&1; then
+          jq -r "$key"
+        else
+          python3 -c "import sys,json; d=json.load(sys.stdin); k='$key'; print(d.get(k,'') if '.' not in k else d${key})"
+        fi
+      }
+
+      echo "🔐 Authenticating with Play Console service account..."
+      local token
+      token=$(GOOGLE_APPLICATION_CREDENTIALS="$PLAY_CONSOLE_SERVICE_KEY" \
+        gcloud auth application-default print-access-token 2>/dev/null)
+
+      if [[ -z "$token" || "$token" == "null" ]]; then
+        echo "❌ Failed to get access token. Check PLAY_CONSOLE_SERVICE_KEY and API enablement."
+        return 1
+      fi
+
+      echo "📤 Uploading AAB to Play Console (track: $track)..."
+
+      # 1. Create edit
+      local edit_response
+      edit_response=$(curl -s -X POST \
+        "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$package_name/edits" \
+        -H "Authorization: Bearer $token" \
+        -H "Content-Type: application/json" \
+        -d "{}")
+
+      local edit_id
+      edit_id=$(echo "$edit_response" | _json_get '.id')
+
+      if [[ -z "$edit_id" || "$edit_id" == "null" ]]; then
+        echo "❌ Failed to create Play Console edit:"
+        echo "$edit_response"
+        return 1
+      fi
+      echo "   Created edit: $edit_id"
+
+      # 2. Upload bundle
+      echo "   Uploading bundle..."
+      local upload_response
+      upload_response=$(curl -s -X POST \
+        "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$package_name/edits/$edit_id/bundles?uploadType=media" \
+        -H "Authorization: Bearer $token" \
+        -H "Content-Type: application/octet-stream" \
+        --data-binary @"$aab_path")
+
+      local uploaded_version_code
+      uploaded_version_code=$(echo "$upload_response" | _json_get '.versionCode')
+
+      if [[ -z "$uploaded_version_code" || "$uploaded_version_code" == "null" ]]; then
+        echo "❌ Failed to upload bundle:"
+        echo "$upload_response"
+        return 1
+      fi
+      echo "   Uploaded bundle (versionCode: $uploaded_version_code)"
+
+      # 3. Assign to track (draft status — requires manual review in console)
+      echo "   Assigning to $track track (draft)..."
+      curl -s -X PUT \
+        "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$package_name/edits/$edit_id/tracks/$track" \
+        -H "Authorization: Bearer $token" \
+        -H "Content-Type: application/json" \
+        -d "{\"releases\":[{\"versionCodes\":[$uploaded_version_code],\"status\":\"draft\"}]}" >/dev/null
+
+      # 4. Commit edit
+      echo "   Committing edit..."
+      local commit_response
+      commit_response=$(curl -s -X POST \
+        "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$package_name/edits/$edit_id:commit" \
+        -H "Authorization: Bearer $token")
+
+      echo "✅ AAB uploaded to Play Console → $track track (draft)"
+      echo "   Go to Play Console → Release → $track → Review and submit"
+    }
+
+    upload_aab_to_play_console "$aab_path"
+
+    # Keep only 3 most recent release AABs
+    cleanup_old_apks "$MSG_WEB_DIR/android/app/build/outputs/bundle/release" "app-release"
     
     # Restore original capacitor config
     if [[ -f "$capacitor_config_backup" ]]; then
