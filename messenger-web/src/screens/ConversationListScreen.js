@@ -1311,7 +1311,7 @@ const styles = StyleSheet.create({
   menuProfilePic: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: 8,
     marginRight: 14,
     borderWidth: 2,
     borderColor: '#e94560',
@@ -1391,7 +1391,7 @@ const styles = StyleSheet.create({
   subMenuProfilePic: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: 6,
   },
   subMenuTextWrap: {
     flex: 1,

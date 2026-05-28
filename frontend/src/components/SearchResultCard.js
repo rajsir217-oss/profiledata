@@ -768,17 +768,6 @@ const SearchResultCard = ({
             );
           })()}
 
-          {/* Bio (short, 2 lines) */}
-          {(() => {
-            const raw = user?.bio || user?.aboutMe || user?.about || user?.description;
-            if (!raw) return null;
-            return (
-              <p className="card-photo-bio">
-                "{raw.substring(0, 100)}{raw.length > 100 ? '…' : ''}"
-              </p>
-            );
-          })()}
-
           {/* Action buttons */}
           <div className="card-photo-actions">
             {!hasImageAccess && currentUsername !== user.username && (
