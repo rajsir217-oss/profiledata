@@ -1474,13 +1474,17 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  max-width: 28px;
+  padding: 0;
+  line-height: 1;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.9);
   color: var(--text-color);
   border: none;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -1489,6 +1493,15 @@
   transition: all 0.25s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   opacity: 0;
+}
+
+button.card-image-nav {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
 }
 
 .result-card .card:hover .card-image-nav {
@@ -1518,9 +1531,22 @@
 /* Photo overlay: smaller nav buttons, positioned higher */
 .card-photo-overlay .card-image-nav {
   top: 38%;
-  width: 26px;
-  height: 26px;
-  font-size: 14px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  max-width: 22px;
+  padding: 0;
+  line-height: 1;
+  font-size: 12px;
+}
+
+.card-photo-overlay button.card-image-nav {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
 }
 
 .card-image-counter {
@@ -2465,10 +2491,23 @@
   }
 
   .card-image-nav {
-    width: 30px;
-    height: 30px;
-    font-size: 16px;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    max-width: 24px;
+    padding: 0;
+    line-height: 1;
+    font-size: 12px;
     opacity: 0.8;
+  }
+
+  button.card-image-nav {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    max-width: 24px !important;
+    padding: 0 !important;
+    line-height: 1 !important;
   }
 
   .result-card .card:hover .card-image-nav {

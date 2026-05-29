@@ -602,13 +602,24 @@ const VirtualMeets = () => {
   };
 
   const getAvatarUrl = (profilePicUrl, username) => {
-    if (profilePicUrl && /^https?:\/\//i.test(profilePicUrl)) {
-      return profilePicUrl;
+    if (!profilePicUrl) {
+      return '';
     }
-    if (profilePicUrl) {
-      return `${getBackendUrl()}${profilePicUrl}`;
+
+    let resolvedUrl = profilePicUrl;
+    if (!/^https?:\/\//i.test(resolvedUrl)) {
+      resolvedUrl = `${getBackendUrl()}${resolvedUrl}`;
     }
-    return `${getBackendUrl()}/api/profile-pic/${username}`;
+
+    if (resolvedUrl.includes('/api/users/media/')) {
+      const token = localStorage.getItem('token');
+      if (token && !resolvedUrl.includes('token=')) {
+        const sep = resolvedUrl.includes('?') ? '&' : '?';
+        resolvedUrl = `${resolvedUrl}${sep}token=${encodeURIComponent(token)}`;
+      }
+    }
+
+    return resolvedUrl;
   };
 
   const onAvatarError = (imageKey) => {
@@ -637,18 +648,39 @@ const VirtualMeets = () => {
     return person?.username || 'Unknown';
   };
 
+  const renderParticipantDetails = (person) => {
+    const lines = [];
+    const meta = getMatchMeta(person).join(' · ');
+    if (meta) lines.push(meta);
+    if (person?.profession) lines.push(`Profession: ${person.profession}`);
+    if (person?.education) lines.push(`Education: ${person.education}`);
+    if (person?.bio_tag) lines.push(`Bio Tag: ${person.bio_tag}`);
+
+    if (lines.length === 0) {
+      return <span className="vm-admin-detail-empty">—</span>;
+    }
+
+    return lines.map((line, index) => (
+      <div key={`${person?.username || 'user'}-detail-${index}`} className="vm-admin-detail-line" title={line}>
+        {line}
+      </div>
+    ));
+  };
+
   const renderAvatar = ({ imageKey, profilePicUrl, username, fullName, small = false }) => {
     const hasError = !!profileImageErrors[imageKey];
+    const imageUrl = getAvatarUrl(profilePicUrl, username);
+    const hasImage = !!imageUrl;
 
     return (
       <div className={`vm-match-avatar ${small ? 'vm-match-avatar-sm' : ''}`}>
-        {hasError ? (
+        {hasError || !hasImage ? (
           <div className={`vm-avatar-fallback ${small ? 'vm-avatar-fallback-sm' : ''}`}>
             {getAvatarInitials(fullName, username)}
           </div>
         ) : (
           <img
-            src={getAvatarUrl(profilePicUrl, username)}
+            src={imageUrl}
             alt={fullName || username}
             className={`vm-avatar-img ${small ? 'vm-avatar-sm' : ''}`}
             onError={() => onAvatarError(imageKey)}
@@ -1194,10 +1226,6 @@ const VirtualMeets = () => {
                           <tr>
                             <th></th>
                             <th>Participant</th>
-                            <th>Profile</th>
-                            <th>Profession</th>
-                            <th>Education</th>
-                            <th>Bio Tag</th>
                             <th>Payment</th>
                             <th>Access</th>
                             <th>Rooms</th>
@@ -1207,7 +1235,6 @@ const VirtualMeets = () => {
                           {males.map(p => {
                             const count = roomCounts[p.username] || 0;
                             const displayName = getParticipantDisplayName(p);
-                            const profileMeta = getMatchMeta(p).join(' · ');
                             return (
                               <tr key={p._id} className={selectedMale === p.username ? 'vm-selected-row' : ''}>
                                 <td>
@@ -1236,13 +1263,10 @@ const VirtualMeets = () => {
                                     <div className="vm-admin-participant-identity">
                                       <div className="vm-admin-participant-name">{displayName}</div>
                                       <div className="vm-admin-participant-username">@{p.username}</div>
+                                      <div className="vm-admin-participant-inline-details">{renderParticipantDetails(p)}</div>
                                     </div>
                                   </a>
                                 </td>
-                                <td className="vm-admin-participant-meta" title={profileMeta || '—'}>{profileMeta || '—'}</td>
-                                <td className="vm-admin-participant-profession" title={p.profession || '—'}>{p.profession || '—'}</td>
-                                <td className="vm-admin-participant-education" title={p.education || '—'}>{p.education || '—'}</td>
-                                <td className="vm-admin-participant-bio" title={p.bio_tag || '—'}>{p.bio_tag || '—'}</td>
                                 <td><span className={`vm-status-badge vm-badge-${p.payment_status === 'completed' ? 'accepted' : p.payment_status === 'not_required' ? 'accepted' : 'pending'}`}>{p.payment_status}</span></td>
                                 <td>{p.access_unlocked ? '✅' : '🔒'}</td>
                                 <td>{count > 0 ? <span className="vm-room-count">{count}</span> : '—'}</td>
@@ -1263,10 +1287,6 @@ const VirtualMeets = () => {
                           <tr>
                             <th></th>
                             <th>Participant</th>
-                            <th>Profile</th>
-                            <th>Profession</th>
-                            <th>Education</th>
-                            <th>Bio Tag</th>
                             <th>Payment</th>
                             <th>Access</th>
                             <th>Rooms</th>
@@ -1276,7 +1296,6 @@ const VirtualMeets = () => {
                           {females.map(p => {
                             const count = roomCounts[p.username] || 0;
                             const displayName = getParticipantDisplayName(p);
-                            const profileMeta = getMatchMeta(p).join(' · ');
                             return (
                               <tr key={p._id} className={selectedFemale === p.username ? 'vm-selected-row' : ''}>
                                 <td>
@@ -1305,13 +1324,10 @@ const VirtualMeets = () => {
                                     <div className="vm-admin-participant-identity">
                                       <div className="vm-admin-participant-name">{displayName}</div>
                                       <div className="vm-admin-participant-username">@{p.username}</div>
+                                      <div className="vm-admin-participant-inline-details">{renderParticipantDetails(p)}</div>
                                     </div>
                                   </a>
                                 </td>
-                                <td className="vm-admin-participant-meta" title={profileMeta || '—'}>{profileMeta || '—'}</td>
-                                <td className="vm-admin-participant-profession" title={p.profession || '—'}>{p.profession || '—'}</td>
-                                <td className="vm-admin-participant-education" title={p.education || '—'}>{p.education || '—'}</td>
-                                <td className="vm-admin-participant-bio" title={p.bio_tag || '—'}>{p.bio_tag || '—'}</td>
                                 <td><span className={`vm-status-badge vm-badge-${p.payment_status === 'completed' ? 'accepted' : p.payment_status === 'not_required' ? 'accepted' : 'pending'}`}>{p.payment_status}</span></td>
                                 <td>{p.access_unlocked ? '✅' : '🔒'}</td>
                                 <td>{count > 0 ? <span className="vm-room-count">{count}</span> : '—'}</td>

@@ -713,6 +713,7 @@ const SearchResultCard = ({
                 className="card-image-nav prev"
                 onClick={handlePrevImage}
                 disabled={currentImageIndex === 0}
+                style={{ padding: 0, minWidth: '22px', maxWidth: '22px', width: '22px', height: '22px', lineHeight: 1 }}
               >
                 ‹
               </button>
@@ -720,6 +721,7 @@ const SearchResultCard = ({
                 className="card-image-nav next"
                 onClick={handleNextImage}
                 disabled={currentImageIndex === user.images.length - 1}
+                style={{ padding: 0, minWidth: '22px', maxWidth: '22px', width: '22px', height: '22px', lineHeight: 1 }}
               >
                 ›
               </button>
