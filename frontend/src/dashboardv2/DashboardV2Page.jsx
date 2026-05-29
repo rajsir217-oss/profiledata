@@ -132,13 +132,19 @@ const DashboardV2Page = () => {
 
   return (
     <div className="dv2-container">
-      <DashboardBanners userProfile={data.userProfile} onRefetch={refetch} />
+      <DashboardBanners
+        userProfile={data.userProfile}
+        onRefetch={refetch}
+        enabled={!criticalLoading}
+        deferMs={800}
+      />
       {data.activePolls?.length > 0 ? (
         <div className="dv2-poll-popup-host">
           <PollWidget
             inline={true}
             autoPopup={true}
-            onPollResponded={() => refetch?.()}
+            initialPolls={data.activePolls}
+            onPollResponded={() => refetch?.({ deferPolls: false })}
             renderPlaceholder={() => null}
           />
         </div>
@@ -358,7 +364,7 @@ const DashboardV2Page = () => {
           savedSearches={data.savedSearches}
           activePolls={data.activePolls}
           onOpenSavedSearch={openSavedSearch}
-          onPollResponded={refetch}
+          onPollResponded={() => refetch({ deferPolls: false })}
         />
       </div>
 
