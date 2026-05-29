@@ -28,6 +28,7 @@ import {
 
 const getCurrentUsername = () => localStorage.getItem('username');
 const DEFERRED_POLLS_DELAY_MS = 1200;
+const getFavoriteUsername = (favorite) => favorite?.favoriteUsername || favorite?.targetUsername || favorite?.username || null;
 
 const initialData = {
   userProfile: null,
@@ -53,6 +54,7 @@ export function useDashboardData() {
   const activePollsRequestRef = useRef(null);
   const userProfileRequestRef = useRef(null);
   const exclusionsRequestRef = useRef(null);
+  const favoritesRequestRef = useRef(null);
 
   const refreshUserProfile = useCallback(async () => {
     if (userProfileRequestRef.current) {
@@ -77,6 +79,61 @@ export function useDashboardData() {
         userProfileRequestRef.current = null;
       }
     }
+  }, []);
+
+  const refreshFavorites = useCallback(async () => {
+    if (favoritesRequestRef.current) {
+      return favoritesRequestRef.current;
+    }
+
+    const request = (async () => {
+      const favorites = await fetchFavorites();
+      setData((prev) => ({
+        ...prev,
+        favorites,
+      }));
+      return favorites;
+    })();
+
+    favoritesRequestRef.current = request;
+
+    try {
+      return await request;
+    } finally {
+      if (favoritesRequestRef.current === request) {
+        favoritesRequestRef.current = null;
+      }
+    }
+  }, []);
+
+  const setFavoriteOptimistic = useCallback((targetUsername, shouldBeFavorited) => {
+    if (!targetUsername) return;
+
+    setData((prev) => {
+      const currentFavorites = Array.isArray(prev.favorites) ? prev.favorites : [];
+      const exists = currentFavorites.some((favorite) => getFavoriteUsername(favorite) === targetUsername);
+
+      if (shouldBeFavorited) {
+        if (exists) return prev;
+        return {
+          ...prev,
+          favorites: [
+            ...currentFavorites,
+            {
+              favoriteUsername: targetUsername,
+              targetUsername,
+              username: targetUsername,
+            },
+          ],
+        };
+      }
+
+      if (!exists) return prev;
+      return {
+        ...prev,
+        favorites: currentFavorites.filter((favorite) => getFavoriteUsername(favorite) !== targetUsername),
+      };
+    });
   }, []);
 
   const refreshExclusions = useCallback(async () => {
@@ -246,5 +303,7 @@ export function useDashboardData() {
     refreshActivePolls,
     refreshUserProfile,
     refreshExclusions,
+    refreshFavorites,
+    setFavoriteOptimistic,
   };
 }

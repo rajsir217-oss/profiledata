@@ -52,6 +52,8 @@ const DashboardV2Page = () => {
     refreshActivePolls,
     refreshUserProfile,
     refreshExclusions,
+    refreshFavorites,
+    setFavoriteOptimistic,
   } = useDashboardData();
   const newestMatch = useNewestMatch(data.savedSearches, data.userProfile);
   const staleMessages = useStaleMessages(data.conversations);
@@ -212,7 +214,8 @@ const DashboardV2Page = () => {
           onSkip={newestMatch.skipPick}
           onOpenSearch={(s) => openSavedSearch(s)}
           favoritedUsernames={favoritedUsernames}
-          onRefresh={refetch}
+          onRefreshFavorites={refreshFavorites}
+          onFavoriteOptimistic={setFavoriteOptimistic}
           onRetry={newestMatch.reload}
         />
       </section>

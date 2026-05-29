@@ -159,7 +159,8 @@ const HeroNewestMatch = ({
   onSkip,
   onOpenSearch,
   favoritedUsernames,
-  onRefresh,
+  onRefreshFavorites,
+  onFavoriteOptimistic,
   onRetry,
 }) => {
   const navigate = useNavigate();
@@ -201,6 +202,12 @@ const HeroNewestMatch = ({
 
   const handleFavoriteToggle = async () => {
     if (!profile?.username) return;
+    const nextFavorited = !isFavorited;
+
+    if (onFavoriteOptimistic) {
+      onFavoriteOptimistic(profile.username, nextFavorited);
+    }
+
     try {
       setBusy(true);
       if (isFavorited) {
@@ -210,8 +217,11 @@ const HeroNewestMatch = ({
         await api.post(`/favorites/${profile.username}`);
         toast.success('Added to favorites');
       }
-      if (onRefresh) onRefresh();
+      if (onRefreshFavorites) await onRefreshFavorites();
     } catch (err) {
+      if (onFavoriteOptimistic) {
+        onFavoriteOptimistic(profile.username, isFavorited);
+      }
       toast.error(err?.response?.data?.detail || 'Failed to update favorites');
     } finally {
       setBusy(false);
