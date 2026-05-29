@@ -1,7 +1,9 @@
 // frontend/src/dashboardv2/hooks/useDashboardData.js
 //
-// Parallel-fetches every piece of data the dashboardv2 page needs in a single
-// Promise.all. Returns a normalized object with the data + loading/error state.
+// Fetches dashboardv2 data in two stages:
+//   1) hero-critical data first (profile + saved searches)
+//   2) non-critical sections after hero can render
+// Returns a normalized object with data + loading/error state.
 //
 // This intentionally does NOT include the hero "newest match" — that has its
 // own hook (useNewestMatch) because it has fallback logic that depends on
@@ -51,11 +53,30 @@ export function useDashboardData() {
     setLoading(true);
     setCriticalLoading(true);
     setError(null);
+
     try {
-      // Critical data fetches (blocking)
+      // Stage 1: hero-critical data only
+      // Unblocks newest-match hero as soon as profile + saved searches are ready.
       const [
         userProfile,
         savedSearches,
+      ] = await Promise.all([
+        fetchCurrentUserProfile(),
+        fetchSavedSearches(),
+      ]);
+
+      setData((prev) => ({
+        ...prev,
+        userProfile,
+        savedSearches,
+        searchCriteriaBreakdown: null,
+      }));
+
+      // Hero can render now while the rest of dashboard data continues loading.
+      setCriticalLoading(false);
+
+      // Stage 2: non-critical dashboard sections
+      const [
         profileViews,
         favorites,
         shortlist,
@@ -66,8 +87,6 @@ export function useDashboardData() {
         incomingPiiRequests,
         activePolls,
       ] = await Promise.all([
-        fetchCurrentUserProfile(),
-        fetchSavedSearches(),
         fetchProfileViews(),
         fetchFavorites(),
         fetchShortlist(),
@@ -79,9 +98,8 @@ export function useDashboardData() {
         fetchActivePolls(),
       ]);
 
-      setData({
-        userProfile,
-        savedSearches,
+      setData((prev) => ({
+        ...prev,
         profileViews,
         favorites,
         shortlist,
@@ -91,8 +109,7 @@ export function useDashboardData() {
         theirFavorites,
         incomingPiiRequests,
         activePolls,
-        searchCriteriaBreakdown: null, // Will be loaded separately
-      });
+      }));
     } catch (err) {
       logger.error('useDashboardData refetch failed:', err);
       setError(err);
