@@ -5,6 +5,7 @@ import useMessengerStore from '@messenger/stores/messengerStore';
 import messengerSocket from '@messenger/services/socketService';
 import { API_BASE_URL } from '@messenger/config/api';
 import { getMainAppUrl } from '../config/apiConfig';
+import { openExternalUrl } from '../utils/openExternalUrl';
 
 // Quick Messages catalog. Only "introduction" is shipped today; future
 // categories (interest, more-info, next-steps, follow-up, decline) will be
@@ -541,9 +542,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
 
   const openNotificationLink = (url) => {
     if (!url) return;
-    if (typeof window !== 'undefined') {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
+    openExternalUrl(url);
   };
 
   const handleViewProfile = () => {
@@ -551,9 +550,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     setUsernameModalTarget(null);
     if (!uname) return;
     const url = `${getMainAppUrl()}/profile/${encodeURIComponent(uname)}`;
-    if (typeof window !== 'undefined') {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
+    openExternalUrl(url);
   };
 
   const handleDirectMessage = () => {
@@ -610,9 +607,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     const username = card.username;
     if (!username) return;
     const url = `${getMainAppUrl()}/profile/${encodeURIComponent(username)}`;
-    if (typeof window !== 'undefined') {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
+    openExternalUrl(url);
   };
 
   const handleClearChat = async () => {
@@ -1026,9 +1021,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                           // profile card the intent is unambiguous.
                           if (!uname) return;
                           const url = `${getMainAppUrl()}/profile/${encodeURIComponent(uname)}`;
-                          if (typeof window !== 'undefined') {
-                            window.open(url, '_blank', 'noopener,noreferrer');
-                          }
+                          openExternalUrl(url);
                         }}
                       />
                     ) : msg.content ? (
@@ -1473,9 +1466,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                   <TouchableOpacity
                     style={styles.inviteQueueLinkBtn}
                     onPress={() => {
-                      if (typeof window !== 'undefined') {
-                        window.open(`${getMainAppUrl()}/invitations`, '_blank', 'noopener,noreferrer');
-                      }
+                      openExternalUrl(`${getMainAppUrl()}/invitations`);
                     }}
                   >
                     <Text style={styles.inviteQueueLinkText}>Open Invitation Queue ↗</Text>

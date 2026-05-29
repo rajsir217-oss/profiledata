@@ -220,6 +220,14 @@ async def lifespan(app: FastAPI):
         await db.messages.create_index(
             [("createdAt", 1)], background=True
         )
+        # TTL index for scheduled message deletion after conversation close/acknowledge.
+        # Messages with scheduledDeleteAt set are hard-deleted 24h after the timestamp.
+        await db.messages.create_index(
+            [("scheduledDeleteAt", 1)],
+            expireAfterSeconds=0,
+            background=True,
+            name="ttl_scheduledDeleteAt",
+        )
         logger.info("✅ Platform Stats indexes created")
     except Exception as e:
         logger.warning(f"⚠️ Platform Stats index creation failed (non-critical): {e}")

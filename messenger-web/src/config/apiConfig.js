@@ -86,7 +86,8 @@ export const getMainAppUrl = () => {
   } catch (_) {
   }
 
-  return '';
+  // Production fallback for Capacitor builds where env var is not available
+  return 'https://l3v3lmatches.com';
 };
 
 /**
