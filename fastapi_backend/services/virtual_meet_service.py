@@ -8,6 +8,7 @@ from typing import Optional, List, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 import logging
+from utils import get_full_image_url
 
 logger = logging.getLogger(__name__)
 
@@ -314,7 +315,7 @@ class VirtualMeetService:
                     "education": 1, "educationHistory": 1,
                     "height": 1, "heightInches": 1,
                     "tagline": 1, "bio": 1, "aboutMe": 1, "about": 1,
-                    "profileImages": 1
+                    "imageVisibility": 1, "images": 1, "profileImage": 1
                 }
             )
             async for user in cursor:
@@ -381,7 +382,7 @@ class VirtualMeetService:
                 "profession": VirtualMeetService._get_profession(profile),
                 "education": VirtualMeetService._get_education(profile),
                 "bio_tag": VirtualMeetService._get_bio_tag(profile),
-                "profile_pic_url": f"/api/profile-pic/{uname}",
+                "profile_pic_url": VirtualMeetService._get_profile_pic_url(profile),
                 "request_status": request_status,
                 "request_id": request_id,
                 "room_number": room_number
@@ -402,7 +403,8 @@ class VirtualMeetService:
                      "profession": 1, "occupation": 1, "workExperience": 1,
                      "education": 1, "educationHistory": 1,
                      "height": 1, "heightInches": 1,
-                     "tagline": 1, "bio": 1, "aboutMe": 1, "about": 1}
+                     "tagline": 1, "bio": 1, "aboutMe": 1, "about": 1,
+                     "imageVisibility": 1, "images": 1, "profileImage": 1}
                 ) or {}
 
             incoming_requests.append({
@@ -416,7 +418,7 @@ class VirtualMeetService:
                 "profession": VirtualMeetService._get_profession(profile),
                 "education": VirtualMeetService._get_education(profile),
                 "bio_tag": VirtualMeetService._get_bio_tag(profile),
-                "profile_pic_url": f"/api/profile-pic/{from_user}",
+                "profile_pic_url": VirtualMeetService._get_profile_pic_url(profile),
                 "requested_at": req.get("requested_at")
             })
 
@@ -707,7 +709,7 @@ class VirtualMeetService:
             partner = room["user_b"] if room["user_a"] == username else room["user_a"]
             partner_profile = await db.users.find_one(
                 {"username": partner},
-                {"firstName": 1, "lastName": 1}
+                {"firstName": 1, "lastName": 1, "imageVisibility": 1, "images": 1, "profileImage": 1}
             )
 
             room_list.append({
@@ -715,7 +717,7 @@ class VirtualMeetService:
                 "room_number": room.get("room_number"),
                 "partner_username": partner,
                 "partner_name": VirtualMeetService._get_full_name(partner_profile or {}),
-                "partner_pic_url": f"/api/profile-pic/{partner}",
+                "partner_pic_url": VirtualMeetService._get_profile_pic_url(partner_profile or {}),
                 "status": room.get("status"),
                 "zoom_link": room.get("zoom_link"),
                 "created_at": room.get("created_at")
@@ -1290,6 +1292,7 @@ class VirtualMeetService:
                     "education": 1, "educationHistory": 1,
                     "height": 1, "heightInches": 1,
                     "tagline": 1, "bio": 1, "aboutMe": 1, "about": 1,
+                    "imageVisibility": 1, "images": 1, "profileImage": 1,
                 }
             )
             async for user in cursor:
@@ -1315,7 +1318,7 @@ class VirtualMeetService:
             s["profession"] = VirtualMeetService._get_profession(profile_source)
             s["education"] = VirtualMeetService._get_education(profile_source)
             s["bio_tag"] = VirtualMeetService._get_bio_tag(profile_source)
-            s["profile_pic_url"] = f"/api/profile-pic/{username}" if username else ""
+            s["profile_pic_url"] = VirtualMeetService._get_profile_pic_url(profile_source)
 
         male_count = sum(1 for s in sessions if s.get("gender") == "Male")
         female_count = sum(1 for s in sessions if s.get("gender") == "Female")
@@ -1817,3 +1820,26 @@ class VirtualMeetService:
                     return f"{cleaned[:117].rstrip()}..."
                 return cleaned
         return ""
+
+    @staticmethod
+    def _get_profile_pic_url(profile: Dict[str, Any]) -> str:
+        """Resolve profile picture URL using the shared media URL helper."""
+        if not isinstance(profile, dict):
+            return ""
+
+        image_visibility = profile.get("imageVisibility")
+        if isinstance(image_visibility, dict):
+            profile_pic = image_visibility.get("profilePic")
+            resolved = get_full_image_url(profile_pic) if profile_pic else None
+            if resolved:
+                return resolved
+
+        images = profile.get("images")
+        if isinstance(images, list) and images:
+            resolved = get_full_image_url(images[0])
+            if resolved:
+                return resolved
+
+        profile_image = profile.get("profileImage")
+        resolved = get_full_image_url(profile_image) if profile_image else None
+        return resolved or ""
