@@ -22,7 +22,7 @@ const hasAnyPhoto = (profile) => {
   return false;
 };
 
-const DashboardBanners = ({ userProfile, onRefetch }) => {
+const DashboardBanners = ({ userProfile, onRefetch, enabled = true, deferMs = 0 }) => {
   const navigate = useNavigate();
 
   const noPhotoLoginRemaining = useMemo(() => {
@@ -141,8 +141,19 @@ const DashboardBanners = ({ userProfile, onRefetch }) => {
   // Batch all 4 banner-data fetches into one render transition to avoid
   // banner area growing/shrinking multiple times as each request resolves.
   useEffect(() => {
+    if (!enabled) return undefined;
+
     let cancelled = false;
+    const delay = Number.isFinite(deferMs) ? Math.max(0, deferMs) : 0;
+
     (async () => {
+      if (delay > 0) {
+        await new Promise((resolve) => {
+          setTimeout(resolve, delay);
+        });
+        if (cancelled) return;
+      }
+
       const [mfaRes, inviteRes, pauseRes, reconnectRes] = await Promise.all([
         checkMfaStatus(),
         loadInviteFriendsStats(),
@@ -160,7 +171,14 @@ const DashboardBanners = ({ userProfile, onRefetch }) => {
     return () => {
       cancelled = true;
     };
-  }, [checkMfaStatus, loadInviteFriendsStats, loadPauseStatus, loadReconnectRequests]);
+  }, [
+    checkMfaStatus,
+    deferMs,
+    enabled,
+    loadInviteFriendsStats,
+    loadPauseStatus,
+    loadReconnectRequests,
+  ]);
 
   // Derived synchronously to avoid an extra render where userProfile is
   // present but the photo-reminder state hasn't been recomputed yet.

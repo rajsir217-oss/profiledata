@@ -14,7 +14,7 @@ const pollsApi = createApiInstance();
  * @param {boolean} inline - If true, renders in compact inline mode
  * @param {boolean} autoPopup - If true, automatically shows modal for unanswered polls on mount
  */
-const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null, autoPopup = false }) => {
+const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null, autoPopup = false, initialPolls = null }) => {
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -69,38 +69,45 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
     return () => clearInterval(interval);
   }, [polls]);
 
+  const hydratePolls = (nextPolls = []) => {
+    const safePolls = Array.isArray(nextPolls) ? nextPolls : [];
+    setPolls(safePolls);
+
+    const initialSelections = {};
+    safePolls.forEach((poll) => {
+      if (poll.user_response) {
+        initialSelections[poll._id] = poll.user_response.selected_options || [];
+      }
+    });
+    setSelectedOptions(initialSelections);
+
+    if (autoPopup && !autoPopupShown && safePolls.length > 0) {
+      const unansweredPoll = safePolls.find((p) => !p.user_has_responded);
+      if (unansweredPoll) {
+        setSelectedPollId(unansweredPoll._id);
+        setShowModal(true);
+        setAutoPopupShown(true);
+      }
+    }
+  };
+
   useEffect(() => {
+    if (Array.isArray(initialPolls)) {
+      setError(null);
+      setLoading(false);
+      hydratePolls(initialPolls);
+      return;
+    }
     fetchActivePolls();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialPolls]);
 
   const fetchActivePolls = async () => {
     try {
       setLoading(true);
       const response = await pollsApi.get('/api/polls/active');
       if (response.data.success) {
-        setPolls(response.data.polls || []);
-        
-        // Initialize selected options for polls user hasn't responded to
-        const initialSelections = {};
-        response.data.polls.forEach(poll => {
-          if (poll.user_response) {
-            initialSelections[poll._id] = poll.user_response.selected_options || [];
-          }
-        });
-        setSelectedOptions(initialSelections);
-        
-        // Auto-popup logic: Show modal for first unanswered poll on EVERY login
-        // Keep showing until user responds - no session tracking needed
-        if (autoPopup && !autoPopupShown && response.data.polls.length > 0) {
-          const unansweredPoll = response.data.polls.find(p => !p.user_has_responded);
-          if (unansweredPoll) {
-            // Show the modal automatically for unanswered polls
-            setSelectedPollId(unansweredPoll._id);
-            setShowModal(true);
-            setAutoPopupShown(true);
-          }
-        }
+        hydratePolls(response.data.polls || []);
       }
     } catch (err) {
       console.error('Error fetching polls:', err);

@@ -34,6 +34,7 @@ const VirtualMeets = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [selectedMale, setSelectedMale] = useState(null);
   const [selectedFemale, setSelectedFemale] = useState(null);
+  const [profileImageErrors, setProfileImageErrors] = useState({});
 
   // ─── Load Events ─────────────────────────────────────────────────────
 
@@ -588,6 +589,65 @@ const VirtualMeets = () => {
     }
   };
 
+  const getProfileHref = (username) => `/profile/${encodeURIComponent(username || '')}`;
+
+  const getAvatarInitials = (fullName, username) => {
+    const source = String(fullName || username || '?').trim();
+    if (!source) return '?';
+    const words = source.split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      return `${words[0][0] || ''}${words[1][0] || ''}`.toUpperCase();
+    }
+    return (words[0][0] || '?').toUpperCase();
+  };
+
+  const getAvatarUrl = (profilePicUrl, username) => {
+    if (profilePicUrl && /^https?:\/\//i.test(profilePicUrl)) {
+      return profilePicUrl;
+    }
+    if (profilePicUrl) {
+      return `${getBackendUrl()}${profilePicUrl}`;
+    }
+    return `${getBackendUrl()}/api/profile-pic/${username}`;
+  };
+
+  const onAvatarError = (imageKey) => {
+    setProfileImageErrors((prev) => ({
+      ...prev,
+      [imageKey]: true,
+    }));
+  };
+
+  const getMatchMeta = (person) => {
+    const parts = [];
+    if (person?.dob_mm_yyyy) parts.push(`DOB ${person.dob_mm_yyyy}`);
+    if (person?.height) parts.push(`Height ${person.height}`);
+    if (person?.age) parts.push(`${person.age} yrs`);
+    if (person?.location) parts.push(person.location);
+    return parts;
+  };
+
+  const renderAvatar = ({ imageKey, profilePicUrl, username, fullName, small = false }) => {
+    const hasError = !!profileImageErrors[imageKey];
+
+    return (
+      <div className={`vm-match-avatar ${small ? 'vm-match-avatar-sm' : ''}`}>
+        {hasError ? (
+          <div className={`vm-avatar-fallback ${small ? 'vm-avatar-fallback-sm' : ''}`}>
+            {getAvatarInitials(fullName, username)}
+          </div>
+        ) : (
+          <img
+            src={getAvatarUrl(profilePicUrl, username)}
+            alt={fullName || username}
+            className={`vm-avatar-img ${small ? 'vm-avatar-sm' : ''}`}
+            onError={() => onAvatarError(imageKey)}
+          />
+        )}
+      </div>
+    );
+  };
+
   // ─── Render: Events List ─────────────────────────────────────────────
 
   const renderEventsList = () => {
@@ -760,24 +820,33 @@ const VirtualMeets = () => {
             <div className="vm-match-cards">
               {matchData.my_requests_received.map(req => (
                 <div key={req.request_id} className="vm-match-card vm-incoming">
-                  <div className="vm-match-avatar">
-                    <img
-                      src={`${getBackendUrl()}/profile-pic/${req.from_username}`}
-                      alt={req.full_name}
-                      className="vm-avatar-img"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  </div>
-                  <div className="vm-match-info">
-                    <div className="vm-match-name">{req.full_name}</div>
-                    <div className="vm-match-meta">
-                      {req.age && <span>{req.age} yrs</span>}
-                      {req.location && <span> · {req.location}</span>}
+                  <a
+                    className="vm-match-profile-link"
+                    href={getProfileHref(req.from_username)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {renderAvatar({
+                      imageKey: `incoming-${req.from_username}`,
+                      profilePicUrl: req.profile_pic_url,
+                      username: req.from_username,
+                      fullName: req.full_name,
+                    })}
+                    <div className="vm-match-info">
+                      <div className="vm-match-name">{req.full_name}</div>
+                      <div className="vm-match-username">@{req.from_username}</div>
+                      <div className="vm-match-meta">{getMatchMeta(req).join(' · ')}</div>
+                      {req.profession && (
+                        <div className="vm-match-profession">Profession: {req.profession}</div>
+                      )}
+                      {req.education && (
+                        <div className="vm-match-education">Education: {req.education}</div>
+                      )}
+                      {req.bio_tag && (
+                        <div className="vm-match-bio-tag">Bio Tag: {req.bio_tag}</div>
+                      )}
                     </div>
-                    {req.profession && (
-                      <div className="vm-match-profession">{req.profession}</div>
-                    )}
-                  </div>
+                  </a>
                   {!matchData.is_locked && (
                     <div className="vm-match-actions">
                       <button
@@ -810,15 +879,21 @@ const VirtualMeets = () => {
               {matchData.my_rooms.map(room => (
                 <div key={room.room_id} className="vm-room-card">
                   <div className="vm-room-number">Room #{room.room_number}</div>
-                  <div className="vm-room-partner">
-                    <img
-                      src={`${getBackendUrl()}/profile-pic/${room.partner_username}`}
-                      alt={room.partner_name}
-                      className="vm-avatar-img vm-avatar-sm"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
+                  <a
+                    className="vm-room-partner vm-profile-link"
+                    href={getProfileHref(room.partner_username)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {renderAvatar({
+                      imageKey: `room-${room.partner_username}`,
+                      profilePicUrl: room.partner_pic_url,
+                      username: room.partner_username,
+                      fullName: room.partner_name,
+                      small: true,
+                    })}
                     <span>{room.partner_name}</span>
-                  </div>
+                  </a>
                   <div className={`vm-room-status vm-status-${room.status}`}>
                     {room.status === 'confirmed' ? '✅ Confirmed' :
                      room.status === 'active' ? '🟢 Active' : room.status}
@@ -855,24 +930,33 @@ const VirtualMeets = () => {
                   key={match.username}
                   className={`vm-match-card ${match.request_status === 'declined' ? 'vm-declined' : ''}`}
                 >
-                  <div className="vm-match-avatar">
-                    <img
-                      src={`${getBackendUrl()}/profile-pic/${match.username}`}
-                      alt={match.full_name}
-                      className="vm-avatar-img"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  </div>
-                  <div className="vm-match-info">
-                    <div className="vm-match-name">{match.full_name}</div>
-                    <div className="vm-match-meta">
-                      {match.age && <span>{match.age} yrs</span>}
-                      {match.location && <span> · {match.location}</span>}
+                  <a
+                    className="vm-match-profile-link"
+                    href={getProfileHref(match.username)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {renderAvatar({
+                      imageKey: `match-${match.username}`,
+                      profilePicUrl: match.profile_pic_url,
+                      username: match.username,
+                      fullName: match.full_name,
+                    })}
+                    <div className="vm-match-info">
+                      <div className="vm-match-name">{match.full_name}</div>
+                      <div className="vm-match-username">@{match.username}</div>
+                      <div className="vm-match-meta">{getMatchMeta(match).join(' · ')}</div>
+                      {match.profession && (
+                        <div className="vm-match-profession">Profession: {match.profession}</div>
+                      )}
+                      {match.education && (
+                        <div className="vm-match-education">Education: {match.education}</div>
+                      )}
+                      {match.bio_tag && (
+                        <div className="vm-match-bio-tag">Bio Tag: {match.bio_tag}</div>
+                      )}
                     </div>
-                    {match.profession && (
-                      <div className="vm-match-profession">{match.profession}</div>
-                    )}
-                  </div>
+                  </a>
                   <div className="vm-match-actions">
                     {!match.request_status && !matchData.is_locked && (
                       <button

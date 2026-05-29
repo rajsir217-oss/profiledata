@@ -308,9 +308,12 @@ class VirtualMeetService:
                 },
                 {
                     "username": 1, "firstName": 1, "lastName": 1,
-                    "age": 1, "dateOfBirth": 1,
+                    "age": 1, "birthMonth": 1, "birthYear": 1, "dateOfBirth": 1,
                     "city": 1, "state": 1, "country": 1,
-                    "profession": 1, "occupation": 1,
+                    "profession": 1, "occupation": 1, "workExperience": 1,
+                    "education": 1, "educationHistory": 1,
+                    "height": 1, "heightInches": 1,
+                    "tagline": 1, "bio": 1, "aboutMe": 1, "about": 1,
                     "profileImages": 1
                 }
             )
@@ -372,8 +375,12 @@ class VirtualMeetService:
                 "username": uname,
                 "full_name": VirtualMeetService._get_full_name(profile),
                 "age": VirtualMeetService._calculate_age(profile),
+                "dob_mm_yyyy": VirtualMeetService._get_birth_month_year(profile),
+                "height": VirtualMeetService._get_height(profile),
                 "location": VirtualMeetService._get_location(profile),
-                "profession": profile.get("profession") or profile.get("occupation") or "",
+                "profession": VirtualMeetService._get_profession(profile),
+                "education": VirtualMeetService._get_education(profile),
+                "bio_tag": VirtualMeetService._get_bio_tag(profile),
                 "profile_pic_url": f"/api/profile-pic/{uname}",
                 "request_status": request_status,
                 "request_id": request_id,
@@ -390,7 +397,12 @@ class VirtualMeetService:
                 profile = await db.users.find_one(
                     {"username": from_user},
                     {"username": 1, "firstName": 1, "lastName": 1, "age": 1,
-                     "dateOfBirth": 1, "city": 1, "state": 1, "profession": 1, "occupation": 1}
+                     "birthMonth": 1, "birthYear": 1, "dateOfBirth": 1,
+                     "city": 1, "state": 1, "country": 1,
+                     "profession": 1, "occupation": 1, "workExperience": 1,
+                     "education": 1, "educationHistory": 1,
+                     "height": 1, "heightInches": 1,
+                     "tagline": 1, "bio": 1, "aboutMe": 1, "about": 1}
                 ) or {}
 
             incoming_requests.append({
@@ -398,8 +410,12 @@ class VirtualMeetService:
                 "from_username": from_user,
                 "full_name": VirtualMeetService._get_full_name(profile),
                 "age": VirtualMeetService._calculate_age(profile),
+                "dob_mm_yyyy": VirtualMeetService._get_birth_month_year(profile),
+                "height": VirtualMeetService._get_height(profile),
                 "location": VirtualMeetService._get_location(profile),
-                "profession": profile.get("profession") or profile.get("occupation") or "",
+                "profession": VirtualMeetService._get_profession(profile),
+                "education": VirtualMeetService._get_education(profile),
+                "bio_tag": VirtualMeetService._get_bio_tag(profile),
                 "profile_pic_url": f"/api/profile-pic/{from_user}",
                 "requested_at": req.get("requested_at")
             })
@@ -1603,9 +1619,25 @@ class VirtualMeetService:
     def _calculate_age(profile: Dict[str, Any]) -> Optional[int]:
         """Calculate age from profile."""
         age = profile.get("age")
-        if age:
-            raw = age if age not in ('', None) else None
-            return int(raw) if raw else None
+        if age not in ("", None):
+            try:
+                return int(age)
+            except Exception:
+                pass
+
+        birth_year = profile.get("birthYear")
+        birth_month = profile.get("birthMonth")
+        if birth_year not in ("", None):
+            try:
+                year = int(birth_year)
+                month = int(birth_month) if birth_month not in ("", None) else None
+                today = datetime.now()
+                calculated_age = today.year - year
+                if month and today.month < month:
+                    calculated_age -= 1
+                return calculated_age
+            except Exception:
+                pass
 
         dob = profile.get("dateOfBirth")
         if dob:
@@ -1629,3 +1661,119 @@ class VirtualMeetService:
         if not parts and profile.get("country"):
             parts.append(profile["country"])
         return ", ".join(parts)
+
+    @staticmethod
+    def _get_birth_month_year(profile: Dict[str, Any]) -> str:
+        """Get date-of-birth month/year as MM/YYYY."""
+        birth_month = profile.get("birthMonth")
+        birth_year = profile.get("birthYear")
+
+        if birth_month not in ("", None) and birth_year not in ("", None):
+            try:
+                month = str(int(birth_month)).zfill(2)
+                year = str(int(birth_year))
+                return f"{month}/{year}"
+            except Exception:
+                pass
+
+        dob = profile.get("dateOfBirth")
+        if not dob:
+            return ""
+
+        try:
+            parsed = dob
+            if isinstance(dob, str):
+                parsed = datetime.fromisoformat(dob.replace("Z", "+00:00"))
+            return f"{str(parsed.month).zfill(2)}/{parsed.year}"
+        except Exception:
+            return ""
+
+    @staticmethod
+    def _get_height(profile: Dict[str, Any]) -> str:
+        """Get display height string."""
+        raw_height = profile.get("height")
+        if isinstance(raw_height, str) and raw_height.strip():
+            return raw_height.strip()
+
+        height_inches = profile.get("heightInches")
+        if height_inches in ("", None):
+            return ""
+
+        try:
+            total_inches = int(height_inches)
+            feet = total_inches // 12
+            inches = total_inches % 12
+            return f"{feet}' {inches}\""
+        except Exception:
+            return ""
+
+    @staticmethod
+    def _get_profession(profile: Dict[str, Any]) -> str:
+        """Get profession with workExperience fallback."""
+        direct_profession = profile.get("profession") or profile.get("occupation")
+        if isinstance(direct_profession, str) and direct_profession.strip():
+            return direct_profession.strip()
+
+        work_experience = profile.get("workExperience")
+        if isinstance(work_experience, list) and work_experience:
+            current_job = next(
+                (
+                    job for job in work_experience
+                    if isinstance(job, dict)
+                    and (
+                        job.get("isCurrent") is True
+                        or str(job.get("status", "")).lower() == "current"
+                    )
+                ),
+                None,
+            )
+            selected_job = current_job or next((job for job in work_experience if isinstance(job, dict)), None)
+            if selected_job:
+                for key in ("description", "position", "title"):
+                    value = selected_job.get(key)
+                    if isinstance(value, str) and value.strip():
+                        return value.strip()
+
+                company = selected_job.get("company")
+                if isinstance(company, str) and company.strip():
+                    return company.strip()
+
+        return ""
+
+    @staticmethod
+    def _get_education(profile: Dict[str, Any]) -> str:
+        """Get education text from legacy or structured fields."""
+        legacy_education = profile.get("education")
+        if isinstance(legacy_education, str) and legacy_education.strip():
+            return legacy_education.strip()
+
+        education_history = profile.get("educationHistory")
+        if isinstance(education_history, list) and education_history:
+            edu = next((item for item in education_history if isinstance(item, dict)), None)
+            if edu:
+                degree = edu.get("degree")
+                institution = edu.get("institution")
+                level = edu.get("level")
+
+                if isinstance(degree, str) and degree.strip() and isinstance(institution, str) and institution.strip():
+                    return f"{degree.strip()}, {institution.strip()}"
+                if isinstance(degree, str) and degree.strip():
+                    return degree.strip()
+                if isinstance(level, str) and level.strip():
+                    return level.strip()
+                if isinstance(institution, str) and institution.strip():
+                    return institution.strip()
+
+        return ""
+
+    @staticmethod
+    def _get_bio_tag(profile: Dict[str, Any]) -> str:
+        """Get concise bio/tagline text."""
+        for key in ("tagline", "bio", "aboutMe", "about"):
+            value = profile.get(key)
+            if isinstance(value, str) and value.strip():
+                cleaned = value.strip()
+                if len(cleaned) > 120:
+                    return f"{cleaned[:117].rstrip()}..."
+                return cleaned
+        return ""

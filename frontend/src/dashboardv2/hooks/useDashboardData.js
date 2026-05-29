@@ -9,7 +9,7 @@
 // own hook (useNewestMatch) because it has fallback logic that depends on
 // having the saved searches list first.
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import logger from '../../utils/logger';
 import {
   fetchSavedSearches,
@@ -27,6 +27,7 @@ import {
 } from '../api';
 
 const getCurrentUsername = () => localStorage.getItem('username');
+const DEFERRED_POLLS_DELAY_MS = 1200;
 
 const initialData = {
   userProfile: null,
@@ -48,8 +49,14 @@ export function useDashboardData() {
   const [loading, setLoading] = useState(true);
   const [criticalLoading, setCriticalLoading] = useState(true);
   const [error, setError] = useState(null);
+  const deferredPollsTimerRef = useRef(null);
 
-  const refetch = useCallback(async () => {
+  const refetch = useCallback(async ({ deferPolls = true } = {}) => {
+    if (deferredPollsTimerRef.current) {
+      clearTimeout(deferredPollsTimerRef.current);
+      deferredPollsTimerRef.current = null;
+    }
+
     setLoading(true);
     setCriticalLoading(true);
     setError(null);
@@ -85,7 +92,6 @@ export function useDashboardData() {
         conversations,
         theirFavorites,
         incomingPiiRequests,
-        activePolls,
       ] = await Promise.all([
         fetchProfileViews(),
         fetchFavorites(),
@@ -95,7 +101,6 @@ export function useDashboardData() {
         fetchConversations(),
         fetchTheirFavorites(),
         fetchIncomingPiiRequests(getCurrentUsername()),
-        fetchActivePolls(),
       ]);
 
       setData((prev) => ({
@@ -108,8 +113,24 @@ export function useDashboardData() {
         conversations,
         theirFavorites,
         incomingPiiRequests,
-        activePolls,
       }));
+
+      const updateActivePolls = async () => {
+        const activePolls = await fetchActivePolls();
+        setData((prev) => ({
+          ...prev,
+          activePolls,
+        }));
+      };
+
+      if (deferPolls) {
+        deferredPollsTimerRef.current = setTimeout(() => {
+          deferredPollsTimerRef.current = null;
+          updateActivePolls();
+        }, DEFERRED_POLLS_DELAY_MS);
+      } else {
+        await updateActivePolls();
+      }
     } catch (err) {
       logger.error('useDashboardData refetch failed:', err);
       setError(err);
@@ -135,8 +156,15 @@ export function useDashboardData() {
   }, []);
 
   useEffect(() => {
-    refetch();
+    refetch({ deferPolls: true });
   }, [refetch]);
+
+  useEffect(() => () => {
+    if (deferredPollsTimerRef.current) {
+      clearTimeout(deferredPollsTimerRef.current);
+      deferredPollsTimerRef.current = null;
+    }
+  }, []);
 
   return { data, loading, criticalLoading, error, refetch, fetchBreakdown };
 }

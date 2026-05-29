@@ -32,6 +32,21 @@ const PollManagement = () => {
   const [adminActionComment, setAdminActionComment] = useState('');
   const [adminActionBusy, setAdminActionBusy] = useState(false);
   const [usernameSuggestions, setUsernameSuggestions] = useState([]);
+
+  const getFullName = (user) => [user?.firstName, user?.lastName]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+
+  const getSuggestionDisplayValue = (user) => {
+    const fullName = getFullName(user);
+    return fullName ? `${fullName} (${user.username})` : user.username;
+  };
+
+  const parseUsernameFromSuggestion = (value) => {
+    const match = String(value || '').match(/\(([^()]+)\)\s*$/);
+    return match?.[1]?.trim() || '';
+  };
   
   // Response table sorting and filtering
   const [responseSortBy, setResponseSortBy] = useState('responded_at');
@@ -165,8 +180,14 @@ const PollManagement = () => {
         params: { search: query.trim(), limit: 10 }
       });
       const users = res.data?.users || [];
-      const usernames = users.map(u => u.username).filter(Boolean);
-      setUsernameSuggestions(usernames);
+      const suggestions = users
+        .filter(u => !!u?.username)
+        .map(u => ({
+          username: u.username,
+          fullName: getFullName(u),
+          displayValue: getSuggestionDisplayValue(u),
+        }));
+      setUsernameSuggestions(suggestions);
     } catch (err) {
       setUsernameSuggestions([]);
     }
@@ -182,6 +203,50 @@ const PollManagement = () => {
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const resolveAdminActionUsername = async (rawInput) => {
+    const input = String(rawInput || '').trim();
+    if (!input) return '';
+
+    const parsedUsername = parseUsernameFromSuggestion(input);
+    if (parsedUsername) return parsedUsername;
+
+    const normalizedInput = input.toLowerCase();
+    const exactUsernameMatch = usernameSuggestions.find(
+      (u) => u.username?.toLowerCase() === normalizedInput
+    );
+    if (exactUsernameMatch?.username) return exactUsernameMatch.username;
+
+    const exactNameMatch = usernameSuggestions.find(
+      (u) => u.fullName?.toLowerCase() === normalizedInput
+    );
+    if (exactNameMatch?.username) return exactNameMatch.username;
+
+    try {
+      const res = await pollsApi.get('/api/admin/users', {
+        params: { search: input, limit: 10 }
+      });
+      const users = (res.data?.users || []).filter(u => !!u?.username);
+      if (!users.length) return input;
+
+      const apiExactUsername = users.find(
+        (u) => String(u.username || '').toLowerCase() === normalizedInput
+      );
+      if (apiExactUsername?.username) return apiExactUsername.username;
+
+      const apiExactName = users.find(
+        (u) => getFullName(u).toLowerCase() === normalizedInput
+      );
+      if (apiExactName?.username) return apiExactName.username;
+
+      if (users.length === 1) return users[0].username;
+
+      showToast('Multiple users matched. Please select one suggestion.', 'warning');
+      return '';
+    } catch {
+      return input;
+    }
   };
 
   // Get sorted and filtered responses
@@ -447,7 +512,7 @@ const PollManagement = () => {
 
   const handleAdminAddMember = async () => {
     if (!selectedPoll?._id) return;
-    const username = (adminActionUsername || '').trim();
+    const username = await resolveAdminActionUsername(adminActionUsername);
     if (!username) {
       showToast('Enter a username to add', 'error');
       return;
@@ -459,6 +524,7 @@ const PollManagement = () => {
         params: { username },
       });
       if (res.data?.success) {
+        setAdminActionUsername(username);
         showToast(`Added ${username} to poll`, 'success');
         await fetchPollResults(selectedPoll._id);
       }
@@ -471,7 +537,7 @@ const PollManagement = () => {
 
   const handleAdminRespondOnBehalf = async (rsvpResponse) => {
     if (!selectedPoll?._id) return;
-    const username = (adminActionUsername || '').trim();
+    const username = await resolveAdminActionUsername(adminActionUsername);
     if (!username) {
       showToast('Enter a username first', 'error');
       return;
@@ -486,6 +552,7 @@ const PollManagement = () => {
       };
       const res = await pollsApi.post(`/api/polls/admin/${selectedPoll._id}/respond-on-behalf`, payload);
       if (res.data?.success) {
+        setAdminActionUsername(username);
         showToast(`Recorded ${rsvpResponse.toUpperCase()} for ${username}`, 'success');
         await fetchPollResults(selectedPoll._id);
       }
@@ -1195,20 +1262,20 @@ const PollManagement = () => {
 
                     <div className="poll-admin-actions">
                       <div className="poll-admin-field">
-                        <label className="poll-admin-label" htmlFor="poll-admin-username">On behalf of (username)</label>
+                        <label className="poll-admin-label" htmlFor="poll-admin-username">On behalf of (username or name)</label>
                         <input
                           id="poll-admin-username"
                           className="poll-admin-input"
                           list="poll-username-datalist"
                           value={adminActionUsername}
                           onChange={(e) => setAdminActionUsername(e.target.value)}
-                          placeholder="username"
+                          placeholder="username, first name, or last name"
                           disabled={adminActionBusy}
                           autoComplete="off"
                         />
                         <datalist id="poll-username-datalist">
-                          {usernameSuggestions.map((u, i) => (
-                            <option key={i} value={u} />
+                          {usernameSuggestions.map((u) => (
+                            <option key={u.username} value={u.displayValue} />
                           ))}
                         </datalist>
                       </div>
