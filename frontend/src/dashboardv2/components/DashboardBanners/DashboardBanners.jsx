@@ -22,7 +22,13 @@ const hasAnyPhoto = (profile) => {
   return false;
 };
 
-const DashboardBanners = ({ userProfile, onRefetch, enabled = true, deferMs = 0 }) => {
+const DashboardBanners = ({
+  userProfile,
+  onRefreshProfile,
+  onRefreshExclusions,
+  enabled = true,
+  deferMs = 0,
+}) => {
   const navigate = useNavigate();
 
   const noPhotoLoginRemaining = useMemo(() => {
@@ -233,24 +239,24 @@ const DashboardBanners = ({ userProfile, onRefetch, enabled = true, deferMs = 0 
       );
       const fresh = await loadPauseStatus();
       setPauseStatus(fresh || null);
-      if (onRefetch) await onRefetch();
+      if (onRefreshProfile) await onRefreshProfile();
     } catch (err) {
       logger.error('Error unpausing account:', err);
     }
-  }, [authHeaders, loadPauseStatus, onRefetch]);
+  }, [authHeaders, loadPauseStatus, onRefreshProfile]);
 
   const handleReconnectResponse = useCallback(async (requestId, action) => {
     setRespondingToReconnectId(requestId);
     try {
       await api.post(`/exclusions/reconnect-requests/${requestId}/respond?action=${action}`);
       setReconnectRequests((prev) => prev.filter((r) => r._id !== requestId));
-      if (onRefetch) await onRefetch();
+      if (onRefreshExclusions) await onRefreshExclusions();
     } catch (err) {
       logger.error('Failed to respond to reconnect request:', err);
     } finally {
       setRespondingToReconnectId(null);
     }
-  }, [onRefetch]);
+  }, [onRefreshExclusions]);
 
   const remainingInvitesText =
     inviteFriendsRemaining === null

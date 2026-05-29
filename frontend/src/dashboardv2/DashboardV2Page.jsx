@@ -42,7 +42,17 @@ import './DashboardV2.css';
 
 const DashboardV2Page = () => {
   const navigate = useNavigate();
-  const { data, loading, criticalLoading, error, refetch, fetchBreakdown } = useDashboardData();
+  const {
+    data,
+    loading,
+    criticalLoading,
+    error,
+    refetch,
+    fetchBreakdown,
+    refreshActivePolls,
+    refreshUserProfile,
+    refreshExclusions,
+  } = useDashboardData();
   const newestMatch = useNewestMatch(data.savedSearches, data.userProfile);
   const staleMessages = useStaleMessages(data.conversations);
 
@@ -134,7 +144,8 @@ const DashboardV2Page = () => {
     <div className="dv2-container">
       <DashboardBanners
         userProfile={data.userProfile}
-        onRefetch={refetch}
+        onRefreshProfile={refreshUserProfile}
+        onRefreshExclusions={refreshExclusions}
         enabled={!criticalLoading}
         deferMs={800}
       />
@@ -144,7 +155,7 @@ const DashboardV2Page = () => {
             inline={true}
             autoPopup={true}
             initialPolls={data.activePolls}
-            onPollResponded={() => refetch?.({ deferPolls: false })}
+            onPollResponded={refreshActivePolls}
             renderPlaceholder={() => null}
           />
         </div>
@@ -364,7 +375,7 @@ const DashboardV2Page = () => {
           savedSearches={data.savedSearches}
           activePolls={data.activePolls}
           onOpenSavedSearch={openSavedSearch}
-          onPollResponded={() => refetch({ deferPolls: false })}
+          onPollResponded={refreshActivePolls}
         />
       </div>
 
