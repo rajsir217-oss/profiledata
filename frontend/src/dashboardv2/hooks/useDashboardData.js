@@ -50,6 +50,84 @@ export function useDashboardData() {
   const [criticalLoading, setCriticalLoading] = useState(true);
   const [error, setError] = useState(null);
   const deferredPollsTimerRef = useRef(null);
+  const activePollsRequestRef = useRef(null);
+  const userProfileRequestRef = useRef(null);
+  const exclusionsRequestRef = useRef(null);
+
+  const refreshUserProfile = useCallback(async () => {
+    if (userProfileRequestRef.current) {
+      return userProfileRequestRef.current;
+    }
+
+    const request = (async () => {
+      const userProfile = await fetchCurrentUserProfile();
+      setData((prev) => ({
+        ...prev,
+        userProfile,
+      }));
+      return userProfile;
+    })();
+
+    userProfileRequestRef.current = request;
+
+    try {
+      return await request;
+    } finally {
+      if (userProfileRequestRef.current === request) {
+        userProfileRequestRef.current = null;
+      }
+    }
+  }, []);
+
+  const refreshExclusions = useCallback(async () => {
+    if (exclusionsRequestRef.current) {
+      return exclusionsRequestRef.current;
+    }
+
+    const request = (async () => {
+      const exclusions = await fetchExclusions();
+      setData((prev) => ({
+        ...prev,
+        exclusions,
+      }));
+      return exclusions;
+    })();
+
+    exclusionsRequestRef.current = request;
+
+    try {
+      return await request;
+    } finally {
+      if (exclusionsRequestRef.current === request) {
+        exclusionsRequestRef.current = null;
+      }
+    }
+  }, []);
+
+  const refreshActivePolls = useCallback(async () => {
+    if (activePollsRequestRef.current) {
+      return activePollsRequestRef.current;
+    }
+
+    const request = (async () => {
+      const activePolls = await fetchActivePolls();
+      setData((prev) => ({
+        ...prev,
+        activePolls,
+      }));
+      return activePolls;
+    })();
+
+    activePollsRequestRef.current = request;
+
+    try {
+      return await request;
+    } finally {
+      if (activePollsRequestRef.current === request) {
+        activePollsRequestRef.current = null;
+      }
+    }
+  }, []);
 
   const refetch = useCallback(async ({ deferPolls = true } = {}) => {
     if (deferredPollsTimerRef.current) {
@@ -115,21 +193,13 @@ export function useDashboardData() {
         incomingPiiRequests,
       }));
 
-      const updateActivePolls = async () => {
-        const activePolls = await fetchActivePolls();
-        setData((prev) => ({
-          ...prev,
-          activePolls,
-        }));
-      };
-
       if (deferPolls) {
         deferredPollsTimerRef.current = setTimeout(() => {
           deferredPollsTimerRef.current = null;
-          updateActivePolls();
+          refreshActivePolls();
         }, DEFERRED_POLLS_DELAY_MS);
       } else {
-        await updateActivePolls();
+        await refreshActivePolls();
       }
     } catch (err) {
       logger.error('useDashboardData refetch failed:', err);
@@ -138,7 +208,7 @@ export function useDashboardData() {
       setLoading(false);
       setCriticalLoading(false);
     }
-  }, []);
+  }, [refreshActivePolls]);
 
   const fetchBreakdown = useCallback(async (criteria) => {
     const username = getCurrentUsername();
@@ -166,5 +236,15 @@ export function useDashboardData() {
     }
   }, []);
 
-  return { data, loading, criticalLoading, error, refetch, fetchBreakdown };
+  return {
+    data,
+    loading,
+    criticalLoading,
+    error,
+    refetch,
+    fetchBreakdown,
+    refreshActivePolls,
+    refreshUserProfile,
+    refreshExclusions,
+  };
 }
