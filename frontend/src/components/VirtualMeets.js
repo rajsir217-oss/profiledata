@@ -627,6 +627,16 @@ const VirtualMeets = () => {
     return parts;
   };
 
+  const getParticipantDisplayName = (person) => {
+    const explicit = String(person?.full_name || '').trim();
+    if (explicit) return explicit;
+
+    const joined = `${person?.firstName || ''} ${person?.lastName || ''}`.trim();
+    if (joined) return joined;
+
+    return person?.username || 'Unknown';
+  };
+
   const renderAvatar = ({ imageKey, profilePicUrl, username, fullName, small = false }) => {
     const hasError = !!profileImageErrors[imageKey];
 
@@ -1183,7 +1193,11 @@ const VirtualMeets = () => {
                         <thead>
                           <tr>
                             <th></th>
-                            <th>Username</th>
+                            <th>Participant</th>
+                            <th>Profile</th>
+                            <th>Profession</th>
+                            <th>Education</th>
+                            <th>Bio Tag</th>
                             <th>Payment</th>
                             <th>Access</th>
                             <th>Rooms</th>
@@ -1192,6 +1206,8 @@ const VirtualMeets = () => {
                         <tbody>
                           {males.map(p => {
                             const count = roomCounts[p.username] || 0;
+                            const displayName = getParticipantDisplayName(p);
+                            const profileMeta = getMatchMeta(p).join(' · ');
                             return (
                               <tr key={p._id} className={selectedMale === p.username ? 'vm-selected-row' : ''}>
                                 <td>
@@ -1203,7 +1219,30 @@ const VirtualMeets = () => {
                                     className="vm-select-checkbox"
                                   />
                                 </td>
-                                <td>{p.username}</td>
+                                <td>
+                                  <a
+                                    className="vm-admin-participant-link"
+                                    href={getProfileHref(p.username)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    {renderAvatar({
+                                      imageKey: `admin-male-${p.username}`,
+                                      profilePicUrl: p.profile_pic_url,
+                                      username: p.username,
+                                      fullName: displayName,
+                                      small: true,
+                                    })}
+                                    <div className="vm-admin-participant-identity">
+                                      <div className="vm-admin-participant-name">{displayName}</div>
+                                      <div className="vm-admin-participant-username">@{p.username}</div>
+                                    </div>
+                                  </a>
+                                </td>
+                                <td className="vm-admin-participant-meta" title={profileMeta || '—'}>{profileMeta || '—'}</td>
+                                <td className="vm-admin-participant-profession" title={p.profession || '—'}>{p.profession || '—'}</td>
+                                <td className="vm-admin-participant-education" title={p.education || '—'}>{p.education || '—'}</td>
+                                <td className="vm-admin-participant-bio" title={p.bio_tag || '—'}>{p.bio_tag || '—'}</td>
                                 <td><span className={`vm-status-badge vm-badge-${p.payment_status === 'completed' ? 'accepted' : p.payment_status === 'not_required' ? 'accepted' : 'pending'}`}>{p.payment_status}</span></td>
                                 <td>{p.access_unlocked ? '✅' : '🔒'}</td>
                                 <td>{count > 0 ? <span className="vm-room-count">{count}</span> : '—'}</td>
@@ -1223,7 +1262,11 @@ const VirtualMeets = () => {
                         <thead>
                           <tr>
                             <th></th>
-                            <th>Username</th>
+                            <th>Participant</th>
+                            <th>Profile</th>
+                            <th>Profession</th>
+                            <th>Education</th>
+                            <th>Bio Tag</th>
                             <th>Payment</th>
                             <th>Access</th>
                             <th>Rooms</th>
@@ -1232,6 +1275,8 @@ const VirtualMeets = () => {
                         <tbody>
                           {females.map(p => {
                             const count = roomCounts[p.username] || 0;
+                            const displayName = getParticipantDisplayName(p);
+                            const profileMeta = getMatchMeta(p).join(' · ');
                             return (
                               <tr key={p._id} className={selectedFemale === p.username ? 'vm-selected-row' : ''}>
                                 <td>
@@ -1243,7 +1288,30 @@ const VirtualMeets = () => {
                                     className="vm-select-checkbox"
                                   />
                                 </td>
-                                <td>{p.username}</td>
+                                <td>
+                                  <a
+                                    className="vm-admin-participant-link"
+                                    href={getProfileHref(p.username)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    {renderAvatar({
+                                      imageKey: `admin-female-${p.username}`,
+                                      profilePicUrl: p.profile_pic_url,
+                                      username: p.username,
+                                      fullName: displayName,
+                                      small: true,
+                                    })}
+                                    <div className="vm-admin-participant-identity">
+                                      <div className="vm-admin-participant-name">{displayName}</div>
+                                      <div className="vm-admin-participant-username">@{p.username}</div>
+                                    </div>
+                                  </a>
+                                </td>
+                                <td className="vm-admin-participant-meta" title={profileMeta || '—'}>{profileMeta || '—'}</td>
+                                <td className="vm-admin-participant-profession" title={p.profession || '—'}>{p.profession || '—'}</td>
+                                <td className="vm-admin-participant-education" title={p.education || '—'}>{p.education || '—'}</td>
+                                <td className="vm-admin-participant-bio" title={p.bio_tag || '—'}>{p.bio_tag || '—'}</td>
                                 <td><span className={`vm-status-badge vm-badge-${p.payment_status === 'completed' ? 'accepted' : p.payment_status === 'not_required' ? 'accepted' : 'pending'}`}>{p.payment_status}</span></td>
                                 <td>{p.access_unlocked ? '✅' : '🔒'}</td>
                                 <td>{count > 0 ? <span className="vm-room-count">{count}</span> : '—'}</td>

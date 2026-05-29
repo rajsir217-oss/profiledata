@@ -1277,6 +1277,46 @@ class VirtualMeetService:
         rooms = await db.virtual_rooms.find({"poll_id": poll_id}).to_list(length=1000)
         requests = await db.virtual_room_requests.find({"poll_id": poll_id}).to_list(length=5000)
 
+        usernames = [s.get("username") for s in sessions if s.get("username")]
+        user_profiles: Dict[str, Dict[str, Any]] = {}
+        if usernames:
+            cursor = db.users.find(
+                {"username": {"$in": usernames}},
+                {
+                    "username": 1, "firstName": 1, "lastName": 1,
+                    "age": 1, "birthMonth": 1, "birthYear": 1, "dateOfBirth": 1,
+                    "city": 1, "state": 1, "country": 1,
+                    "profession": 1, "occupation": 1, "workExperience": 1,
+                    "education": 1, "educationHistory": 1,
+                    "height": 1, "heightInches": 1,
+                    "tagline": 1, "bio": 1, "aboutMe": 1, "about": 1,
+                }
+            )
+            async for user in cursor:
+                user_profiles[user["username"]] = user
+
+        for s in sessions:
+            username = s.get("username")
+            profile = user_profiles.get(username) or {}
+            profile_source = profile or s
+
+            age = VirtualMeetService._calculate_age(profile_source)
+            if age is not None:
+                s["age"] = age
+
+            display_name = VirtualMeetService._get_full_name(profile_source)
+            if display_name and display_name != "Unknown":
+                s["full_name"] = display_name
+
+            location = VirtualMeetService._get_location(profile_source)
+            s["location"] = location or (s.get("location") or "")
+            s["dob_mm_yyyy"] = VirtualMeetService._get_birth_month_year(profile_source)
+            s["height"] = VirtualMeetService._get_height(profile_source)
+            s["profession"] = VirtualMeetService._get_profession(profile_source)
+            s["education"] = VirtualMeetService._get_education(profile_source)
+            s["bio_tag"] = VirtualMeetService._get_bio_tag(profile_source)
+            s["profile_pic_url"] = f"/api/profile-pic/{username}" if username else ""
+
         male_count = sum(1 for s in sessions if s.get("gender") == "Male")
         female_count = sum(1 for s in sessions if s.get("gender") == "Female")
         paid_count = sum(1 for s in sessions if s.get("payment_status") == "completed")
