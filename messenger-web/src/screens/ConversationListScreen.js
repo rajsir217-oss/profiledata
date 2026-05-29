@@ -7,6 +7,7 @@ import ChatScreen from './ChatScreen';
 import OnlineDot from '../components/OnlineDot';
 import useOnlinePresence from '../hooks/useOnlinePresence';
 import { getMainAppUrl as getMainAppUrlFromConfig } from '../config/apiConfig';
+import { openExternalUrl } from '../utils/openExternalUrl';
 
 // Messenger-web app version (shown in the About section of the profile panel)
 const APP_VERSION = '0.1.0';
@@ -76,18 +77,9 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       if (code) params.set('sso_code', code);
       params.set('redirect', redirect);
       const url = `${mainAppUrl}/login?${params.toString()}`;
-
-      if (typeof window !== 'undefined' && window.open) {
-        window.open(url, '_blank', 'noopener');
-      } else {
-        Linking.openURL(url).catch(() => {});
-      }
+      openExternalUrl(url);
     } catch (e) {
-      if (typeof window !== 'undefined' && window.open) {
-        window.open(fallbackUrl, '_blank', 'noopener');
-      } else {
-        Linking.openURL(fallbackUrl).catch(() => {});
-      }
+      openExternalUrl(fallbackUrl);
     }
   };
 
@@ -749,11 +741,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         const contactUrl = `${mainAppUrl}/contact`;
         const editProfileUrl = `${mainAppUrl}/edit-profile`;
         const openLink = (url) => {
-          if (typeof window !== 'undefined' && window.open) {
-            window.open(url, '_blank', 'noopener');
-          } else {
-            Linking.openURL(url).catch(() => {});
-          }
+          openExternalUrl(url);
         };
         const displayName = userProfile
           ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.username

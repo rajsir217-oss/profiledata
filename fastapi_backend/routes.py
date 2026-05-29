@@ -9469,7 +9469,27 @@ async def close_conversation(
             },
             upsert=True
         )
-        
+
+        # Schedule messages for deletion after 24h grace period so the other
+        # user can still read the final response before they disappear.
+        messages_scheduled = 0
+        try:
+            delete_at = datetime.utcnow() + timedelta(hours=24)
+            msgs_result = await db.messages.update_many(
+                {
+                    "$or": [
+                        {"fromUsername": username, "toUsername": other_username},
+                        {"fromUsername": other_username, "toUsername": username}
+                    ]
+                },
+                {"$set": {"scheduledDeleteAt": delete_at}}
+            )
+            messages_scheduled = msgs_result.modified_count
+            if messages_scheduled > 0:
+                logger.info(f"🗑️ Scheduled {messages_scheduled} messages for deletion at {delete_at} after closing conversation: {username} <-> {other_username}")
+        except Exception as del_err:
+            logger.warning(f"⚠️ Failed to schedule message deletion after closing conversation: {del_err}")
+
         # Send graceful closure notification to the other user
         try:
             from services.notification_service import NotificationService
@@ -9523,7 +9543,8 @@ async def close_conversation(
         return {
             "success": True,
             "message": "Conversation closed. The member has been notified.",
-            "closureNotificationSent": notification_sent
+            "closureNotificationSent": notification_sent,
+            "messagesScheduled": messages_scheduled
         }
         
     except HTTPException:
@@ -9580,7 +9601,27 @@ async def acknowledge_conversation(
             },
             upsert=True
         )
-        
+
+        # Schedule messages for deletion after 24h grace period so the other
+        # user can still read the acknowledgment before they disappear.
+        messages_scheduled = 0
+        try:
+            delete_at = datetime.utcnow() + timedelta(hours=24)
+            msgs_result = await db.messages.update_many(
+                {
+                    "$or": [
+                        {"fromUsername": username, "toUsername": other_username},
+                        {"fromUsername": other_username, "toUsername": username}
+                    ]
+                },
+                {"$set": {"scheduledDeleteAt": delete_at}}
+            )
+            messages_scheduled = msgs_result.modified_count
+            if messages_scheduled > 0:
+                logger.info(f"🗑️ Scheduled {messages_scheduled} messages for deletion at {delete_at} after acknowledging conversation: {username} <-> {other_username}")
+        except Exception as del_err:
+            logger.warning(f"⚠️ Failed to schedule message deletion after acknowledging conversation: {del_err}")
+
         # Log activity
         try:
             from services.activity_logger import get_activity_logger
@@ -9600,7 +9641,8 @@ async def acknowledge_conversation(
         return {
             "success": True,
             "message": "Conversation acknowledged. You won't be prompted to respond unless new messages arrive.",
-            "acknowledgedAt": datetime.utcnow().isoformat()
+            "acknowledgedAt": datetime.utcnow().isoformat(),
+            "messagesScheduled": messages_scheduled
         }
         
     except HTTPException:

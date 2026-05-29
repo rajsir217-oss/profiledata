@@ -14,6 +14,7 @@ import {
   isNativePlatform,
   saveCredential,
 } from '../services/biometricAuth';
+import { Browser } from '@capacitor/browser';
 
 const LoginScreen = () => {
   const [form, setForm] = useState({ username: '', password: '' });
@@ -139,10 +140,19 @@ const LoginScreen = () => {
     }
   };
 
-  const openMainApp = (path = '') => {
+  const openMainApp = async (path = '') => {
     const base = getMainAppUrl();
     const url = path ? `${base}${path.startsWith('/') ? path : `/${path}`}` : base;
-    if (typeof window !== 'undefined' && window.open) {
+
+    if (isNativePlatform()) {
+      // In Capacitor native app, use Browser plugin to open external URL
+      try {
+        await Browser.open({ url });
+      } catch (err) {
+        console.error('Browser.open failed:', err);
+      }
+    } else if (typeof window !== 'undefined' && window.open) {
+      // In web browser, use standard window.open
       window.open(url, '_blank', 'noopener');
     }
   };
