@@ -135,7 +135,7 @@ const SearchFiltersModal = ({
               {
                 id: 'search',
                 icon: '🔍',
-                label: 'Filters',
+                label: 'Set Search Filters',
                 badge: minMatchScore > 0 ? `${minMatchScore}%` : null,
                 content: (
                   <SearchFilters
@@ -169,7 +169,7 @@ const SearchFiltersModal = ({
               {
                 id: 'saved',
                 icon: '💾',
-                label: 'Saved',
+                label: 'Saved Searches',
                 badge: savedSearches.length > 0 ? savedSearches.length : null,
                 content: (
                   <div className="saved-searches-tab">
