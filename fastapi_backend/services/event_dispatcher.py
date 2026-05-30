@@ -7,7 +7,7 @@ import json
 import logging
 import asyncio
 from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from enum import Enum
 
 from bson import ObjectId
@@ -1191,6 +1191,10 @@ class EventDispatcher:
             "updatedAt": now,
             "cardSnapshot": snapshot,
         }
+
+        retention_hours = (conv or {}).get("messageRetentionHours")
+        if isinstance(retention_hours, int) and retention_hours > 0:
+            msg["expireAt"] = now + timedelta(hours=retention_hours)
 
         result = await self.db.messenger_messages.insert_one(msg)
         msg_id = str(result.inserted_id)

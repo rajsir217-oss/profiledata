@@ -253,6 +253,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   // Send errors are kept separate from load errors so they don't blow away
   // the chat view. They appear as an inline banner above the composer.
   const [sendError, setSendError] = useState(null);
+  const [retentionStatus, setRetentionStatus] = useState(null);
   // US Vedika public group states
   const [showPublicRecipientModal, setShowPublicRecipientModal] = useState(false);
   const [publicRecipients, setPublicRecipients] = useState([]);
@@ -324,6 +325,12 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     const t = setTimeout(() => setArmedDeleteId(null), 3000);
     return () => clearTimeout(t);
   }, [armedDeleteId]);
+
+  useEffect(() => {
+    if (!retentionStatus) return;
+    const t = setTimeout(() => setRetentionStatus(null), 6000);
+    return () => clearTimeout(t);
+  }, [retentionStatus]);
 
   // Load user's favorites on mount to populate favoritedUsernames state
   useEffect(() => {
@@ -663,16 +670,46 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   const saveRetention = async (hours) => {
     if (!isAdminOrModerator || isLegacy) return;
     setSavingRetention(true);
+    setSendError(null);
+    setRetentionStatus(null);
     try {
       const api = useAuthStore.getState().getApi();
       const res = await api.put(`/api/messenger/conversations/${id}/retention`, {
         retentionHours: hours,
       });
-      setRetentionHours(res?.data?.retentionHours ?? null);
+      const retentionHoursValue = Number(res?.data?.retentionHours);
+      const nextRetention = Number.isFinite(retentionHoursValue) && retentionHoursValue > 0
+        ? retentionHoursValue
+        : null;
+      setRetentionHours(nextRetention);
+      await fetchStoreMessages(id);
+
+      const purged = Number(res?.data?.purgedExistingMessages ?? 0);
+      const updated = Number(res?.data?.updatedExistingMessages ?? 0);
+      const retentionLabel =
+        typeof nextRetention === 'number' && nextRetention > 0
+          ? (nextRetention >= 24 && nextRetention % 24 === 0 ? `${nextRetention / 24}d` : `${nextRetention}h`)
+          : 'off';
+
+      if (nextRetention === null) {
+        setRetentionStatus(
+          `Retention turned off. Removed expiry from ${updated} message${updated === 1 ? '' : 's'}.`
+        );
+      } else {
+        const scheduledText =
+          updated > 0
+            ? ` ${updated} message${updated === 1 ? '' : 's'} scheduled for expiry.`
+            : '';
+        setRetentionStatus(
+          `Retention set to ${retentionLabel}. Purged ${purged} old message${purged === 1 ? '' : 's'}.${scheduledText}`
+        );
+      }
+
       setShowRetentionModal(false);
     } catch (e) {
       console.error('❌ Failed to save retention:', e);
       const detail = e?.response?.data?.detail;
+      setRetentionStatus(null);
       setSendError(typeof detail === 'string' ? detail : 'Failed to update retention');
       setShowRetentionModal(false);
     } finally {
@@ -1124,6 +1161,14 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
             </TouchableOpacity>
           </View>
         )}
+        {retentionStatus && (
+          <View style={styles.retentionInfoBanner}>
+            <Text style={styles.retentionInfoText} numberOfLines={3}>{retentionStatus}</Text>
+            <TouchableOpacity onPress={() => setRetentionStatus(null)} style={styles.retentionInfoDismiss}>
+              <Text style={styles.retentionInfoDismissText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={styles.inputContainer}>
           {/* ⚡ Quick Messages — hidden for legacy 1:1 chats since they don't
               support rich content types like profile_card. */}
@@ -1208,8 +1253,8 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>⏱️ Message Retention</Text>
             <Text style={styles.modalText}>
-              New messages will auto-delete after the chosen window. Existing
-              messages keep their original lifetime.
+              Messages older than the chosen window are removed now, and new
+              messages auto-delete after that window.
             </Text>
             <View style={styles.quickGrid}>
               {[
@@ -1798,6 +1843,34 @@ const styles = StyleSheet.create({
   },
   sendErrorDismissText: {
     color: '#fca5a5',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  retentionInfoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.45)',
+  },
+  retentionInfoText: {
+    flex: 1,
+    color: '#86efac',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  retentionInfoDismiss: {
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  retentionInfoDismissText: {
+    color: '#86efac',
     fontSize: 14,
     fontWeight: '700',
   },
