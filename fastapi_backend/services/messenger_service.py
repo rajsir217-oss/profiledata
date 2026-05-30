@@ -6,7 +6,7 @@ Handles conversations, messages, delivery receipts, and media references.
 
 import logging
 from typing import Optional, List, Dict, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -207,6 +207,10 @@ async def send_message(
         "updatedAt": now,
     }
 
+    retention_hours = conv.get("messageRetentionHours")
+    if isinstance(retention_hours, int) and retention_hours > 0:
+        msg["expireAt"] = now + timedelta(hours=retention_hours)
+
     result = await db.messenger_messages.insert_one(msg)
     msg["_id"] = str(result.inserted_id)
     msg["conversationId"] = conversation_id
@@ -241,12 +245,19 @@ async def get_messages(
         {
             "clearedFor": 1,
             "publicParticipants": 1,
+            "messageRetentionHours": 1,
         },
     )
     if not conv:
         return [], 0, False
 
     now = datetime.utcnow()
+    retention_hours = conv.get("messageRetentionHours")
+    retention_delta = (
+        timedelta(hours=retention_hours)
+        if isinstance(retention_hours, int) and retention_hours > 0
+        else None
+    )
     and_clauses: List[Dict[str, Any]] = []
     if before:
         and_clauses.append({"_id": {"$lt": ObjectId(before)}})
@@ -287,6 +298,84 @@ async def get_messages(
     messages = await cursor.to_list(length=limit + 1)
     has_more = len(messages) > limit
     messages = messages[:limit]
+
+    if retention_delta and messages:
+        def _parse_ts(value: Any) -> Optional[datetime]:
+            if isinstance(value, datetime):
+                if value.tzinfo is not None:
+                    return value.astimezone().replace(tzinfo=None)
+                return value
+
+            if isinstance(value, (int, float)):
+                try:
+                    ts = float(value)
+                    if ts > 10_000_000_000:
+                        ts = ts / 1000.0
+                    return datetime.utcfromtimestamp(ts)
+                except (TypeError, ValueError, OSError, OverflowError):
+                    return None
+
+            if isinstance(value, str):
+                candidate = value.strip()
+                if not candidate:
+                    return None
+                if candidate.endswith("Z"):
+                    candidate = f"{candidate[:-1]}+00:00"
+                try:
+                    parsed = datetime.fromisoformat(candidate)
+                    if parsed.tzinfo is not None:
+                        parsed = parsed.astimezone().replace(tzinfo=None)
+                    return parsed
+                except ValueError:
+                    pass
+
+                fallback_formats = (
+                    "%Y-%m-%d %H:%M:%S",
+                    "%Y-%m-%d %H:%M:%S.%f",
+                    "%m/%d/%Y %I:%M %p",
+                    "%m/%d/%y %I:%M %p",
+                    "%m/%d/%Y, %I:%M:%S %p",
+                    "%m/%d/%y, %I:%M:%S %p",
+                )
+                for fmt in fallback_formats:
+                    try:
+                        return datetime.strptime(candidate, fmt)
+                    except ValueError:
+                        continue
+
+            return None
+
+        expired_ids: List[Any] = []
+        kept_messages: List[Dict[str, Any]] = []
+        for m in messages:
+            expire_at = _parse_ts(m.get("expireAt"))
+            is_expired = False
+
+            if expire_at is not None:
+                is_expired = expire_at <= now
+            else:
+                created_at = _parse_ts(m.get("createdAt")) or _parse_ts(m.get("updatedAt"))
+                if created_at is None:
+                    msg_id = m.get("_id")
+                    if isinstance(msg_id, ObjectId):
+                        created_at = msg_id.generation_time.astimezone().replace(tzinfo=None)
+
+                if created_at is not None:
+                    is_expired = (created_at + retention_delta) <= now
+
+            if is_expired:
+                msg_id = m.get("_id")
+                if msg_id is not None:
+                    expired_ids.append(msg_id)
+                continue
+
+            kept_messages.append(m)
+
+        if expired_ids:
+            await db.messenger_messages.delete_many({"_id": {"$in": expired_ids}})
+            total = max(total - len(expired_ids), 0)
+
+        messages = kept_messages
 
     # Build a case-insensitive email -> participant lookup for enriching
     # publicEmailsSent on invitation messages with their CURRENT status

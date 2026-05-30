@@ -5,11 +5,12 @@ Phase 1: 1:1 conversations, text + media messages, delivery receipts, device tok
 
 import logging
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File, Query, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
+from pymongo import UpdateOne
 
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from database import get_database
@@ -333,6 +334,14 @@ async def handle_inbound_email(
         "updatedAt": now,
     }
 
+    conv_doc = await db.messenger_conversations.find_one(
+        {"_id": ObjectId(conversation_id)},
+        {"messageRetentionHours": 1},
+    )
+    retention_hours = (conv_doc or {}).get("messageRetentionHours")
+    if isinstance(retention_hours, int) and retention_hours > 0:
+        message_doc["expireAt"] = now + timedelta(hours=retention_hours)
+
     result = await db.messenger_messages.insert_one(message_doc)
     message_doc["_id"] = str(result.inserted_id)
     logger.info(f"✅ Inserted public email reply: {message_doc['_id']}")
@@ -620,9 +629,9 @@ async def set_conversation_retention(
         • null / 0 → retention OFF (messages live forever).
         • positive int → new messages auto-delete `retentionHours` after send.
 
-    Existing messages are NOT retroactively expired — only future sends pick
-    up the new TTL. This is intentional so an admin enabling retention doesn't
-    accidentally nuke years of history.
+    Existing messages are retroactively aligned to the selected window:
+      • messages older than the retention window are deleted immediately
+      • remaining messages are stamped with expireAt so they auto-delete on time
 
     Authorization: app-level admins/moderators only (same gate as @{email}
     invites). Per-conversation admin promotion isn't wired up yet; revisit
@@ -672,42 +681,130 @@ async def set_conversation_retention(
     except Exception as e:
         logger.warning(f"⚠️ Failed to ensure TTL index on messenger_messages.expireAt: {e}")
 
-    async def _apply_retention_to_existing() -> None:
-        try:
-            conv_oid = ObjectId(conversation_id)
-            if retention is None:
-                await db.messenger_messages.update_many(
-                    {"conversationId": conv_oid, "expireAt": {"$exists": True}},
-                    {"$unset": {"expireAt": ""}},
+    def _parse_message_timestamp(value: object) -> Optional[datetime]:
+        if isinstance(value, datetime):
+            if value.tzinfo is not None:
+                return value.astimezone(timezone.utc).replace(tzinfo=None)
+            return value
+
+        if isinstance(value, (int, float)):
+            try:
+                ts = float(value)
+                if ts > 10_000_000_000:
+                    ts = ts / 1000.0
+                return datetime.utcfromtimestamp(ts)
+            except (TypeError, ValueError, OSError, OverflowError):
+                pass
+
+        if isinstance(value, str):
+            candidate = value.strip()
+            if candidate:
+                if candidate.endswith("Z"):
+                    candidate = f"{candidate[:-1]}+00:00"
+                try:
+                    parsed = datetime.fromisoformat(candidate)
+                    if parsed.tzinfo is not None:
+                        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+                    return parsed
+                except ValueError:
+                    pass
+
+                fallback_formats = (
+                    "%Y-%m-%d %H:%M:%S",
+                    "%Y-%m-%d %H:%M:%S.%f",
+                    "%m/%d/%Y %I:%M %p",
+                    "%m/%d/%y %I:%M %p",
+                    "%m/%d/%Y, %I:%M:%S %p",
+                    "%m/%d/%y, %I:%M:%S %p",
                 )
-                return
+                for fmt in fallback_formats:
+                    try:
+                        return datetime.strptime(candidate, fmt)
+                    except ValueError:
+                        continue
 
-            await db.messenger_messages.update_many(
-                {"conversationId": conv_oid},
-                [
-                    {
-                        "$set": {
-                            "expireAt": {
-                                "$dateAdd": {
-                                    "startDate": "$createdAt",
-                                    "unit": "hour",
-                                    "amount": retention,
-                                }
-                            }
-                        }
-                    }
-                ],
+        return None
+
+    def _normalize_created_at(doc: dict) -> datetime:
+        message_id = doc.get("_id")
+        parsed = _parse_message_timestamp(doc.get("createdAt"))
+        if parsed is None:
+            parsed = _parse_message_timestamp(doc.get("updatedAt"))
+        if parsed is not None:
+            return parsed
+
+        if isinstance(message_id, ObjectId):
+            return message_id.generation_time.astimezone(timezone.utc).replace(tzinfo=None)
+
+        return datetime.utcnow()
+
+    async def _apply_retention_to_existing() -> dict:
+        conv_oid = ObjectId(conversation_id)
+        if retention is None:
+            unset_result = await db.messenger_messages.update_many(
+                {"conversationId": conv_oid, "expireAt": {"$exists": True}},
+                {"$unset": {"expireAt": ""}},
             )
+            return {
+                "updated": unset_result.modified_count,
+                "deleted": 0,
+            }
 
-            cutoff = datetime.utcnow() - timedelta(hours=retention)
-            await db.messenger_messages.delete_many(
-                {"conversationId": conv_oid, "createdAt": {"$lte": cutoff}}
-            )
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to apply retention retroactively for {conversation_id}: {e}")
+        now = datetime.utcnow()
+        retention_delta = timedelta(hours=retention)
+        expired_ids = []
+        update_ops = []
 
-    asyncio.create_task(_apply_retention_to_existing())
-    return {"success": True, "retentionHours": retention}
+        cursor = db.messenger_messages.find(
+            {"conversationId": conv_oid},
+            {"_id": 1, "createdAt": 1, "updatedAt": 1},
+        )
+        async for doc in cursor:
+            message_id = doc.get("_id")
+            if message_id is None:
+                continue
+
+            created_at = _normalize_created_at(doc)
+            expire_at = created_at + retention_delta
+
+            if expire_at <= now:
+                expired_ids.append(message_id)
+            else:
+                update_ops.append(
+                    UpdateOne(
+                        {"_id": message_id},
+                        {"$set": {"expireAt": expire_at}},
+                    )
+                )
+
+        deleted = 0
+        updated = 0
+
+        if expired_ids:
+            delete_result = await db.messenger_messages.delete_many({"_id": {"$in": expired_ids}})
+            deleted = delete_result.deleted_count
+
+        if update_ops:
+            bulk_result = await db.messenger_messages.bulk_write(update_ops, ordered=False)
+            updated = bulk_result.modified_count
+
+        return {
+            "updated": updated,
+            "deleted": deleted,
+        }
+
+    stats = {"updated": 0, "deleted": 0}
+    try:
+        stats = await _apply_retention_to_existing()
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to apply retention retroactively for {conversation_id}: {e}")
+
+    return {
+        "success": True,
+        "retentionHours": retention,
+        "updatedExistingMessages": stats.get("updated", 0),
+        "purgedExistingMessages": stats.get("deleted", 0),
+    }
 
 
 @router.post("/conversations/{conversation_id}/clear")
@@ -971,8 +1068,7 @@ async def send_message(
 
     # Per-conversation TTL — stamp expireAt so the messenger_messages.expireAt
     # TTL index hard-deletes this row after the configured window. Off (None)
-    # means no expireAt is set and the message lives forever. Existing
-    # messages are NOT retroactively touched (see PUT /retention docstring).
+    # means no expireAt is set and the message lives forever.
     retention_hours = conv.get("messageRetentionHours")
     if isinstance(retention_hours, int) and retention_hours > 0:
         msg["expireAt"] = now + timedelta(hours=retention_hours)
@@ -1478,6 +1574,15 @@ async def post_public_reply(
         "createdAt": now,
         "updatedAt": now,
     }
+
+    conv_doc = await db.messenger_conversations.find_one(
+        {"_id": conversation_id},
+        {"messageRetentionHours": 1},
+    )
+    retention_hours = (conv_doc or {}).get("messageRetentionHours")
+    if isinstance(retention_hours, int) and retention_hours > 0:
+        msg_doc["expireAt"] = now + timedelta(hours=retention_hours)
+
     result = await db.messenger_messages.insert_one(msg_doc)
     msg_id = str(result.inserted_id)
 
