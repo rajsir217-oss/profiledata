@@ -1592,7 +1592,7 @@ const SearchPage2 = () => {
                     {
                       id: 'search',
                       icon: '🔍',
-                      label: 'Filters',
+                      label: 'Set Search Filters',
                       badge: minMatchScore > 0 ? `${minMatchScore}%` : null,
                       content: (
                         <SearchFilters
@@ -1620,7 +1620,7 @@ const SearchPage2 = () => {
                     {
                       id: 'saved',
                       icon: '💾',
-                      label: 'Saved',
+                      label: 'Saved Searches',
                       badge: savedSearches.length > 0 ? savedSearches.length : null,
                       content: (
                         <SavedSearchesPanel
