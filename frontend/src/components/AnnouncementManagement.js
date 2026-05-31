@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import useToast from '../hooks/useToast';
@@ -11,6 +11,13 @@ import PollManagement from './PollManagement';
 import './AnnouncementManagement.css';
 import './TickerSettings.css';
 
+const VALID_ANNOUNCEMENT_TABS = new Set(['announcements', 'polls', 'ticker', 'tips']);
+
+const getTabFromSearch = (search) => {
+  const rawTab = new URLSearchParams(search || '').get('tab');
+  return VALID_ANNOUNCEMENT_TABS.has(rawTab) ? rawTab : 'announcements';
+};
+
 // Use global API factory for session handling
 const announcementsApi = createApiInstance(`${getBackendUrl()}/api`);
 
@@ -20,8 +27,9 @@ const announcementsApi = createApiInstance(`${getBackendUrl()}/api`);
  */
 const AnnouncementManagement = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState('announcements');
+  const [activeTab, setActiveTab] = useState(() => getTabFromSearch(location.search));
   const [announcements, setAnnouncements] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +72,30 @@ const AnnouncementManagement = () => {
     endDate: '',
     recurringFrequencyDays: ''
   });
+
+  useEffect(() => {
+    const nextTab = getTabFromSearch(location.search);
+    setActiveTab((prev) => (prev === nextTab ? prev : nextTab));
+  }, [location.search]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    const params = new URLSearchParams(location.search || '');
+    if (tabId === 'announcements') {
+      params.delete('tab');
+    } else {
+      params.set('tab', tabId);
+    }
+
+    const nextSearch = params.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true }
+    );
+  };
 
   useEffect(() => {
     // Check admin or moderator access
@@ -309,25 +341,25 @@ const AnnouncementManagement = () => {
       <div className="tab-navigation">
         <button
           className={`tab-button ${activeTab === 'announcements' ? 'active' : ''}`}
-          onClick={() => setActiveTab('announcements')}
+          onClick={() => handleTabChange('announcements')}
         >
           📢 Announcements
         </button>
         <button
           className={`tab-button ${activeTab === 'polls' ? 'active' : ''}`}
-          onClick={() => setActiveTab('polls')}
+          onClick={() => handleTabChange('polls')}
         >
           📊 Polls
         </button>
         <button
           className={`tab-button ${activeTab === 'ticker' ? 'active' : ''}`}
-          onClick={() => setActiveTab('ticker')}
+          onClick={() => handleTabChange('ticker')}
         >
           ⚙️ Ticker Settings
         </button>
         <button
           className={`tab-button ${activeTab === 'tips' ? 'active' : ''}`}
-          onClick={() => setActiveTab('tips')}
+          onClick={() => handleTabChange('tips')}
         >
           💡 Tips
         </button>

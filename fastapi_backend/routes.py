@@ -9211,6 +9211,53 @@ async def get_conversation(
     is_admin = current_user and current_user.get("username") == "admin"
     
     try:
+        now = datetime.utcnow()
+
+        def _parse_scheduled_delete_at(value):
+            if isinstance(value, datetime):
+                if value.tzinfo is not None:
+                    return value.astimezone().replace(tzinfo=None)
+                return value
+
+            if isinstance(value, (int, float)):
+                try:
+                    ts = float(value)
+                    if ts > 10_000_000_000:
+                        ts = ts / 1000.0
+                    return datetime.utcfromtimestamp(ts)
+                except (TypeError, ValueError, OSError, OverflowError):
+                    return None
+
+            if isinstance(value, str):
+                candidate = value.strip()
+                if not candidate:
+                    return None
+                if candidate.endswith("Z"):
+                    candidate = f"{candidate[:-1]}+00:00"
+                try:
+                    parsed = datetime.fromisoformat(candidate)
+                    if parsed.tzinfo is not None:
+                        parsed = parsed.astimezone().replace(tzinfo=None)
+                    return parsed
+                except ValueError:
+                    pass
+
+                fallback_formats = (
+                    "%Y-%m-%d %H:%M:%S",
+                    "%Y-%m-%d %H:%M:%S.%f",
+                    "%m/%d/%Y %I:%M %p",
+                    "%m/%d/%y %I:%M %p",
+                    "%m/%d/%Y, %I:%M:%S %p",
+                    "%m/%d/%y, %I:%M:%S %p",
+                )
+                for fmt in fallback_formats:
+                    try:
+                        return datetime.strptime(candidate, fmt)
+                    except ValueError:
+                        continue
+
+            return None
+
         # Check visibility
         is_visible = await check_message_visibility(username, other_username, db)
         
@@ -9235,6 +9282,25 @@ async def get_conversation(
 
         messages_cursor = db.messages.find(query).sort("createdAt", 1)
         messages = await messages_cursor.to_list(500)
+
+        expired_ids = []
+        visible_messages = []
+        for msg in messages:
+            scheduled_delete_at = _parse_scheduled_delete_at(msg.get("scheduledDeleteAt"))
+            if scheduled_delete_at is not None and scheduled_delete_at <= now:
+                msg_id = msg.get("_id")
+                if msg_id is not None:
+                    expired_ids.append(msg_id)
+                continue
+            visible_messages.append(msg)
+
+        if expired_ids:
+            await db.messages.delete_many({"_id": {"$in": expired_ids}})
+            logger.info(
+                f"🧹 Opportunistic cleanup removed {len(expired_ids)} expired scheduled messages for {username} <-> {other_username}"
+            )
+
+        messages = visible_messages
         
         # Mark messages as read
         for msg in messages:

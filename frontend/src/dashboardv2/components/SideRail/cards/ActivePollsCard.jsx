@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useToast from '../../../../hooks/useToast';
 import { getTimeRemaining } from '../../../../utils/timezoneHelper';
 import PollPaymentInline from '../../../../components/PollPaymentInline';
@@ -31,8 +32,11 @@ const getTimeLabel = (remaining) => {
 };
 
 const ActivePollsCard = ({ polls, onPollResponded }) => {
+  const navigate = useNavigate();
   const toast = useToast();
   const list = useMemo(() => (Array.isArray(polls) ? polls : []), [polls]);
+  const userRole = localStorage.getItem('userRole');
+  const canViewInactivePolls = userRole === 'admin' || userRole === 'moderator';
   const [index, setIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [comments, setComments] = useState({});
@@ -41,6 +45,10 @@ const ActivePollsCard = ({ polls, onPollResponded }) => {
 
   const [paymentVisible, setPaymentVisible] = useState(false);
   const [paymentPending, setPaymentPending] = useState(null);
+
+  const handleOpenInactivePolls = () => {
+    navigate('/announcement-management?tab=polls&status=closed');
+  };
 
   const poll = list[index] || null;
   const pollCount = list.length;
@@ -219,6 +227,11 @@ const ActivePollsCard = ({ polls, onPollResponded }) => {
       <div className="dv2-rail-card">
         <div className="dv2-rail-title">
           <span className="dv2-rail-title-left">📣 Active polls</span>
+          {canViewInactivePolls ? (
+            <button className="dv2-poll-inactive-link" type="button" onClick={handleOpenInactivePolls}>
+              Inactive polls
+            </button>
+          ) : null}
         </div>
         <div className="dv2-poll-empty">No active polls right now.</div>
       </div>
@@ -231,7 +244,14 @@ const ActivePollsCard = ({ polls, onPollResponded }) => {
     <div className="dv2-rail-card">
       <div className="dv2-rail-title">
         <span className="dv2-rail-title-left">📣 Active polls</span>
-        <span className="dv2-rail-pill">{pollCount}</span>
+        <div className="dv2-poll-title-actions">
+          <span className="dv2-rail-pill">{pollCount}</span>
+          {canViewInactivePolls ? (
+            <button className="dv2-poll-inactive-link" type="button" onClick={handleOpenInactivePolls}>
+              Inactive polls
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="dv2-poll-question">{poll?.title}</div>
