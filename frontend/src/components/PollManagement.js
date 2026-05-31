@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { createApiInstance } from '../api';
 import RichTextEditor from './shared/RichTextEditor';
 import { formatDate, formatDateTime, getTimeRemaining, formatTimeRemaining, toUTCISOString, getDateInputValue } from '../utils/timezoneHelper';
@@ -8,17 +8,30 @@ import './PollManagement.css';
 // Use global API factory for session handling
 const pollsApi = createApiInstance();
 
+const VALID_STATUS_FILTERS = new Set(['', 'draft', 'active', 'closed', 'archived']);
+
+const normalizeStatusFilter = (value) => {
+  if (!value) return '';
+  const normalized = String(value).trim().toLowerCase();
+  const mapped = normalized === 'inactive' ? 'closed' : normalized;
+  return VALID_STATUS_FILTERS.has(mapped) ? mapped : '';
+};
+
 /**
  * PollManagement - Admin page for managing polls
  * Create, edit, view results, and manage poll lifecycle
  */
 const PollManagement = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const params = new URLSearchParams(window.location.search || '');
+    return normalizeStatusFilter(params.get('status'));
+  });
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -73,6 +86,12 @@ const PollManagement = () => {
     options: ['']
   });
   const [formSubmitting, setFormSubmitting] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search || '');
+    const nextStatus = normalizeStatusFilter(params.get('status'));
+    setStatusFilter((prev) => (prev === nextStatus ? prev : nextStatus));
+  }, [location.search]);
 
   useEffect(() => {
     // Check if user is admin or moderator

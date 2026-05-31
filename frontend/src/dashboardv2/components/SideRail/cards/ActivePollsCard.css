@@ -7,6 +7,29 @@
   font-size: 12px;
 }
 
+.dv2-poll-title-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dv2-poll-inactive-link {
+  border: none;
+  background: transparent;
+  color: var(--primary-color, #d4736a);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dv2-poll-inactive-link:hover {
+  color: var(--primary-color-hover, var(--primary-color, #d4736a));
+}
+
 .dv2-poll-question {
   font-weight: 900;
   color: var(--text-color, #222);
