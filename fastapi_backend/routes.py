@@ -5380,18 +5380,127 @@ async def search_users(
             and_conditions.append(days_back_query)
             logger.info(f"📅 Days back filter: {daysBack} days, cutoff: {cutoff_date} / {cutoff_iso}")
 
-    # Sort options - always add _id as secondary sort for stable pagination
+    # Normalize sort params and map aliases to canonical server sort keys.
+    # Keep sort fully server-driven so pagination remains consistent across pages.
+    sort_key_aliases = {
+        "newest": "newest",
+        "oldest": "oldest",
+        "name": "firstName",
+        "firstname": "firstName",
+        "first_name": "firstName",
+        "matchscore": "matchScore",
+        "match_score": "matchScore",
+        "age": "age",
+        "height": "height",
+        "heightinches": "height",
+        "height_inches": "height",
+        "location": "location",
+        "education": "education",
+        "profession": "profession",
+        "occupation": "profession",
+    }
+    sort_by_key = (sortBy or "newest").strip().replace("-", "_").replace(" ", "_").lower()
+    normalized_sort_by = sort_key_aliases.get(sort_by_key, "newest")
+    normalized_sort_order = "asc" if (sortOrder or "").strip().lower() == "asc" else "desc"
+
+    # Sort options - always include stable tie-breakers for deterministic pagination.
     sort_options = {
-        "newest": [("createdAt", -1), ("_id", -1)],
-        "oldest": [("createdAt", 1), ("_id", 1)],
-        "name": [("firstName", 1), ("_id", 1)],
-        "age": [("birthYear", -1), ("birthMonth", -1), ("_id", -1)],
-        "location": [("location", 1), ("_id", 1)]
+        "newest": {
+            "desc": [("createdAt", -1), ("_id", -1)],
+            "asc": [("createdAt", 1), ("_id", 1)],
+        },
+        "oldest": {
+            "desc": [("createdAt", -1), ("_id", -1)],
+            "asc": [("createdAt", 1), ("_id", 1)],
+        },
+        "firstName": {
+            "asc": [("_sortFirstName", 1), ("username", 1), ("_id", 1)],
+            "desc": [("_sortFirstName", -1), ("username", -1), ("_id", -1)],
+        },
+        "matchScore": {
+            "desc": [("matchScore", -1), ("_id", -1)],
+            "asc": [("matchScore", 1), ("_id", 1)],
+        },
+        "age": {
+            # Desc = older first (smaller birthYear), Asc = younger first.
+            "desc": [("birthYear", 1), ("birthMonth", 1), ("_id", -1)],
+            "asc": [("birthYear", -1), ("birthMonth", -1), ("_id", 1)],
+        },
+        "height": {
+            "desc": [("_sortHeightInches", -1), ("_id", -1)],
+            "asc": [("_sortHeightInches", 1), ("_id", 1)],
+        },
+        "location": {
+            "asc": [("_sortLocation", 1), ("username", 1), ("_id", 1)],
+            "desc": [("_sortLocation", -1), ("username", -1), ("_id", -1)],
+        },
+        "education": {
+            "asc": [("_sortEducation", 1), ("username", 1), ("_id", 1)],
+            "desc": [("_sortEducation", -1), ("username", -1), ("_id", -1)],
+        },
+        "profession": {
+            "asc": [("_sortProfession", 1), ("username", 1), ("_id", 1)],
+            "desc": [("_sortProfession", -1), ("username", -1), ("_id", -1)],
+        },
+    }
+    sort = sort_options.get(normalized_sort_by, sort_options["newest"])[normalized_sort_order]
+
+    sort_computed_fields = {
+        "_sortHeightInches": {"$ifNull": ["$heightInches", 0]},
+        "_sortFirstName": {
+            "$toLower": {
+                "$trim": {
+                    "input": {"$ifNull": ["$firstName", {"$ifNull": ["$username", ""]}]}
+                }
+            }
+        },
+        "_sortLocation": {
+            "$toLower": {
+                "$trim": {
+                    "input": {
+                        "$ifNull": [
+                            "$city",
+                            {"$ifNull": ["$state", {"$ifNull": ["$location", ""]}]}
+                        ]
+                    }
+                }
+            }
+        },
+        "_sortEducation": {
+            "$toLower": {
+                "$trim": {
+                    "input": {
+                        "$ifNull": [
+                            "$education",
+                            {
+                                "$ifNull": [
+                                    {"$arrayElemAt": ["$educationHistory.degree", 0]},
+                                    {"$ifNull": [{"$arrayElemAt": ["$educationHistory.level", 0]}, ""]}
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "_sortProfession": {
+            "$toLower": {
+                "$trim": {
+                    "input": {
+                        "$ifNull": [
+                            "$occupation",
+                            {"$ifNull": [{"$arrayElemAt": ["$workExperience.workType", 0]}, ""]}
+                        ]
+                    }
+                }
+            }
+        },
     }
 
-    sort = sort_options.get(sortBy, sort_options["newest"])
-    if sortOrder == "asc":
-        sort = [(field, 1) if direction == -1 else (field, direction) for field, direction in sort]
+    logger.info(
+        f"🔀 Search sort normalized: raw(sortBy='{sortBy}', sortOrder='{sortOrder}') -> "
+        f"canonical(sortBy='{normalized_sort_by}', sortOrder='{normalized_sort_order}')"
+    )
 
     # Calculate skip for pagination
     skip = (page - 1) * limit
@@ -5534,7 +5643,8 @@ async def search_users(
                         ]},
                         "then": 1,
                         "else": 0
-                    }}
+                    }},
+                    **sort_computed_fields
                 }},
                 
                 # Stage 6: Remove the lookup array (cleanup)
@@ -5542,8 +5652,18 @@ async def search_users(
                 
                 # Stage 7: Sort - profiles with photos first, then by user's chosen sort
                 {"$sort": {"_hasPhoto": -1, **dict(sort)}},
+
+                # Stage 8: Remove temporary sort helper fields from payload
+                {"$project": {
+                    "_hasPhoto": 0,
+                    "_sortHeightInches": 0,
+                    "_sortFirstName": 0,
+                    "_sortLocation": 0,
+                    "_sortEducation": 0,
+                    "_sortProfession": 0
+                }},
                 
-                # Stage 8: Facet for pagination and count
+                # Stage 9: Facet for pagination and count
                 {"$facet": {
                     "users": [
                         {"$skip": skip},
@@ -5661,10 +5781,19 @@ async def search_users(
                         ]},
                         "then": 1,
                         "else": 0
-                    }}
+                    }},
+                    **sort_computed_fields
                 }},
                 {"$project": {"l3v3lMatch": 0}},
                 {"$sort": {"_hasPhoto": -1, **dict(sort)}},
+                {"$project": {
+                    "_hasPhoto": 0,
+                    "_sortHeightInches": 0,
+                    "_sortFirstName": 0,
+                    "_sortLocation": 0,
+                    "_sortEducation": 0,
+                    "_sortProfession": 0
+                }},
                 {"$facet": {
                     "users": [{"$skip": skip}, {"$limit": limit}],
                     "totalCount": [{"$count": "count"}]

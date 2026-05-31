@@ -222,6 +222,11 @@ export const useSearchActions = (searchState, userState, filterState) => {
       
       // Convert height feet/inches to total inches before sending to API
       const criteriaWithHeightInches = { ...criteriaToUse };
+
+      // Keep sorting sourced only from dedicated sort state/override.
+      // Some legacy saved criteria payloads may still include sortBy/sortOrder.
+      delete criteriaWithHeightInches.sortBy;
+      delete criteriaWithHeightInches.sortOrder;
       
       // Calculate heightMin in total inches (feet * 12 + inches)
       if (criteriaWithHeightInches.heightMinFeet && criteriaWithHeightInches.heightMinInches !== undefined) {

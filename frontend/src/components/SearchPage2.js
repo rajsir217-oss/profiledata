@@ -527,7 +527,15 @@ const SearchPage2 = () => {
             
             // Only restore UI preferences, NOT users or searchCriteria
             // The fresh search will populate users with correct data
-            setSortBy(state.sortBy || 'age');
+            const restoredSortByRaw = state.sortBy || 'age';
+            const restoredSortBy = restoredSortByRaw === 'heightInches'
+              ? 'height'
+              : restoredSortByRaw === 'occupation'
+                ? 'profession'
+                : restoredSortByRaw === 'name'
+                  ? 'firstName'
+                  : restoredSortByRaw;
+            setSortBy(restoredSortBy);
             setSortOrder(state.sortOrder || 'asc');
             if (state.viewMode) changeViewMode(state.viewMode);
             setMinMatchScore(state.minMatchScore || 0);
@@ -962,20 +970,86 @@ const SearchPage2 = () => {
     // Note: L3V3L filtering is done client-side after server results
   };
 
-  // Handle sort changes - CLIENT-SIDE ONLY (no server re-fetch needed)
-  // The data is already loaded, just re-sort it
-  const handleSortChange = (e) => {
-    const newSortBy = e.target.value;
-    logger.info(`🔀 Sort changed to: ${newSortBy}`);
-    setSortBy(newSortBy);
-    // Don't trigger server search - client-side sorting handles it
+  // Keep sort values canonical so UI state and backend sort mapping stay aligned.
+  const normalizeSortBy = useCallback((rawSortBy) => {
+    const key = (rawSortBy || '').toString().trim();
+    switch (key) {
+      case 'name':
+        return 'firstName';
+      case 'heightInches':
+        return 'height';
+      case 'occupation':
+        return 'profession';
+      default:
+        return key || 'newest';
+    }
+  }, []);
+
+  const getDefaultSortOrderForField = useCallback((field) => {
+    const normalizedField = normalizeSortBy(field);
+    switch (normalizedField) {
+      case 'matchScore':
+      case 'newest':
+      case 'age':
+      case 'height':
+        return 'desc';
+      default:
+        return 'asc';
+    }
+  }, [normalizeSortBy]);
+
+  const applyServerSort = useCallback((rawSortBy, requestedSortOrder = null) => {
+    const nextSortBy = normalizeSortBy(rawSortBy);
+    const nextSortOrder = requestedSortOrder || getDefaultSortOrderForField(nextSortBy);
+
+    logger.info(`🔀 Applying server sort: ${nextSortBy} (${nextSortOrder})`);
+    setSortBy(nextSortBy);
+    setSortOrder(nextSortOrder);
+
+    // Prevent stale load-more observer from firing while a sort refresh is in flight.
+    setLoadingMore(false);
+    setHasMoreResults(false);
+
+    handleSearchHook(1, minMatchScore, searchCriteria, {
+      sortBy: nextSortBy,
+      sortOrder: nextSortOrder
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [
+    getDefaultSortOrderForField,
+    handleSearchHook,
+    minMatchScore,
+    normalizeSortBy,
+    searchCriteria,
+    setHasMoreResults,
+    setLoadingMore,
+    setSortBy,
+    setSortOrder
+  ]);
+
+  const handleSortChange = useCallback((e) => {
+    const newSortBy = normalizeSortBy(e.target.value);
+    const currentSortBy = normalizeSortBy(sortBy);
+    const nextSortOrder = currentSortBy === newSortBy
+      ? sortOrder
+      : getDefaultSortOrderForField(newSortBy);
+    applyServerSort(newSortBy, nextSortOrder);
+  }, [applyServerSort, getDefaultSortOrderForField, normalizeSortBy, sortBy, sortOrder]);
 
   const toggleSortOrder = useCallback(() => {
-    setSortOrder(prev => (prev === 'desc' ? 'asc' : 'desc'));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [setSortOrder]);
+    const nextOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+    applyServerSort(sortBy, nextOrder);
+  }, [applyServerSort, sortBy, sortOrder]);
+
+  const handleColumnSort = useCallback((columnSortBy, firstClickOrder = 'asc') => {
+    const normalizedColumnSortBy = normalizeSortBy(columnSortBy);
+    const currentSortBy = normalizeSortBy(sortBy);
+    const nextSortOrder = currentSortBy === normalizedColumnSortBy
+      ? (sortOrder === 'asc' ? 'desc' : 'asc')
+      : firstClickOrder;
+
+    applyServerSort(normalizedColumnSortBy, nextSortOrder);
+  }, [applyServerSort, normalizeSortBy, sortBy, sortOrder]);
 
   const handleQuickDaysBackChange = useCallback((nextDaysBack) => {
     const normalizedDaysBack = normalizeDaysBackValue(nextDaysBack, 30);
@@ -1030,9 +1104,7 @@ const SearchPage2 = () => {
         bodyType: '',
         newlyAdded: false,
         daysBack: 30,
-        hasPhoto: true,
-        sortBy: 'age',
-        sortOrder: 'asc'
+        hasPhoto: true
       });
       logger.info('🧹 Admin: Cleared all search filters');
     } else {
@@ -1063,9 +1135,7 @@ const SearchPage2 = () => {
         bodyType: '',
         newlyAdded: false,
         daysBack: defaults.daysBack || 30,
-        hasPhoto: true,
-        sortBy: 'age',
-        sortOrder: 'asc'
+        hasPhoto: true
       });
       logger.info('🔄 Non-admin: Reset to partner criteria defaults:', defaults);
     }
@@ -1213,27 +1283,6 @@ const SearchPage2 = () => {
     [handleSaveSearchHook, searchCriteria, minMatchScore]
   );
 
-  const parseHeight = (height) => {
-    if (!height) return null;
-    const match = height.match(/(\d+)'(\d+)"/);
-    if (match) {
-      return parseInt(match[1]) * 12 + parseInt(match[2]);
-    }
-    return null;
-  };
-
-  const calculateAge = (birthMonth, birthYear) => {
-    if (!birthMonth || !birthYear) return null;
-    const today = new Date();
-    let age = today.getFullYear() - birthYear;
-    
-    if (today.getMonth() + 1 < birthMonth) {
-      age--;
-    }
-
-    return age;
-  };
-
   // Show chat-first prompt before opening PII request modal
   const openPIIRequestModal = (targetUsername) => {
     const user = users.find(u => u.username === targetUsername);
@@ -1367,73 +1416,12 @@ const SearchPage2 = () => {
       return true;
     });
 
-    // Apply sorting to filtered users
-    const sortedUsers = [...filteredUsers].sort((a, b) => {
-      let compareValue = 0;
-
-      switch (sortBy) {
-        case 'matchScore':
-          compareValue = (b.matchScore || 0) - (a.matchScore || 0);
-          break;
-        
-        case 'firstName':
-        case 'name':
-          const nameA = (a.firstName || a.name || '').toLowerCase();
-          const nameB = (b.firstName || b.name || '').toLowerCase();
-          compareValue = nameA.localeCompare(nameB);
-          break;
-        
-        case 'age':
-          const ageA = a.age || calculateAge(a.birthMonth, a.birthYear) || 0;
-          const ageB = b.age || calculateAge(b.birthMonth, b.birthYear) || 0;
-          compareValue = ageB - ageA;
-          break;
-        
-        case 'height':
-        case 'heightInches':
-          const heightA = parseHeight(a.height) || 0;
-          const heightB = parseHeight(b.height) || 0;
-          compareValue = heightB - heightA;
-          break;
-        
-        case 'location':
-          const locA = (a.location || '').toLowerCase();
-          const locB = (b.location || '').toLowerCase();
-          compareValue = locB.localeCompare(locA);
-          break;
-        
-        case 'education':
-          const eduA = (a.education || '').toLowerCase();
-          const eduB = (b.education || '').toLowerCase();
-          compareValue = eduA.localeCompare(eduB);
-          break;
-        
-        case 'occupation':
-          const occA = (a.occupation || '').toLowerCase();
-          const occB = (b.occupation || '').toLowerCase();
-          compareValue = occB.localeCompare(occA);
-          break;
-        
-        case 'newest':
-          const dateA = new Date(a.adminApprovedAt || a.createdAt || 0).getTime();
-          const dateB = new Date(b.adminApprovedAt || b.createdAt || 0).getTime();
-          compareValue = dateB - dateA;
-          break;
-        
-        default:
-          compareValue = 0;
-      }
-
-      // Apply sort order (desc = default natural order, asc = reversed)
-      return sortOrder === 'desc' ? compareValue : -compareValue;
-    });
-
-    // Deduplicate by username to prevent any duplicates from showing
-    return sortedUsers.filter((user, index, self) => 
+    // Sorting is server-backed; only apply client-side filtering + de-duplication.
+    return filteredUsers.filter((user, index, self) => 
       index === self.findIndex(u => u.username === user.username)
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [users, searchCriteria.profileId, searchCriteria.gender, minMatchScore, sortBy, sortOrder]);
+  }, [users, searchCriteria.profileId, searchCriteria.gender, minMatchScore]);
 
   const getActiveCriteriaSummary = () => {
     const summary = [];
@@ -1587,7 +1575,7 @@ const SearchPage2 = () => {
                 <UniversalTabContainer
                   key={`search-inline-tabs-${savedSearches.length}-${inlineTabsNonce}`}
                   variant="underlined"
-                  defaultTab={inlineTabsDefaultTab || (savedSearches.length > 0 ? 'saved' : 'search')}
+                  defaultTab={inlineTabsDefaultTab || 'search'}
                   tabs={[
                     {
                       id: 'search',
@@ -1787,7 +1775,7 @@ const SearchPage2 = () => {
                   Sort by:
                 </span>
                 <select
-                  value={sortBy}
+                  value={normalizeSortBy(sortBy)}
                   onChange={handleSortChange}
                   className="form-select form-select-sm"
                   style={{
@@ -1802,11 +1790,13 @@ const SearchPage2 = () => {
                   }}
                 >
                   <option value="matchScore">🎯 Compatibility Score</option>
+                  <option value="newest">🆕 Newest Members</option>
+                  <option value="firstName">👤 Name</option>
                   <option value="age">📅 Age</option>
                   <option value="height">📏 Height</option>
                   <option value="location">📍 Location</option>
-                  <option value="occupation">💼 Profession</option>
-                  <option value="newest">🆕 Newest Members</option>
+                  <option value="education">🎓 Education</option>
+                  <option value="profession">💼 Profession</option>
                 </select>
                 <button
                   onClick={toggleSortOrder}
@@ -2293,65 +2283,65 @@ const SearchPage2 = () => {
                   <span style={{ paddingRight: '6px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}></span>
                   <span 
                     className="resizable-header"
-                    onClick={() => { setSortBy('firstName'); setSortOrder(sortBy === 'firstName' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    onClick={() => handleColumnSort('firstName', 'asc')}
                     style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%' }}
                     title="Sort by name"
                   >
-                    Name {sortBy === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Name {normalizeSortBy(sortBy) === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
                     <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'name')} />
                   </span>
                   <span 
                     className="resizable-header"
-                    onClick={() => { setSortBy('matchScore'); setSortOrder(sortBy === 'matchScore' && sortOrder === 'desc' ? 'asc' : 'desc'); }}
+                    onClick={() => handleColumnSort('matchScore', 'desc')}
                     style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="Sort by L3V3L compatibility score"
                   >
-                    🎯 {sortBy === 'matchScore' && (sortOrder === 'desc' ? '↓' : '↑')}
+                    🎯 {normalizeSortBy(sortBy) === 'matchScore' && (sortOrder === 'desc' ? '↓' : '↑')}
                     <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'score')} />
                   </span>
                   <span 
                     className="resizable-header"
-                    onClick={() => { setSortBy('age'); setSortOrder(sortBy === 'age' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    onClick={() => handleColumnSort('age', 'desc')}
                     style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="Sort by age"
                   >
-                    Age {sortBy === 'age' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Age {normalizeSortBy(sortBy) === 'age' && (sortOrder === 'asc' ? '↑' : '↓')}
                     <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'age')} />
                   </span>
                   <span 
                     className="resizable-header"
-                    onClick={() => { setSortBy('heightInches'); setSortOrder(sortBy === 'heightInches' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    onClick={() => handleColumnSort('height', 'desc')}
                     style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="Sort by height"
                   >
-                    Height {sortBy === 'heightInches' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Height {normalizeSortBy(sortBy) === 'height' && (sortOrder === 'asc' ? '↑' : '↓')}
                     <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'height')} />
                   </span>
                   <span 
                     className="resizable-header"
-                    onClick={() => { setSortBy('location'); setSortOrder(sortBy === 'location' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    onClick={() => handleColumnSort('location', 'asc')}
                     style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}
                     title="Sort by location"
                   >
-                    Location {sortBy === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Location {normalizeSortBy(sortBy) === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
                     <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'location')} />
                   </span>
                   <span 
                     className="resizable-header"
-                    onClick={() => { setSortBy('education'); setSortOrder(sortBy === 'education' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    onClick={() => handleColumnSort('education', 'asc')}
                     style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}
                     title="Sort by education"
                   >
-                    Education {sortBy === 'education' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Education {normalizeSortBy(sortBy) === 'education' && (sortOrder === 'asc' ? '↑' : '↓')}
                     <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'education')} />
                   </span>
                   <span 
                     className="resizable-header"
-                    onClick={() => { setSortBy('occupation'); setSortOrder(sortBy === 'occupation' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    onClick={() => handleColumnSort('profession', 'asc')}
                     style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}
                     title="Sort by occupation"
                   >
-                    Occupati... {sortBy === 'occupation' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Occupati... {normalizeSortBy(sortBy) === 'profession' && (sortOrder === 'asc' ? '↑' : '↓')}
                     <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'occupation')} />
                   </span>
                   <span style={{ borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}>Tags</span>
