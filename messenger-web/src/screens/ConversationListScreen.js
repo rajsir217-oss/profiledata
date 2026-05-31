@@ -159,13 +159,20 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     saveNotifPrefs(updated);
   };
 
+  const isL3V3LAgentConversation = (conv) => {
+    if (!conv) return false;
+    if (conv.isSystemBot) return true;
+    const participants = Array.isArray(conv.participants) ? conv.participants : [];
+    return participants.some((p) => (p?.username || '').toLowerCase() === 'l3v3lagent');
+  };
+
   useEffect(() => {
     if (allConversations && allConversations.length > 0) {
       let myMessagesUnread = 0;
       let l3v3lAgentUnread = 0;
 
       allConversations.forEach(conv => {
-        const isBotConv = conv.isSystemBot || conv.participants?.some(p => p.username === 'l3v3lagent');
+        const isBotConv = isL3V3LAgentConversation(conv);
         const unread = conv.unreadCount || 0;
 
         if (isBotConv) {
@@ -296,10 +303,45 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   // Helper: build profile pic URL with auth token
   const getProfilePicUrl = (profile) => {
     if (!profile) return null;
-    const path = profile.imageVisibility?.profilePic || profile.images?.[0] || profile.profileImage;
-    if (!path) return null;
+
+    const rawPath = profile.imageVisibility?.profilePic || profile.images?.[0] || profile.profileImage;
+    if (!rawPath || typeof rawPath !== 'string') return null;
+
+    let normalizedPath = rawPath.trim();
+    if (!normalizedPath) return null;
+
+    if (normalizedPath.startsWith('http://') || normalizedPath.startsWith('https://')) {
+      try {
+        normalizedPath = new URL(normalizedPath).pathname || normalizedPath;
+      } catch (_) {
+        // keep raw string if URL parsing fails
+      }
+    }
+
+    if (normalizedPath.includes('/api/users/media/')) {
+      const marker = '/api/users/media/';
+      const idx = normalizedPath.indexOf(marker);
+      normalizedPath = normalizedPath.slice(idx);
+      if (!normalizedPath.startsWith('/')) {
+        normalizedPath = `/${normalizedPath}`;
+      }
+    } else if (normalizedPath.startsWith('/uploads/') || normalizedPath.startsWith('uploads/')) {
+      const filename = normalizedPath.split('/').pop();
+      if (!filename) return null;
+      normalizedPath = `/api/users/media/${filename}`;
+    } else if (!normalizedPath.startsWith('/')) {
+      const filename = normalizedPath.split('/').pop();
+      if (!filename) return null;
+      normalizedPath = `/api/users/media/${filename}`;
+    }
+
     const token = useAuthStore.getState().token;
-    const fullUrl = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
+    let fullUrl = normalizedPath.startsWith('http') ? normalizedPath : `${API_BASE_URL}${normalizedPath}`;
+    if (fullUrl.includes('token=')) {
+      fullUrl = fullUrl
+        .replace(/([?&])token=[^&]*&?/, '$1')
+        .replace(/[?&]$/, '');
+    }
     if (token && !fullUrl.includes('token=')) {
       const sep = fullUrl.includes('?') ? '&' : '?';
       return `${fullUrl}${sep}token=${encodeURIComponent(token)}`;
@@ -544,7 +586,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
   // Group conversations
   const groupConversations = allConversations.filter(c => c.type === 'group');
-  const directConversations = allConversations.filter(c => c.type !== 'group' && !c.isSystemBot);
+  const directConversations = allConversations.filter(c => c.type !== 'group' && !isL3V3LAgentConversation(c));
 
   // Helper: get display name for a conversation (L3V3L Messenger structure).
   // Returns `username` for direct chats so callers can do online-presence lookups.
@@ -987,7 +1029,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                     {!isLoading && allConversations.length === 0 && (
                       <Text style={styles.subMenuHint}>No conversations</Text>
                     )}
-                    {!isLoading && allConversations.filter(c => !c.isSystemBot).map((conv, index) => {
+                    {!isLoading && allConversations.filter(c => !isL3V3LAgentConversation(c)).map((conv, index) => {
                       const display = getConvDisplay(conv);
                       const key = conv._id || conv.id || index;
                       const isLegacy = conv.type === 'direct_legacy';
