@@ -177,7 +177,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       
       // Step 1: Send acknowledgment message
       const acknowledgmentMsg = "Thank you! We've connected and will stay in touch. Best wishes! 🙏";
-      onSendMessage(acknowledgmentMsg);
+      await onSendMessage(acknowledgmentMsg);
       
       // Step 2: Mark conversation as acknowledged (small delay to ensure message sends first)
       await new Promise(r => setTimeout(r, 500));
@@ -209,7 +209,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       const declineMsg = "Thank you for your interest, but we don't feel this is the right match for us. Wishing you the very best!";
 
       // Step 1: Send decline message
-      onSendMessage(declineMsg);
+      await onSendMessage(declineMsg);
 
       // Step 2: Close the conversation (small delay so message sends first)
       await new Promise(r => setTimeout(r, 500));

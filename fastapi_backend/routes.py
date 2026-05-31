@@ -3250,14 +3250,29 @@ async def get_profiles_bulk(
         location = raw_location or ", ".join([
             x for x in [u.get("city"), u.get("state"), u.get("country")] if x
         ])
+
+        existing_images = u.get("images") or []
+        profile_image = u.get("profileImage")
+        if not existing_images and profile_image:
+            existing_images = [profile_image]
+
+        normalized_public = _compute_public_image_paths(existing_images, u.get("publicImages", []))
+        full_public_urls = [get_full_image_url(p) for p in normalized_public]
+
+        visibility_source = {
+            "images": existing_images,
+            "imageVisibility": u.get("imageVisibility"),
+        }
+        enriched_visibility = _enrich_user_with_image_visibility(visibility_source)
+
         profiles[uname] = {
             "username": uname,
             "firstName": u.get("firstName") or "",
             "lastName": u.get("lastName") or "",
-            "images": u.get("images") or [],
-            "publicImages": u.get("publicImages") or [],
-            "profileImage": u.get("profileImage"),
-            "imageVisibility": u.get("imageVisibility") or {},
+            "images": [get_full_image_url(img) for img in existing_images if img],
+            "publicImages": full_public_urls,
+            "profileImage": get_full_image_url(profile_image) if profile_image else None,
+            "imageVisibility": enriched_visibility.get("imageVisibility") or {},
             "location": location,
             "age": age,
             "height": u.get("height"),
@@ -8118,28 +8133,73 @@ async def get_conversations_enhanced(
     is_admin = current_user.get("role") == "admin"
     
     try:
+        now = datetime.utcnow()
+        ack_cutoff = now - timedelta(hours=24)
+        ack_phrase_regex = "we'?ve connected and will stay in touch"
+
+        participant_clause = {
+            "$or": [
+                {"fromUsername": username},
+                {"toUsername": username},
+            ]
+        }
+
+        expired_messages_query = {
+            "$and": [
+                participant_clause,
+                {
+                    "$or": [
+                        {"scheduledDeleteAt": {"$type": "date", "$lte": now}},
+                        {
+                            "$and": [
+                                {
+                                    "$or": [
+                                        {"scheduledDeleteAt": {"$exists": False}},
+                                        {"scheduledDeleteAt": None},
+                                    ]
+                                },
+                                {"content": {"$regex": ack_phrase_regex, "$options": "i"}},
+                                {"createdAt": {"$lte": ack_cutoff}},
+                            ]
+                        },
+                    ]
+                },
+            ]
+        }
+        expired_result = await db.messages.delete_many(expired_messages_query)
+        if expired_result.deleted_count > 0:
+            logger.info(
+                f"🧹 Opportunistic cleanup removed {expired_result.deleted_count} expired legacy messages for {username}"
+            )
+
+        retention_clause = {
+            "$or": [
+                {"scheduledDeleteAt": {"$exists": False}},
+                {"scheduledDeleteAt": None},
+                {"scheduledDeleteAt": {"$gt": now}},
+            ]
+        }
+
         # Get unique conversations
         # For non-admin users, filter out explicitly hidden messages (isVisible=False)
         # But include messages where isVisible is True, null, or doesn't exist (old messages)
         if not is_admin:
             match_stage = {
                 "$and": [
-                    {"$or": [
-                        {"fromUsername": username},
-                        {"toUsername": username}
-                    ]},
+                    participant_clause,
                     {"$or": [
                         {"isVisible": {"$ne": False}},  # Include True, null, undefined
                         {"isVisible": {"$exists": False}}  # Include old messages without field
-                    ]}
+                    ]},
+                    retention_clause,
                 ]
             }
         else:
             # Admin sees all messages
             match_stage = {
-                "$or": [
-                    {"fromUsername": username},
-                    {"toUsername": username}
+                "$and": [
+                    participant_clause,
+                    retention_clause,
                 ]
             }
         
@@ -9209,11 +9269,13 @@ async def get_conversation(
     # Check if current user is admin
     current_user = await db.users.find_one({"username": username})
     is_admin = current_user and current_user.get("username") == "admin"
+    ack_phrase = "connected and will stay in touch"
     
     try:
         now = datetime.utcnow()
+        ack_cutoff = now - timedelta(hours=24)
 
-        def _parse_scheduled_delete_at(value):
+        def _parse_datetime(value):
             if isinstance(value, datetime):
                 if value.tzinfo is not None:
                     return value.astimezone().replace(tzinfo=None)
@@ -9286,8 +9348,16 @@ async def get_conversation(
         expired_ids = []
         visible_messages = []
         for msg in messages:
-            scheduled_delete_at = _parse_scheduled_delete_at(msg.get("scheduledDeleteAt"))
-            if scheduled_delete_at is not None and scheduled_delete_at <= now:
+            scheduled_delete_at = _parse_datetime(msg.get("scheduledDeleteAt"))
+            created_at = _parse_datetime(msg.get("createdAt")) or _parse_datetime(msg.get("updatedAt"))
+            content = msg.get("content")
+            is_legacy_ack = isinstance(content, str) and ack_phrase in content.lower()
+            is_expired = (
+                (scheduled_delete_at is not None and scheduled_delete_at <= now)
+                or (scheduled_delete_at is None and is_legacy_ack and created_at is not None and created_at <= ack_cutoff)
+            )
+
+            if is_expired:
                 msg_id = msg.get("_id")
                 if msg_id is not None:
                     expired_ids.append(msg_id)
@@ -9297,7 +9367,7 @@ async def get_conversation(
         if expired_ids:
             await db.messages.delete_many({"_id": {"$in": expired_ids}})
             logger.info(
-                f"🧹 Opportunistic cleanup removed {len(expired_ids)} expired scheduled messages for {username} <-> {other_username}"
+                f"🧹 Opportunistic cleanup removed {len(expired_ids)} expired legacy messages for {username} <-> {other_username}"
             )
 
         messages = visible_messages

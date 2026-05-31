@@ -538,6 +538,8 @@ async def create_conversation(
         conv_type=body.type.value,
         group_name=body.groupName,
         group_avatar=body.groupAvatar,
+        is_system_bot=body.isSystemBot,
+        bot_name=body.botName,
     )
     conv["id"] = conv.pop("_id")
     return {"success": True, "conversation": conv}

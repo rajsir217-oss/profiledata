@@ -111,6 +111,8 @@ class ConversationCreate(BaseModel):
     participantUsernames: List[str] = Field(..., min_length=1)
     groupName: Optional[str] = None
     groupAvatar: Optional[str] = None
+    isSystemBot: bool = False
+    botName: Optional[str] = None
     isPublicGroup: bool = False  # US Vedika special flag
     publicParticipants: Optional[List[PublicParticipant]] = None
 

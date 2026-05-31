@@ -24,6 +24,8 @@ async def create_conversation(
     conv_type: str = "direct",
     group_name: Optional[str] = None,
     group_avatar: Optional[str] = None,
+    is_system_bot: bool = False,
+    bot_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Create a new conversation.
@@ -38,6 +40,19 @@ async def create_conversation(
             "participants.username": {"$all": all_participants},
         })
         if existing:
+            if is_system_bot and not existing.get("isSystemBot"):
+                await db.messenger_conversations.update_one(
+                    {"_id": existing["_id"]},
+                    {
+                        "$set": {
+                            "isSystemBot": True,
+                            "botName": bot_name or existing.get("botName") or "L3V3L Agent",
+                            "updatedAt": datetime.utcnow(),
+                        }
+                    },
+                )
+                existing["isSystemBot"] = True
+                existing["botName"] = bot_name or existing.get("botName") or "L3V3L Agent"
             existing["_id"] = str(existing["_id"])
             logger.info(f"💬 Reusing existing direct conversation {existing['_id']}")
             return existing
@@ -53,6 +68,8 @@ async def create_conversation(
         "participants": participants,
         "groupName": group_name if conv_type == "group" else None,
         "groupAvatar": group_avatar if conv_type == "group" else None,
+        "isSystemBot": bool(is_system_bot),
+        "botName": bot_name if is_system_bot else None,
         "createdBy": creator_username,
         "lastMessageAt": None,
         "lastMessagePreview": None,
