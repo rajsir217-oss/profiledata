@@ -5,6 +5,57 @@ import { getBackendUrl } from '../config/apiConfig';
 import logger from '../utils/logger';
 import './RegisterInterest.css';
 
+const buildReferredByPayload = ({ firstName, lastName, phone, email }) => {
+  const referredBy = {};
+
+  if (firstName?.trim()) {
+    referredBy.firstName = firstName.trim();
+  }
+  if (lastName?.trim()) {
+    referredBy.lastName = lastName.trim();
+  }
+  if (phone?.trim()) {
+    referredBy.phone = phone.trim();
+  }
+  if (email?.trim()) {
+    referredBy.email = email.trim();
+  }
+
+  return Object.keys(referredBy).length > 0 ? referredBy : null;
+};
+
+const extractErrorMessage = (err) => {
+  const detail = err?.response?.data?.detail;
+
+  if (typeof detail === 'string' && detail.trim()) {
+    return detail;
+  }
+
+  if (Array.isArray(detail) && detail.length > 0) {
+    const messages = detail
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item;
+        }
+        if (item && typeof item === 'object' && typeof item.msg === 'string') {
+          return item.msg;
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    if (messages.length > 0) {
+      return messages.join(' ');
+    }
+  }
+
+  if (detail && typeof detail === 'object' && typeof detail.msg === 'string') {
+    return detail.msg;
+  }
+
+  return 'Something went wrong. Please try again.';
+};
+
 const RegisterInterest = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -149,9 +200,16 @@ const RegisterInterest = () => {
 
     setSubmitting(true);
     try {
+      const referredBy = buildReferredByPayload({
+        firstName: formData.refFirstName,
+        lastName: formData.refLastName,
+        phone: formData.refPhone,
+        email: formData.refEmail,
+      });
+
       // Also validate referrer phone if provided
-      if (formData.refPhone.trim()) {
-        const refPhoneDigits = formData.refPhone.trim().replace(/\D/g, '');
+      if (referredBy?.phone) {
+        const refPhoneDigits = referredBy.phone.replace(/\D/g, '');
         if (refPhoneDigits.length < 10) {
           setError('Please enter a valid 10-digit referrer phone number.');
           setSubmitting(false);
@@ -167,12 +225,7 @@ const RegisterInterest = () => {
         phone: formData.phone.trim(),
         linkedInUrl: formData.linkedInUrl.trim() || null,
         residencyStatus: formData.residencyStatus,
-        referredBy: (formData.refFirstName || formData.refLastName || formData.refPhone || formData.refEmail) ? {
-          firstName: formData.refFirstName.trim(),
-          lastName: formData.refLastName.trim(),
-          phone: formData.refPhone.trim(),
-          email: formData.refEmail.trim()
-        } : null,
+        referredBy,
         howDidYouHear: formData.howDidYouHear === 'other'
           ? (formData.howDidYouHearOther.trim() || 'Other')
           : (formData.howDidYouHear || null),
@@ -186,8 +239,7 @@ const RegisterInterest = () => {
       setSubmitted(true);
       logger.info('Registration interest submitted successfully');
     } catch (err) {
-      const detail = err.response?.data?.detail || 'Something went wrong. Please try again.';
-      setError(detail);
+      setError(extractErrorMessage(err));
       logger.error('Registration interest submission failed:', err);
     } finally {
       setSubmitting(false);
