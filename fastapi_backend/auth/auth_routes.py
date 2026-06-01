@@ -796,14 +796,6 @@ async def send_phone_login_code(
 ):
     """Send SMS code for phone-based login."""
     try:
-        if phone_login_request.captchaToken:
-            captcha_ok = await verify_turnstile_token(phone_login_request.captchaToken)
-            if not captcha_ok:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="CAPTCHA verification failed. Please try again."
-                )
-
         matched_users = await _find_phone_login_users(db, phone_login_request.phone)
 
         if not matched_users:
@@ -852,6 +844,14 @@ async def send_phone_login_code(
                 status_code=400,
                 detail="SMS notifications are disabled for this account. Please use username/password login."
             )
+
+        if phone_login_request.captchaToken:
+            captcha_ok = await verify_turnstile_token(phone_login_request.captchaToken)
+            if not captcha_ok:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="CAPTCHA verification failed. Please try again."
+                )
 
         from services.sms_service import OTPManager
         otp_manager = OTPManager(db)
