@@ -275,6 +275,10 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   // Derived from the reactive `user` from useAuthStore so role changes
   // (re-login, role promotion) flip the UI without a full reload.
   const isAdminOrModerator = user?.role === 'admin' || user?.role === 'moderator';
+  const isL3v3lAgentTopic = !isLegacy && String(name || '').trim().toLowerCase() === 'l3v3l agent';
+  const isComposerRestrictedTopic = isL3v3lAgentTopic;
+  const canComposeInCurrentTopic = !isComposerRestrictedTopic || isAdminOrModerator;
+  const canUsePublicRecipientFlow = isL3v3lAgentTopic && isAdminOrModerator;
   // Clear chat
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearingChat, setClearingChat] = useState(false);
@@ -816,16 +820,18 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    // Check for public recipients (US Vedika / Portal Members @{email} flow).
+    if (!canComposeInCurrentTopic) {
+      setSendError('Only administrators or moderators can send messages in the L3V3L Agent topic.');
+      return;
+    }
+
+    // Check for public recipients in L3V3L Agent @{email} flow.
     // Only admins/moderators can invite via @{email}; for everyone else the
     // token is treated as plain text — no modal, no parsing, no actionable
     // recipient. The backend also enforces the role gate (defense in depth);
     // this client-side check is a UX cleanup so non-privileged users don't see
     // a modal that would just be blocked anyway.
-    const role = useAuthStore.getState().user?.role;
-    const canInvite = role === 'admin' || role === 'moderator';
-
-    if (canInvite && !isLegacy) {
+    if (canUsePublicRecipientFlow) {
       const recipients = parsePublicRecipients(newMessage);
       if (recipients.length > 0) {
         // Show modal for public recipients + kick off pre-flight in parallel
@@ -1169,6 +1175,13 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
             </TouchableOpacity>
           </View>
         )}
+        {isL3v3lAgentTopic && !isAdminOrModerator && (
+          <View style={styles.composerLockBanner}>
+            <Text style={styles.composerLockBannerText}>
+              Read-only topic: only admin/moderator users can send messages in L3V3L Agent.
+            </Text>
+          </View>
+        )}
         <View style={styles.inputContainer}>
           {/* ⚡ Quick Messages — hidden for legacy 1:1 chats since they don't
               support rich content types like profile_card. */}
@@ -1184,12 +1197,13 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
             </TouchableOpacity>
           )}
           <TextInput
-            style={styles.input}
+            style={[styles.input, !canComposeInCurrentTopic && styles.inputDisabled]}
             value={newMessage}
             onChangeText={(t) => { setNewMessage(t); if (sendError) setSendError(null); }}
-            placeholder="Type a message..."
+            placeholder={canComposeInCurrentTopic ? 'Type a message...' : 'Read-only for your role in L3V3L Agent'}
             placeholderTextColor="#888"
             multiline
+            editable={canComposeInCurrentTopic && !sending}
             onKeyPress={({ nativeEvent }) => {
               if (nativeEvent.key === 'Enter' && (nativeEvent.ctrlKey || nativeEvent.metaKey)) {
                 sendMessage();
@@ -1197,9 +1211,13 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
             }}
           />
           <TouchableOpacity
-            style={[styles.sendButton, isMobile && styles.sendButtonMobile, !newMessage.trim() && styles.sendButtonDisabled]}
+            style={[
+              styles.sendButton,
+              isMobile && styles.sendButtonMobile,
+              (!newMessage.trim() || !canComposeInCurrentTopic) && styles.sendButtonDisabled,
+            ]}
             onPress={sendMessage}
-            disabled={sending || !newMessage.trim()}
+            disabled={sending || !newMessage.trim() || !canComposeInCurrentTopic}
           >
             {sending ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -1874,6 +1892,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  composerLockBanner: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(251, 191, 36, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.35)',
+  },
+  composerLockBannerText: {
+    color: '#fde68a',
+    fontSize: 13,
+    lineHeight: 18,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -1895,6 +1928,9 @@ const styles = StyleSheet.create({
     borderColor: '#0f3460',
     marginRight: 8,
     height: 44,
+  },
+  inputDisabled: {
+    opacity: 0.65,
   },
   sendButton: {
     backgroundColor: '#e94560',
