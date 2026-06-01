@@ -11,9 +11,10 @@
 .tooltip-icon-wrapper {
   cursor: pointer;
   outline: none;
-  margin-left: 6px;
+  margin-left: 4px;
   pointer-events: auto; /* Ensure clickable */
   z-index: 10; /* Above other inline elements */
+  line-height: 1;
 }
 
 .tooltip-icon-wrapper:focus {
@@ -24,22 +25,27 @@
 
 /* Info Icon */
 .tooltip-icon {
-  font-size: 16px;
+  font-size: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  background: var(--primary-color);
-  color: white;
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  background: var(--info-color);
+  color: var(--text-on-gradient);
   border-radius: 50%;
-  font-weight: 600;
+  border: 1px solid var(--border-color);
+  font-weight: 700;
   transition: all 0.2s ease;
   cursor: pointer;
   user-select: none;
   pointer-events: auto; /* Ensure icon itself is clickable */
   position: relative;
   z-index: 1;
+  text-transform: lowercase;
+  box-sizing: border-box;
 }
 
 .tooltip-icon-wrapper:active .tooltip-icon,
@@ -49,6 +55,8 @@
 
 .tooltip-icon-wrapper[aria-expanded="true"] .tooltip-icon {
   background: var(--secondary-color);
+  color: var(--text-on-gradient);
+  border-color: var(--primary-color);
 }
 
 /* Tooltip Bubble */
@@ -226,9 +234,11 @@
   }
   
   .tooltip-icon {
-    font-size: 14px;
-    width: 18px;
-    height: 18px;
+    font-size: 6px;
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    min-height: 8px;
   }
   
   .tooltip-close {

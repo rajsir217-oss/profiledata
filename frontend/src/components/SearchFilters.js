@@ -142,9 +142,12 @@ const SearchFilters = ({
     onSearch();
   };
 
-  const daysBackRawValue = searchCriteria.daysBack ?? '';
-  const allowedDaysBackValues = new Set(['45', '60', '90', '365', '0', '']);
-  const daysBackSelectValue = daysBackRawValue === null || daysBackRawValue === undefined ? '' : String(daysBackRawValue);
+  const daysBackRawValue = searchCriteria.daysBack;
+  const allowedDaysBackValues = new Set(['45', '60', '90', '365', '0']);
+  const daysBackSelectValue =
+    daysBackRawValue === '' || daysBackRawValue === null || daysBackRawValue === undefined
+      ? '0'
+      : String(daysBackRawValue);
   const showCustomDaysBackOption = daysBackSelectValue !== '' && !allowedDaysBackValues.has(daysBackSelectValue);
 
   const isDirectLookupMode = Boolean(searchCriteria.profileId && String(searchCriteria.profileId).trim());

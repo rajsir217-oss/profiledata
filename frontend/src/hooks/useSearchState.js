@@ -27,7 +27,7 @@ export const useSearchState = () => {
     relationshipStatus: '', // Legacy compatibility
     newlyAdded: false, // Legacy compatibility
     hasPhoto: true, // Default ON - only show profiles with photos
-    daysBack: 30, // Number of days to look back for profile creation (default: 30)
+    daysBack: 0, // Number of days to look back for profile creation (default: ALL)
     eating: '', // Legacy compatibility
     eatingPreference: '', // New field name
     drinking: '',
@@ -162,7 +162,7 @@ export const useSearchState = () => {
       occupations: [],
       maritalStatus: '',
       hasPhoto: true,
-      daysBack: 30,
+      daysBack: 0,
       eating: '',
       drinking: '',
       smoking: '',

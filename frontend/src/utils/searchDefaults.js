@@ -20,7 +20,7 @@ export const buildDefaultCriteria = (profile) => {
       heightMinInches: '',
       heightMaxFeet: '',
       heightMaxInches: '',
-      daysBack: 30,
+      daysBack: 0,
       hasPhoto: true
     };
   }
@@ -112,15 +112,15 @@ export const buildDefaultCriteria = (profile) => {
     heightMinInches: defaultHeightMinInches,
     heightMaxFeet: defaultHeightMaxFeet,
     heightMaxInches: defaultHeightMaxInches,
-    daysBack: 30,
+    daysBack: 0,
     hasPhoto: true,
     locations: []
   };
 };
 
 // Coerce a daysBack filter value into a number with a fallback.
-// Empty string / null / undefined / NaN → fallback (default 30).
-export const normalizeDaysBackValue = (daysBack, fallback = 30) => {
+// Empty string / null / undefined / NaN → fallback (default 0 = ALL).
+export const normalizeDaysBackValue = (daysBack, fallback = 0) => {
   if (daysBack === '' || daysBack === null || daysBack === undefined) {
     return fallback;
   }
