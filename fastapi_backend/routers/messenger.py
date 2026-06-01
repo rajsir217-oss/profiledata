@@ -873,6 +873,24 @@ async def check_public_recipients(
     if not any(p.get("username") == username for p in conv.get("participants", [])):
         raise HTTPException(status_code=403, detail="You are not a participant of this conversation")
 
+    # Public recipient (@{email}) preflight is only valid for approved topics:
+    # - US Vedika (legacy public group)
+    # - L3V3L Agent (system bot topic)
+    is_us_vedika = conv.get("type") == "public_group" and conv.get("groupName") == "US Vedika"
+    is_l3v3lagent_topic = (
+        (conv.get("isSystemBot") is True and str(conv.get("botName") or "").strip().lower() == "l3v3l agent")
+        or (
+            conv.get("type") == "direct"
+            and any((p or {}).get("username") == "l3v3lagent" for p in conv.get("participants", []))
+        )
+    )
+    allows_public_recipients = is_us_vedika or is_l3v3lagent_topic
+    if not allows_public_recipients:
+        raise HTTPException(
+            status_code=403,
+            detail="Public recipients are only allowed in the L3V3L Agent topic or US Vedika group",
+        )
+
     raw_emails = body.get("emails") or []
     if not isinstance(raw_emails, list):
         raise HTTPException(status_code=400, detail="emails must be a list")
@@ -1006,28 +1024,34 @@ async def send_message(
     if not any(p.get("username") == username for p in conv.get("participants", [])):
         raise HTTPException(status_code=403, detail="You are not a participant of this conversation")
 
-    # Check for public recipients (US Vedika OR Portal Members)
+    # Check for public recipients (US Vedika OR L3V3L Agent)
     # ------------------------------------------------------------------
     # Conversations that support inviting non-members via @{email}:
     #   • US Vedika      — type="public_group", groupName="US Vedika"  (legacy)
-    #   • Portal Members — type="group",        groupName="Portal Members"
+    #   • L3V3L Agent    — type="direct",       isSystemBot=True, botName="L3V3L Agent"
     # Both go through the same publicRecipients pipeline below; only the
     # invitation `source`/`trigger` analytics labels differ (see source_label).
-    # TODO: replace the name-based gate with an `allowsPublicRecipients` flag
+    # TODO: replace the topic-shape gate with an `allowsPublicRecipients` flag
     # on the conversation document once we have more than two such groups.
     is_us_vedika = conv.get("type") == "public_group" and conv.get("groupName") == "US Vedika"
-    is_portal_members = conv.get("type") == "group" and conv.get("groupName") == "Portal Members"
-    allows_public_recipients = is_us_vedika or is_portal_members
+    is_l3v3lagent_topic = (
+        (conv.get("isSystemBot") is True and str(conv.get("botName") or "").strip().lower() == "l3v3l agent")
+        or (
+            conv.get("type") == "direct"
+            and any((p or {}).get("username") == "l3v3lagent" for p in conv.get("participants", []))
+        )
+    )
+    allows_public_recipients = is_us_vedika or is_l3v3lagent_topic
 
     # Analytics/funnel label propagated into invitations + email queue + register-interest URL
-    source_label = "us_vedika" if is_us_vedika else ("portal_members" if is_portal_members else "messenger_group")
+    source_label = "us_vedika" if is_us_vedika else ("l3v3l_agent" if is_l3v3lagent_topic else "messenger_group")
     trigger_label = f"{source_label}_message"
 
     if body.publicRecipients and len(body.publicRecipients) > 0:
         if not allows_public_recipients:
             raise HTTPException(
                 status_code=403,
-                detail="Public recipients are only allowed in the Portal Members or US Vedika group",
+                detail="Public recipients are only allowed in the L3V3L Agent topic or US Vedika group",
             )
 
         # Only admins/moderators can send public-recipient (email) invites.
