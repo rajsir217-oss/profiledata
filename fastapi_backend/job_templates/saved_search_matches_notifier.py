@@ -19,6 +19,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Tuple, Optional
 import asyncio
+import re
 from zoneinfo import ZoneInfo
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -129,6 +130,154 @@ def get_effective_notification_settings(search: Dict[str, Any]) -> Dict[str, Any
                 effective[key] = value
 
     return effective
+
+
+def _safe_int(value: Any) -> Optional[int]:
+    try:
+        if value is None or value == '':
+            return None
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_height_to_inches(height_value: Any) -> Optional[int]:
+    if not isinstance(height_value, str) or not height_value.strip():
+        return None
+
+    # Supports formats like: 5'8", 5 ft 8 in, 5-8
+    match = re.search(r"(\d+)\D+(\d+)", height_value)
+    if not match:
+        return None
+
+    feet = _safe_int(match.group(1))
+    inches = _safe_int(match.group(2))
+    if feet is None or inches is None:
+        return None
+
+    return feet * 12 + inches
+
+
+def _extract_first_preference(value: Any) -> Optional[str]:
+    candidate = None
+
+    if isinstance(value, list) and value:
+        candidate = value[0]
+    elif isinstance(value, str):
+        candidate = value
+
+    if candidate is None:
+        return None
+
+    normalized = str(candidate).strip()
+    if not normalized:
+        return None
+
+    if normalized.lower() in {"any", "all", "none", "any religion", "no preference"}:
+        return None
+
+    return normalized
+
+
+def build_default_partner_criteria(user: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Build default fallback search criteria from user's partnerCriteria.
+    Mirrors the frontend default-search behavior: prefer explicit partner criteria,
+    then relative ranges, then opposite-gender default when possible.
+    """
+    partner_criteria = user.get('partnerCriteria') or {}
+    criteria: Dict[str, Any] = {}
+
+    preferred_gender = partner_criteria.get('gender') or partner_criteria.get('preferredGender')
+    if isinstance(preferred_gender, str) and preferred_gender.strip():
+        criteria['gender'] = preferred_gender.strip().capitalize()
+    else:
+        user_gender = (user.get('gender') or user.get('sex') or '').strip().lower()
+        if user_gender == 'male':
+            criteria['gender'] = 'Female'
+        elif user_gender == 'female':
+            criteria['gender'] = 'Male'
+
+    # Build age range from relative offsets first, then absolute min/max
+    user_age = None
+    birth_year = _safe_int(user.get('birthYear'))
+    birth_month = _safe_int(user.get('birthMonth'))
+    if birth_year is not None:
+        now = datetime.utcnow()
+        user_age = now.year - birth_year
+        if birth_month is not None and 1 <= birth_month <= 12 and now.month < birth_month:
+            user_age -= 1
+
+    age_range_relative = partner_criteria.get('ageRangeRelative') or {}
+    if isinstance(age_range_relative, dict) and user_age is not None:
+        min_offset = _safe_int(age_range_relative.get('minOffset'))
+        max_offset = _safe_int(age_range_relative.get('maxOffset'))
+        min_offset = 0 if min_offset is None else min_offset
+        max_offset = 5 if max_offset is None else max_offset
+
+        min_age = max(19, user_age + min_offset)
+        max_age = min(100, user_age + max_offset)
+        if min_age <= max_age:
+            criteria['ageMin'] = str(min_age)
+            criteria['ageMax'] = str(max_age)
+    else:
+        age_range = partner_criteria.get('ageRange') or {}
+        if isinstance(age_range, dict):
+            min_age = _safe_int(age_range.get('min'))
+            max_age = _safe_int(age_range.get('max'))
+            if min_age is not None:
+                criteria['ageMin'] = str(min_age)
+            if max_age is not None:
+                criteria['ageMax'] = str(max_age)
+
+    # Build height range from relative offsets first, then absolute values
+    user_height_inches = _parse_height_to_inches(user.get('height'))
+    height_range_relative = partner_criteria.get('heightRangeRelative') or {}
+    if isinstance(height_range_relative, dict) and user_height_inches is not None:
+        min_inches_offset = _safe_int(height_range_relative.get('minInches'))
+        max_inches_offset = _safe_int(height_range_relative.get('maxInches'))
+        min_inches_offset = 0 if min_inches_offset is None else min_inches_offset
+        max_inches_offset = 6 if max_inches_offset is None else max_inches_offset
+
+        min_total_inches = max(48, user_height_inches + min_inches_offset)
+        max_total_inches = min(95, user_height_inches + max_inches_offset)
+        if min_total_inches <= max_total_inches:
+            criteria['heightMinFeet'] = str(min_total_inches // 12)
+            criteria['heightMinInches'] = str(min_total_inches % 12)
+            criteria['heightMaxFeet'] = str(max_total_inches // 12)
+            criteria['heightMaxInches'] = str(max_total_inches % 12)
+    else:
+        height_range = partner_criteria.get('heightRange') or {}
+        if isinstance(height_range, dict):
+            min_feet = _safe_int(height_range.get('minFeet'))
+            min_inches = _safe_int(height_range.get('minInches'))
+            max_feet = _safe_int(height_range.get('maxFeet'))
+            max_inches = _safe_int(height_range.get('maxInches'))
+
+            if min_feet is not None:
+                criteria['heightMinFeet'] = str(min_feet)
+            if min_inches is not None:
+                criteria['heightMinInches'] = str(min_inches)
+            if max_feet is not None:
+                criteria['heightMaxFeet'] = str(max_feet)
+            if max_inches is not None:
+                criteria['heightMaxInches'] = str(max_inches)
+
+    location = _extract_first_preference(partner_criteria.get('location'))
+    religion = _extract_first_preference(partner_criteria.get('religion'))
+    education = _extract_first_preference(partner_criteria.get('educationLevel'))
+    occupation = _extract_first_preference(partner_criteria.get('profession'))
+
+    if location:
+        criteria['location'] = location
+    if religion:
+        criteria['religion'] = religion
+    if education:
+        criteria['education'] = education
+    if occupation:
+        criteria['occupation'] = occupation
+
+    return criteria
 
 # Email template HTML
 EMAIL_TEMPLATE = """
@@ -342,9 +491,14 @@ async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[st
     start_time = datetime.utcnow()
     stats = {
         'users_processed': 0,
+        'users_with_saved_searches': 0,
+        'users_with_fallback_search': 0,
+        'users_skipped_no_email': 0,
+        'users_skipped_no_criteria': 0,
         'searches_checked': 0,
         'searches_with_schedule': 0,
         'searches_due_now': 0,
+        'fallback_searches_used': 0,
         'emails_sent': 0,
         'messenger_messages_sent': 0,
         'total_matches_found': 0,
@@ -375,6 +529,13 @@ async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[st
         else:
             force_run = params.get('forceRun', False)  # For testing - bypass schedule check
             clear_tracking = params.get('clearTracking', False)
+
+        logger.info(
+            "⚙️ Saved search notifier config: "
+            f"batch_size={batch_size}, lookback_hours={lookback_hours}, "
+            f"force_run={force_run}, clear_tracking={clear_tracking}, "
+            f"ignore_user_schedule={ignore_user_schedule}, notify_messenger_bot={notify_messenger_bot}"
+        )
         
         # Get all saved searches
         saved_searches_cursor = db.saved_searches.find({})
@@ -386,13 +547,53 @@ async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[st
                 if username not in saved_searches_by_user:
                     saved_searches_by_user[username] = []
                 saved_searches_by_user[username].append(search)
-        
-        logger.info(f"📊 Found saved searches for {len(saved_searches_by_user)} users")
-        
-        # Process each user's saved searches
-        for username, searches in saved_searches_by_user.items():
+
+        total_saved_search_docs = sum(len(items) for items in saved_searches_by_user.values())
+        logger.info(
+            f"📊 Found {total_saved_search_docs} saved search docs across {len(saved_searches_by_user)} users"
+        )
+
+        # Also include users with partnerCriteria even if they have no saved searches,
+        # so fallback default-search notifications can run.
+        users_with_partner_criteria = set()
+        partner_criteria_cursor = db.users.find(
+            {
+                'username': {'$exists': True, '$ne': ''},
+                'partnerCriteria': {'$exists': True, '$ne': None},
+                '$and': [
+                    {
+                        '$or': [
+                            {'accountStatus': 'active'},
+                            {'status.status': 'active'}
+                        ]
+                    },
+                    {
+                        '$or': [
+                            {'contactEmail': {'$exists': True, '$nin': [None, '']}},
+                            {'email': {'$exists': True, '$nin': [None, '']}}
+                        ]
+                    }
+                ]
+            },
+            {'username': 1}
+        )
+        async for user_doc in partner_criteria_cursor:
+            username = user_doc.get('username')
+            if username:
+                users_with_partner_criteria.add(username)
+
+        logger.info(
+            f"📊 Found {len(users_with_partner_criteria)} active users with partner criteria"
+        )
+
+        usernames_to_process = sorted(set(saved_searches_by_user.keys()) | users_with_partner_criteria)
+        logger.info(f"📊 Total users queued for processing: {len(usernames_to_process)}")
+
+        # Process each user's enabled saved searches; if none enabled, fallback to partner criteria
+        for username in usernames_to_process:
             try:
                 stats['users_processed'] += 1
+                searches = saved_searches_by_user.get(username, [])
                 
                 # Get user details
                 user = await db.users.find_one({'username': username})
@@ -402,7 +603,8 @@ async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[st
                 # Check if user wants notifications (if notification preferences exist)
                 user_email = user.get('contactEmail') or user.get('email')
                 if not user_email:
-                    logger.info(f"⚠️ User {username} has no email address")
+                    stats['users_skipped_no_email'] += 1
+                    logger.warning(f"⚠️ Skipping user '{username}' - no email address available")
                     continue
                 
                 # DECRYPT email if encrypted (PII encryption)
@@ -414,14 +616,57 @@ async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[st
                         logger.error(f"❌ Failed to decrypt email for {username}: {e}")
                         continue
                 
-                # Process each saved search
+                enabled_searches = []
                 for search in searches:
+                    notifications = get_effective_notification_settings(search)
+                    if notifications.get('enabled'):
+                        enabled_searches.append(search)
+
+                logger.info(
+                    f"👤 User '{username}': total_saved_searches={len(searches)}, "
+                    f"enabled_saved_searches={len(enabled_searches)}"
+                )
+
+                searches_to_process: List[Dict[str, Any]] = enabled_searches
+                if not searches_to_process:
+                    fallback_criteria = build_default_partner_criteria(user)
+                    if not fallback_criteria:
+                        stats['users_skipped_no_criteria'] += 1
+                        logger.warning(
+                            f"⚠️ Skipping user '{username}' - no enabled saved searches and no usable partner criteria for fallback"
+                        )
+                        continue
+
+                    stats['fallback_searches_used'] += 1
+                    stats['users_with_fallback_search'] += 1
+                    searches_to_process = [{
+                        '_id': f'default_partner_criteria:{username}',
+                        'name': 'Default Match Preferences',
+                        'description': 'Based on your partner criteria preferences',
+                        'criteria': fallback_criteria,
+                        '_is_fallback': True
+                    }]
+                    logger.info(
+                        f"🧭 User '{username}': using fallback partner-criteria search "
+                        f"with criteria_keys={sorted(fallback_criteria.keys())}"
+                    )
+                else:
+                    stats['users_with_saved_searches'] += 1
+                    logger.info(f"📚 User '{username}': processing enabled saved searches")
+
+                for search in searches_to_process:
                     try:
                         stats['searches_checked'] += 1
                         search_id = str(search['_id'])
                         search_name = search.get('name', 'Untitled Search')
                         search_description = search.get('description', '')
                         criteria = search.get('criteria', {})
+                        is_fallback_search = bool(search.get('_is_fallback'))
+                        search_type = 'fallback_partner_criteria' if is_fallback_search else 'saved_search'
+                        logger.info(
+                            f"🔎 Processing {search_type} for '{username}': "
+                            f"search_id='{search_id}', search_name='{search_name}', criteria_keys={sorted(criteria.keys())}"
+                        )
                         
                         # Sanitize search description - remove raw JSON/dict content
                         # If description looks like JSON (starts with { or [), generate a human-readable one
@@ -444,20 +689,25 @@ async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[st
                                 desc_parts.append(f"Education: {criteria['education']}")
                             search_description = ' | '.join(desc_parts) if desc_parts else 'Your saved search criteria'
                         
-                        # Check if notifications are enabled for this search
-                        notifications = get_effective_notification_settings(search)
-                        if not notifications.get('enabled'):
-                            logger.debug(f"  ⏭️ Skipping '{search_name}' - notifications not enabled")
-                            continue
-                        
-                        stats['searches_with_schedule'] += 1
-                        
-                        # Check if it's time to send based on schedule
-                        # ignore_user_schedule=True means we send to all users when job runs (for weekly schedules)
-                        if not is_notification_due(search, db, username, search_id, force_run, notifications=notifications, ignore_user_schedule=ignore_user_schedule):
-                            stats['skipped_not_due'] += 1
-                            logger.debug(f"  ⏰ Skipping '{search_name}' - not due yet based on schedule")
-                            continue
+                        if not is_fallback_search:
+                            notifications = get_effective_notification_settings(search)
+                            if not notifications.get('enabled'):
+                                logger.debug(f"  ⏭️ Skipping '{search_name}' - notifications not enabled")
+                                continue
+
+                            stats['searches_with_schedule'] += 1
+
+                            # Check if it's time to send based on schedule
+                            # ignore_user_schedule=True means we send to all users when job runs (for weekly schedules)
+                            if not is_notification_due(search, db, username, search_id, force_run, notifications=notifications, ignore_user_schedule=ignore_user_schedule):
+                                stats['skipped_not_due'] += 1
+                                logger.debug(f"  ⏰ Skipping '{search_name}' - not due yet based on schedule")
+                                continue
+                        else:
+                            # Fallback default-search has no user-defined schedule;
+                            # treat as due when the job itself runs.
+                            stats['searches_with_schedule'] += 1
+                            logger.debug(f"  🕒 Fallback '{search_name}' is due now (job-level schedule)")
                         
                         stats['searches_due_now'] += 1
                         logger.info(f"  ✅ Processing '{search_name}' - due for notification")
@@ -478,7 +728,9 @@ async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[st
                         matches = await find_matches_for_search(db, username, criteria, lookback_hours, last_notification_time)
                         
                         if not matches:
-                            logger.info(f"  No new matches for search '{search_name}'")
+                            logger.info(
+                                f"📭 No matches found for {search_type} '{search_name}' (user='{username}')"
+                            )
                             continue
                         
                         # Clear tracking if requested (for manual testing)
@@ -494,7 +746,9 @@ async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[st
                         new_matches = await filter_new_matches(db, username, search_id, matches)
                         
                         if not new_matches:
-                            logger.info(f"  All matches for '{search_name}' were already notified")
+                            logger.info(
+                                f"🔁 All matches already notified for {search_type} '{search_name}' (user='{username}')"
+                            )
                             continue
                         
                         stats['total_matches_found'] += len(new_matches)
@@ -507,7 +761,9 @@ async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[st
                         })
                         
                         if recent_sent:
-                            logger.info(f"  ⏭️ Skipping '{search_name}' - email sent to {username} recently (within 2 hours)")
+                            logger.info(
+                                f"⏭️ Skipping {search_type} '{search_name}' for '{username}' - email sent within last 2 hours"
+                            )
                             continue
                         
                         # Send email notification
@@ -556,9 +812,18 @@ Check your email for full details! 📧"""
                             await mark_matches_notified_atomic(db, username, search_id, new_matches)
 
                             # Update saved_searches document with notification history (separate, non-critical)
-                            await update_last_notification_time(db, username, search_id, len(new_matches))
+                            await update_last_notification_time(
+                                db,
+                                username,
+                                search_id,
+                                len(new_matches),
+                                is_virtual_search=is_fallback_search
+                            )
 
-                            logger.info(f"✅ Sent email to {username} with {len(new_matches)} new matches for '{search_name}'")
+                            logger.info(
+                                f"✅ Sent {search_type} notification email to '{username}' "
+                                f"with {len(new_matches)} new matches for '{search_name}'"
+                            )
                         
                     except Exception as e:
                         logger.error(f"❌ Error processing search '{search.get('name')}' for {username}: {e}")
@@ -571,6 +836,17 @@ Check your email for full details! 📧"""
         duration = (datetime.utcnow() - start_time).total_seconds()
         logger.info(f"✅ Saved Search Matches Notifier completed in {duration:.2f}s")
         logger.info(f"📊 Stats: {stats}")
+        logger.info(
+            "📈 Run summary: "
+            f"users_processed={stats['users_processed']}, "
+            f"users_with_saved_searches={stats['users_with_saved_searches']}, "
+            f"users_with_fallback_search={stats['users_with_fallback_search']}, "
+            f"fallback_searches_used={stats['fallback_searches_used']}, "
+            f"users_skipped_no_email={stats['users_skipped_no_email']}, "
+            f"users_skipped_no_criteria={stats['users_skipped_no_criteria']}, "
+            f"searches_due_now={stats['searches_due_now']}, emails_sent={stats['emails_sent']}, "
+            f"messenger_messages_sent={stats['messenger_messages_sent']}, errors={stats['errors']}"
+        )
 
         message_parts = [
             f"Processed {stats['users_processed']} users,",
@@ -1148,7 +1424,13 @@ def is_notification_due(search: Dict[str, Any], db, username: str, search_id: st
     return True
 
 
-async def update_last_notification_time(db, username: str, search_id: str, matches_count: int = 0):
+async def update_last_notification_time(
+    db,
+    username: str,
+    search_id: str,
+    matches_count: int = 0,
+    is_virtual_search: bool = False
+):
     """
     Update the last notification timestamp for a search
     Updates both the tracking collection and the saved_searches document
@@ -1170,7 +1452,11 @@ async def update_last_notification_time(db, username: str, search_id: str, match
     )
     
     # Also update the saved_searches document with notification history
-    # This is what the admin UI reads for "Last Sent" status
+    # This is what the admin UI reads for "Last Sent" status.
+    # Skip for virtual fallback searches (no saved_searches document exists).
+    if is_virtual_search:
+        return
+
     from bson import ObjectId
     try:
         notification_record = {
