@@ -1052,7 +1052,7 @@ const SearchPage2 = () => {
   }, [applyServerSort, normalizeSortBy, sortBy, sortOrder]);
 
   const handleQuickDaysBackChange = useCallback((nextDaysBack) => {
-    const normalizedDaysBack = normalizeDaysBackValue(nextDaysBack, 30);
+    const normalizedDaysBack = normalizeDaysBackValue(nextDaysBack, 0);
     const nextCriteria = {
       ...searchCriteria,
       daysBack: normalizedDaysBack
@@ -1062,7 +1062,7 @@ const SearchPage2 = () => {
     // diverges from the saved search's daysBack. If they already match,
     // the user is still effectively "on" the saved search.
     if (selectedSearch) {
-      const savedDaysBack = normalizeDaysBackValue(selectedSearch?.criteria?.daysBack, 30);
+      const savedDaysBack = normalizeDaysBackValue(selectedSearch?.criteria?.daysBack, 0);
       if (savedDaysBack !== normalizedDaysBack) {
         setSelectedSearch(null);
       }
@@ -1103,7 +1103,7 @@ const SearchPage2 = () => {
         relationshipStatus: '',
         bodyType: '',
         newlyAdded: false,
-        daysBack: 30,
+        daysBack: 0,
         hasPhoto: true
       });
       logger.info('🧹 Admin: Cleared all search filters');
@@ -1134,7 +1134,7 @@ const SearchPage2 = () => {
         relationshipStatus: '',
         bodyType: '',
         newlyAdded: false,
-        daysBack: defaults.daysBack || 30,
+        daysBack: defaults.daysBack ?? 0,
         hasPhoto: true
       });
       logger.info('🔄 Non-admin: Reset to partner criteria defaults:', defaults);
@@ -1187,7 +1187,7 @@ const SearchPage2 = () => {
     // Apply default daysBack if not set in saved search (for backward compatibility)
     const criteriaWithDefaults = {
       ...criteria,
-      daysBack: normalizeDaysBackValue(criteria.daysBack, 30),
+      daysBack: normalizeDaysBackValue(criteria.daysBack, 0),
       hasPhoto: criteria.hasPhoto !== undefined ? criteria.hasPhoto : true
     };
     

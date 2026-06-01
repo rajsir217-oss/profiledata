@@ -96,7 +96,7 @@ const Tooltip = ({
         aria-expanded={isVisible}
         style={{ position: 'relative', zIndex: 1000 }}
       >
-        <span className="tooltip-icon">ℹ️</span>
+        <span className="tooltip-icon" aria-hidden="true">i</span>
         {isVisible && tooltipPosition && (
           <div 
             className={`tooltip-bubble tooltip-${position} tooltip-fixed`}
