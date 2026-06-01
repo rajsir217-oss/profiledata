@@ -4,8 +4,9 @@ Authentication Endpoints - Login, Register, Password Management
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List
 from bson import ObjectId
 from pydantic import BaseModel
 from pymongo import ReturnDocument
@@ -21,9 +22,10 @@ import httpx
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import get_database
-from crypto_utils import get_encryptor
+from crypto_utils import get_encryptor, PIIEncryption
 from .security_models import (
     RegisterRequest, LoginRequest, LoginResponse,
+    PhoneLoginSendCodeRequest, PhoneLoginVerifyCodeRequest,
     PasswordChangeRequest, PasswordResetRequest, PasswordResetConfirm,
     RefreshTokenRequest
 )
@@ -111,6 +113,171 @@ def _decrypt_contact_info(value: str) -> str:
     
     # Not encrypted, return as-is
     return value
+
+
+ALLOWED_LOGIN_STATUSES = {
+    USER_STATUS["ACTIVE"],
+    USER_STATUS["PENDING_VERIFICATION"],
+    "pending_email_verification",
+    "pending_admin_approval",
+    "pending_verification",
+}
+
+
+def _normalize_phone_digits(raw_phone: str) -> str:
+    digits = ''.join(filter(str.isdigit, str(raw_phone or '')))
+    if len(digits) == 11 and digits.startswith('1'):
+        return digits[1:]
+    return digits
+
+
+def _build_phone_hashes(raw_phone: str) -> List[str]:
+    raw = str(raw_phone or '').strip()
+    digits = _normalize_phone_digits(raw)
+    variants = {raw}
+
+    if digits:
+        variants.add(digits)
+        variants.add(f"+{digits}")
+        if len(digits) == 10:
+            variants.add(f"1{digits}")
+            variants.add(f"+1{digits}")
+
+    hashes = []
+    for variant in variants:
+        hashed = PIIEncryption.hash_for_lookup(variant)
+        if hashed:
+            hashes.append(hashed)
+    return list(dict.fromkeys(hashes))
+
+
+def _is_login_status_allowed(user: dict) -> bool:
+    status_info = user.get("status", {})
+    account_status = (user.get("accountStatus") or "").strip().lower()
+    legacy_status = (status_info.get("status") or "").strip().lower()
+    effective_status = account_status or legacy_status
+    return not effective_status or effective_status in ALLOWED_LOGIN_STATUSES
+
+
+def _get_user_phone_numbers(user: dict) -> List[str]:
+    phones: List[str] = []
+
+    primary_phone = user.get("contactNumber")
+    if isinstance(primary_phone, str) and primary_phone.strip():
+        decrypted = _decrypt_contact_info(primary_phone)
+        if isinstance(decrypted, str) and decrypted.strip():
+            phones.append(decrypted.strip())
+
+    contact_numbers = user.get("contactNumbers")
+    if isinstance(contact_numbers, list):
+        for entry in contact_numbers:
+            if not isinstance(entry, dict):
+                continue
+            number = entry.get("number")
+            if not isinstance(number, str) or not number.strip():
+                continue
+            decrypted = _decrypt_contact_info(number)
+            if isinstance(decrypted, str) and decrypted.strip():
+                phones.append(decrypted.strip())
+
+    return list(dict.fromkeys(phones))
+
+
+def _find_matching_phone_for_user(user: dict, input_phone_digits: str) -> Optional[str]:
+    if not input_phone_digits:
+        return None
+
+    for candidate in _get_user_phone_numbers(user):
+        if _normalize_phone_digits(candidate) == input_phone_digits:
+            return candidate
+
+    return None
+
+
+async def _find_phone_login_users(db, raw_phone: str) -> List[dict]:
+    phone_hashes = _build_phone_hashes(raw_phone)
+    input_digits = _normalize_phone_digits(raw_phone)
+
+    raw = str(raw_phone or '').strip()
+    plain_variants = {raw}
+    if input_digits:
+        plain_variants.add(input_digits)
+        plain_variants.add(f"+{input_digits}")
+        if len(input_digits) == 10:
+            plain_variants.add(f"1{input_digits}")
+            plain_variants.add(f"+1{input_digits}")
+
+    or_conditions = []
+    if phone_hashes:
+        or_conditions.extend([
+            {"contactNumberHash": {"$in": phone_hashes}},
+            {"contactNumbersHashes": {"$in": phone_hashes}},
+        ])
+
+    if plain_variants:
+        plain_variants_list = list(plain_variants)
+        or_conditions.extend([
+            {"contactNumber": {"$in": plain_variants_list}},
+            {"contactNumbers.number": {"$in": plain_variants_list}},
+        ])
+
+    users: List[dict] = []
+    if or_conditions:
+        users = await db.users.find({"$or": or_conditions}).to_list(length=200)
+
+    # Fallback scan for legacy records where only encrypted contactNumbers[] values exist
+    # and no contactNumbersHashes field is present.
+    if not users and input_digits:
+        users = await db.users.find(
+            {
+                "$or": [
+                    {"contactNumber": {"$exists": True, "$ne": None, "$ne": ""}},
+                    {"contactNumbers": {"$exists": True, "$ne": None, "$ne": []}},
+                ]
+            }
+        ).to_list(length=2000)
+
+    matching_users: List[dict] = []
+    seen_ids = set()
+
+    for user in users:
+        user_id = str(user.get("_id"))
+        if user_id in seen_ids:
+            continue
+        if not _is_login_status_allowed(user):
+            continue
+        if _find_matching_phone_for_user(user, input_digits):
+            matching_users.append(user)
+            seen_ids.add(user_id)
+
+    return matching_users
+
+
+def _build_phone_login_account_options(matched_users: List[dict]) -> List[dict]:
+    account_options: List[dict] = []
+    seen_usernames = set()
+
+    for user in matched_users:
+        username = (user.get("username") or "").strip()
+        if not username or username in seen_usernames:
+            continue
+
+        first_name = (user.get("firstName") or "").strip()
+        last_name = (user.get("lastName") or "").strip()
+        full_name = f"{first_name} {last_name}".strip()
+        display_name = full_name or username
+
+        account_options.append(
+            {
+                "username": username,
+                "display_name": display_name,
+                "first_name": first_name or None,
+                "last_name": last_name or None,
+            }
+        )
+        seen_usernames.add(username)
+
+    return account_options
 
 
 # ===== REGISTRATION =====
@@ -618,6 +785,271 @@ async def login(
         raise HTTPException(status_code=500, detail=str(e))
 
 # ===== TOKEN REFRESH =====
+
+
+@router.post("/login/phone/send-code")
+@limiter.limit(RATE_LIMITS["auth"])
+async def send_phone_login_code(
+    request: Request,
+    phone_login_request: PhoneLoginSendCodeRequest,
+    db = Depends(get_database)
+):
+    """Send SMS code for phone-based login."""
+    try:
+        if phone_login_request.captchaToken:
+            captcha_ok = await verify_turnstile_token(phone_login_request.captchaToken)
+            if not captcha_ok:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="CAPTCHA verification failed. Please try again."
+                )
+
+        matched_users = await _find_phone_login_users(db, phone_login_request.phone)
+
+        if not matched_users:
+            raise HTTPException(status_code=404, detail="No account found for this phone number")
+
+        account_options = _build_phone_login_account_options(matched_users)
+        selected_username = phone_login_request.selected_username
+
+        if len(matched_users) > 1 and not selected_username:
+            return {
+                "success": False,
+                "requires_account_selection": True,
+                "message": "This phone number is linked to multiple accounts. Please select your username to continue.",
+                "accounts": account_options,
+            }
+
+        user = None
+        if selected_username:
+            user = next(
+                (candidate for candidate in matched_users if (candidate.get("username") or "").strip() == selected_username),
+                None,
+            )
+            if not user:
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "detail": "INVALID_PHONE_ACCOUNT_SELECTION",
+                        "success": False,
+                        "requires_account_selection": len(matched_users) > 1,
+                        "message": "Selected account is not valid for this phone number.",
+                        "accounts": account_options,
+                    }
+                )
+        else:
+            user = matched_users[0]
+
+        username = user.get("username")
+        input_phone_digits = _normalize_phone_digits(phone_login_request.phone)
+        matched_phone = _find_matching_phone_for_user(user, input_phone_digits)
+
+        if not matched_phone:
+            raise HTTPException(status_code=400, detail="Phone number not available for this account")
+
+        if not user.get("smsOptIn", True):
+            raise HTTPException(
+                status_code=400,
+                detail="SMS notifications are disabled for this account. Please use username/password login."
+            )
+
+        from services.sms_service import OTPManager
+        otp_manager = OTPManager(db)
+        send_result = await otp_manager.create_otp_with_channel(
+            identifier=username,
+            channel="sms",
+            phone=matched_phone,
+            username=username,
+            purpose="phone_login",
+            expires_in_minutes=5
+        )
+
+        if not send_result.get("success"):
+            raise HTTPException(
+                status_code=500,
+                detail=send_result.get("error", "Failed to send login code")
+            )
+
+        if send_result.get("channel") != "sms":
+            raise HTTPException(
+                status_code=503,
+                detail="SMS delivery is currently unavailable. Please use username/password login."
+            )
+
+        response_payload = {
+            "success": True,
+            "message": send_result.get("message", "Login code sent via SMS"),
+            "contact_masked": send_result.get("contact_masked"),
+            "expires_at": send_result.get("expires_at"),
+            "selected_username": username,
+        }
+        if send_result.get("mock_code"):
+            response_payload["mock_code"] = send_result.get("mock_code")
+
+        return response_payload
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Phone login send-code error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to send login code")
+
+
+@router.post("/login/phone/verify-code")
+@limiter.limit(RATE_LIMITS["auth"])
+async def verify_phone_login_code(
+    request: Request,
+    phone_verify_request: PhoneLoginVerifyCodeRequest,
+    db = Depends(get_database)
+):
+    """Verify SMS code and complete phone-based login."""
+    try:
+        matched_users = await _find_phone_login_users(db, phone_verify_request.phone)
+
+        if not matched_users:
+            raise HTTPException(status_code=401, detail="Invalid verification request")
+
+        account_options = _build_phone_login_account_options(matched_users)
+        selected_username = phone_verify_request.selected_username
+
+        if len(matched_users) > 1 and not selected_username:
+            return {
+                "success": False,
+                "requires_account_selection": True,
+                "message": "This phone number is linked to multiple accounts. Please select your username to continue.",
+                "accounts": account_options,
+            }
+
+        user = None
+        if selected_username:
+            user = next(
+                (candidate for candidate in matched_users if (candidate.get("username") or "").strip() == selected_username),
+                None,
+            )
+            if not user:
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "detail": "INVALID_PHONE_ACCOUNT_SELECTION",
+                        "success": False,
+                        "requires_account_selection": len(matched_users) > 1,
+                        "message": "Selected account is not valid for this phone number.",
+                        "accounts": account_options,
+                    }
+                )
+        else:
+            user = matched_users[0]
+
+        username = user.get("username")
+        security = user.get("security", {})
+
+        locked_until = security.get("locked_until")
+        if AccountLockoutManager.is_account_locked(locked_until):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Account is locked until {locked_until}. Please try again later."
+            )
+
+        from services.sms_service import OTPManager
+        otp_manager = OTPManager(db)
+        verify_result = await otp_manager.verify_otp(
+            identifier=username,
+            code=phone_verify_request.code,
+            purpose="phone_login",
+            mark_as_used=True
+        )
+
+        if not verify_result.get("success"):
+            raise HTTPException(status_code=401, detail=verify_result.get("error", "Invalid verification code"))
+
+        status_info = user.get("status", {})
+
+        password_expires_at = security.get("password_expires_at")
+        password_expired = PasswordManager.is_password_expired(password_expires_at) if password_expires_at else False
+        days_until_expiry = PasswordManager.get_days_until_expiry(password_expires_at) if password_expires_at else None
+
+        tokens = create_token_pair(user, False)
+
+        session_expires_delta = timedelta(days=7)
+        session_doc = {
+            "user_id": str(user["_id"]),
+            "username": username,
+            "token": tokens["access_token"],
+            "refresh_token": tokens["refresh_token"],
+            "session_type": "web",
+            "ip_address": request.client.host,
+            "user_agent": request.headers.get("user-agent"),
+            "created_at": datetime.utcnow(),
+            "expires_at": datetime.utcnow() + session_expires_delta,
+            "last_activity": datetime.utcnow(),
+            "revoked": False
+        }
+
+        await db.sessions.insert_one(session_doc)
+
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {
+                "$set": {
+                    "security.failed_login_attempts": 0,
+                    "security.last_login_at": datetime.utcnow(),
+                    "security.last_login_ip": request.client.host,
+                    "status.is_online": True,
+                    "status.last_seen": datetime.utcnow()
+                }
+            }
+        )
+
+        await AuditLogger.log_event(
+            db=db,
+            user_id=str(user["_id"]),
+            username=username,
+            action=SECURITY_EVENTS["LOGIN_SUCCESS"],
+            resource="auth",
+            status="success",
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent"),
+            details={"login_method": "phone_sms"}
+        )
+
+        try:
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=username,
+                action_type=ActivityType.USER_LOGIN,
+                ip_address=request.client.host,
+                user_agent=request.headers.get("user-agent"),
+                metadata={"login_method": "phone_sms"}
+            )
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log activity: {log_err}")
+
+        user_data = {
+            "username": user["username"],
+            "email": user.get("email") or user.get("contactEmail"),
+            "firstName": user.get("firstName"),
+            "lastName": user.get("lastName"),
+            "role": user.get("role_name"),
+            "gender": user.get("sex") or user.get("gender"),
+            "email_verified": status_info.get("email_verified")
+        }
+
+        return {
+            "access_token": tokens["access_token"],
+            "refresh_token": tokens["refresh_token"],
+            "token_type": tokens["token_type"],
+            "expires_in": tokens["expires_in"],
+            "user": user_data,
+            "password_expires_in_days": days_until_expiry if not password_expired else 0,
+            "force_password_change": security.get("force_password_change", False) or password_expired,
+            "mfa_warning": None,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Phone login verify-code error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to verify login code")
 
 @router.post("/refresh-token", response_model=dict)
 async def refresh_token(

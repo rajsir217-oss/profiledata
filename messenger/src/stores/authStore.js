@@ -101,6 +101,62 @@ const buildIntroductionCardSnapshot = (profile, token, fallbackUsername) => {
   };
 };
 
+const normalizeErrorText = (value, fallback) => {
+  if (!value) return fallback;
+  if (typeof value === 'string') return value;
+
+  if (Array.isArray(value)) {
+    const messages = value
+      .map((item) => {
+        if (!item) return null;
+        if (typeof item === 'string') return item;
+        if (typeof item?.msg === 'string') {
+          const field = Array.isArray(item?.loc) ? item.loc[item.loc.length - 1] : null;
+          return field ? `${field}: ${item.msg}` : item.msg;
+        }
+        if (typeof item?.message === 'string') return item.message;
+        if (typeof item?.detail === 'string') return item.detail;
+        return null;
+      })
+      .filter(Boolean);
+
+    return messages.length ? messages.join(' ') : fallback;
+  }
+
+  if (typeof value === 'object') {
+    if (typeof value?.msg === 'string') return value.msg;
+    if (typeof value?.message === 'string') return value.message;
+    if (typeof value?.detail === 'string') return value.detail;
+  }
+
+  return fallback;
+};
+
+const resolveApiErrorMessage = (data, fallback) => {
+  const fromDetail = normalizeErrorText(data?.detail, null);
+  if (fromDetail) return fromDetail;
+  const fromMessage = normalizeErrorText(data?.message, null);
+  if (fromMessage) return fromMessage;
+  return fallback;
+};
+
+const normalizePhoneRequest = (phone) => {
+  const raw = (typeof phone === 'string' ? phone : String(phone ?? '')).trim();
+  const digits = raw.replace(/\D/g, '');
+  return { raw, digits };
+};
+
+const normalizeUsernameRequest = (selectedUsername) => {
+  if (typeof selectedUsername !== 'string') return '';
+  return selectedUsername.trim();
+};
+
+const normalizeCodeRequest = (code) => {
+  const raw = (typeof code === 'string' ? code : String(code ?? '')).trim();
+  const digits = raw.replace(/\D/g, '');
+  return { raw, digits };
+};
+
 const useAuthStore = create((set, get) => ({
   token: null,
   refreshToken: null,
@@ -260,8 +316,165 @@ const useAuthStore = create((set, get) => ({
         };
       }
 
-      const msg = data.detail || data.message || `Login failed (${status || 'unknown'}).`;
+      const msg = resolveApiErrorMessage(data, `Login failed (${status || 'unknown'}).`);
       set({ error: msg, isLoading: false });
+      return { ok: false, error: msg };
+    }
+  },
+
+  sendPhoneLoginCode: async (phone, captchaToken = null, selectedUsername = null) => {
+    set({ error: null, isLoading: true });
+    try {
+      const { raw: rawPhone, digits: phoneDigits } = normalizePhoneRequest(phone);
+      if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+        const msg = 'Phone number must be 10-15 digits.';
+        set({ isLoading: false, error: msg });
+        return { ok: false, error: msg };
+      }
+
+      const payload = { phone: rawPhone || phoneDigits };
+      if (captchaToken) {
+        payload.captchaToken = captchaToken;
+      }
+      const selectedUsernameValue = normalizeUsernameRequest(selectedUsername);
+      if (selectedUsernameValue) {
+        payload.selected_username = selectedUsernameValue;
+      }
+
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login/phone/send-code`, payload);
+      const data = res.data || {};
+
+      if (data?.requires_account_selection) {
+        set({ isLoading: false, error: null });
+        return {
+          ok: false,
+          requiresAccountSelection: true,
+          accounts: Array.isArray(data.accounts) ? data.accounts : [],
+          message: data.message || 'Select your account to continue.',
+        };
+      }
+
+      set({ isLoading: false, error: null });
+
+      return {
+        ok: true,
+        message: data?.message,
+        contact_masked: data?.contact_masked || '',
+        expires_at: data?.expires_at || null,
+        mock_code: data?.mock_code || null,
+        selected_username: data?.selected_username || selectedUsernameValue || null,
+      };
+    } catch (e) {
+      const status = e.response?.status;
+      const rawData = e.response?.data;
+      let data = rawData || {};
+      if (typeof rawData === 'string') {
+        try {
+          data = JSON.parse(rawData);
+        } catch (_) {
+          data = { detail: rawData };
+        }
+      }
+
+      if (
+        data?.requires_account_selection ||
+        (status === 409 && data.detail === 'MULTIPLE_ACCOUNTS_FOR_PHONE')
+      ) {
+        set({ isLoading: false, error: null });
+        return {
+          ok: false,
+          requiresAccountSelection: true,
+          accounts: Array.isArray(data.accounts) ? data.accounts : [],
+          message: data.message || 'Select your account to continue.',
+        };
+      }
+
+      const msg = resolveApiErrorMessage(data, `Failed to send login code (${status || 'unknown'}).`);
+      set({ isLoading: false, error: msg });
+      return { ok: false, error: msg };
+    }
+  },
+
+  verifyPhoneLoginCode: async (phone, code, selectedUsername = null) => {
+    set({ error: null, isLoading: true });
+    try {
+      const { raw: rawPhone, digits: phoneDigits } = normalizePhoneRequest(phone);
+      if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+        const msg = 'Phone number must be 10-15 digits.';
+        set({ isLoading: false, error: msg });
+        return { ok: false, error: msg };
+      }
+
+      const { digits: codeDigits } = normalizeCodeRequest(code);
+      if (codeDigits.length !== 6) {
+        const msg = 'Verification code must be 6 digits.';
+        set({ isLoading: false, error: msg });
+        return { ok: false, error: msg };
+      }
+
+      const payload = {
+        phone: rawPhone || phoneDigits,
+        code: codeDigits,
+      };
+      const selectedUsernameValue = normalizeUsernameRequest(selectedUsername);
+      if (selectedUsernameValue) {
+        payload.selected_username = selectedUsernameValue;
+      }
+
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login/phone/verify-code`, payload);
+      const responseData = res.data || {};
+      if (responseData?.requires_account_selection) {
+        set({ isLoading: false, error: null });
+        return {
+          ok: false,
+          requiresAccountSelection: true,
+          accounts: Array.isArray(responseData.accounts) ? responseData.accounts : [],
+          message: responseData.message || 'Select your account to continue.',
+        };
+      }
+
+      const { access_token, refresh_token, user } = responseData;
+      if (!access_token) throw new Error('No token received');
+
+      set({ token: access_token, refreshToken: refresh_token || null, user, isLoading: false, error: null });
+      try {
+        await Promise.all([
+          AsyncStorage.setItem(TOKEN_KEY, access_token),
+          refresh_token ? AsyncStorage.setItem(REFRESH_TOKEN_KEY, refresh_token) : AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
+          AsyncStorage.setItem(USER_KEY, JSON.stringify(user)),
+        ]);
+      } catch (_) {}
+
+      get().startKeepAlive();
+      get().prefetchIntroCard({ force: true });
+      return { ok: true, user };
+    } catch (e) {
+      const status = e.response?.status;
+      const rawData = e.response?.data;
+      let data = rawData || {};
+      if (typeof rawData === 'string') {
+        try {
+          data = JSON.parse(rawData);
+        } catch (_) {
+          data = { detail: rawData };
+        }
+      }
+
+      if (
+        data?.requires_account_selection ||
+        (status === 409 && data.detail === 'MULTIPLE_ACCOUNTS_FOR_PHONE')
+      ) {
+        set({ isLoading: false, error: null });
+        return {
+          ok: false,
+          requiresAccountSelection: true,
+          accounts: Array.isArray(data.accounts) ? data.accounts : [],
+          message: data.message || 'Select your account to continue.',
+        };
+      }
+
+      const msg = resolveApiErrorMessage(data, `Verification failed (${status || 'unknown'}).`);
+      set({ isLoading: false, error: msg });
       return { ok: false, error: msg };
     }
   },
@@ -326,7 +539,7 @@ const useAuthStore = create((set, get) => ({
       const msg =
         status === 401
           ? 'Saved session expired. Please log in with password.'
-          : (data.detail || data.message || e.message || 'Session refresh failed.');
+          : resolveApiErrorMessage(data, e.message || 'Session refresh failed.');
 
       set({ isLoading: false, error: msg });
       return { ok: false, error: msg };
