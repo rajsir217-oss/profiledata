@@ -16,13 +16,66 @@ import {
 } from '../services/biometricAuth';
 import { Browser } from '@capacitor/browser';
 
+const toDisplayErrorText = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+
+  if (Array.isArray(value)) {
+    const messages = value
+      .map((item) => {
+        if (!item) return null;
+        if (typeof item === 'string') return item;
+        if (typeof item?.msg === 'string') {
+          const field = Array.isArray(item?.loc) ? item.loc[item.loc.length - 1] : null;
+          return field ? `${field}: ${item.msg}` : item.msg;
+        }
+        if (typeof item?.message === 'string') return item.message;
+        if (typeof item?.detail === 'string') return item.detail;
+        return null;
+      })
+      .filter(Boolean);
+
+    return messages.join(' ');
+  }
+
+  if (typeof value === 'object') {
+    if (typeof value?.msg === 'string') return value.msg;
+    if (typeof value?.message === 'string') return value.message;
+    if (typeof value?.detail === 'string') return value.detail;
+  }
+
+  return 'Something went wrong. Please try again.';
+};
+
+const getPhoneLoginPayload = (result) => {
+  if (result?.data && typeof result.data === 'object') {
+    return result.data;
+  }
+  if (result && typeof result === 'object') {
+    return result;
+  }
+  return {};
+};
+
+const PHONE_LOGIN_ERROR_FALLBACK_THRESHOLD = 3;
+
 const LoginScreen = () => {
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [form, setForm] = useState({ username: '', password: '', phone: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loginWithRefreshToken, token, refreshToken, user, error: storeError } = useAuthStore();
-  const displayError = error || storeError;
+  const {
+    login,
+    sendPhoneLoginCode,
+    verifyPhoneLoginCode,
+    loginWithRefreshToken,
+    token,
+    refreshToken,
+    user,
+    error: storeError
+  } = useAuthStore();
+  const displayError = toDisplayErrorText(error || storeError);
+  const [loginMethod, setLoginMethod] = useState('phone');
 
   const [biometricSupported, setBiometricSupported] = useState(false);
   const [biometricSaved, setBiometricSaved] = useState(false);
@@ -75,15 +128,99 @@ const LoginScreen = () => {
   const [mfaCode, setMfaCode] = useState('');
   const [mfaChannel, setMfaChannel] = useState('');
   const [contactMasked, setContactMasked] = useState('');
+  const [phoneCodeRequired, setPhoneCodeRequired] = useState(false);
+  const [phoneCode, setPhoneCode] = useState('');
+  const [phoneContactMasked, setPhoneContactMasked] = useState('');
+  const [phoneAccountOptions, setPhoneAccountOptions] = useState([]);
+  const [selectedPhoneUsername, setSelectedPhoneUsername] = useState('');
+  const [phoneAccountSelectionRequired, setPhoneAccountSelectionRequired] = useState(false);
   const [resendingCode, setResendingCode] = useState(false);
+  const [phoneLoginErrorCount, setPhoneLoginErrorCount] = useState(0);
 
   const handleChange = (field, value) => {
     setForm({ ...form, [field]: value });
+    if (field === 'phone') {
+      setPhoneAccountOptions([]);
+      setSelectedPhoneUsername('');
+      setPhoneAccountSelectionRequired(false);
+      setPhoneCodeRequired(false);
+      setPhoneCode('');
+      setPhoneLoginErrorCount(0);
+    }
     setError('');
     // Clear the store-level (session-expired) error once the user starts typing
     if (storeError) {
       useAuthStore.setState({ error: null });
     }
+  };
+
+  const handlePhoneAccountSelectionResponse = (result) => {
+    const payload = getPhoneLoginPayload(result);
+    const requiresAccountSelection = !!(
+      result?.requiresAccountSelection ||
+      payload?.requiresAccountSelection ||
+      payload?.requires_account_selection
+    );
+
+    if (!requiresAccountSelection) {
+      return false;
+    }
+
+    const options = Array.isArray(result?.accounts)
+      ? result.accounts
+      : (Array.isArray(payload?.accounts) ? payload.accounts : []);
+    setPhoneAccountOptions(options);
+    setPhoneAccountSelectionRequired(true);
+    setPhoneCodeRequired(false);
+    setPhoneCode('');
+    setPhoneLoginErrorCount(0);
+
+    setSelectedPhoneUsername((prev) => {
+      if (prev && options.some((item) => item?.username === prev)) {
+        return prev;
+      }
+      return options[0]?.username || '';
+    });
+
+    setError(
+      toDisplayErrorText(
+        result?.message ||
+          payload?.message ||
+          'This phone number is linked to multiple accounts. Please select your username.'
+      )
+    );
+    return true;
+  };
+
+  const switchLoginMethod = (method) => {
+    setLoginMethod(method);
+    setError('');
+    setMfaRequired(false);
+    setMfaCode('');
+    setPhoneCodeRequired(false);
+    setPhoneCode('');
+    setPhoneContactMasked('');
+    setPhoneAccountOptions([]);
+    setSelectedPhoneUsername('');
+    setPhoneAccountSelectionRequired(false);
+    setPhoneLoginErrorCount(0);
+  };
+
+  const handlePhoneLoginFailure = (rawMessage) => {
+    const nextErrorCount = phoneLoginErrorCount + 1;
+
+    if (nextErrorCount >= PHONE_LOGIN_ERROR_FALLBACK_THRESHOLD) {
+      switchLoginMethod('username');
+      setError('Too many failed phone login attempts. Please continue with username and password.');
+      return;
+    }
+
+    setPhoneLoginErrorCount(nextErrorCount);
+    const attemptsLeft = PHONE_LOGIN_ERROR_FALLBACK_THRESHOLD - nextErrorCount;
+    const baseMessage = toDisplayErrorText(rawMessage || 'Phone login failed');
+    setError(
+      `${baseMessage} (${attemptsLeft} ${attemptsLeft === 1 ? 'attempt' : 'attempts'} left before switching to username/password.)`
+    );
   };
 
   const trackLogin = async (username) => {
@@ -130,6 +267,38 @@ const LoginScreen = () => {
     }
   };
 
+  const handlePhoneVerify = async () => {
+    if (!phoneCode.trim()) {
+      setError('Please enter the verification code');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const selectedUsername = selectedPhoneUsername || null;
+      const result = await verifyPhoneLoginCode(form.phone.trim(), phoneCode.trim(), selectedUsername);
+      if (result?.ok) {
+        setPhoneLoginErrorCount(0);
+        if (result?.user?.username) {
+          await trackLogin(result.user.username);
+        }
+        return;
+      }
+
+      if (handlePhoneAccountSelectionResponse(result)) {
+        return;
+      }
+
+      handlePhoneLoginFailure(result?.error || 'Invalid verification code');
+    } catch (e) {
+      handlePhoneLoginFailure(e.message || 'Verification failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleClearBiometric = async () => {
     try {
       await clearCredential();
@@ -158,6 +327,72 @@ const LoginScreen = () => {
   };
 
   const handleSubmit = async () => {
+    if (loginMethod === 'phone') {
+      if (!form.phone.trim()) {
+        setError('Please enter your phone number');
+        return;
+      }
+
+      if (!isDevelopment && !captchaToken && !canBypassCaptcha) {
+        setError('Please complete the security check');
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+
+      try {
+        const captchaTokenForBackend = isDevelopment
+          ? 'XXXX.DUMMY.TOKEN.XXXX'
+          : (captchaToken || null);
+
+        if (phoneAccountSelectionRequired && !selectedPhoneUsername) {
+          setError('Please select your account to continue.');
+          return;
+        }
+
+        const selectedUsername = phoneAccountSelectionRequired ? selectedPhoneUsername : null;
+
+        const result = await sendPhoneLoginCode(form.phone.trim(), captchaTokenForBackend, selectedUsername);
+
+        if (handlePhoneAccountSelectionResponse(result)) {
+          return;
+        }
+
+        const payload = getPhoneLoginPayload(result);
+        const isSendCodeSuccess = !!(result?.ok || payload?.success === true);
+
+        if (isSendCodeSuccess) {
+          setPhoneLoginErrorCount(0);
+          const selectedUsernameFromResponse = result?.selected_username || payload?.selected_username;
+          if (selectedUsernameFromResponse) {
+            setSelectedPhoneUsername(selectedUsernameFromResponse);
+          }
+          setPhoneAccountSelectionRequired(false);
+          setPhoneContactMasked(result?.contact_masked || payload?.contact_masked || '');
+          setPhoneCodeRequired(true);
+          const mockCode = result?.mock_code || payload?.mock_code;
+          if (mockCode) {
+            setError(`DEV MODE: Use code ${mockCode}`);
+          }
+          return;
+        }
+
+        handlePhoneLoginFailure(
+          result?.error ||
+            payload?.detail ||
+            payload?.message ||
+            'Failed to send login code'
+        );
+      } catch (e) {
+        handlePhoneLoginFailure(e.message || 'Failed to send login code');
+      } finally {
+        setLoading(false);
+      }
+
+      return;
+    }
+
     if (!form.username.trim() || !form.password.trim()) {
       setError('Please enter username and password');
       return;
@@ -259,6 +494,51 @@ const LoginScreen = () => {
     }
   };
 
+  const resendPhoneCode = async () => {
+    if (!form.phone.trim()) {
+      setError('Please enter your phone number');
+      setPhoneCodeRequired(false);
+      return;
+    }
+
+    try {
+      setResendingCode(true);
+      const result = await sendPhoneLoginCode(form.phone.trim(), null, selectedPhoneUsername || null);
+
+      if (handlePhoneAccountSelectionResponse(result)) {
+        return;
+      }
+
+      const payload = getPhoneLoginPayload(result);
+      const isSendCodeSuccess = !!(result?.ok || payload?.success === true);
+
+      if (isSendCodeSuccess) {
+        setPhoneLoginErrorCount(0);
+        const selectedUsernameFromResponse = result?.selected_username || payload?.selected_username;
+        if (selectedUsernameFromResponse) {
+          setSelectedPhoneUsername(selectedUsernameFromResponse);
+        }
+        setPhoneContactMasked(result?.contact_masked || payload?.contact_masked || phoneContactMasked || '');
+        const mockCode = result?.mock_code || payload?.mock_code;
+        if (mockCode) {
+          setError(`DEV MODE: Use code ${mockCode}`);
+        }
+        return;
+      }
+
+      handlePhoneLoginFailure(
+        result?.error ||
+          payload?.detail ||
+          payload?.message ||
+          'Failed to resend verification code'
+      );
+    } catch (e) {
+      handlePhoneLoginFailure(e.message || 'Failed to resend verification code');
+    } finally {
+      setResendingCode(false);
+    }
+  };
+
   const handleMfaVerify = async () => {
     if (!mfaCode.trim()) {
       setError('Please enter the verification code');
@@ -299,12 +579,18 @@ const LoginScreen = () => {
             <Text style={styles.brandIcon}>🦋</Text>
             <Text style={styles.brandText}>L3V3L</Text>
           </View>
-          <Text style={styles.title}>{mfaRequired ? 'Verification Required' : 'Welcome Back!'}</Text>
+          <Text style={styles.title}>{(mfaRequired || phoneCodeRequired) ? 'Verification Required' : 'Welcome Back!'}</Text>
           <Text style={styles.subtitle}>
-            {mfaRequired ? `Enter the code sent to your ${mfaChannel || 'email'}` : 'Sign in to continue'}
+            {mfaRequired
+              ? `Enter the code sent to your ${mfaChannel || 'email'}`
+              : phoneCodeRequired
+                ? 'Enter the code sent to your phone'
+                : loginMethod === 'phone'
+                  ? 'Sign in with phone and SMS code'
+                  : 'Sign in to continue'}
           </Text>
 
-          {!mfaRequired ? (
+          {!(mfaRequired || phoneCodeRequired) ? (
             <>
             {biometricSupported && biometricSaved && (
               <TouchableOpacity
@@ -327,45 +613,126 @@ const LoginScreen = () => {
               </TouchableOpacity>
             )}
 
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Username"
-                value={form.username}
-                onChangeText={(value) => handleChange('username', value)}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholderTextColor="#999"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                value={form.password}
-                onChangeText={(value) => handleChange('password', value)}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholderTextColor="#999"
-              />
+            <View style={styles.loginMethodRow}>
               <TouchableOpacity
-                style={styles.passwordToggle}
-                onPress={() => setShowPassword(!showPassword)}
+                style={[
+                  styles.loginMethodTab,
+                  loginMethod === 'username' ? styles.loginMethodTabActive : null
+                ]}
+                onPress={() => switchLoginMethod('username')}
+                disabled={loading}
               >
-                <Text style={styles.passwordToggleText}>
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                <Text
+                  style={[
+                    styles.loginMethodTabText,
+                    loginMethod === 'username' ? styles.loginMethodTabTextActive : null
+                  ]}
+                >
+                  Username + Password
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.loginMethodTab,
+                  loginMethod === 'phone' ? styles.loginMethodTabActive : null
+                ]}
+                onPress={() => switchLoginMethod('phone')}
+                disabled={loading}
+              >
+                <Text
+                  style={[
+                    styles.loginMethodTabText,
+                    loginMethod === 'phone' ? styles.loginMethodTabTextActive : null
+                  ]}
+                >
+                  Phone + SMS Code
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={styles.forgotRow}
-              onPress={() => openMainApp('/forgot-password')}
-            >
-              <Text style={styles.forgotText}>Forgot Password?</Text>
-            </TouchableOpacity>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder={loginMethod === 'phone' ? 'Phone Number' : 'Username'}
+                value={loginMethod === 'phone' ? form.phone : form.username}
+                onChangeText={(value) => handleChange(loginMethod === 'phone' ? 'phone' : 'username', value)}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType={loginMethod === 'phone' ? 'phone-pad' : 'default'}
+                placeholderTextColor="#999"
+              />
+            </View>
+
+            {loginMethod === 'username' && (
+              <>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    value={form.password}
+                    onChangeText={(value) => handleChange('password', value)}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholderTextColor="#999"
+                  />
+                  <TouchableOpacity
+                    style={styles.passwordToggle}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Text style={styles.passwordToggleText}>
+                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.forgotRow}
+                  onPress={() => openMainApp('/forgot-password')}
+                >
+                  <Text style={styles.forgotText}>Forgot Password?</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {loginMethod === 'phone' && (
+              <>
+                <Text style={styles.phoneHint}>
+                  We will text a one-time code to this number.
+                </Text>
+
+                {phoneAccountSelectionRequired && (
+                  <View style={styles.accountSelectionCard}>
+                    <Text style={styles.accountSelectionTitle}>Select your account</Text>
+                    <Text style={styles.accountSelectionSubtitle}>This phone number is linked to multiple usernames.</Text>
+
+                    <View style={styles.accountOptionsList}>
+                      {phoneAccountOptions.map((item) => {
+                        const username = item?.username || '';
+                        const displayName = item?.display_name || username;
+                        const isSelected = selectedPhoneUsername === username;
+
+                        return (
+                          <TouchableOpacity
+                            key={username}
+                            style={[styles.accountOptionButton, isSelected ? styles.accountOptionButtonActive : null]}
+                            onPress={() => {
+                              setSelectedPhoneUsername(username);
+                              setError('');
+                            }}
+                          >
+                            <Text style={[styles.accountOptionText, isSelected ? styles.accountOptionTextActive : null]}>
+                              {displayName}
+                            </Text>
+                            <Text style={styles.accountOptionSubtext}>@{username}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
 
             <View style={styles.captchaContainer}>
               {isDevelopment ? null : ((captchaError || !turnstileSiteKey) ? (
@@ -398,7 +765,15 @@ const LoginScreen = () => {
               onPress={handleSubmit}
               disabled={loading || (!isDevelopment && !captchaToken && !canBypassCaptcha)}
             >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign In</Text>}
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {loginMethod === 'phone'
+                    ? (phoneAccountSelectionRequired ? 'Send Code to Selected Account' : 'Send Code')
+                    : 'Sign In'}
+                </Text>
+              )}
             </TouchableOpacity>
 
             {biometricSupported && biometricSaved && (
@@ -415,16 +790,19 @@ const LoginScreen = () => {
           <>
             <View style={styles.mfaInfo}>
               <Text style={styles.mfaInfoText}>
-                🔒 Code sent to: <Text style={styles.mfaInfoTextBold}>{contactMasked}</Text>
+                🔒 Code sent to: <Text style={styles.mfaInfoTextBold}>{mfaRequired ? contactMasked : phoneContactMasked || 'your phone'}</Text>
               </Text>
+              {!mfaRequired && !!selectedPhoneUsername && (
+                <Text style={styles.mfaInfoSubtext}>Account: @{selectedPhoneUsername}</Text>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
                 placeholder="Enter verification code"
-                value={mfaCode}
-                onChangeText={setMfaCode}
+                value={mfaRequired ? mfaCode : phoneCode}
+                onChangeText={mfaRequired ? setMfaCode : setPhoneCode}
                 keyboardType="number-pad"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -434,17 +812,32 @@ const LoginScreen = () => {
 
             {displayError && <Text style={styles.error}>{displayError}</Text>}
 
-            <TouchableOpacity style={styles.button} onPress={handleMfaVerify} disabled={loading}>
+            <TouchableOpacity style={styles.button} onPress={mfaRequired ? handleMfaVerify : handlePhoneVerify} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Verify</Text>}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.resendButton} onPress={sendMfaCode} disabled={resendingCode}>
+            <TouchableOpacity
+              style={styles.resendButton}
+              onPress={mfaRequired ? sendMfaCode : resendPhoneCode}
+              disabled={resendingCode}
+            >
               <Text style={styles.resendButtonText}>
                 {resendingCode ? 'Sending...' : 'Resend Code'}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.backButton} onPress={() => setMfaRequired(false)}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => {
+                if (mfaRequired) {
+                  setMfaRequired(false);
+                  setMfaCode('');
+                  return;
+                }
+                setPhoneCodeRequired(false);
+                setPhoneCode('');
+              }}
+            >
               <Text style={styles.backButtonText}>← Back to Login</Text>
             </TouchableOpacity>
           </>
@@ -504,6 +897,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 18,
   },
+  loginMethodRow: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  loginMethodTab: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+  },
+  loginMethodTabActive: {
+    borderColor: '#16213e',
+    backgroundColor: '#e8eefb',
+  },
+  loginMethodTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4b5563',
+    textAlign: 'center',
+  },
+  loginMethodTabTextActive: {
+    color: '#16213e',
+  },
   inputContainer: { width: '100%', marginBottom: 14, position: 'relative' },
   input: {
     width: '100%',
@@ -525,6 +947,60 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4f46e5',
     fontWeight: '600',
+  },
+  phoneHint: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  accountSelectionCard: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: '#f9fafb',
+  },
+  accountSelectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  accountSelectionSubtitle: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 10,
+  },
+  accountOptionsList: {
+    gap: 8,
+  },
+  accountOptionButton: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    backgroundColor: '#ffffff',
+  },
+  accountOptionButtonActive: {
+    borderColor: '#16213e',
+    backgroundColor: '#e8eefb',
+  },
+  accountOptionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  accountOptionTextActive: {
+    color: '#16213e',
+  },
+  accountOptionSubtext: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
   },
   captchaContainer: {
     width: '100%',
@@ -616,6 +1092,7 @@ const styles = StyleSheet.create({
   },
   mfaInfoText: { fontSize: 14, color: '#111827', textAlign: 'center' },
   mfaInfoTextBold: { fontWeight: '800' },
+  mfaInfoSubtext: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 6 },
   resendButton: { paddingVertical: 10, alignItems: 'center' },
   resendButtonText: { color: '#4f46e5', fontSize: 14, fontWeight: '700' },
   backButton: { paddingVertical: 10, alignItems: 'center' },

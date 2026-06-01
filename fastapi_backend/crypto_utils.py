@@ -202,10 +202,19 @@ class PIIEncryption:
         # Encrypt contactNumbers array (each entry's number field)
         if 'contactNumbers' in encrypted_data and encrypted_data['contactNumbers']:
             try:
+                contact_number_hashes = []
                 if isinstance(encrypted_data['contactNumbers'], list):
                     for entry in encrypted_data['contactNumbers']:
                         if isinstance(entry, dict) and entry.get('number'):
+                            try:
+                                number_hash = self.hash_for_lookup(entry.get('number'))
+                                if number_hash:
+                                    contact_number_hashes.append(number_hash)
+                            except Exception as hash_err:
+                                logger.error(f"❌ Failed to create hash for contactNumbers entry: {hash_err}")
                             entry['number'] = self.encrypt(entry['number'])
+                    if contact_number_hashes:
+                        encrypted_data['contactNumbersHashes'] = list(dict.fromkeys(contact_number_hashes))
                     logger.debug(f"🔒 Encrypted contactNumbers array ({len(encrypted_data['contactNumbers'])} entries)")
             except Exception as e:
                 logger.error(f"❌ Failed to encrypt contactNumbers: {e}")

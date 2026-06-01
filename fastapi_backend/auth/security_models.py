@@ -199,6 +199,58 @@ class LoginRequest(BaseModel):
     mfa_code: Optional[str] = None
     captchaToken: Optional[str] = None
 
+
+class PhoneLoginSendCodeRequest(BaseModel):
+    """Phone-login code send request"""
+    phone: str = Field(..., min_length=7, max_length=25)
+    captchaToken: Optional[str] = None
+    selected_username: Optional[str] = None
+
+    @validator('phone')
+    def validate_phone(cls, v):
+        digits = ''.join(filter(str.isdigit, v or ''))
+        if len(digits) < 10 or len(digits) > 15:
+            raise ValueError('Phone number must be 10-15 digits')
+        return (v or '').strip()
+
+    @validator('selected_username')
+    def validate_selected_username(cls, v):
+        if v is None:
+            return v
+        value = (v or '').strip()
+        if not value:
+            return None
+        return value
+
+
+class PhoneLoginVerifyCodeRequest(BaseModel):
+    """Phone-login code verify request"""
+    phone: str = Field(..., min_length=7, max_length=25)
+    code: str = Field(..., min_length=6, max_length=6)
+    selected_username: Optional[str] = None
+
+    @validator('phone')
+    def validate_phone(cls, v):
+        digits = ''.join(filter(str.isdigit, v or ''))
+        if len(digits) < 10 or len(digits) > 15:
+            raise ValueError('Phone number must be 10-15 digits')
+        return (v or '').strip()
+
+    @validator('code')
+    def validate_code(cls, v):
+        if not (v or '').isdigit():
+            raise ValueError('Code must contain only digits')
+        return v
+
+    @validator('selected_username')
+    def validate_selected_username(cls, v):
+        if v is None:
+            return v
+        value = (v or '').strip()
+        if not value:
+            return None
+        return value
+
 class LoginResponse(BaseModel):
     """User login response"""
     access_token: str
