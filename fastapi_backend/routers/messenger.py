@@ -1338,15 +1338,98 @@ async def send_message(
                     "createdAt": now,
                     "updatedAt": now,
                 }
-                await db.notification_queue.insert_one(queue_doc)
-                logger.info(f"📧 Email queued in notification_queue for {email} (token: {reply_token}, invitation={include_invitation})")
+                queue_insert_result = await db.notification_queue.insert_one(queue_doc)
+                queue_notification_id = str(queue_insert_result.inserted_id)
+                logger.info(
+                    f"📧 Email queued in notification_queue for {email} "
+                    f"(queueId={queue_notification_id}, token: {reply_token}, invitation={include_invitation})"
+                )
 
-                # Optimistically mark the invitation as SENT so the
-                # InvitationManager UI in the main app doesn't show a
-                # forever-"pending" row. The email_notifier job will flip it to
-                # FAILED later if delivery actually fails (it has invitationId
-                # in templateData above).
-                if invitation_id_for_log:
+                # Best-effort immediate send for messenger public-recipient email.
+                # If this immediate path fails, we keep retry behavior via
+                # notification_queue (mark_as_sent with success=False schedules backoff).
+                immediate_email_sent = False
+                notification_service = None
+                try:
+                    from services.email_sender import send_email, send_invitation_email
+                    from services.notification_service import NotificationService
+                    from models.notification_models import NotificationChannel
+
+                    notification_service = NotificationService(db)
+
+                    sent_via_invitation_workflow = False
+                    if (
+                        include_invitation
+                        and register_url
+                        and "/register2?invitation=" in register_url
+                    ):
+                        await send_invitation_email(
+                            to_email=email,
+                            to_name=display_name or email,
+                            invitation_link=register_url,
+                            custom_message=(body.content or "").strip() or None,
+                        )
+                        sent_via_invitation_workflow = True
+                        logger.info(f"✅ Immediate invite email sent via invitation workflow to {email}")
+
+                    if not sent_via_invitation_workflow:
+                        template = await db.notification_templates.find_one({
+                            "trigger": trigger_label,
+                            "$or": [
+                                {"channel": "email", "enabled": True},
+                                {"channel": "email", "active": True},
+                                {"channels.email.enabled": True, "isActive": True},
+                                {"channels.email.enabled": True},
+                            ],
+                        })
+
+                        template_data = queue_doc.get("templateData") or {}
+                        if template:
+                            if "channels" in template and isinstance(template.get("channels", {}).get("email"), dict):
+                                email_config = template["channels"]["email"]
+                                subject_template = email_config.get("subject", "")
+                                body_template = email_config.get("htmlBody", email_config.get("body", ""))
+                            else:
+                                subject_template = template.get("subject", "")
+                                body_template = template.get("body", template.get("bodyTemplate", ""))
+
+                            subject = notification_service.render_template(subject_template, template_data)
+                            rendered_email_body = notification_service.render_template(body_template, template_data)
+                            await send_email(email, subject, rendered_email_body)
+                        else:
+                            raise Exception(
+                                f"No enabled email template found for trigger '{trigger_label}'"
+                            )
+
+                    await notification_service.mark_as_sent(
+                        queue_notification_id,
+                        NotificationChannel.EMAIL,
+                        success=True,
+                    )
+                    immediate_email_sent = True
+                    logger.info(f"✅ Immediate messenger invite email sent to {email}")
+                except Exception as immediate_send_err:
+                    logger.warning(
+                        f"⚠️ Immediate messenger invite email send failed for {email}; "
+                        f"will retry via queue: {immediate_send_err}"
+                    )
+                    try:
+                        if notification_service is None:
+                            from services.notification_service import NotificationService
+                            notification_service = NotificationService(db)
+                        from models.notification_models import NotificationChannel
+                        await notification_service.mark_as_sent(
+                            queue_notification_id,
+                            NotificationChannel.EMAIL,
+                            success=False,
+                            error=str(immediate_send_err),
+                        )
+                    except Exception as queue_status_err:
+                        logger.warning(
+                            f"⚠️ Failed to update queued notification status {queue_notification_id}: {queue_status_err}"
+                        )
+
+                if invitation_id_for_log and immediate_email_sent:
                     try:
                         from services.invitation_service import InvitationService
                         from models.invitation_models import InvitationChannel, InvitationStatus
