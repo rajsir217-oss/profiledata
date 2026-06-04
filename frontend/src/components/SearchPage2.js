@@ -186,6 +186,14 @@ const SearchPage2 = () => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [editingScheduleFor, setEditingScheduleFor] = useState(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [isNearMeLoading, setIsNearMeLoading] = useState(false);
+  const [nearMeStatus, setNearMeStatus] = useState({
+    visible: false,
+    type: 'info',
+    title: '',
+    message: ''
+  });
+  const nearMeStatusTimerRef = useRef(null);
   
   // Modal state
   const [showMessageModal, setShowMessageModal] = useState(false);
@@ -1285,13 +1293,104 @@ const SearchPage2 = () => {
       if (!response.ok) return '';
       const data = await response.json();
       const address = data?.address || {};
-      return address.city || address.town || address.village || address.municipality || '';
+      return (
+        address.city ||
+        address.town ||
+        address.village ||
+        address.municipality ||
+        address.state ||
+        ''
+      );
     } catch (err) {
       logger.warn('Reverse geocode failed for New Me:', err);
       return '';
     } finally {
       clearTimeout(timeoutId);
     }
+  }, []);
+
+  const sampleCitiesWithinRadius = useCallback(async (lat, lon, radiusMiles = 100) => {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const toDeg = (rad) => (rad * 180) / Math.PI;
+    const earthRadiusMiles = 3958.8;
+
+    const destinationPoint = (startLat, startLon, distanceMiles, bearingDeg) => {
+      const brng = toRad(bearingDeg);
+      const dByR = distanceMiles / earthRadiusMiles;
+      const lat1 = toRad(startLat);
+      const lon1 = toRad(startLon);
+
+      const lat2 = Math.asin(
+        Math.sin(lat1) * Math.cos(dByR) +
+        Math.cos(lat1) * Math.sin(dByR) * Math.cos(brng)
+      );
+      const lon2 = lon1 + Math.atan2(
+        Math.sin(brng) * Math.sin(dByR) * Math.cos(lat1),
+        Math.cos(dByR) - Math.sin(lat1) * Math.sin(lat2)
+      );
+
+      return { lat: toDeg(lat2), lon: toDeg(lon2) };
+    };
+
+    const bearings = [0, 45, 90, 135, 180, 225, 270, 315];
+    const ringDistances = [radiusMiles * 0.5, radiusMiles];
+    const points = [];
+    ringDistances.forEach((distance) => {
+      bearings.forEach((bearing) => {
+        points.push(destinationPoint(lat, lon, distance, bearing));
+      });
+    });
+
+    const citySet = new Map();
+    for (const point of points) {
+      const sampledCity = await reverseGeocodeCity(point.lat, point.lon);
+      const normalized = String(sampledCity || '').trim();
+      if (!normalized) continue;
+      const key = normalized.toLowerCase();
+      if (!citySet.has(key)) {
+        citySet.set(key, normalized);
+      }
+    }
+
+    return Array.from(citySet.values());
+  }, [reverseGeocodeCity]);
+
+  const showNearMeStatus = useCallback((nextStatus, autoHideMs = 0) => {
+    if (nearMeStatusTimerRef.current) {
+      clearTimeout(nearMeStatusTimerRef.current);
+      nearMeStatusTimerRef.current = null;
+    }
+
+    setNearMeStatus({
+      visible: true,
+      type: nextStatus?.type || 'info',
+      title: nextStatus?.title || 'Near Me',
+      message: nextStatus?.message || ''
+    });
+
+    if (autoHideMs > 0) {
+      nearMeStatusTimerRef.current = setTimeout(() => {
+        setNearMeStatus((prev) => ({ ...prev, visible: false }));
+        nearMeStatusTimerRef.current = null;
+      }, autoHideMs);
+    }
+  }, []);
+
+  const dismissNearMeStatus = useCallback(() => {
+    if (nearMeStatusTimerRef.current) {
+      clearTimeout(nearMeStatusTimerRef.current);
+      nearMeStatusTimerRef.current = null;
+    }
+    setNearMeStatus((prev) => ({ ...prev, visible: false }));
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (nearMeStatusTimerRef.current) {
+        clearTimeout(nearMeStatusTimerRef.current);
+        nearMeStatusTimerRef.current = null;
+      }
+    };
   }, []);
 
   const fetchNearbyCitiesWithinRadius = useCallback(async (lat, lon, radiusMiles = 30) => {
@@ -1306,43 +1405,88 @@ const SearchPage2 = () => {
       out tags center;
     `;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-    try {
-      const response = await fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-        },
-        body: `data=${encodeURIComponent(overpassQuery)}`
-      });
+    const overpassEndpoints = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://lz4.overpass-api.de/api/interpreter'
+    ];
 
-      if (!response.ok) return [];
+    for (const endpoint of overpassEndpoints) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 9000);
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+          },
+          body: `data=${encodeURIComponent(overpassQuery)}`
+        });
 
-      const data = await response.json();
-      const unique = new Map();
-      (data?.elements || []).forEach((el) => {
-        const name = (el?.tags?.name || '').trim();
-        if (!name) return;
-        const key = name.toLowerCase();
-        if (!unique.has(key)) unique.set(key, name);
-      });
+        if (!response.ok) {
+          logger.warn(`Near Me: Overpass endpoint failed (${response.status})`, { endpoint });
+          continue;
+        }
 
-      return Array.from(unique.values()).slice(0, 20);
-    } catch (err) {
-      logger.warn('Failed to fetch nearby cities for Near Me radius:', err);
-      return [];
-    } finally {
-      clearTimeout(timeoutId);
+        const data = await response.json();
+        const unique = new Map();
+        (data?.elements || []).forEach((el) => {
+          const name = (el?.tags?.name || '').trim();
+          if (!name) return;
+          const key = name.toLowerCase();
+          if (!unique.has(key)) unique.set(key, name);
+        });
+
+        const cities = Array.from(unique.values()).slice(0, 20);
+        logger.info(`Near Me: Overpass endpoint succeeded with ${cities.length} nearby cities`, { endpoint });
+        return {
+          cities,
+          allEndpointsFailed: false
+        };
+      } catch (err) {
+        logger.warn('Near Me: Overpass endpoint error', { endpoint, err });
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }
+
+    logger.warn('Near Me: all Overpass endpoints failed; using fallback sampling only');
+    return {
+      cities: [],
+      allEndpointsFailed: true
+    };
   }, []);
 
-  const handleNewMeSearch = useCallback(async () => {
+  const handleNewMeSearch = useCallback(async (radiusMiles = 100) => {
+    if (isNearMeLoading) {
+      toastService.info('Near Me search is already in progress...');
+      showNearMeStatus({
+        type: 'info',
+        title: 'Near Me in progress',
+        message: 'Already finding profiles near your current location.'
+      });
+      return;
+    }
+
+    setIsNearMeLoading(true);
+    toastService.info(`📍 Finding matches near you (${radiusMiles} miles)...`);
+    showNearMeStatus({
+      type: 'info',
+      title: 'Finding matches near you',
+      message: `Working on your ${radiusMiles}-mile Near Me search...`
+    });
+
     if (!navigator.geolocation) {
       toastService.info('Location is unavailable on this browser. Running your default search instead.');
+      showNearMeStatus({
+        type: 'warning',
+        title: 'Location unavailable',
+        message: 'Running your default saved/partner search instead.'
+      }, 6000);
       await executeDefaultSavedOrPartnerSearch();
+      setIsNearMeLoading(false);
       return;
     }
 
@@ -1361,12 +1505,46 @@ const SearchPage2 = () => {
 
       if (!city) {
         toastService.info('Could not determine city from your location. Running your default search instead.');
+        showNearMeStatus({
+          type: 'warning',
+          title: 'Could not resolve your city',
+          message: 'Running your default saved/partner search instead.'
+        }, 6500);
         await executeDefaultSavedOrPartnerSearch();
         return;
       }
 
       const defaults = getDefaultSearchCriteria();
-      const nearbyCities = await fetchNearbyCitiesWithinRadius(latitude, longitude, 100);
+      const nearbyCityResult = await fetchNearbyCitiesWithinRadius(latitude, longitude, radiusMiles);
+      let nearbyCities = nearbyCityResult.cities;
+      logger.info(`📍 Near Me: fetched ${nearbyCities.length} nearby cities from primary source within ${radiusMiles} miles`, {
+        baseCity: city,
+        nearbyCities
+      });
+
+      if (nearbyCityResult.allEndpointsFailed) {
+        showNearMeStatus({
+          type: 'warning',
+          title: 'Primary map service is slow',
+          message: 'Continuing with fallback city sampling so search can proceed.'
+        }, 7000);
+      }
+
+      if (nearbyCities.length <= 1) {
+        const sampledCities = await sampleCitiesWithinRadius(latitude, longitude, radiusMiles);
+        const merged = new Map();
+        [...nearbyCities, ...sampledCities].forEach((candidate) => {
+          const normalized = String(candidate || '').trim();
+          if (!normalized) return;
+          const key = normalized.toLowerCase();
+          if (!merged.has(key)) merged.set(key, normalized);
+        });
+        nearbyCities = Array.from(merged.values());
+        logger.info(`📍 Near Me: sampled fallback found ${sampledCities.length} cities (merged total ${nearbyCities.length})`, {
+          sampledCities,
+          mergedCities: nearbyCities
+        });
+      }
 
       const normalizedOptionLookup = new Map(
         (locationOptions || []).map((opt) => [String(opt).trim().toLowerCase(), opt])
@@ -1387,16 +1565,35 @@ const SearchPage2 = () => {
       const criteriaWithCity = buildPartnerCriteriaPayload(defaults, city);
       criteriaWithCity.locations = locationsWithinRadius.length > 0 ? locationsWithinRadius : [city];
 
+      if (locationsWithinRadius.length === 0) {
+        logger.info('📍 Near Me: no nearby cities resolved; using base city fallback only', { baseCity: city });
+      }
+      logger.info(`📍 Near Me: applying ${criteriaWithCity.locations.length} location(s) to search`, {
+        locations: criteriaWithCity.locations
+      });
+
       setSearchCriteria(criteriaWithCity);
       setMinMatchScore(0);
       setSelectedSearch(null);
       handleSearchHook(1, 0, criteriaWithCity);
-      toastService.success(`📍 Near Me is using ${city} + 100 mile radius`);
+      toastService.success(`📍 Near Me is using ${city} + ${radiusMiles} mile radius`);
+      showNearMeStatus({
+        type: 'success',
+        title: 'Near Me search started',
+        message: `${criteriaWithCity.locations.length} location(s) applied around ${city}.`
+      }, 7000);
     } catch (err) {
       logger.info('New Me location permission denied/unavailable, executing fallback search', err);
+      showNearMeStatus({
+        type: 'warning',
+        title: 'Near Me fallback applied',
+        message: 'Location was denied/unavailable. Running your default saved/partner search.'
+      }, 7000);
       await executeDefaultSavedOrPartnerSearch();
+    } finally {
+      setIsNearMeLoading(false);
     }
-  }, [buildPartnerCriteriaPayload, executeDefaultSavedOrPartnerSearch, fetchNearbyCitiesWithinRadius, getDefaultSearchCriteria, handleSearchHook, locationOptions, reverseGeocodeCity]);
+  }, [buildPartnerCriteriaPayload, executeDefaultSavedOrPartnerSearch, fetchNearbyCitiesWithinRadius, getDefaultSearchCriteria, handleSearchHook, isNearMeLoading, locationOptions, sampleCitiesWithinRadius, showNearMeStatus]);
 
   // Keep ref pointing at the latest handleLoadSavedSearch each render.
   handleLoadSavedSearchRef.current = handleLoadSavedSearch;
@@ -1416,8 +1613,9 @@ const SearchPage2 = () => {
 
   // Listen for TopBar Near Me trigger while already on /search.
   useEffect(() => {
-    const handler = () => {
-      handleNewMeSearch();
+    const handler = (event) => {
+      const requestedRadius = Number(event?.detail?.radiusMiles) || 100;
+      handleNewMeSearch(requestedRadius);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     window.addEventListener('runNewMeSearchFromTopbar', handler);
@@ -1446,7 +1644,7 @@ const SearchPage2 = () => {
       openFiltersPanel();
       requestAnimationFrame(() => setInlineTabsDefaultTab(null));
     } else if (pendingSearchAction.type === 'newMeSearch') {
-      handleNewMeSearch();
+      handleNewMeSearch(Number(pendingSearchAction.radiusMiles) || 100);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (pendingSearchAction.type === 'loadSavedSearch' && pendingSearchAction.savedSearch) {
       handleLoadSavedSearch(pendingSearchAction.savedSearch);
@@ -1741,6 +1939,26 @@ const SearchPage2 = () => {
         </div>
       )}
 
+      {nearMeStatus.visible && (
+        <div className={`near-me-status-popup near-me-status-${nearMeStatus.type}`} role="status" aria-live="polite">
+          <span className="near-me-status-icon" aria-hidden="true">
+            {isNearMeLoading ? '⏳' : nearMeStatus.type === 'success' ? '✅' : nearMeStatus.type === 'warning' ? '⚠️' : 'ℹ️'}
+          </span>
+          <div className="near-me-status-content">
+            <div className="near-me-status-title">{nearMeStatus.title}</div>
+            {nearMeStatus.message ? <div className="near-me-status-message">{nearMeStatus.message}</div> : null}
+          </div>
+          <button
+            type="button"
+            className="near-me-status-close"
+            onClick={dismissNearMeStatus}
+            aria-label="Close Near Me status"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Active Criteria Summary Bar - Header at top */}
       <div
         className={`active-criteria-bar ${isFiltersPanelExpanded ? 'is-expanded' : ''}`}
@@ -1790,6 +2008,7 @@ const SearchPage2 = () => {
                           setShowAdvancedFilters={setShowAdvancedFilters}
                           onSearch={() => handleSearchHook(1)}
                           onNewMe={handleNewMeSearch}
+                          isNearMeLoading={isNearMeLoading}
                           onClear={handleClearFilters}
                           onSave={() => setShowSaveModal(true)}
                           systemConfig={systemConfig}

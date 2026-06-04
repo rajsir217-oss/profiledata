@@ -54,7 +54,8 @@ const SearchFilters = ({
   hideActionButtons = false,
   searchButtonText = 'Search',
   saveButtonText = 'Save',
-  isAdmin = false
+  isAdmin = false,
+  isNearMeLoading = false
 }) => {
   // Validation error state
   const [validationError, setValidationError] = useState('');
@@ -449,9 +450,10 @@ const SearchFilters = ({
                 className="btn btn-secondary"
                 title="Use your current city and run search"
                 aria-label="Near Me"
+                disabled={isNearMeLoading}
               >
-                <span className="btn-icon" aria-hidden="true">📍</span>
-                <span className="btn-label">Near Me</span>
+                <span className="btn-icon" aria-hidden="true">{isNearMeLoading ? '⏳' : '📍'}</span>
+                <span className="btn-label">{isNearMeLoading ? 'Finding...' : 'Near Me'}</span>
               </button>
             )}
             {onClear && (
@@ -767,9 +769,10 @@ const SearchFilters = ({
                       className="btn btn-secondary"
                       title="Use your current city and run search"
                       aria-label="Near Me"
+                      disabled={isNearMeLoading}
                     >
-                      <span className="btn-icon" aria-hidden="true">📍</span>
-                      <span className="btn-label">Near Me</span>
+                      <span className="btn-icon" aria-hidden="true">{isNearMeLoading ? '⏳' : '📍'}</span>
+                      <span className="btn-label">{isNearMeLoading ? 'Finding...' : 'Near Me'}</span>
                     </button>
                   )}
                   {onClear && (
