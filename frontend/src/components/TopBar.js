@@ -17,6 +17,8 @@ import { loadWhitelabelConfig } from '../utils/whitelabelConfig';
 import useActivityLogger from '../hooks/useActivityLogger';
 import './TopBar.css';
 
+const NEAR_ME_NEW_BADGE_EXPIRES_AT = '2026-08-31T23:59:59Z';
+
 const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -46,6 +48,14 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const [savedSearchesForMenu, setSavedSearchesForMenu] = useState([]);
   const [savedSearchesForMenuLoading, setSavedSearchesForMenuLoading] = useState(false);
   const [savedSearchesForMenuLoadedAt, setSavedSearchesForMenuLoadedAt] = useState(null);
+  const [nearMeRadiusMiles, setNearMeRadiusMiles] = useState(50);
+  const showNearMeNewBadge = Date.now() < new Date(NEAR_ME_NEW_BADGE_EXPIRES_AT).getTime();
+
+  const clampNearMeRadius = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return 50;
+    return Math.max(10, Math.min(500, Math.round(parsed)));
+  };
 
   // Compute highest urgency level for icon color
   const urgencyLevel = urgencyCounts.critical > 0 ? 'critical'
@@ -459,15 +469,25 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     navigate('/search');
   };
 
-  const handleNearMeClick = () => {
+  const handleNearMeClick = (radiusMiles = 100) => {
     setShowSearchMenu(false);
     if (location.pathname === '/search') {
-      window.dispatchEvent(new Event('runNewMeSearchFromTopbar'));
+      window.dispatchEvent(new CustomEvent('runNewMeSearchFromTopbar', {
+        detail: { radiusMiles }
+      }));
       return;
     }
 
-    sessionStorage.setItem('pendingSearchAction', JSON.stringify({ type: 'newMeSearch' }));
+    sessionStorage.setItem('pendingSearchAction', JSON.stringify({ type: 'newMeSearch', radiusMiles }));
     navigate('/search');
+  };
+
+  const handleNearMeRadiusChange = (event) => {
+    setNearMeRadiusMiles(clampNearMeRadius(event.target.value));
+  };
+
+  const adjustNearMeRadius = (delta) => {
+    setNearMeRadiusMiles((prev) => clampNearMeRadius(prev + delta));
   };
 
   const handleTopbarSavedSearchClick = (savedSearch) => {
@@ -639,10 +659,68 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
                   <span className="search-menu-item-icon">🔍</span>
                   <span className="search-menu-item-label">Search Profiles</span>
                 </button>
-                <button type="button" className="search-menu-item" onClick={handleNearMeClick}>
-                  <span className="search-menu-item-icon">📍</span>
-                  <span className="search-menu-item-label">Near Me</span>
-                </button>
+                <div
+                  className="search-menu-near-me-inline"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Run Near Me search"
+                  onClick={() => handleNearMeClick(nearMeRadiusMiles)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleNearMeClick(nearMeRadiusMiles);
+                    }
+                  }}
+                >
+                  <span className="search-menu-item-icon" aria-hidden="true">📍</span>
+                  <button
+                    type="button"
+                    className="search-menu-near-me-trigger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNearMeClick(nearMeRadiusMiles);
+                    }}
+                  >
+                    Near Me
+                  </button>
+                  <button
+                    type="button"
+                    className="search-menu-radius-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      adjustNearMeRadius(-10);
+                    }}
+                    aria-label="Decrease Near Me radius"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    className="search-menu-radius-input"
+                    min="10"
+                    max="500"
+                    step="10"
+                    value={nearMeRadiusMiles}
+                    onChange={handleNearMeRadiusChange}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label="Near Me radius miles"
+                  />
+                  <span className="search-menu-radius-unit">mi</span>
+                  <button
+                    type="button"
+                    className="search-menu-radius-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      adjustNearMeRadius(10);
+                    }}
+                    aria-label="Increase Near Me radius"
+                  >
+                    +
+                  </button>
+                  {showNearMeNewBadge && (
+                    <span className="search-menu-new-pill" aria-label="New feature">NEW</span>
+                  )}
+                </div>
                 <div className="search-menu-divider" />
                 <div className="search-menu-header">Saved Searches</div>
                 <div className="search-menu-saved-list" role="group" aria-label="Saved searches">
