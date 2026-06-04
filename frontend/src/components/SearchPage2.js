@@ -1294,6 +1294,51 @@ const SearchPage2 = () => {
     }
   }, []);
 
+  const fetchNearbyCitiesWithinRadius = useCallback(async (lat, lon, radiusMiles = 30) => {
+    const radiusMeters = Math.round(radiusMiles * 1609.34);
+    const overpassQuery = `
+      [out:json][timeout:8];
+      (
+        node(around:${radiusMeters},${lat},${lon})["place"~"city|town|village|suburb"];
+        way(around:${radiusMeters},${lat},${lon})["place"~"city|town|village|suburb"];
+        relation(around:${radiusMeters},${lat},${lon})["place"~"city|town|village|suburb"];
+      );
+      out tags center;
+    `;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        body: `data=${encodeURIComponent(overpassQuery)}`
+      });
+
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      const unique = new Map();
+      (data?.elements || []).forEach((el) => {
+        const name = (el?.tags?.name || '').trim();
+        if (!name) return;
+        const key = name.toLowerCase();
+        if (!unique.has(key)) unique.set(key, name);
+      });
+
+      return Array.from(unique.values()).slice(0, 20);
+    } catch (err) {
+      logger.warn('Failed to fetch nearby cities for Near Me radius:', err);
+      return [];
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }, []);
+
   const handleNewMeSearch = useCallback(async () => {
     if (!navigator.geolocation) {
       toastService.info('Location is unavailable on this browser. Running your default search instead.');
@@ -1321,18 +1366,37 @@ const SearchPage2 = () => {
       }
 
       const defaults = getDefaultSearchCriteria();
+      const nearbyCities = await fetchNearbyCitiesWithinRadius(latitude, longitude, 30);
+
+      const normalizedOptionLookup = new Map(
+        (locationOptions || []).map((opt) => [String(opt).trim().toLowerCase(), opt])
+      );
+      const cityCandidates = [city, ...nearbyCities]
+        .map((c) => String(c || '').trim())
+        .filter(Boolean);
+
+      const dedupedCityMap = new Map();
+      cityCandidates.forEach((candidate) => {
+        const key = candidate.toLowerCase();
+        if (!dedupedCityMap.has(key)) {
+          dedupedCityMap.set(key, normalizedOptionLookup.get(key) || candidate);
+        }
+      });
+
+      const locationsWithinRadius = Array.from(dedupedCityMap.values());
       const criteriaWithCity = buildPartnerCriteriaPayload(defaults, city);
+      criteriaWithCity.locations = locationsWithinRadius.length > 0 ? locationsWithinRadius : [city];
 
       setSearchCriteria(criteriaWithCity);
       setMinMatchScore(0);
       setSelectedSearch(null);
       handleSearchHook(1, 0, criteriaWithCity);
-      toastService.success(`📍 New Me search is now using ${city}`);
+      toastService.success(`📍 Near Me is using ${city} + 30 mile radius`);
     } catch (err) {
       logger.info('New Me location permission denied/unavailable, executing fallback search', err);
       await executeDefaultSavedOrPartnerSearch();
     }
-  }, [buildPartnerCriteriaPayload, executeDefaultSavedOrPartnerSearch, getDefaultSearchCriteria, handleSearchHook, reverseGeocodeCity]);
+  }, [buildPartnerCriteriaPayload, executeDefaultSavedOrPartnerSearch, fetchNearbyCitiesWithinRadius, getDefaultSearchCriteria, handleSearchHook, locationOptions, reverseGeocodeCity]);
 
   // Keep ref pointing at the latest handleLoadSavedSearch each render.
   handleLoadSavedSearchRef.current = handleLoadSavedSearch;
