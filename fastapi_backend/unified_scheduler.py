@@ -169,12 +169,15 @@ class UnifiedScheduler:
                 
                 for job in jobs_to_run:
                     try:
+                        # Atomically claim the job so only one app instance executes it
+                        claimed_job = await registry.claim_job_for_execution(job["_id"])
+                        if not claimed_job:
+                            logger.debug(f"⏭️ Dynamic job already claimed by another instance: {job.get('name')}")
+                            continue
+
                         # Execute job
-                        logger.info(f"▶️ Executing dynamic job: {job['name']}")
-                        await executor.execute_job(job, triggered_by="scheduler")
-                        
-                        # Update job's next run time
-                        await registry.update_job_after_execution(job["_id"], {})
+                        logger.info(f"▶️ Executing dynamic job: {claimed_job['name']}")
+                        await executor.execute_job(claimed_job, triggered_by="scheduler")
                         
                     except Exception as e:
                         logger.error(f"❌ Error executing dynamic job {job['name']}: {e}", exc_info=True)

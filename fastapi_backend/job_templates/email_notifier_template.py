@@ -746,7 +746,7 @@ class EmailNotifierTemplate(JobTemplate):
         
         <!-- Logo -->
         <div style="text-align: center; padding: 25px 20px 15px 20px; background: white;">
-            <img src="https://l3v3lmatches.com/logo192.png" alt="L3V3L MATCHES" style="height: 60px; width: auto;" />
+            <div style="font-size: 44px; line-height: 1;" aria-label="Butterfly logo">🦋</div>
         </div>
         
         <!-- Header -->
