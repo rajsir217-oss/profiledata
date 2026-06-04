@@ -83,6 +83,20 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     }
   };
 
+  const loadPortalMembersGroup = async () => {
+    try {
+      const api = useAuthStore.getState().getApi();
+      const res = await api.get('/api/messenger/portal-members-group');
+      const portalGroupResp = res.data?.conversation;
+      if (!portalGroupResp) return;
+      portalGroupResp.id = portalGroupResp.id || portalGroupResp._id;
+      console.log('✅ Portal Members group:', portalGroupResp?.id);
+      setPortalGroup(portalGroupResp);
+    } catch (e) {
+      console.warn('⚠️ Failed to load Portal Members group:', e.message);
+    }
+  };
+
   // Real-time-ish online presence (polled every 30s). Used to render
   // small green/gray dots on user avatars across the messenger UI.
   const { isOnline, onlineSet } = useOnlinePresence();
@@ -192,6 +206,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
   // Fetch conversations on mount and when tab changes
   useEffect(() => {
+    loadPortalMembersGroup();
     loadAllConversations();
     loadUserProfile();
     loadActiveMembersCount();
@@ -413,10 +428,9 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     try {
       const api = useAuthStore.getState().getApi();
 
-      const [messengerRes, legacyRes, portalRes] = await Promise.allSettled([
+      const [messengerRes, legacyRes] = await Promise.allSettled([
         api.get('/api/messenger/conversations'),
         api.get('/api/users/messages/conversations'),
-        api.get('/api/messenger/portal-members-group'),
       ]);
 
       // Fetch L3V3L Messenger conversations (groups + new direct chats)
@@ -520,24 +534,6 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         }
       } catch (e) {
         console.warn('⚠️ Failed to load main app conversations:', e.message);
-      }
-
-      // Fetch Portal Members group (auto-create if needed)
-      console.log('🌐 Fetching Portal Members group...');
-      let portalGroupResp = null;
-      try {
-        if (portalRes.status !== 'fulfilled') {
-          throw portalRes.reason;
-        }
-        const res = portalRes.value;
-        portalGroupResp = res.data?.conversation;
-        if (portalGroupResp) {
-          portalGroupResp.id = portalGroupResp.id || portalGroupResp._id;
-        }
-        console.log('✅ Portal Members group:', portalGroupResp?.id);
-        setPortalGroup(portalGroupResp);
-      } catch (e) {
-        console.warn('⚠️ Failed to load Portal Members group:', e.message);
       }
 
       // US Vedika fetch removed: group is hidden in messenger-web. Backend
