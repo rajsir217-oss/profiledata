@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
-import api from '../api';
+import api, { getDefaultSavedSearch } from '../api';
 import { useUserData } from '../hooks/useUserData';
 import { useSearchPagination } from '../hooks/useSearchPagination';
 import { useSearchViewModes } from '../hooks/useSearchViewModes';
@@ -964,6 +964,71 @@ const SearchPage2 = () => {
     return defaults;
   };
 
+  const buildPartnerCriteriaPayload = useCallback((defaults, city = '') => ({
+    keyword: '',
+    profileId: '',
+    gender: defaults.gender || '',
+    ageMin: defaults.ageMin || '',
+    ageMax: defaults.ageMax || '',
+    heightMin: '',
+    heightMax: '',
+    heightMinFeet: defaults.heightMinFeet || '',
+    heightMinInches: defaults.heightMinInches || '',
+    heightMaxFeet: defaults.heightMaxFeet || '',
+    heightMaxInches: defaults.heightMaxInches || '',
+    location: city,
+    locations: city ? [city] : [],
+    education: '',
+    occupation: '',
+    occupations: [],
+    religion: '',
+    caste: '',
+    eatingPreference: '',
+    drinking: '',
+    smoking: '',
+    relationshipStatus: '',
+    bodyType: '',
+    newlyAdded: false,
+    daysBack: normalizeDaysBackValue(defaults.daysBack, 0),
+    hasPhoto: true
+  }), []);
+
+  const normalizeCriteriaForSearch = useCallback((rawCriteria = {}) => {
+    const criteria = { ...rawCriteria };
+
+    if (criteria.occupation && !criteria.occupations) {
+      criteria.occupations = [criteria.occupation];
+      delete criteria.occupation;
+    } else if (!criteria.occupations) {
+      criteria.occupations = [];
+    }
+
+    if (criteria.location && !criteria.locations) {
+      criteria.locations = [criteria.location];
+      delete criteria.location;
+    } else if (!criteria.locations) {
+      criteria.locations = [];
+    }
+
+    const criteriaWithDefaults = {
+      ...criteria,
+      daysBack: normalizeDaysBackValue(criteria.daysBack, 0),
+      hasPhoto: criteria.hasPhoto !== undefined ? criteria.hasPhoto : true
+    };
+
+    const userRole = currentUserProfile?.role?.toLowerCase();
+    const isPrivileged = userRole === 'admin' || userRole === 'moderator';
+    if (!isPrivileged) {
+      const defaults = buildDefaultCriteria(currentUserProfile);
+      if (defaults.gender && criteriaWithDefaults.gender !== defaults.gender) {
+        logger.info(`🚻 Overriding saved search gender '${criteriaWithDefaults.gender}' → '${defaults.gender}'`);
+        criteriaWithDefaults.gender = defaults.gender;
+      }
+    }
+
+    return criteriaWithDefaults;
+  }, [currentUserProfile]);
+
   // Wrapper for minMatchScore changes - triggers new search
   const handleMinMatchScoreChange = (newScore) => {
     setMinMatchScore(newScore);
@@ -1165,42 +1230,7 @@ const SearchPage2 = () => {
 
 
   const handleLoadSavedSearch = useCallback((savedSearch) => {
-    // Handle occupation format conversion for backward compatibility
-    const criteria = { ...savedSearch.criteria };
-    
-    // Convert old single occupation to new occupations array format
-    if (criteria.occupation && !criteria.occupations) {
-      criteria.occupations = [criteria.occupation];
-      delete criteria.occupation; // Remove old field
-    } else if (!criteria.occupations) {
-      criteria.occupations = [];
-    }
-    
-    // Convert old single location to new locations array format
-    if (criteria.location && !criteria.locations) {
-      criteria.locations = [criteria.location];
-      delete criteria.location; // Remove old field
-    } else if (!criteria.locations) {
-      criteria.locations = [];
-    }
-    
-    // Apply default daysBack if not set in saved search (for backward compatibility)
-    const criteriaWithDefaults = {
-      ...criteria,
-      daysBack: normalizeDaysBackValue(criteria.daysBack, 0),
-      hasPhoto: criteria.hasPhoto !== undefined ? criteria.hasPhoto : true
-    };
-    
-    // SAFETY: Enforce opposite-gender filter for non-admin users
-    const userRole = currentUserProfile?.role?.toLowerCase();
-    const isPrivileged = userRole === 'admin' || userRole === 'moderator';
-    if (!isPrivileged) {
-      const defaults = buildDefaultCriteria(currentUserProfile);
-      if (defaults.gender && criteriaWithDefaults.gender !== defaults.gender) {
-        logger.info(`🚻 Overriding saved search gender '${criteriaWithDefaults.gender}' → '${defaults.gender}'`);
-        criteriaWithDefaults.gender = defaults.gender;
-      }
-    }
+    const criteriaWithDefaults = normalizeCriteriaForSearch(savedSearch.criteria || {});
     
     setSearchCriteria(criteriaWithDefaults);
     // Restore L3V3L match score if saved
@@ -1211,7 +1241,98 @@ const SearchPage2 = () => {
     toastService.info(`📂 Loaded saved search: "${savedSearch.name}"`);
 
     handleSearchHook(1, loadedMinScore, criteriaWithDefaults);
-  }, [currentUserProfile, handleSearchHook]);
+  }, [handleSearchHook, normalizeCriteriaForSearch]);
+
+  const executeDefaultSavedOrPartnerSearch = useCallback(async () => {
+    try {
+      const response = await getDefaultSavedSearch();
+      const defaultSearch = response?.savedSearch || response;
+      if (defaultSearch?.criteria) {
+        const normalizedCriteria = normalizeCriteriaForSearch(defaultSearch.criteria);
+        const loadedMinScore = defaultSearch.minMatchScore !== undefined ? defaultSearch.minMatchScore : 0;
+        setSearchCriteria(normalizedCriteria);
+        setMinMatchScore(loadedMinScore);
+        setSelectedSearch(defaultSearch);
+        handleSearchHook(1, loadedMinScore, normalizedCriteria);
+        return;
+      }
+    } catch (err) {
+      logger.info('No default saved search found for New Me fallback, using partner defaults');
+    }
+
+    const partnerDefaults = getDefaultSearchCriteria();
+    const fallbackCriteria = buildPartnerCriteriaPayload(partnerDefaults);
+    setSearchCriteria(fallbackCriteria);
+    setMinMatchScore(0);
+    setSelectedSearch(null);
+    handleSearchHook(1, 0, fallbackCriteria);
+  }, [buildPartnerCriteriaPayload, getDefaultSearchCriteria, handleSearchHook, normalizeCriteriaForSearch]);
+
+  const reverseGeocodeCity = useCallback(async (lat, lon) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`,
+        {
+          signal: controller.signal,
+          headers: {
+            Accept: 'application/json',
+            'Accept-Language': 'en'
+          }
+        }
+      );
+      if (!response.ok) return '';
+      const data = await response.json();
+      const address = data?.address || {};
+      return address.city || address.town || address.village || address.municipality || '';
+    } catch (err) {
+      logger.warn('Reverse geocode failed for New Me:', err);
+      return '';
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }, []);
+
+  const handleNewMeSearch = useCallback(async () => {
+    if (!navigator.geolocation) {
+      toastService.info('Location is unavailable on this browser. Running your default search instead.');
+      await executeDefaultSavedOrPartnerSearch();
+      return;
+    }
+
+    const getPosition = () => new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      });
+    });
+
+    try {
+      const position = await getPosition();
+      const { latitude, longitude } = position.coords;
+      const city = await reverseGeocodeCity(latitude, longitude);
+
+      if (!city) {
+        toastService.info('Could not determine city from your location. Running your default search instead.');
+        await executeDefaultSavedOrPartnerSearch();
+        return;
+      }
+
+      const defaults = getDefaultSearchCriteria();
+      const criteriaWithCity = buildPartnerCriteriaPayload(defaults, city);
+
+      setSearchCriteria(criteriaWithCity);
+      setMinMatchScore(0);
+      setSelectedSearch(null);
+      handleSearchHook(1, 0, criteriaWithCity);
+      toastService.success(`📍 New Me search is now using ${city}`);
+    } catch (err) {
+      logger.info('New Me location permission denied/unavailable, executing fallback search', err);
+      await executeDefaultSavedOrPartnerSearch();
+    }
+  }, [buildPartnerCriteriaPayload, executeDefaultSavedOrPartnerSearch, getDefaultSearchCriteria, handleSearchHook, reverseGeocodeCity]);
 
   // Keep ref pointing at the latest handleLoadSavedSearch each render.
   handleLoadSavedSearchRef.current = handleLoadSavedSearch;
@@ -1228,6 +1349,16 @@ const SearchPage2 = () => {
     window.addEventListener('loadSavedSearchFromTopbar', handler);
     return () => window.removeEventListener('loadSavedSearchFromTopbar', handler);
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for TopBar Near Me trigger while already on /search.
+  useEffect(() => {
+    const handler = () => {
+      handleNewMeSearch();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    window.addEventListener('runNewMeSearchFromTopbar', handler);
+    return () => window.removeEventListener('runNewMeSearchFromTopbar', handler);
+  }, [handleNewMeSearch]);
 
   // Apply any pending search action set by TopBar when navigating to /search.
   // pendingSearchAction was captured (and sessionStorage cleared) during this
@@ -1250,11 +1381,14 @@ const SearchPage2 = () => {
       setInlineTabsNonce((n) => n + 1);
       openFiltersPanel();
       requestAnimationFrame(() => setInlineTabsDefaultTab(null));
+    } else if (pendingSearchAction.type === 'newMeSearch') {
+      handleNewMeSearch();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (pendingSearchAction.type === 'loadSavedSearch' && pendingSearchAction.savedSearch) {
       handleLoadSavedSearch(pendingSearchAction.savedSearch);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [currentUserProfile, pendingSearchAction, handleLoadSavedSearch, openFiltersPanel]);
+  }, [currentUserProfile, pendingSearchAction, handleLoadSavedSearch, handleNewMeSearch, openFiltersPanel]);
 
 
   const handleEditSchedule = (search) => {
@@ -1591,6 +1725,7 @@ const SearchPage2 = () => {
                           showAdvancedFilters={showAdvancedFilters}
                           setShowAdvancedFilters={setShowAdvancedFilters}
                           onSearch={() => handleSearchHook(1)}
+                          onNewMe={handleNewMeSearch}
                           onClear={handleClearFilters}
                           onSave={() => setShowSaveModal(true)}
                           systemConfig={systemConfig}

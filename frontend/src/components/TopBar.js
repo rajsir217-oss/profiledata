@@ -459,6 +459,17 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     navigate('/search');
   };
 
+  const handleNearMeClick = () => {
+    setShowSearchMenu(false);
+    if (location.pathname === '/search') {
+      window.dispatchEvent(new Event('runNewMeSearchFromTopbar'));
+      return;
+    }
+
+    sessionStorage.setItem('pendingSearchAction', JSON.stringify({ type: 'newMeSearch' }));
+    navigate('/search');
+  };
+
   const handleTopbarSavedSearchClick = (savedSearch) => {
     if (!savedSearch) return;
     setShowSearchMenu(false);
@@ -627,6 +638,10 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
                 <button type="button" className="search-menu-item" onClick={handleSearchProfilesClick}>
                   <span className="search-menu-item-icon">🔍</span>
                   <span className="search-menu-item-label">Search Profiles</span>
+                </button>
+                <button type="button" className="search-menu-item" onClick={handleNearMeClick}>
+                  <span className="search-menu-item-icon">📍</span>
+                  <span className="search-menu-item-label">Near Me</span>
                 </button>
                 <div className="search-menu-divider" />
                 <div className="search-menu-header">Saved Searches</div>

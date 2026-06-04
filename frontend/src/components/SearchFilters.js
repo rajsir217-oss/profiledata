@@ -16,6 +16,7 @@ import './SearchFilters.css';
  * @param {Boolean} showAdvancedFilters - Controls advanced filters visibility
  * @param {Function} setShowAdvancedFilters - Toggles advanced filters
  * @param {Function} onSearch - Callback when Search button clicked
+ * @param {Function} onNewMe - Callback when New Me button clicked
  * @param {Function} onClear - Callback when Clear Search button clicked
  * @param {Function} onSave - Callback when Save Search button clicked
  * @param {Object} systemConfig - System configuration (for L3V3L enable check)
@@ -39,6 +40,7 @@ const SearchFilters = ({
   showAdvancedFilters,
   setShowAdvancedFilters,
   onSearch,
+  onNewMe,
   onClear,
   onSave,
   systemConfig,
@@ -440,6 +442,18 @@ const SearchFilters = ({
                 <span className="btn-label">{searchButtonText}</span>
               </button>
             )}
+            {onNewMe && (
+              <button
+                type="button"
+                onClick={onNewMe}
+                className="btn btn-secondary"
+                title="Use your current city and run search"
+                aria-label="Near Me"
+              >
+                <span className="btn-icon" aria-hidden="true">📍</span>
+                <span className="btn-label">Near Me</span>
+              </button>
+            )}
             {onClear && (
               <button
                 type="button"
@@ -744,6 +758,18 @@ const SearchFilters = ({
                     >
                       <span className="btn-icon" aria-hidden="true">🔍</span>
                       <span className="btn-label">{searchButtonText}</span>
+                    </button>
+                  )}
+                  {onNewMe && (
+                    <button
+                      type="button"
+                      onClick={onNewMe}
+                      className="btn btn-secondary"
+                      title="Use your current city and run search"
+                      aria-label="Near Me"
+                    >
+                      <span className="btn-icon" aria-hidden="true">📍</span>
+                      <span className="btn-label">Near Me</span>
                     </button>
                   )}
                   {onClear && (
