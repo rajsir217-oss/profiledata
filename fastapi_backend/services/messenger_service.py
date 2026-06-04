@@ -5,12 +5,37 @@ Handles conversations, messages, delivery receipts, and media references.
 """
 
 import logging
+import json
 from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime, timedelta
+from time import perf_counter
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 logger = logging.getLogger(__name__)
+
+PORTAL_FIRST_PAGE_CACHE_TTL_SECONDS = 20
+
+
+def _portal_first_page_cache_key(conversation_id: str, username: str, limit: int) -> str:
+    return f"portal_first_page_messages:{conversation_id}:{username}:{limit}"
+
+
+def invalidate_portal_first_page_cache(conversation_id: str) -> None:
+    """Invalidate cached first-page Portal Members payloads for all users."""
+    try:
+        from redis_manager import get_redis_manager
+        redis = get_redis_manager()
+        if not redis or not redis.redis_client:
+            return
+
+        pattern = f"portal_first_page_messages:{conversation_id}:*"
+        keys = list(redis.redis_client.scan_iter(match=pattern, count=200))
+        if keys:
+            redis.redis_client.delete(*keys)
+            logger.debug("🗑️ Invalidated %s Portal first-page cache keys", len(keys))
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to invalidate Portal first-page cache: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -251,22 +276,59 @@ async def get_messages(
     username: str,
     limit: int = 50,
     before: Optional[str] = None,
-) -> Tuple[List[Dict[str, Any]], int, bool]:
+    include_total: bool = False,
+    debug_timing: bool = False,
+) -> Tuple[List[Dict[str, Any]], Optional[int], bool, Optional[Dict[str, float]]]:
     """
     Cursor-paginated messages for a conversation.
-    Returns (messages, total, has_more).
+    Returns (messages, total, has_more, debug_timings).
     """
+    timings: Optional[Dict[str, float]] = {} if debug_timing else None
+
+    def _mark(stage: str, started_at: float) -> None:
+        if timings is not None:
+            timings[stage] = round((perf_counter() - started_at) * 1000.0, 3)
+
+    started_total = perf_counter()
+
     # Verify participant
+    started = perf_counter()
     conv = await db.messenger_conversations.find_one(
         {"_id": ObjectId(conversation_id), "participants.username": username},
         {
             "clearedFor": 1,
-            "publicParticipants": 1,
             "messageRetentionHours": 1,
+            "type": 1,
+            "groupName": 1,
         },
     )
+    _mark("participant_lookup_ms", started)
     if not conv:
-        return [], 0, False
+        _mark("total_ms", started_total)
+        return [], 0, False, timings
+
+    can_use_portal_first_page_cache = (
+        conv.get("type") == "group"
+        and conv.get("groupName") == "Portal Members"
+        and not before
+        and not include_total
+    )
+
+    cache_key = _portal_first_page_cache_key(conversation_id, username, limit)
+    if can_use_portal_first_page_cache:
+        started = perf_counter()
+        try:
+            from redis_manager import get_redis_manager
+            redis = get_redis_manager()
+            cached = redis.redis_client.get(cache_key) if redis and redis.redis_client else None
+            if cached:
+                payload = json.loads(cached)
+                _mark("cache_read_ms", started)
+                _mark("total_ms", started_total)
+                return payload.get("messages", []), None, bool(payload.get("hasMore")), timings
+        except Exception as e:
+            logger.warning(f"⚠️ Portal first-page cache read failed: {e}")
+        _mark("cache_read_ms", started)
 
     now = datetime.utcnow()
     retention_hours = conv.get("messageRetentionHours")
@@ -298,25 +360,33 @@ async def get_messages(
     if and_clauses:
         query["$and"] = and_clauses
 
-    count_query: Dict[str, Any] = {"conversationId": ObjectId(conversation_id)}
-    if cleared_for:
-        count_query["createdAt"] = {"$gt": cleared_for}
-    count_query["$or"] = [
-        {"expireAt": {"$exists": False}},
-        {"expireAt": None},
-        {"expireAt": {"$gt": now}},
-    ]
-    total = await db.messenger_messages.count_documents(count_query)
+    total: Optional[int] = None
+    if include_total:
+        started = perf_counter()
+        count_query: Dict[str, Any] = {"conversationId": ObjectId(conversation_id)}
+        if cleared_for:
+            count_query["createdAt"] = {"$gt": cleared_for}
+        count_query["$or"] = [
+            {"expireAt": {"$exists": False}},
+            {"expireAt": None},
+            {"expireAt": {"$gt": now}},
+        ]
+        total = await db.messenger_messages.count_documents(count_query)
+        _mark("count_ms", started)
+
+    started = perf_counter()
     cursor = (
         db.messenger_messages.find(query)
         .sort("_id", -1)  # newest first
         .limit(limit + 1)
     )
     messages = await cursor.to_list(length=limit + 1)
+    _mark("fetch_ms", started)
     has_more = len(messages) > limit
     messages = messages[:limit]
 
     if retention_delta and messages:
+        started = perf_counter()
         def _parse_ts(value: Any) -> Optional[datetime]:
             if isinstance(value, datetime):
                 if value.tzinfo is not None:
@@ -390,20 +460,33 @@ async def get_messages(
 
         if expired_ids:
             await db.messenger_messages.delete_many({"_id": {"$in": expired_ids}})
-            total = max(total - len(expired_ids), 0)
+            if total is not None:
+                total = max(total - len(expired_ids), 0)
 
         messages = kept_messages
+        _mark("retention_filter_ms", started)
 
-    # Build a case-insensitive email -> participant lookup for enriching
-    # publicEmailsSent on invitation messages with their CURRENT status
-    # (invited / interested / replied / opted_out, etc.)
-    public_participants = conv.get("publicParticipants") or []
-    participants_by_email = {
-        (p.get("email") or "").lower(): p
-        for p in public_participants
-        if p.get("email")
-    }
+    has_public_email_payloads = any(
+        isinstance(m.get("publicEmailsSent"), list) and bool(m.get("publicEmailsSent"))
+        for m in messages
+    )
 
+    participants_by_email: Dict[str, Dict[str, Any]] = {}
+    if has_public_email_payloads:
+        started = perf_counter()
+        conv_public_participants = await db.messenger_conversations.find_one(
+            {"_id": ObjectId(conversation_id)},
+            {"publicParticipants": 1},
+        )
+        public_participants = (conv_public_participants or {}).get("publicParticipants") or []
+        participants_by_email = {
+            (p.get("email") or "").lower(): p
+            for p in public_participants
+            if p.get("email")
+        }
+        _mark("public_participants_lookup_ms", started)
+
+    started = perf_counter()
     for m in messages:
         m["_id"] = str(m["_id"])
         m["conversationId"] = str(m["conversationId"])
@@ -436,10 +519,28 @@ async def get_messages(
                     "optedOutAt": p.get("optedOutAt"),
                 })
             m["publicEmailsSent"] = enriched
+    _mark("enrichment_ms", started)
 
     # Return in chronological order (oldest first) for display
     messages.reverse()
-    return messages, total, has_more
+
+    if can_use_portal_first_page_cache:
+        started = perf_counter()
+        try:
+            from redis_manager import get_redis_manager
+            redis = get_redis_manager()
+            if redis and redis.redis_client:
+                redis.redis_client.setex(
+                    cache_key,
+                    PORTAL_FIRST_PAGE_CACHE_TTL_SECONDS,
+                    json.dumps({"messages": messages, "hasMore": has_more}),
+                )
+        except Exception as e:
+            logger.warning(f"⚠️ Portal first-page cache write failed: {e}")
+        _mark("cache_write_ms", started)
+
+    _mark("total_ms", started_total)
+    return messages, total, has_more, timings
 
 
 async def delete_message(
@@ -462,6 +563,9 @@ async def delete_message(
             "updatedAt": datetime.utcnow(),
         }},
     )
+    conv_oid = msg.get("conversationId")
+    if isinstance(conv_oid, ObjectId):
+        invalidate_portal_first_page_cache(str(conv_oid))
     logger.info(f"🗑️ Message {message_id} soft-deleted by {username}")
     return True
 

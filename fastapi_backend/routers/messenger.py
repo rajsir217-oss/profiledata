@@ -5,6 +5,7 @@ Phase 1: 1:1 conversations, text + media messages, delivery receipts, device tok
 
 import logging
 import asyncio
+from time import perf_counter
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File, Query, Request
@@ -14,6 +15,7 @@ from pymongo import UpdateOne
 
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from database import get_database
+from config import settings
 from crypto_utils import get_encryptor
 from models.messenger_models import (
     ConversationCreate,
@@ -80,6 +82,7 @@ async def get_or_create_portal_members_group(
                             "joinedAt": now,
                         }
                     },
+                    "$inc": {"participantsCount": 1},
                     "$set": {"updatedAt": now},
                 },
             )
@@ -89,7 +92,10 @@ async def get_or_create_portal_members_group(
             return False
 
     def _portal_group_summary(conv: dict) -> dict:
-        participants = conv.get("participants", []) or []
+        participants_count = conv.get("participantsCount")
+        if participants_count is None:
+            participants = conv.get("participants", []) or []
+            participants_count = len(participants)
         _id = conv.get("_id")
         _id_str = str(_id) if _id is not None else None
         last_message_at = conv.get("lastMessageAt")
@@ -103,7 +109,7 @@ async def get_or_create_portal_members_group(
             "groupAvatar": conv.get("groupAvatar"),
             "lastMessageAt": last_message_at,
             "lastMessagePreview": conv.get("lastMessagePreview"),
-            "participantsCount": len(participants),
+            "participantsCount": int(participants_count or 0),
         }
 
     try:
@@ -123,13 +129,43 @@ async def get_or_create_portal_members_group(
         logger.warning(f"⚠️ Redis cache check failed: {e}")
 
     # Check if Portal Members group already exists
-    existing = await db.messenger_conversations.find_one({
-        "type": "group",
-        "groupName": "Portal Members"
-    })
+    existing = await db.messenger_conversations.find_one(
+        {
+            "type": "group",
+            "groupName": "Portal Members"
+        },
+        {
+            "type": 1,
+            "groupName": 1,
+            "groupAvatar": 1,
+            "lastMessageAt": 1,
+            "lastMessagePreview": 1,
+            "participantsCount": 1,
+        },
+    )
 
     if existing:
         logger.info(f"✅ Portal Members group exists: {existing['_id']}")
+        if existing.get("participantsCount") is None:
+            try:
+                aggregate = await db.messenger_conversations.aggregate([
+                    {"$match": {"_id": existing["_id"]}},
+                    {
+                        "$project": {
+                            "participantsCount": {
+                                "$size": {"$ifNull": ["$participants", []]}
+                            }
+                        }
+                    },
+                ]).to_list(length=1)
+                backfilled_count = int((aggregate[0] if aggregate else {}).get("participantsCount") or 0)
+                existing["participantsCount"] = backfilled_count
+                await db.messenger_conversations.update_one(
+                    {"_id": existing["_id"]},
+                    {"$set": {"participantsCount": backfilled_count}},
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to backfill participantsCount for Portal Members: {e}")
         summary = _portal_group_summary(existing)
 
         added = False
@@ -172,6 +208,14 @@ async def get_or_create_portal_members_group(
         group_avatar="🦋",
     )
     conv["_id"] = conv.get("_id") or conv.get("id")
+    conv["participantsCount"] = len(conv.get("participants", []) or [])
+    try:
+        await db.messenger_conversations.update_one(
+            {"_id": ObjectId(conv["_id"])},
+            {"$set": {"participantsCount": conv["participantsCount"]}},
+        )
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to persist participantsCount for Portal Members: {e}")
     summary = _portal_group_summary(conv)
     logger.info(f"✅ Created Portal Members group: {summary['id']}")
     
@@ -598,23 +642,55 @@ async def list_messages(
     conversation_id: str,
     limit: int = Query(50, ge=1, le=200),
     before: Optional[str] = Query(None, description="Cursor: message _id to paginate before"),
+    include_total: bool = Query(False, alias="includeTotal", description="Include total message count (slower on large conversations)"),
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     """Get messages for a conversation (cursor-paginated, oldest-first)."""
-    messages, total, has_more = await messenger_service.get_messages(
-        db, conversation_id, current_user["username"], limit, before
+    debug_timing_enabled = bool(settings.debug_mode)
+    started_total = perf_counter()
+
+    messages, total, has_more, service_timings = await messenger_service.get_messages(
+        db,
+        conversation_id,
+        current_user["username"],
+        limit,
+        before,
+        include_total,
+        debug_timing_enabled,
     )
+
+    started_serialize = perf_counter()
     for m in messages:
         m["id"] = m.pop("_id")
     cursor_val = messages[0]["id"] if messages else None  # oldest in this batch
-    return {
+
+    response = {
         "success": True,
         "messages": messages,
         "total": total,
         "hasMore": has_more,
         "cursor": cursor_val,
     }
+
+    if debug_timing_enabled:
+        router_timings = {
+            "router_serialize_ms": round((perf_counter() - started_serialize) * 1000.0, 3),
+            "router_total_ms": round((perf_counter() - started_total) * 1000.0, 3),
+        }
+        merged_timings = {**(service_timings or {}), **router_timings}
+        logger.debug(
+            "⏱️ messenger.list_messages timings user=%s conv=%s limit=%s includeTotal=%s before=%s timings=%s",
+            current_user.get("username"),
+            conversation_id,
+            limit,
+            include_total,
+            bool(before),
+            merged_timings,
+        )
+        response["debugTimings"] = merged_timings
+
+    return response
 
 
 @router.put("/conversations/{conversation_id}/retention")
@@ -1486,6 +1562,11 @@ async def send_message(
             await _send_push(db, conversation_id, username, msg)
     except Exception as e:
         logger.warning(f"⚠️ Push notification failed: {e}")
+
+    try:
+        messenger_service.invalidate_portal_first_page_cache(conversation_id)
+    except Exception as e:
+        logger.warning(f"⚠️ Portal first-page cache invalidation failed: {e}")
 
     return {"success": True, "message": msg}
 
