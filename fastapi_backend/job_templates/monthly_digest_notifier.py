@@ -353,11 +353,18 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         sent_count = 0
         skipped_count = 0
         error_count = 0
+        processed_usernames = set()
+        processed_emails = set()
         
         for user_stats in all_stats:
             username = user_stats["username"]
             
             try:
+                if username in processed_usernames:
+                    context.log("WARNING", f"   Skipping duplicate monthly digest entry for username={username}")
+                    skipped_count += 1
+                    continue
+
                 # Get user details
                 user = await db.users.find_one({"username": username})
                 if not user:
@@ -374,6 +381,12 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
                         continue
                 
                 if not email:
+                    skipped_count += 1
+                    continue
+
+                email_key = str(email).strip().lower()
+                if email_key in processed_emails:
+                    context.log("WARNING", f"   Skipping duplicate monthly digest email target={email}")
                     skipped_count += 1
                     continue
                 
@@ -416,6 +429,8 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
                 )
                 
                 await notification_service.enqueue_notification(notification)
+                processed_usernames.add(username)
+                processed_emails.add(email_key)
                 sent_count += 1
                 
             except Exception as e:
@@ -584,7 +599,7 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         
         <!-- Logo -->
         <div style="text-align: center; padding: 25px 20px 15px 20px; background: white;">
-            <img src="https://l3v3lmatches.com/logo192.png" alt="L3V3L MATCHES" style="height: 60px; width: auto;" />
+            <div style="font-size: 44px; line-height: 1;" aria-label="Butterfly logo">🦋</div>
         </div>
         
         <!-- Header -->

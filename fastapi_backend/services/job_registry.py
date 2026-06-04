@@ -252,6 +252,46 @@ class JobRegistryService:
         
         jobs = await self.jobs_collection.find(query).to_list(length=None)
         return [self._serialize_job(job) for job in jobs]
+
+    async def claim_job_for_execution(
+        self,
+        job_id: str,
+        claim_window_seconds: int = 600
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Atomically claim a due job for execution.
+
+        This prevents duplicate execution when multiple app instances poll the
+        scheduler concurrently.
+        """
+        now = datetime.utcnow()
+        claimed_until = now + timedelta(seconds=max(60, int(claim_window_seconds)))
+
+        query = {
+            "_id": ObjectId(job_id),
+            "enabled": True,
+            "nextRunAt": {"$lte": now}
+        }
+
+        update = {
+            "$set": {
+                "nextRunAt": claimed_until,
+                "lastRunAt": now,
+                "updatedAt": now
+            }
+        }
+
+        claimed_doc = await self.jobs_collection.find_one_and_update(
+            query,
+            update,
+            return_document=ReturnDocument.AFTER
+        )
+
+        if claimed_doc:
+            logger.info(f"🔒 Claimed dynamic job for execution: {claimed_doc.get('name')}")
+            return self._serialize_job(claimed_doc)
+
+        return None
     
     async def update_job_after_execution(
         self,
