@@ -1366,7 +1366,7 @@ const SearchPage2 = () => {
       }
 
       const defaults = getDefaultSearchCriteria();
-      const nearbyCities = await fetchNearbyCitiesWithinRadius(latitude, longitude, 30);
+      const nearbyCities = await fetchNearbyCitiesWithinRadius(latitude, longitude, 100);
 
       const normalizedOptionLookup = new Map(
         (locationOptions || []).map((opt) => [String(opt).trim().toLowerCase(), opt])
@@ -1391,7 +1391,7 @@ const SearchPage2 = () => {
       setMinMatchScore(0);
       setSelectedSearch(null);
       handleSearchHook(1, 0, criteriaWithCity);
-      toastService.success(`📍 Near Me is using ${city} + 30 mile radius`);
+      toastService.success(`📍 Near Me is using ${city} + 100 mile radius`);
     } catch (err) {
       logger.info('New Me location permission denied/unavailable, executing fallback search', err);
       await executeDefaultSavedOrPartnerSearch();
