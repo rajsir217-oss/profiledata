@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getBackendUrl } from '../config/apiConfig';
 import toastService from '../services/toastService';
+import logger from '../utils/logger';
 import './ContributionPopup.css';
+
+const MEMBER_STATS_CACHE_TTL_MS = 10 * 60 * 1000;
 
 const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [selectedAmount, setSelectedAmount] = useState(25); // Default to $25
@@ -23,6 +26,99 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const cloverMountedRef = useRef(false);
   const [cloverSuccess, setCloverSuccess] = useState(false);
   const [cloverRecurring, setCloverRecurring] = useState(false);
+  const [memberStats, setMemberStats] = useState({
+    daysActive: 0,
+    profileViews: 0,
+    profileFavorites: 0,
+    profileShortlists: 0,
+    conversations: 0,
+  });
+  const [memberStatsLoading, setMemberStatsLoading] = useState(false);
+
+  const computeDaysActive = useCallback((createdAtValue) => {
+    if (!createdAtValue) return 0;
+    const createdAt = new Date(createdAtValue);
+    if (Number.isNaN(createdAt.getTime())) return 0;
+    const diffMs = Date.now() - createdAt.getTime();
+    return Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  }, []);
+
+  const loadMemberStats = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+    if (!token || !username) return;
+
+    const cacheKey = `contribution_member_stats_v1:${username}`;
+    try {
+      const cachedRaw = sessionStorage.getItem(cacheKey);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (
+          cached &&
+          cached.cachedAt &&
+          Date.now() - Number(cached.cachedAt) < MEMBER_STATS_CACHE_TTL_MS &&
+          cached.stats
+        ) {
+          setMemberStats(cached.stats);
+          return;
+        }
+      }
+    } catch (err) {
+      logger.debug('Contribution popup stats cache parse failed', err);
+    }
+
+    setMemberStatsLoading(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const [profileRes, viewsRes, favoritesRes, shortlistRes, conversationsRes] = await Promise.allSettled([
+        fetch(`${getBackendUrl()}/api/users/profile/${encodeURIComponent(username)}`, { headers }),
+        fetch(`${getBackendUrl()}/api/users/views/${encodeURIComponent(username)}`, { headers }),
+        fetch(`${getBackendUrl()}/api/users/favorites/${encodeURIComponent(username)}`, { headers }),
+        fetch(`${getBackendUrl()}/api/users/shortlist/${encodeURIComponent(username)}`, { headers }),
+        fetch(`${getBackendUrl()}/api/users/messages/conversations?username=${encodeURIComponent(username)}`, { headers }),
+      ]);
+
+      const safeJson = async (res) => {
+        if (!res || !res.ok) return null;
+        try {
+          return await res.json();
+        } catch (err) {
+          return null;
+        }
+      };
+
+      const profileData = await safeJson(profileRes.status === 'fulfilled' ? profileRes.value : null);
+      const viewsData = await safeJson(viewsRes.status === 'fulfilled' ? viewsRes.value : null);
+      const favoritesData = await safeJson(favoritesRes.status === 'fulfilled' ? favoritesRes.value : null);
+      const shortlistData = await safeJson(shortlistRes.status === 'fulfilled' ? shortlistRes.value : null);
+      const conversationsData = await safeJson(conversationsRes.status === 'fulfilled' ? conversationsRes.value : null);
+
+      const nextStats = {
+        daysActive: computeDaysActive(profileData?.createdAt),
+        profileViews: Number(viewsData?.uniqueViewers ?? viewsData?.totalViews ?? viewsData?.viewers?.length ?? 0) || 0,
+        profileFavorites: Array.isArray(favoritesData?.favorites) ? favoritesData.favorites.length : 0,
+        profileShortlists: Array.isArray(shortlistData?.shortlist) ? shortlistData.shortlist.length : 0,
+        conversations: Array.isArray(conversationsData?.conversations) ? conversationsData.conversations.length : 0,
+      };
+
+      setMemberStats(nextStats);
+      try {
+        sessionStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            cachedAt: Date.now(),
+            stats: nextStats,
+          })
+        );
+      } catch (err) {
+        logger.debug('Contribution popup stats cache write failed', err);
+      }
+    } catch (err) {
+      logger.warn('Failed to load contribution member stats', err);
+    } finally {
+      setMemberStatsLoading(false);
+    }
+  }, [computeDaysActive]);
 
   // Use admin-configured amounts verbatim (deduped + numeric sort).
   // Default [25, 50, 75, 100] matches the configured amounts if config is missing.
@@ -242,13 +338,14 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       logActivity('popup_shown');
+      loadMemberStats();
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, logActivity]);
+  }, [isOpen, logActivity, loadMemberStats]);
 
   // Load PayPal SDK once and render buttons on first open
   useEffect(() => {
@@ -419,11 +516,6 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     <div className="contribution-popup-overlay" onClick={handleDismiss} style={{ display: isOpen ? 'flex' : 'none' }}>
       <div className="contribution-popup" onClick={(e) => e.stopPropagation()}>
         <div className="contribution-popup-header">
-          <h2 >
-            <span className="contribution-icon" role="img" aria-label="namaste">{'\u{1F64F}'}</span>
-            <span className="contribution-title-pill">PLEASE SUPPORT THE L3V3LMATCHES PLATFORM</span>
-            <span className="contribution-namaste" role="img" aria-label="namaste">{'\u{1F64F}'}</span>
-          </h2>
           <button 
             className="contribution-popup-close" 
             onClick={handleDismiss}
@@ -435,8 +527,34 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
         <div className="contribution-popup-body">
           <p className="contribution-message">
-            Your support helps us keep the platform ad-free and continuously improving for everyone.
+            Your support helps and enourage our team to continuously improving the platform for everyone.
           </p>
+
+          <section className="contribution-member-stats" aria-label="Your member value stats">
+            <div className="contribution-member-stats-title">Your Value Snapshot ✨</div>
+            <div className="contribution-member-stats-grid">
+              <div className="contribution-member-stat-card">
+                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">📅</span> Days Active</span>
+                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.daysActive}</span>
+              </div>
+              <div className="contribution-member-stat-card">
+                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">👀</span> Views</span>
+                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.profileViews}</span>
+              </div>
+              <div className="contribution-member-stat-card">
+                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">⭐</span> Favorites</span>
+                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.profileFavorites}</span>
+              </div>
+              <div className="contribution-member-stat-card">
+                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">📝</span> Shortlists</span>
+                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.profileShortlists}</span>
+              </div>
+              <div className="contribution-member-stat-card">
+                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">💬</span> Messages</span>
+                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.conversations}</span>
+              </div>
+            </div>
+          </section>
 
           {error && <div className="contribution-error">{error}</div>}
 
@@ -459,7 +577,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                   disabled={loading}
                 />
                 <span className="contribution-amount-label">${amt}</span>
-                {amt === 50 && <span className="heart-badge">❤️</span>}
+                {amt === 100 && <span className="heart-badge">❤️</span>}
               </label>
             ))}
             
@@ -475,7 +593,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                 disabled={loading}
               />
               <span className="contribution-amount-label custom-amount-label">
-                Custom: $
+                $
                 <input
                   type="number"
                   className="custom-amount-input"
@@ -494,8 +612,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           </div>
 
           {/* Payment Method Selection */}
-          <div className="payment-method-section">
-            <div className="payment-method-label">Choose Payment Method:</div>
+          <div>
             <div className="payment-method-toggle">
               <button
                 className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
