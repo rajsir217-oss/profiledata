@@ -48,7 +48,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     const username = localStorage.getItem('username');
     if (!token || !username) return;
 
-    const cacheKey = `contribution_member_stats_v1:${username}`;
+    const cacheKey = `contribution_member_stats_v2:${username}`;
     try {
       const cachedRaw = sessionStorage.getItem(cacheKey);
       if (cachedRaw) {
@@ -72,7 +72,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
       const headers = { Authorization: `Bearer ${token}` };
       const [profileRes, viewsRes, favoritesRes, shortlistRes, conversationsRes] = await Promise.allSettled([
         fetch(`${getBackendUrl()}/api/users/profile/${encodeURIComponent(username)}`, { headers }),
-        fetch(`${getBackendUrl()}/api/users/views/${encodeURIComponent(username)}`, { headers }),
+        fetch(`${getBackendUrl()}/api/users/profile-views/${encodeURIComponent(username)}`, { headers }),
         fetch(`${getBackendUrl()}/api/users/favorites/${encodeURIComponent(username)}`, { headers }),
         fetch(`${getBackendUrl()}/api/users/shortlist/${encodeURIComponent(username)}`, { headers }),
         fetch(`${getBackendUrl()}/api/users/messages/conversations?username=${encodeURIComponent(username)}`, { headers }),
@@ -95,7 +95,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
       const nextStats = {
         daysActive: computeDaysActive(profileData?.createdAt),
-        profileViews: Number(viewsData?.uniqueViewers ?? viewsData?.totalViews ?? viewsData?.viewers?.length ?? 0) || 0,
+        profileViews: Number(viewsData?.totalViews ?? viewsData?.uniqueViewers ?? viewsData?.views?.length ?? viewsData?.viewers?.length ?? 0) || 0,
         profileFavorites: Array.isArray(favoritesData?.favorites) ? favoritesData.favorites.length : 0,
         profileShortlists: Array.isArray(shortlistData?.shortlist) ? shortlistData.shortlist.length : 0,
         conversations: Array.isArray(conversationsData?.conversations) ? conversationsData.conversations.length : 0,
@@ -120,12 +120,12 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, [computeDaysActive]);
 
-  // Use admin-configured amounts verbatim (deduped + numeric sort).
-  // Default [25, 50, 75, 100] matches the configured amounts if config is missing.
+  // Use admin-configured amounts (deduped + descending numeric sort for display).
+  // Default [25, 50, 75, 100] renders as [100, 75, 50, 25].
   const amounts = [...new Set(contributionConfig?.amounts || [25, 50, 75, 100])]
     .map(Number)
     .filter((n) => Number.isFinite(n) && n > 0)
-    .sort((a, b) => a - b);
+    .sort((a, b) => b - a);
 
   // Log activity to backend (fire and forget)
   const logActivity = useCallback(async (action, amount = null, pType = null) => {
