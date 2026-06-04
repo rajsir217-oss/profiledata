@@ -265,6 +265,7 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         from services.notification_service import NotificationService
         from models.notification_models import NotificationQueueCreate, NotificationTrigger, NotificationChannel
         from crypto_utils import get_encryptor
+        from fastapi import HTTPException
         
         start_time = time.time()
         db = context.db
@@ -343,12 +344,57 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
                 all_stats = [s for s in all_stats if s["username"] in target_usernames]
                 context.log("INFO", f"   Filtered to {len(all_stats)} test users from pre-collected stats")
         
+        notification_service = NotificationService(db)
+        encryptor = get_encryptor()
+
+        # Pre-filter by monthly digest preference so opt-outs are never selected for send.
+        monthly_trigger_key = NotificationTrigger.MONTHLY_DIGEST.value
+        email_channel_key = NotificationChannel.EMAIL.value
+        prefilter_candidate_count = len(all_stats)
+        prefiltered_stats = []
+        prefiltered_skipped = 0
+
+        for user_stats in all_stats:
+            username = user_stats.get("username")
+            if not username:
+                prefiltered_skipped += 1
+                continue
+
+            try:
+                prefs = await notification_service.get_preferences(username)
+                digest_channels = []
+                if prefs and getattr(prefs, "channels", None):
+                    digest_channels = (
+                        prefs.channels.get(monthly_trigger_key, [])
+                        or prefs.channels.get(NotificationTrigger.MONTHLY_DIGEST, [])
+                    )
+
+                digest_channel_values = [
+                    ch.value if hasattr(ch, "value") else str(ch)
+                    for ch in digest_channels
+                ]
+
+                if email_channel_key not in digest_channel_values:
+                    prefiltered_skipped += 1
+                    continue
+
+                prefiltered_stats.append(user_stats)
+            except Exception as pref_error:
+                # On preference lookup failure, keep recipient and let enqueue path decide.
+                context.log("WARNING", f"   Preference check failed for {username}: {pref_error}")
+                prefiltered_stats.append(user_stats)
+
+        enabled_pref_count = len(prefiltered_stats)
+        context.log("INFO", f"   Monthly digest preference summary: enabled={enabled_pref_count}, disabled={prefiltered_skipped}")
+
+        if prefiltered_skipped > 0:
+            context.log("INFO", f"   Skipped {prefiltered_skipped} users with monthly digest disabled")
+
+        all_stats = prefiltered_stats
+
         if max_recipients > 0 and len(all_stats) > max_recipients:
             all_stats = all_stats[:max_recipients]
             context.log("INFO", f"   Limited to {max_recipients} recipients")
-        
-        notification_service = NotificationService(db)
-        encryptor = get_encryptor()
         
         sent_count = 0
         skipped_count = 0
@@ -428,7 +474,17 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
                     }
                 )
                 
-                await notification_service.enqueue_notification(notification)
+                try:
+                    await notification_service.enqueue_notification(notification)
+                except HTTPException as queue_error:
+                    if queue_error.status_code == 403:
+                        error_detail = str(getattr(queue_error, "detail", ""))
+                        if "disabled monthly_digest notifications" in error_detail:
+                            context.log("INFO", f"   Skipping {username}: monthly digest disabled")
+                            skipped_count += 1
+                            continue
+                    raise
+
                 processed_usernames.add(username)
                 processed_emails.add(email_key)
                 sent_count += 1
@@ -459,6 +515,10 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
             details={
                 "mode": "send_monthly",
                 "month": month_name,
+                "prefilterCandidateCount": prefilter_candidate_count,
+                "enabledPreferenceCount": enabled_pref_count,
+                "disabledPreferenceCount": prefiltered_skipped,
+                "selectedAfterPrefilterCount": len(all_stats),
                 "sentCount": sent_count,
                 "skippedCount": skipped_count,
                 "errorCount": error_count,
