@@ -101,63 +101,8 @@ const WorkExperience = ({
         💼 Work Experience {isRequired && <span className="text-danger">*</span>}
       </h5>
 
-      {/* Saved Work Experience Entries */}
-      {workExperience.length > 0 && (
-        <div className="mb-3 table-container-scroll">
-          <table className="table table-bordered table-stacked" style={{ backgroundColor: 'var(--surface-color, #fff)', borderColor: 'var(--border-color, #dee2e6)' }}>
-            <thead style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', borderColor: 'var(--border-color, #dee2e6)' }}>
-              <tr>
-                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Status</th>
-                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Work Type</th>
-                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Description</th>
-                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Location</th>
-                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {workExperience.map((work, index) => (
-                <tr key={index}>
-                  <td data-label="Status" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>
-                    <span className={`badge ${work.status === 'current' ? 'bg-success' : 'bg-secondary'}`}>
-                      {work.status}
-                    </span>
-                  </td>
-                  <td data-label="Work Type" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>
-                    <span className="badge bg-info">{work.workType || 'Not specified'}</span>
-                  </td>
-                  <td data-label="Description" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.description}</td>
-                  <td data-label="Location" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.location || '-'}</td>
-                  <td data-label="Actions" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }} className="actions-cell">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-warning me-2"
-                      onClick={() => handleEditWorkExperience(index)}
-                      title="Edit"
-                    >
-                      <span className="btn-icon">✏️</span>
-                      <span className="btn-text">Edit</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-danger"
-                      onClick={() => handleDeleteWorkExperience(index)}
-                      title="Delete"
-                    >
-                      <span className="btn-icon">🗑️</span>
-                      <span className="btn-text">Delete</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
       {/* Add/Edit Work Experience Form */}
-      <div className="card p-3 mb-3" style={{ backgroundColor: 'var(--surface-color, #f8f9fa)' }}>
-        <h6 className="mb-3">{editingIndex !== null ? 'Edit' : 'Add'} Work Experience Entry</h6>
-
+      <div className="mb-3">
         <div className="row mb-3">
           <div className="col-md-2">
             <label className="form-label">Work Status <span className="text-danger">*</span></label>
@@ -242,10 +187,10 @@ const WorkExperience = ({
           <div className="col-md-2 d-flex align-items-end justify-content-center">
             <button
               type="button"
-              className={`btn btn-primary btn-square-action ${editingIndex === null ? 'btn-add-entry' : ''}`}
+              className="btn btn-warning btn-square-action btn-work-add-action"
               onClick={handleAddWorkExperience}
             >
-              <span className="btn-icon" style={{ fontSize: '24px' }}>{editingIndex !== null ? '✓' : '+'}</span>
+              <span className="btn-work-add-label">{editingIndex !== null ? 'Update Experience' : 'Add Experience'}</span>
             </button>
           </div>
         </div>
@@ -262,6 +207,59 @@ const WorkExperience = ({
           </div>
         )}
       </div>
+
+      {/* Saved Work Experience Entries */}
+      {workExperience.length > 0 && (
+        <div className="mb-3 table-container-scroll">
+          <table className="table table-bordered table-stacked" style={{ backgroundColor: 'var(--surface-color, #fff)', borderColor: 'var(--border-color, #dee2e6)' }}>
+            <thead style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', borderColor: 'var(--border-color, #dee2e6)' }}>
+              <tr>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Status</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Work Type</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Description</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Location</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {workExperience.map((work, index) => (
+                <tr key={index}>
+                  <td data-label="Status" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>
+                    <span className={`badge ${work.status === 'current' ? 'bg-success' : 'bg-secondary'}`}>
+                      {work.status}
+                    </span>
+                  </td>
+                  <td data-label="Work Type" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>
+                    <span className="badge bg-info">{work.workType || 'Not specified'}</span>
+                  </td>
+                  <td data-label="Description" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.description}</td>
+                  <td data-label="Location" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.location || '-'}</td>
+                  <td data-label="Actions" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }} className="actions-cell">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-warning me-2"
+                      onClick={() => handleEditWorkExperience(index)}
+                      title="Edit"
+                    >
+                      <span className="btn-icon">✏️</span>
+                      <span className="btn-text">Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger"
+                      onClick={() => handleDeleteWorkExperience(index)}
+                      title="Delete"
+                    >
+                      <span className="btn-icon">🗑️</span>
+                      <span className="btn-text">Delete</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {showValidation && isRequired && workExperience.length === 0 && (
         <small className="text-danger d-block mb-2">

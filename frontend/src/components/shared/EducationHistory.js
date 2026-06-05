@@ -100,55 +100,8 @@ const EducationHistory = ({
         📚 Education History {isRequired && <span className="text-danger">*</span>}
       </h5>
 
-      {/* Saved Education Entries */}
-      {educationHistory.length > 0 && (
-        <div className="mb-3 table-container-scroll">
-          <table className="table table-bordered table-stacked" style={{ backgroundColor: 'var(--surface-color, #fff)', borderColor: 'var(--border-color, #dee2e6)' }}>
-            <thead style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', borderColor: 'var(--border-color, #dee2e6)' }}>
-              <tr>
-                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Level</th>
-                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Degree</th>
-                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Institution</th>
-                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {educationHistory.map((edu, index) => (
-                <tr key={index}>
-                  <td data-label="Level" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.level}</td>
-                  <td data-label="Degree" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.degree}</td>
-                  <td data-label="Institution" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.institution}</td>
-                  <td data-label="Actions" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }} className="actions-cell">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-warning me-2"
-                      onClick={() => handleEditEducation(index)}
-                      title="Edit"
-                    >
-                      <span className="btn-icon">✏️</span>
-                      <span className="btn-text">Edit</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-danger"
-                      onClick={() => handleDeleteEducation(index)}
-                      title="Delete"
-                    >
-                      <span className="btn-icon">🗑️</span>
-                      <span className="btn-text">Delete</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
       {/* Add/Edit Education Form */}
-      <div className="card p-3 mb-3" style={{ backgroundColor: 'var(--surface-color, #f8f9fa)' }}>
-        <h6 className="mb-3">{editingIndex !== null ? 'Edit' : 'Add'} Education Entry</h6>
-
+      <div className="mb-3">
         <div className="row mb-3">
           <div className="col-md-4">
             <label className="form-label">Education Level <span className="text-danger">*</span></label>
@@ -194,10 +147,10 @@ const EducationHistory = ({
           <div className="col-md-2 d-flex align-items-end justify-content-center">
             <button
               type="button"
-              className={`btn btn-primary btn-square-action ${editingIndex === null ? 'btn-add-entry' : ''}`}
+              className="btn btn-warning btn-square-action btn-edu-add-action"
               onClick={handleAddEducation}
             >
-              <span className="btn-icon" style={{ fontSize: '24px' }}>{editingIndex !== null ? '✓' : '+'}</span>
+              <span className="btn-edu-add-label">{editingIndex !== null ? 'Update Education' : 'Add Education'}</span>
             </button>
           </div>
         </div>
@@ -214,6 +167,51 @@ const EducationHistory = ({
           </div>
         )}
       </div>
+
+      {/* Saved Education Entries */}
+      {educationHistory.length > 0 && (
+        <div className="mb-3 table-container-scroll">
+          <table className="table table-bordered table-stacked" style={{ backgroundColor: 'var(--surface-color, #fff)', borderColor: 'var(--border-color, #dee2e6)' }}>
+            <thead style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', borderColor: 'var(--border-color, #dee2e6)' }}>
+              <tr>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Level</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Degree</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Institution</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {educationHistory.map((edu, index) => (
+                <tr key={index}>
+                  <td data-label="Level" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.level}</td>
+                  <td data-label="Degree" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.degree}</td>
+                  <td data-label="Institution" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.institution}</td>
+                  <td data-label="Actions" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }} className="actions-cell">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-warning me-2"
+                      onClick={() => handleEditEducation(index)}
+                      title="Edit"
+                    >
+                      <span className="btn-icon">✏️</span>
+                      <span className="btn-text">Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger"
+                      onClick={() => handleDeleteEducation(index)}
+                      title="Delete"
+                    >
+                      <span className="btn-icon">🗑️</span>
+                      <span className="btn-text">Delete</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {showValidation && isRequired && educationHistory.length === 0 && (
         <small className="text-danger d-block mb-2">
