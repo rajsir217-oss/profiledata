@@ -5,6 +5,85 @@
   gap: 12px;
 }
 
+.dv2-conv-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dv2-chip-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dv2-chip-help-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #e5e5e5);
+  background: var(--surface-color, #fff);
+  color: var(--text-muted, #888);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.dv2-chip-help-btn:focus-visible {
+  outline: 2px solid var(--primary-color, #d4736a);
+  outline-offset: 2px;
+}
+
+.dv2-chip-help-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 15;
+  min-width: 220px;
+  padding: 10px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-color, #e5e5e5);
+  background: var(--surface-color, #fff);
+  color: var(--text-color, #222);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.dv2-chip-help:hover .dv2-chip-help-tooltip,
+.dv2-chip-help:focus-within .dv2-chip-help-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.dv2-chip-help-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted, #888);
+}
+
+@media (max-width: 640px) {
+  .dv2-chip-help-tooltip {
+    left: auto;
+    right: 0;
+    min-width: 200px;
+  }
+}
+
 .dv2-link {
   background: transparent;
   border: none;
@@ -109,6 +188,45 @@
   font-size: 12px;
   color: var(--text-muted, #888);
   flex-shrink: 0;
+}
+
+.dv2-conv-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dv2-conv-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  line-height: 1.2;
+}
+
+.dv2-conv-chip.is-new {
+  background: var(--status-chip-new-bg, var(--surface-color));
+  color: var(--status-chip-new-text, var(--primary-color));
+  border-color: var(--status-chip-new-border, var(--border-color));
+}
+
+.dv2-conv-chip.is-unread {
+  background: var(--status-chip-unread-bg, var(--surface-color));
+  color: var(--status-chip-unread-text, var(--primary-color));
+  border-color: var(--status-chip-unread-border, var(--border-color));
+}
+
+.dv2-conv-chip.is-pending {
+  background: var(--status-chip-pending-bg, var(--surface-color));
+  color: var(--status-chip-pending-text, var(--text-color));
+  border-color: var(--status-chip-pending-border, var(--border-color));
 }
 
 .dv2-conv-bottom {

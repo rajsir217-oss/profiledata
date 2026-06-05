@@ -7,6 +7,8 @@ import ChatWindow from '../../../components/ChatWindow';
 import { getImageUrl } from '../../../utils/urlHelper';
 import './RecentConversations.css';
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 const getAvatarUrl = (userProfile) => {
   if (!userProfile) return null;
   const img =
@@ -24,6 +26,36 @@ const getInitials = (userProfile, username) => {
   return (username || '?').slice(0, 2).toUpperCase();
 };
 
+const toEpochMs = (value) => {
+  if (!value) {
+    return 0;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const getConversationChip = (conversation, unattendedByUsername) => {
+  const unreadCount = conversation?.unreadCount ?? 0;
+  const username = conversation?.username;
+  const lastMessageEpoch = toEpochMs(conversation?.lastMessageTime);
+  const isNewUnread = unreadCount > 0 && lastMessageEpoch > 0 && (Date.now() - lastMessageEpoch) <= ONE_DAY_MS;
+
+  if (isNewUnread) {
+    return { label: 'NEW', className: 'is-new' };
+  }
+
+  if (username && unattendedByUsername[username]) {
+    return { label: 'PENDING REPLY', className: 'is-pending' };
+  }
+
+  if (unreadCount > 0) {
+    return { label: 'UNREAD', className: 'is-unread' };
+  }
+
+  return null;
+};
+
 const RecentConversations = ({ conversations }) => {
   const navigate = useNavigate();
 
@@ -38,6 +70,29 @@ const RecentConversations = ({ conversations }) => {
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [conversationError, setConversationError] = useState(null);
   const [failedAvatars, setFailedAvatars] = useState({});
+  const [unattendedByUsername, setUnattendedByUsername] = useState({});
+
+  const loadConversationMessages = useCallback(
+    async (username) => {
+      if (!username || !currentUsername) return;
+
+      setLoadingConversation(true);
+      setConversationError(null);
+      try {
+        const response = await api.get(
+          `/messages/conversation/${encodeURIComponent(username)}?username=${encodeURIComponent(currentUsername)}`
+        );
+        setMessages(response.data?.messages || []);
+      } catch (err) {
+        setConversationError(
+          err?.response?.data?.detail || err?.message || 'Failed to load conversation'
+        );
+      } finally {
+        setLoadingConversation(false);
+      }
+    },
+    [currentUsername]
+  );
 
   const rows = useMemo(() => {
     const list = Array.isArray(conversations) ? conversations : [];
@@ -74,31 +129,56 @@ const RecentConversations = ({ conversations }) => {
     if (!activeUsername || !currentUsername) return;
 
     let cancelled = false;
+
     const loadConversation = async () => {
-      setLoadingConversation(true);
-      setConversationError(null);
-      try {
-        const response = await api.get(
-          `/messages/conversation/${encodeURIComponent(activeUsername)}?username=${encodeURIComponent(currentUsername)}`
-        );
-        if (cancelled) return;
-        setMessages(response.data?.messages || []);
-      } catch (err) {
-        if (cancelled) return;
-        setConversationError(
-          err?.response?.data?.detail || err?.message || 'Failed to load conversation'
-        );
-      } finally {
-        if (cancelled) return;
-        setLoadingConversation(false);
-      }
+      await loadConversationMessages(activeUsername);
+      if (cancelled) return;
     };
 
     loadConversation();
     return () => {
       cancelled = true;
     };
-  }, [activeUsername, currentUsername]);
+  }, [activeUsername, currentUsername, loadConversationMessages]);
+
+  useEffect(() => {
+    if (!currentUsername) {
+      setUnattendedByUsername({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadUnattendedConversations = async () => {
+      try {
+        const response = await api.get('/messages/unattended');
+        const unattendedConversations = response.data?.conversations || [];
+        const nextMap = unattendedConversations.reduce((acc, item) => {
+          const username = item?.sender?.username;
+          if (username) {
+            acc[username] = item;
+          }
+          return acc;
+        }, {});
+
+        if (!cancelled) {
+          setUnattendedByUsername(nextMap);
+        }
+      } catch (_) {
+        if (!cancelled) {
+          setUnattendedByUsername({});
+        }
+      }
+    };
+
+    loadUnattendedConversations();
+    const pollInterval = setInterval(loadUnattendedConversations, 60000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(pollInterval);
+    };
+  }, [currentUsername]);
 
   useEffect(() => {
     if (!activeUsername || !currentUsername) return;
@@ -165,10 +245,49 @@ const RecentConversations = ({ conversations }) => {
     [activeUsername, currentUsername]
   );
 
+  const handleMessageDeleted = useCallback(
+    async (messageId) => {
+      const deletedId = String(messageId);
+      setMessages((prev) =>
+        prev.filter((msg) => String(msg?._id || msg?.id || '') !== deletedId)
+      );
+
+      if (activeUsername) {
+        await loadConversationMessages(activeUsername);
+      }
+    },
+    [activeUsername, loadConversationMessages]
+  );
+
   return (
     <section className="dv2-conversations">
       <div className="dv2-conv-header">
-        <h2 className="dv2-section-title">Recent conversations</h2>
+        <div className="dv2-conv-title-wrap">
+          <h2 className="dv2-section-title">Recent conversations</h2>
+          <div className="dv2-chip-help">
+            <button
+              className="dv2-chip-help-btn"
+              type="button"
+              aria-label="Message status legend"
+            >
+              i
+            </button>
+            <div className="dv2-chip-help-tooltip" role="tooltip">
+              <div className="dv2-chip-help-row">
+                <span className="dv2-conv-chip is-new">NEW</span>
+                <span>Unread in last 24h</span>
+              </div>
+              <div className="dv2-chip-help-row">
+                <span className="dv2-conv-chip is-unread">UNREAD</span>
+                <span>Unread older message</span>
+              </div>
+              <div className="dv2-chip-help-row">
+                <span className="dv2-conv-chip is-pending">PENDING REPLY</span>
+                <span>Waiting for your response</span>
+              </div>
+            </div>
+          </div>
+        </div>
         <button className="dv2-link" type="button" onClick={() => navigate('/messages')}>
           Open inbox
         </button>
@@ -184,6 +303,7 @@ const RecentConversations = ({ conversations }) => {
             const initials = getInitials(c.userProfile, other);
             const time = c.lastMessageTime ? formatRelativeTime(c.lastMessageTime) : '';
             const showAvatar = Boolean(avatarUrl) && !failedAvatars?.[other];
+            const chip = getConversationChip(c, unattendedByUsername);
             return (
               <React.Fragment key={other}>
                 <button
@@ -210,7 +330,12 @@ const RecentConversations = ({ conversations }) => {
                           ? `${c.userProfile.firstName} ${c.userProfile?.lastName || ''}`.trim()
                           : other}
                       </span>
-                      <span className="dv2-conv-time">{time}</span>
+                      <div className="dv2-conv-meta">
+                        {chip ? (
+                          <span className={`dv2-conv-chip ${chip.className}`}>{chip.label}</span>
+                        ) : null}
+                        <span className="dv2-conv-time">{time}</span>
+                      </div>
                     </div>
                     <div className="dv2-conv-bottom">
                       <span className="dv2-conv-snippet">{c.lastMessage || ''}</span>
@@ -253,6 +378,7 @@ const RecentConversations = ({ conversations }) => {
                             currentUsername={currentUsername}
                             otherUser={activeProfile}
                             onSendMessage={handleSendMessage}
+                            onMessageDeleted={handleMessageDeleted}
                           />
                         )
                       ) : null}
