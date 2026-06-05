@@ -765,11 +765,20 @@ async def archive_interest(
     if not interest:
         raise HTTPException(status_code=404, detail="Interest not found")
 
-    # Only allow archiving invited interests
-    if interest.get("status") != "invited":
+    # Allow archiving if status is invited OR there is an existing active invitation for this email.
+    has_active_invitation = False
+    email = (interest.get("email") or "").lower().strip()
+    if email:
+        existing_inv = await db.invitations.find_one({
+            "email": email,
+            "archived": False
+        })
+        has_active_invitation = existing_inv is not None
+
+    if interest.get("status") != "invited" and not has_active_invitation:
         raise HTTPException(
             status_code=400,
-            detail="Can only archive interests with 'invited' status"
+            detail="Can only archive interests with 'invited' status or an existing invitation"
         )
 
     now = datetime.utcnow()
