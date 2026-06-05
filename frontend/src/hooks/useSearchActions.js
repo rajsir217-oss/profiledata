@@ -247,6 +247,11 @@ export const useSearchActions = (searchState, userState, filterState) => {
       delete criteriaWithHeightInches.heightMinInches;
       delete criteriaWithHeightInches.heightMaxFeet;
       delete criteriaWithHeightInches.heightMaxInches;
+
+      // Prefer modern multi-select locations over legacy single location.
+      if (Array.isArray(criteriaWithHeightInches.locations) && criteriaWithHeightInches.locations.length > 0) {
+        delete criteriaWithHeightInches.location;
+      }
       
       // Add basic criteria
       Object.entries(criteriaWithHeightInches).forEach(([key, value]) => {

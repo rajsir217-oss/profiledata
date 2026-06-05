@@ -21,6 +21,7 @@ export const useSearchState = () => {
     heightMax: '', // Computed total inches for API
     locations: [], // Multi-select locations array
     location: '', // Single location (legacy compatibility)
+    state: '',
     occupation: '', // Single occupation (legacy)
     occupations: [], // Multi-select occupations array (new)
     maritalStatus: '',
@@ -158,6 +159,7 @@ export const useSearchState = () => {
       heightMaxFeet: '',
       heightMaxInches: '',
       locations: [],
+      state: '',
       occupation: '',
       occupations: [],
       maritalStatus: '',

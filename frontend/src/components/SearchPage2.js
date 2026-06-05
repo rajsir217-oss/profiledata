@@ -193,6 +193,11 @@ const SearchPage2 = () => {
     title: '',
     message: ''
   });
+  const [nearMeExecutionContext, setNearMeExecutionContext] = useState({
+    visible: false,
+    type: 'info',
+    message: ''
+  });
   const nearMeStatusTimerRef = useRef(null);
   
   // Modal state
@@ -958,11 +963,37 @@ const SearchPage2 = () => {
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     logger.info(`🔧 Input changed: ${name} = ${value}`);
-    setSearchCriteria(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : (name === 'daysBack' ? normalizeDaysBackValue(value, prev.daysBack ?? 30) : value)
-    }));
+    setSearchCriteria(prev => {
+      const normalizedValue = type === 'checkbox'
+        ? checked
+        : (name === 'daysBack' ? normalizeDaysBackValue(value, prev.daysBack ?? 30) : value);
+
+      const next = {
+        ...prev,
+        [name]: normalizedValue
+      };
+
+      if (name === 'locations') {
+        next.location = '';
+      }
+
+      if (name === 'state' && !normalizedValue) {
+        next.location = '';
+      }
+
+      return next;
+    });
+    setNearMeExecutionContext((prev) => ({ ...prev, visible: false, message: '' }));
   };
+
+  const handlePrimarySearch = useCallback(() => {
+    setNearMeExecutionContext((prev) => ({ ...prev, visible: false, message: '' }));
+    handleSearchHook(1);
+  }, [handleSearchHook]);
+
+  const clearNearMeExecutionContext = useCallback(() => {
+    setNearMeExecutionContext((prev) => ({ ...prev, visible: false, message: '' }));
+  }, []);
 
   // Calculate default search criteria from user profile and partnerCriteria
   // Delegates to shared buildDefaultCriteria utility
@@ -972,7 +1003,7 @@ const SearchPage2 = () => {
     return defaults;
   };
 
-  const buildPartnerCriteriaPayload = useCallback((defaults, city = '') => ({
+  const buildPartnerCriteriaPayload = useCallback((defaults, city = '', state = '') => ({
     keyword: '',
     profileId: '',
     gender: defaults.gender || '',
@@ -986,6 +1017,7 @@ const SearchPage2 = () => {
     heightMaxInches: defaults.heightMaxInches || '',
     location: city,
     locations: city ? [city] : [],
+    state,
     education: '',
     occupation: '',
     occupations: [],
@@ -1016,6 +1048,10 @@ const SearchPage2 = () => {
       delete criteria.location;
     } else if (!criteria.locations) {
       criteria.locations = [];
+    }
+
+    if (!criteria.state) {
+      criteria.state = '';
     }
 
     const criteriaWithDefaults = {
@@ -1083,12 +1119,14 @@ const SearchPage2 = () => {
     setLoadingMore(false);
     setHasMoreResults(false);
 
+    clearNearMeExecutionContext();
     handleSearchHook(1, minMatchScore, searchCriteria, {
       sortBy: nextSortBy,
       sortOrder: nextSortOrder
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [
+    clearNearMeExecutionContext,
     getDefaultSortOrderForField,
     handleSearchHook,
     minMatchScore,
@@ -1140,9 +1178,10 @@ const SearchPage2 = () => {
         setSelectedSearch(null);
       }
     }
+    clearNearMeExecutionContext();
     handleSearchHook(1, minMatchScore, nextCriteria);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [handleSearchHook, minMatchScore, searchCriteria, setSearchCriteria, selectedSearch]);
+  }, [clearNearMeExecutionContext, handleSearchHook, minMatchScore, searchCriteria, setSearchCriteria, selectedSearch]);
 
   const handleClearFilters = () => {
     // Admin: Clear all fields (widest search)
@@ -1165,6 +1204,7 @@ const SearchPage2 = () => {
         heightMaxInches: '',
         location: '',
         locations: [],
+        state: '',
         education: '',
         occupation: '',
         occupations: [],
@@ -1179,6 +1219,7 @@ const SearchPage2 = () => {
         daysBack: 0,
         hasPhoto: true
       });
+      setNearMeExecutionContext((prev) => ({ ...prev, visible: false, message: '' }));
       logger.info('🧹 Admin: Cleared all search filters');
     } else {
       // NON-ADMIN: Reset to partner criteria defaults (smart defaults)
@@ -1196,6 +1237,7 @@ const SearchPage2 = () => {
         heightMaxInches: defaults.heightMaxInches,
         location: '',
         locations: [],
+        state: '',
         education: '',
         occupation: '',
         occupations: [],
@@ -1210,6 +1252,7 @@ const SearchPage2 = () => {
         daysBack: defaults.daysBack ?? 0,
         hasPhoto: true
       });
+      setNearMeExecutionContext((prev) => ({ ...prev, visible: false, message: '' }));
       logger.info('🔄 Non-admin: Reset to partner criteria defaults:', defaults);
     }
     
@@ -1248,8 +1291,9 @@ const SearchPage2 = () => {
     setShowSavedSearches(false);
     toastService.info(`📂 Loaded saved search: "${savedSearch.name}"`);
 
+    clearNearMeExecutionContext();
     handleSearchHook(1, loadedMinScore, criteriaWithDefaults);
-  }, [handleSearchHook, normalizeCriteriaForSearch]);
+  }, [clearNearMeExecutionContext, handleSearchHook, normalizeCriteriaForSearch]);
 
   const executeDefaultSavedOrPartnerSearch = useCallback(async () => {
     try {
@@ -1261,6 +1305,7 @@ const SearchPage2 = () => {
         setSearchCriteria(normalizedCriteria);
         setMinMatchScore(loadedMinScore);
         setSelectedSearch(defaultSearch);
+        clearNearMeExecutionContext();
         handleSearchHook(1, loadedMinScore, normalizedCriteria);
         return;
       }
@@ -1273,10 +1318,11 @@ const SearchPage2 = () => {
     setSearchCriteria(fallbackCriteria);
     setMinMatchScore(0);
     setSelectedSearch(null);
+    clearNearMeExecutionContext();
     handleSearchHook(1, 0, fallbackCriteria);
-  }, [buildPartnerCriteriaPayload, getDefaultSearchCriteria, handleSearchHook, normalizeCriteriaForSearch]);
+  }, [buildPartnerCriteriaPayload, clearNearMeExecutionContext, getDefaultSearchCriteria, handleSearchHook, normalizeCriteriaForSearch]);
 
-  const reverseGeocodeCity = useCallback(async (lat, lon) => {
+  const reverseGeocodeLocation = useCallback(async (lat, lon) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
     try {
@@ -1290,24 +1336,30 @@ const SearchPage2 = () => {
           }
         }
       );
-      if (!response.ok) return '';
+      if (!response.ok) return { city: '', state: '' };
       const data = await response.json();
       const address = data?.address || {};
-      return (
+      const city = (
         address.city ||
         address.town ||
         address.village ||
         address.municipality ||
-        address.state ||
         ''
       );
+      const state = address.state || '';
+      return { city, state };
     } catch (err) {
       logger.warn('Reverse geocode failed for New Me:', err);
-      return '';
+      return { city: '', state: '' };
     } finally {
       clearTimeout(timeoutId);
     }
   }, []);
+
+  const reverseGeocodeCity = useCallback(async (lat, lon) => {
+    const locationData = await reverseGeocodeLocation(lat, lon);
+    return locationData.city;
+  }, [reverseGeocodeLocation]);
 
   const sampleCitiesWithinRadius = useCallback(async (lat, lon, radiusMiles = 100) => {
     const toRad = (deg) => (deg * Math.PI) / 180;
@@ -1459,6 +1511,63 @@ const SearchPage2 = () => {
     };
   }, []);
 
+  const buildNearMeSearchParams = useCallback((criteria, page = 1, limit = 20) => {
+    const query = new URLSearchParams();
+    const payload = { ...criteria };
+
+    if (payload.heightMinFeet && payload.heightMinInches !== undefined) {
+      const feet = parseInt(payload.heightMinFeet, 10) || 0;
+      const inches = parseInt(payload.heightMinInches, 10) || 0;
+      payload.heightMin = feet * 12 + inches;
+    }
+
+    if (payload.heightMaxFeet && payload.heightMaxInches !== undefined) {
+      const feet = parseInt(payload.heightMaxFeet, 10) || 0;
+      const inches = parseInt(payload.heightMaxInches, 10) || 0;
+      payload.heightMax = feet * 12 + inches;
+    }
+
+    delete payload.heightMinFeet;
+    delete payload.heightMinInches;
+    delete payload.heightMaxFeet;
+    delete payload.heightMaxInches;
+
+    if (Array.isArray(payload.locations) && payload.locations.length > 0) {
+      delete payload.location;
+    }
+
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value === '' || value === null || value === undefined) {
+        return;
+      }
+
+      if (Array.isArray(value)) {
+        value.forEach((item) => query.append(key, item));
+      } else {
+        query.append(key, value);
+      }
+    });
+
+    query.append('page', String(page));
+    query.append('limit', String(limit));
+    query.append('sortBy', sortBy);
+    query.append('sortOrder', sortOrder);
+
+    return query;
+  }, [sortBy, sortOrder]);
+
+  const probeNearMeSearchCount = useCallback(async (criteria) => {
+    try {
+      const probeParams = buildNearMeSearchParams(criteria, 1, 1);
+      const response = await api.get(`/search?${probeParams.toString()}`);
+      const total = Number(response?.data?.total ?? 0);
+      return Number.isNaN(total) ? 0 : total;
+    } catch (error) {
+      logger.warn('Near Me probe search failed; skipping probe fallback', error);
+      return null;
+    }
+  }, [buildNearMeSearchParams]);
+
   const handleNewMeSearch = useCallback(async (radiusMiles = 100) => {
     if (isNearMeLoading) {
       toastService.info('Near Me search is already in progress...');
@@ -1501,7 +1610,9 @@ const SearchPage2 = () => {
     try {
       const position = await getPosition();
       const { latitude, longitude } = position.coords;
-      const city = await reverseGeocodeCity(latitude, longitude);
+      const resolvedLocation = await reverseGeocodeLocation(latitude, longitude);
+      const city = resolvedLocation?.city || '';
+      const state = resolvedLocation?.state || '';
 
       if (!city) {
         toastService.info('Could not determine city from your location. Running your default search instead.');
@@ -1546,41 +1657,145 @@ const SearchPage2 = () => {
         });
       }
 
+      const normalizeLocationKey = (value) => String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9]+/g, ' ')
+        .trim()
+        .toLowerCase();
+
       const normalizedOptionLookup = new Map(
-        (locationOptions || []).map((opt) => [String(opt).trim().toLowerCase(), opt])
+        (locationOptions || [])
+          .map((opt) => {
+            const normalizedOpt = String(opt || '').trim();
+            if (!normalizedOpt) return null;
+            return [normalizeLocationKey(normalizedOpt), normalizedOpt];
+          })
+          .filter(Boolean)
       );
+
       const cityCandidates = [city, ...nearbyCities]
         .map((c) => String(c || '').trim())
         .filter(Boolean);
 
+      const canonicalBaseCity = normalizedOptionLookup.get(normalizeLocationKey(city)) || city;
       const dedupedCityMap = new Map();
+
       cityCandidates.forEach((candidate) => {
-        const key = candidate.toLowerCase();
-        if (!dedupedCityMap.has(key)) {
-          dedupedCityMap.set(key, normalizedOptionLookup.get(key) || candidate);
+        const normalizedKey = normalizeLocationKey(candidate);
+        if (!normalizedKey || dedupedCityMap.has(normalizedKey)) {
+          return;
+        }
+
+        if (normalizedOptionLookup.size > 0) {
+          const canonical = normalizedOptionLookup.get(normalizedKey);
+          if (canonical) {
+            dedupedCityMap.set(normalizedKey, canonical);
+          }
+          return;
+        }
+
+        if (candidate.toLowerCase() === city.toLowerCase()) {
+          dedupedCityMap.set(normalizedKey, candidate);
         }
       });
 
       const locationsWithinRadius = Array.from(dedupedCityMap.values());
-      const criteriaWithCity = buildPartnerCriteriaPayload(defaults, city);
-      criteriaWithCity.locations = locationsWithinRadius.length > 0 ? locationsWithinRadius : [city];
+      const criteriaWithCity = buildPartnerCriteriaPayload(defaults, canonicalBaseCity, state);
+      criteriaWithCity.location = '';
 
-      if (locationsWithinRadius.length === 0) {
-        logger.info('📍 Near Me: no nearby cities resolved; using base city fallback only', { baseCity: city });
+      // If Near Me only resolves one/no canonical city, avoid over-constraining.
+      // In that case, run state-wide search with defaults.
+      const uiLocations = locationsWithinRadius.length > 0 ? locationsWithinRadius : [canonicalBaseCity];
+      const searchLocations = locationsWithinRadius.length > 1 ? locationsWithinRadius : [];
+      const uiCriteria = {
+        ...criteriaWithCity,
+        locations: uiLocations
+      };
+      const criteriaForExecution = {
+        ...criteriaWithCity,
+        locations: searchLocations
+      };
+
+      let effectiveUiCriteria = uiCriteria;
+      let effectiveSearchCriteria = criteriaForExecution;
+      let fallbackToStateOnly = false;
+
+      if (criteriaForExecution.locations.length === 0) {
+        fallbackToStateOnly = true;
+        effectiveSearchCriteria = {
+          ...criteriaForExecution,
+          location: '',
+          locations: []
+        };
+        effectiveUiCriteria = {
+          ...uiCriteria,
+          location: '',
+          locations: []
+        };
+        logger.info('📍 Near Me: canonical nearby city list too small; falling back to state-wide search', {
+          baseCity: city,
+          state,
+          resolvedCities: locationsWithinRadius
+        });
+      } else if (criteriaForExecution.state) {
+        showNearMeStatus({
+          type: 'info',
+          title: 'Near Me search in progress',
+          message: `Searching with ${criteriaForExecution.state} + ${criteriaForExecution.locations.length} nearby location(s)...`
+        });
+
+        const stateAndLocationsCount = await probeNearMeSearchCount(criteriaForExecution);
+        if (stateAndLocationsCount === 0 || stateAndLocationsCount === null) {
+          fallbackToStateOnly = true;
+          showNearMeStatus({
+            type: 'warning',
+            title: stateAndLocationsCount === 0 ? 'No matches with state + locations' : 'Could not verify location matches',
+            message: stateAndLocationsCount === 0
+              ? `Found no profiles using ${criteriaForExecution.state} + nearby locations. Retrying with ${criteriaForExecution.state} only...`
+              : `Could not verify ${criteriaForExecution.state} + location results right now. Retrying with ${criteriaForExecution.state} only...`
+          });
+
+          effectiveSearchCriteria = {
+            ...criteriaForExecution,
+            location: '',
+            locations: []
+          };
+          effectiveUiCriteria = {
+            ...uiCriteria,
+            location: '',
+            locations: []
+          };
+        }
       }
-      logger.info(`📍 Near Me: applying ${criteriaWithCity.locations.length} location(s) to search`, {
-        locations: criteriaWithCity.locations
+      logger.info(`📍 Near Me: applying ${effectiveSearchCriteria.locations.length} location(s) to search`, {
+        baseCity: canonicalBaseCity,
+        state: effectiveSearchCriteria.state,
+        uiLocations: effectiveUiCriteria.locations,
+        searchLocations: effectiveSearchCriteria.locations,
+        fallbackToStateOnly
       });
 
-      setSearchCriteria(criteriaWithCity);
+      setSearchCriteria(effectiveUiCriteria);
       setMinMatchScore(0);
       setSelectedSearch(null);
-      handleSearchHook(1, 0, criteriaWithCity);
+      handleSearchHook(1, 0, effectiveSearchCriteria);
+
+      setNearMeExecutionContext({
+        visible: true,
+        type: fallbackToStateOnly ? 'warning' : 'info',
+        message: fallbackToStateOnly
+          ? `Near Me: no profiles with ${effectiveSearchCriteria.state} + locations, retried with ${effectiveSearchCriteria.state} only.`
+          : `Near Me: searching with ${effectiveSearchCriteria.state}${effectiveSearchCriteria.locations.length > 0 ? ` + ${effectiveSearchCriteria.locations.length} location(s)` : ''}.`
+      });
+
       toastService.success(`📍 Near Me is using ${city} + ${radiusMiles} mile radius`);
       showNearMeStatus({
         type: 'success',
         title: 'Near Me search started',
-        message: `${criteriaWithCity.locations.length} location(s) applied around ${city}.`
+        message: fallbackToStateOnly
+          ? `No profiles found with state + locations. Retried with ${effectiveSearchCriteria.state} only.`
+          : `${effectiveUiCriteria.locations.length} location(s) applied around ${city}${effectiveUiCriteria.state ? `, ${effectiveUiCriteria.state}` : ''}.`
       }, 7000);
     } catch (err) {
       logger.info('New Me location permission denied/unavailable, executing fallback search', err);
@@ -1593,7 +1808,7 @@ const SearchPage2 = () => {
     } finally {
       setIsNearMeLoading(false);
     }
-  }, [buildPartnerCriteriaPayload, executeDefaultSavedOrPartnerSearch, fetchNearbyCitiesWithinRadius, getDefaultSearchCriteria, handleSearchHook, isNearMeLoading, locationOptions, sampleCitiesWithinRadius, showNearMeStatus]);
+  }, [buildPartnerCriteriaPayload, executeDefaultSavedOrPartnerSearch, fetchNearbyCitiesWithinRadius, getDefaultSearchCriteria, handleSearchHook, isNearMeLoading, locationOptions, probeNearMeSearchCount, reverseGeocodeLocation, sampleCitiesWithinRadius, showNearMeStatus]);
 
   // Keep ref pointing at the latest handleLoadSavedSearch each render.
   handleLoadSavedSearchRef.current = handleLoadSavedSearch;
@@ -1969,6 +2184,11 @@ const SearchPage2 = () => {
           <div className="criteria-info">
             <span className="criteria-label">FILTERS:</span>
             <span className="criteria-value">{getActiveCriteriaSummary()}</span>
+            {nearMeExecutionContext.visible && nearMeExecutionContext.message ? (
+              <span className={`near-me-context-badge near-me-context-${nearMeExecutionContext.type}`}>
+                {nearMeExecutionContext.message}
+              </span>
+            ) : null}
           </div>
           <div className="criteria-actions">
             <span className="results-count">
@@ -1978,7 +2198,7 @@ const SearchPage2 = () => {
             <button className="btn-modify-search" onClick={(e) => { e.stopPropagation(); openFiltersPanel(); }}>
               <span className="modify-text">Modify </span><span className="modify-icon">⚙️</span>
             </button>
-            <button className="btn-modify-search" onClick={(e) => { e.stopPropagation(); handleSearchHook(1); }} title="Refresh search results">
+            <button className="btn-modify-search" onClick={(e) => { e.stopPropagation(); handlePrimarySearch(); }} title="Refresh search results">
               <span className="modify-text">Refresh </span><span className="modify-icon">🔄</span>
             </button>
           </div>
@@ -2006,7 +2226,7 @@ const SearchPage2 = () => {
                           handleInputChange={handleInputChange}
                           showAdvancedFilters={showAdvancedFilters}
                           setShowAdvancedFilters={setShowAdvancedFilters}
-                          onSearch={() => handleSearchHook(1)}
+                          onSearch={handlePrimarySearch}
                           onNewMe={handleNewMeSearch}
                           isNearMeLoading={isNearMeLoading}
                           onClear={handleClearFilters}

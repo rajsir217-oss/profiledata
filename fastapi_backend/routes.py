@@ -42,6 +42,38 @@ def get_username_query(username: str):
     """Create a case-insensitive MongoDB query for username"""
     return {"username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}}
 
+
+US_STATE_NAME_BY_CODE = {
+    "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas", "CA": "California",
+    "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "FL": "Florida", "GA": "Georgia",
+    "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa",
+    "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MD": "Maryland",
+    "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri",
+    "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey",
+    "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "OH": "Ohio",
+    "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island", "SC": "South Carolina",
+    "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont",
+    "VA": "Virginia", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming",
+    "DC": "District Of Columbia"
+}
+US_STATE_CODE_BY_NAME = {name.upper(): code for code, name in US_STATE_NAME_BY_CODE.items()}
+
+
+def get_us_state_variants(state_input: str) -> List[str]:
+    cleaned = re.sub(r"\s+", " ", (state_input or "")).strip()
+    if not cleaned:
+        return []
+
+    upper = cleaned.upper()
+    if upper in US_STATE_NAME_BY_CODE:
+        return [upper, US_STATE_NAME_BY_CODE[upper]]
+
+    mapped_code = US_STATE_CODE_BY_NAME.get(upper)
+    if mapped_code:
+        return [cleaned, mapped_code]
+
+    return [cleaned]
+
 # Helper function for safe JSON loading
 def safe_json_loads(value: Any) -> Any:
     """Safely load JSON string, return None or default if invalid or None"""
@@ -5108,6 +5140,7 @@ async def search_users(
     heightMin: int = 0,
     heightMax: int = 0,
     location: str = "",
+    state: str = "",
     locations: List[str] = Query(default=[]),  # Multi-select locations (repeated query params)
     occupation: str = "",
     occupations: List[str] = Query(default=[]),  # Multi-select occupations (repeated query params)
@@ -5262,13 +5295,26 @@ async def search_users(
 
         # Other filters
         # ⚠️ IMPORTANT: Can't search on encrypted location, search on city, state, and aboutYou instead
-        if location and location.strip():
+        if location and location.strip() and not locations:
             location_query = {"$or": [
                 {"city": {"$regex": location, "$options": "i"}},
                 {"state": {"$regex": location, "$options": "i"}},
                 {"aboutYou": {"$regex": location, "$options": "i"}}
             ]}
             and_conditions.append(location_query)
+
+        # Explicit state filter (AND-ed with other criteria)
+        if state and state.strip():
+            state_variants = get_us_state_variants(state)
+            if len(state_variants) > 1:
+                and_conditions.append({
+                    "$or": [
+                        {"state": {"$regex": f"^{re.escape(variant)}$", "$options": "i"}}
+                        for variant in state_variants
+                    ]
+                })
+            else:
+                and_conditions.append({"state": {"$regex": re.escape(state_variants[0]), "$options": "i"}})
         
         # Handle locations filtering - support both single and multi-select
         location_list = []
