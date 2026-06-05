@@ -167,6 +167,7 @@ const AdminRegistrationInterests = () => {
     const isLoading = !!actionLoading[id];
     const loadingAction = actionLoading[id];
     const actions = [];
+    const hasExistingInvitation = !!interest.invitationInfo;
 
     if (s === 'pending_review') {
       actions.push(
@@ -215,7 +216,7 @@ const AdminRegistrationInterests = () => {
       );
     }
 
-    if (s === 'invited') {
+    if (s === 'invited' || (!interest.archived && hasExistingInvitation)) {
       actions.push(
         <button key="archive" className="ari-action-btn ari-btn-secondary ari-btn-sm" onClick={() => handleArchive(id)} disabled={isLoading}>
           📦 Archive
