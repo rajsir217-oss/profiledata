@@ -2123,7 +2123,7 @@ const styles = StyleSheet.create({
   },
   iconButtonText: {
     fontSize: 13,
-    lineHeight: 16,
+    lineHeight: 14,
   },
   iconButtonBadge: {
     fontSize: 10,
@@ -2392,7 +2392,7 @@ const cardStyles = StyleSheet.create({
   },
   sectionTitle: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: 10,
     fontWeight: '700',
     marginBottom: 6,
     backgroundColor: 'rgba(30, 58, 138, 0.55)',
@@ -2400,28 +2400,28 @@ const cardStyles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 8,
     alignSelf: 'flex-start',
-    lineHeight: 19,
+    lineHeight: 14,
   },
   row: {
     marginTop: 5,
   },
   rowTitle: {
     color: '#60a5fa',
-    fontSize: 16,
+    fontSize: 10,
     fontWeight: '600',
-    lineHeight: 21,
+    lineHeight: 14,
   },
   rowText: {
     color: '#e2e8f0',
-    fontSize: 15,
+    fontSize: 9,
     marginTop: 2,
-    lineHeight: 20,
+    lineHeight: 13,
   },
   message: {
     marginTop: 12,
     color: '#f8fafc',
-    fontSize: 18,
-    lineHeight: 29,
+    fontSize: 12,
+    lineHeight: 21,
     fontStyle: 'italic',
   },
 });
