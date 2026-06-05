@@ -20,9 +20,31 @@ class EnvironmentManager:
         Returns: 'local', 'staging', or 'production'
         """
         # Check explicit environment variable first
-        env = os.environ.get('APP_ENVIRONMENT', '').lower()
-        if env:
-            return env
+        env_candidates = [
+            os.environ.get('APP_ENVIRONMENT', ''),
+            os.environ.get('ENV', ''),
+            os.environ.get('ENVIRONMENT', ''),
+            os.environ.get('NODE_ENV', ''),
+        ]
+        for raw_env in env_candidates:
+            env = (raw_env or '').strip().lower()
+            if not env:
+                continue
+
+            env_aliases = {
+                'dev': 'local',
+                'development': 'local',
+                'local': 'local',
+                'test': 'test',
+                'testing': 'test',
+                'stage': 'staging',
+                'staging': 'staging',
+                'prod': 'production',
+                'production': 'production',
+                'docker': 'docker',
+            }
+            if env in env_aliases:
+                return env_aliases[env]
             
         # Check if running on Google Cloud Run
         if os.environ.get('K_SERVICE'):

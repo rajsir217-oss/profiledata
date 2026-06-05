@@ -4,10 +4,14 @@ Generates short URLs to avoid carrier blocking
 """
 import secrets
 import string
+import logging
 from datetime import datetime
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class URLShortener:
@@ -28,34 +32,32 @@ class URLShortener:
         Returns:
             The complete short URL (e.g., 'https://yourdomain.com/s/abc123')
         """
-        # Generate short code if not provided
-        if custom_code:
-            short_code = custom_code
-        else:
-            short_code = self._generate_short_code()
-        
-        # Check if code already exists
-        existing = await self.collection.find_one({"shortCode": short_code})
-        if existing:
-            # If same URL, return existing
-            if existing.get("longUrl") == long_url:
-                return self._build_short_url(short_code)
+        try:
+            if custom_code:
+                short_code = custom_code
             else:
-                # Generate new code
                 short_code = self._generate_short_code()
-        
-        # Store in database
-        short_url_doc = {
-            "shortCode": short_code,
-            "longUrl": long_url,
-            "createdAt": datetime.utcnow(),
-            "clicks": 0,
-            "lastAccessed": None
-        }
-        
-        await self.collection.insert_one(short_url_doc)
-        
-        return self._build_short_url(short_code)
+
+            existing = await self.collection.find_one({"shortCode": short_code})
+            if existing:
+                if existing.get("longUrl") == long_url:
+                    return self._build_short_url(short_code)
+                short_code = self._generate_short_code()
+
+            short_url_doc = {
+                "shortCode": short_code,
+                "longUrl": long_url,
+                "createdAt": datetime.utcnow(),
+                "clicks": 0,
+                "lastAccessed": None
+            }
+
+            await self.collection.insert_one(short_url_doc)
+
+            return self._build_short_url(short_code)
+        except Exception as e:
+            logger.warning(f"⚠️ Short URL DB operation failed, using long URL fallback: {e}")
+            return long_url
     
     async def resolve_short_url(self, short_code: str) -> Optional[str]:
         """

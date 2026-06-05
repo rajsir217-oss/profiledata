@@ -1942,22 +1942,30 @@ async def get_share_url(
     """Generate (or return cached) short URL for a profile via is.gd."""
     import httpx
 
-    user = await db.users.find_one(
-        {"profileId": profile_id},
-        {"username": 1, "profileId": 1, "tinyUrl": 1}
-    )
-    if not user:
-        raise HTTPException(status_code=404, detail="Profile not found")
-
-    # Return cached URL if available (skip old tinyurl.com links)
-    cached = user.get("tinyUrl", "")
-    if cached and "tinyurl.com" not in cached:
-        return {"tinyUrl": cached}
-
-    # Build the long URL that the short URL should point to
     long_url = f"{settings.frontend_url}/p/{profile_id}"
 
+    def _is_valid_share_url(url: str) -> bool:
+        if not isinstance(url, str):
+            return False
+        parsed = urlparse(url.strip())
+        return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
     try:
+        user = await db.users.find_one(
+            {"profileId": profile_id},
+            {"username": 1, "profileId": 1, "tinyUrl": 1}
+        )
+        if not user:
+            raise HTTPException(status_code=404, detail="Profile not found")
+
+        cached = (user.get("tinyUrl") or "").strip()
+        if cached and not _is_valid_share_url(cached):
+            logger.warning(f"⚠️ Ignoring invalid cached tinyUrl for {user.get('username')}: {cached}")
+            cached = ""
+
+        if cached and "tinyurl.com" not in cached:
+            return {"tinyUrl": cached}
+
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(
                 "https://is.gd/create.php",
@@ -1965,6 +1973,9 @@ async def get_share_url(
             )
             resp.raise_for_status()
             short_url = resp.text.strip()
+
+        if not _is_valid_share_url(short_url):
+            raise ValueError(f"Short URL provider returned invalid URL: {short_url}")
 
         # Cache it in the user document
         await db.users.update_one(
@@ -1974,11 +1985,11 @@ async def get_share_url(
         logger.info(f"🔗 Generated short URL for {user['username']}: {short_url}")
         return {"tinyUrl": short_url}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.warning(f"⚠️ Short URL generation failed: {e}")
-        # Fallback: return the app's own short URL
-        fallback = f"{settings.frontend_url}/p/{profile_id}"
-        return {"tinyUrl": fallback}
+        return {"tinyUrl": long_url}
 
 @router.get("/user-activity-summary/{username}")
 async def get_user_activity_summary(
