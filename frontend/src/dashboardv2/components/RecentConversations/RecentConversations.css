@@ -302,16 +302,34 @@
 }
 
 .dv2-conv-drawer-close {
-  width: 34px;
-  height: 34px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
-  border: 1px solid var(--border-color, #e5e5e5);
-  background: var(--surface-color, #fff);
+  border: 1px solid var(--primary-color, #d4736a);
+  background: var(--primary-color, #d4736a);
+  color: var(--button-primary-text, #fff);
   cursor: pointer;
-  font: inherit;
-  font-size: 18px;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+}
+
+.dv2-conv-drawer-close:hover {
+  filter: brightness(0.95);
+}
+
+.dv2-conv-drawer-close:focus-visible {
+  outline: 2px solid var(--primary-color, #d4736a);
+  outline-offset: 2px;
 }
 
 .dv2-conv-drawer-body {
