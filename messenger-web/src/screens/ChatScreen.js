@@ -81,74 +81,92 @@ function ProfileCard({ card, isOwn, onUsernameClick, onMenuOpen, isFavorited, cu
       ? '👩 Female'
       : `⚧ ${card.sex || card.gender}`
   ) : '❓ Unknown';
-  const pills = [
-    card.age ? `👋 ${card.age} yrs` : null,
+  const rawDisplayName = String(card.fullName || card.username || 'Unknown').trim();
+  const displayName = rawDisplayName.split(/\s+/)[0] || rawDisplayName;
+  const primaryPills = [
     dobPill,
+    card.age ? `👋 ${card.age} yrs` : null,
     card.height ? `📏 ${card.height}` : null,
-    genderPill,
   ].filter(Boolean);
   // Subline shows just the user's location (city) — `education` / `occupation`
   // would duplicate what's already in the Education History / Work Experience
   // sections below, and the underlying profile schema doesn't have flat
   // top-level versions of those fields anyway.
   const subline = card.location || '';
+  const secondaryPills = [
+    genderPill,
+    subline || null,
+  ].filter(Boolean);
   return (
     <View style={[cardStyles.card, isOwn && cardStyles.cardOwn]}>
-      <View style={cardStyles.headerRow}>
-        {avatarUri ? (
-          <Image source={{ uri: avatarUri }} style={cardStyles.avatar} />
-        ) : (
-          <View style={[cardStyles.avatar, cardStyles.avatarFallback]}>
-            <Text style={cardStyles.avatarFallbackText}>
-              {(card.fullName || card.username || '?').charAt(0).toUpperCase()}
-            </Text>
+      <View style={cardStyles.cardInner}>
+        <View style={cardStyles.heroImageWrap}>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={cardStyles.avatar} />
+          ) : (
+            <View style={[cardStyles.avatar, cardStyles.avatarFallback]}>
+              <Text style={cardStyles.avatarFallbackText}>
+                {(card.fullName || card.username || '?').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={cardStyles.headerRow}>
+          <View style={cardStyles.nameBlock}>
+            <TouchableOpacity
+              style={cardStyles.nameTouchable}
+              onPress={() => card.username && onUsernameClick && onUsernameClick(card.username)}
+              activeOpacity={card.username ? 0.7 : 1}
+            >
+              <Text style={cardStyles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+                {displayName}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={cardStyles.headerActions}>
+            {isFavorited && <Text style={cardStyles.heartEmoji}>❤️</Text>}
+            {!isOwn && onMenuOpen && (() => {
+              const normalizeGender = (g) => g ? String(g).trim().toLowerCase() : '';
+              const currentG = normalizeGender(currentUserGender);
+              const cardG = normalizeGender(card.gender || card.sex);
+              const isMale = ['male', 'm', 'man'].includes(currentG);
+              const cardIsMale = ['male', 'm', 'man'].includes(cardG);
+              const isFemale = ['female', 'f', 'woman'].includes(currentG);
+              const cardIsFemale = ['female', 'f', 'woman'].includes(cardG);
+              return !currentG || !cardG || (isMale && cardIsFemale) || (isFemale && cardIsMale);
+            })() && (
+              <TouchableOpacity
+                style={cardStyles.menuButton}
+                onPress={() => onMenuOpen(card)}
+                activeOpacity={0.7}
+              >
+                <Text style={cardStyles.menuButtonText}>⋮</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {primaryPills.length > 0 && (
+          <View style={cardStyles.pillRow}>
+            {primaryPills.map((p, i) => (
+              <View key={i} style={cardStyles.pill}>
+                <Text style={cardStyles.pillText}>{p}</Text>
+              </View>
+            ))}
           </View>
         )}
-        <View style={cardStyles.headerText}>
-          <TouchableOpacity
-            onPress={() => card.username && onUsernameClick && onUsernameClick(card.username)}
-            activeOpacity={card.username ? 0.7 : 1}
-          >
-            <Text style={cardStyles.name}>{card.fullName || card.username}</Text>
-          </TouchableOpacity>
-          {pills.length > 0 && (
-            <View style={cardStyles.pillRow}>
-              {pills.map((p, i) => (
-                <View key={i} style={cardStyles.pill}>
-                  <Text style={cardStyles.pillText}>{p}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-          {subline ? (
-            <View style={cardStyles.subPill}>
-              <Text style={cardStyles.subPillText}>{subline}</Text>
-            </View>
-          ) : null}
-        </View>
-        <View style={cardStyles.headerActions}>
-          {isFavorited && <Text style={cardStyles.heartEmoji}>❤️</Text>}
-          {!isOwn && onMenuOpen && (() => {
-            const normalizeGender = (g) => g ? String(g).trim().toLowerCase() : '';
-            const currentG = normalizeGender(currentUserGender);
-            const cardG = normalizeGender(card.gender || card.sex);
-            const isMale = ['male', 'm', 'man'].includes(currentG);
-            const cardIsMale = ['male', 'm', 'man'].includes(cardG);
-            const isFemale = ['female', 'f', 'woman'].includes(currentG);
-            const cardIsFemale = ['female', 'f', 'woman'].includes(cardG);
-            // Show menu if either gender is missing OR if genders are opposite
-            return !currentG || !cardG || (isMale && cardIsFemale) || (isFemale && cardIsMale);
-          })() && (
-            <TouchableOpacity
-              style={cardStyles.menuButton}
-              onPress={() => onMenuOpen(card)}
-              activeOpacity={0.7}
-            >
-              <Text style={cardStyles.menuButtonText}>⋮</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+
+        {secondaryPills.length > 0 && (
+          <View style={cardStyles.pillRow}>
+            {secondaryPills.map((p, i) => (
+              <View key={i} style={cardStyles.subPill}>
+                <Text style={cardStyles.subPillText}>{p}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
       {Array.isArray(card.educationHistory) && card.educationHistory.length > 0 && (
         <View style={cardStyles.section}>
@@ -200,6 +218,7 @@ function ProfileCard({ card, isOwn, onUsernameClick, onMenuOpen, isFavorited, cu
       {card.message ? (
         <Text style={cardStyles.message}>{card.message}</Text>
       ) : null}
+      </View>
     </View>
   );
 }
@@ -2220,30 +2239,40 @@ const styles = StyleSheet.create({
 // is self-contained and easy to extract into its own component later.
 const cardStyles = StyleSheet.create({
   card: {
-    backgroundColor: '#0f1a33',
+    backgroundColor: '#e94477',
     borderWidth: 1,
-    borderColor: '#1e3a5f',
-    borderRadius: 12,
-    padding: 12,
+    borderColor: '#f472b6',
+    borderRadius: 24,
+    padding: 14,
     marginTop: 4,
     alignSelf: 'stretch',
     width: '100%',
   },
   cardOwn: {
-    backgroundColor: '#102043',
-    borderColor: '#1e3a5f',
+    backgroundColor: '#d63f6f',
+    borderColor: '#fb7185',
+  },
+  cardInner: {
+    backgroundColor: '#11244f',
+    borderWidth: 1,
+    borderColor: '#1f3f7a',
+    borderRadius: 18,
+    padding: 12,
+  },
+  heroImageWrap: {
+    marginBottom: 10,
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
   avatar: {
-    width: 120,
-    height: 120,
+    width: '100%',
+    height: 170,
     borderRadius: 12,
-    marginRight: 12,
-    backgroundColor: '#1e3a5f',
+    backgroundColor: '#1b3567',
   },
   avatarFallback: {
     alignItems: 'center',
@@ -2254,8 +2283,16 @@ const cardStyles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
   },
-  headerText: {
+  nameBlock: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+    minWidth: 0,
+  },
+  nameTouchable: {
+    flexShrink: 1,
+    maxWidth: '72%',
   },
   headerActions: {
     flexDirection: 'row',
@@ -2266,96 +2303,108 @@ const cardStyles = StyleSheet.create({
     marginRight: 8,
   },
   menuButton: {
-    padding: 8,
-    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 6,
     alignSelf: 'flex-start',
+    backgroundColor: 'rgba(10, 18, 41, 0.85)',
+    borderRadius: 8,
   },
   menuButtonText: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '300',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   name: {
     color: '#fff',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
-    marginBottom: 6,
+    marginRight: 8,
+    flexShrink: 1,
+  },
+  username: {
+    color: '#e2e8f0',
+    fontSize: 16,
+    fontWeight: '700',
+    flexShrink: 1,
+    marginLeft: 4,
   },
   pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   pill: {
-    backgroundColor: 'rgba(59, 130, 246, 0.20)',
+    backgroundColor: 'rgba(29, 78, 216, 0.35)',
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.45)',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+    borderColor: 'rgba(96, 165, 250, 0.55)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderRadius: 999,
-    marginRight: 3,
-    marginBottom: 3,
+    marginRight: 6,
+    marginBottom: 6,
   },
   pillText: {
-    color: '#bfdbfe',
-    fontSize: 10,
+    color: '#dbeafe',
+    fontSize: 12,
     fontWeight: '600',
-    lineHeight: 13,
+    lineHeight: 16,
   },
   subPill: {
-    backgroundColor: 'rgba(99, 102, 241, 0.18)',
+    backgroundColor: 'rgba(30, 64, 175, 0.25)',
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.45)',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+    borderColor: 'rgba(99, 102, 241, 0.50)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderRadius: 999,
     alignSelf: 'flex-start',
+    marginRight: 6,
+    marginBottom: 6,
   },
   subPillText: {
     color: '#c7d2fe',
-    fontSize: 10,
-    lineHeight: 13,
+    fontSize: 12,
+    lineHeight: 16,
   },
   section: {
     marginTop: 10,
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopColor: 'rgba(148, 163, 184, 0.25)',
   },
   sectionTitle: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 15,
     fontWeight: '700',
-    marginBottom: 4,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    marginBottom: 6,
+    backgroundColor: 'rgba(30, 58, 138, 0.55)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
     alignSelf: 'flex-start',
-    lineHeight: 13,
+    lineHeight: 19,
   },
   row: {
-    marginTop: 4,
+    marginTop: 5,
   },
   rowTitle: {
     color: '#60a5fa',
-    fontSize: 11,
+    fontSize: 16,
     fontWeight: '600',
-    lineHeight: 14,
+    lineHeight: 21,
   },
   rowText: {
-    color: '#cbd5e1',
-    fontSize: 11,
-    marginTop: 1,
-    lineHeight: 14,
+    color: '#e2e8f0',
+    fontSize: 15,
+    marginTop: 2,
+    lineHeight: 20,
   },
   message: {
     marginTop: 12,
-    color: '#e5e7eb',
-    fontSize: 13,
-    lineHeight: 18,
+    color: '#f8fafc',
+    fontSize: 18,
+    lineHeight: 29,
     fontStyle: 'italic',
   },
 });

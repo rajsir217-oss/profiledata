@@ -22,14 +22,16 @@
 .active-criteria-bar-body .basic-filters-section {
   display: grid;
   grid-template-columns:
-    minmax(150px, 1fr)
-    minmax(150px, 1fr)
-    minmax(120px, 0.8fr)
-    minmax(210px, 1.4fr)
-    minmax(190px, 1.1fr);
+    minmax(140px, 1fr)
+    minmax(140px, 1fr)
+    minmax(120px, 0.9fr)
+    minmax(170px, 1.1fr)
+    minmax(170px, 1.1fr)
+    minmax(150px, 0.95fr)
+    minmax(260px, 1.4fr);
   grid-template-areas:
-    "age hmin hmax days profileid photo"
-    "occupation occupation location location actions actions";
+    "age hmin hmax days profileid photo photo"
+    "occupation occupation location location state actions actions";
   gap: 10px 12px;
   align-items: end;
 }
@@ -42,6 +44,7 @@
 .active-criteria-bar-body .basic-filters-section .col-has-photo { grid-area: photo; }
 .active-criteria-bar-body .basic-filters-section .col-occupation-basic { grid-area: occupation; }
 .active-criteria-bar-body .basic-filters-section .col-location { grid-area: location; }
+.active-criteria-bar-body .basic-filters-section .col-state { grid-area: state; }
 .active-criteria-bar-body .basic-filters-section .search-action-buttons-inline { grid-area: actions; }
 
 .active-criteria-bar-body .age-range-inputs,
@@ -69,12 +72,13 @@
   justify-content: flex-end;
   margin: 0;
   padding: 0 !important;
-  gap: 6px;
-  width: fit-content;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: nowrap;
 }
 
 .active-criteria-bar-body .basic-filters-section .search-action-buttons-inline {
-  justify-self: end;
+  justify-self: stretch;
 }
 
 .active-criteria-bar-body .search-action-buttons.search-action-buttons-inline .btn {
@@ -162,6 +166,7 @@
       "days profileid photo"
       "occupation occupation occupation"
       "location location location"
+      "state state state"
       "actions actions actions";
     align-items: stretch;
   }
@@ -222,6 +227,7 @@
       "photo"
       "occupation"
       "location"
+      "state"
       "actions";
     gap: 12px;
     align-items: stretch;

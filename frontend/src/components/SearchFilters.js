@@ -3,6 +3,7 @@ import logger from '../utils/logger';
 import Tooltip from './Tooltip';
 import OccupationMultiSelect from './OccupationMultiSelect';
 import LocationMultiSelect from './LocationMultiSelect';
+import { US_STATES } from '../data/usLocations';
 import './SearchFilters.css';
 
 /**
@@ -426,6 +427,30 @@ const SearchFilters = ({
               maxVisible={3}
               disabled={isDirectLookupMode}
             />
+          </div>
+        </div>
+        <div className="col-state">
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              State
+              <Tooltip
+                text="Filter by state. Near Me can auto-fill this based on your current location."
+                position="top"
+                icon
+              />
+            </label>
+            <select
+              className="form-control"
+              name="state"
+              value={searchCriteria.state || ''}
+              onChange={handleInputChange}
+              disabled={isDirectLookupMode}
+            >
+              <option value="">Any State</option>
+              {US_STATES.map((stateOption) => (
+                <option key={stateOption} value={stateOption}>{stateOption}</option>
+              ))}
+            </select>
           </div>
         </div>
 

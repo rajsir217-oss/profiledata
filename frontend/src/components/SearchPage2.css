@@ -1055,6 +1055,33 @@
   text-overflow: ellipsis;
 }
 
+.near-me-context-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: min(46vw, 560px);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.near-me-context-info {
+  background: color-mix(in srgb, var(--info-color) 16%, var(--surface-color));
+  border-color: color-mix(in srgb, var(--info-color) 45%, var(--border-color));
+  color: var(--info-color);
+}
+
+.near-me-context-warning {
+  background: color-mix(in srgb, var(--warning-color) 16%, var(--surface-color));
+  border-color: color-mix(in srgb, var(--warning-color) 45%, var(--border-color));
+  color: var(--warning-color);
+}
+
 .criteria-actions {
   display: flex;
   align-items: center;
@@ -1121,6 +1148,12 @@
   .criteria-value {
     font-size: 12px !important;
     max-width: 150px;
+  }
+
+  .near-me-context-badge {
+    max-width: 100%;
+    flex: 1 1 100%;
+    margin-top: 4px;
   }
   
   .criteria-actions {
