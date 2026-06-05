@@ -110,63 +110,64 @@ function ProfileCard({ card, isOwn, onUsernameClick, onMenuOpen, isFavorited, cu
               </Text>
             </View>
           )}
-        </View>
+          <View style={cardStyles.heroOverlay}>
+            <View style={cardStyles.headerRow}>
+              <View style={cardStyles.nameBlock}>
+                <TouchableOpacity
+                  style={cardStyles.nameTouchable}
+                  onPress={() => card.username && onUsernameClick && onUsernameClick(card.username)}
+                  activeOpacity={card.username ? 0.7 : 1}
+                >
+                  <Text style={cardStyles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+                    {displayName}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-        <View style={cardStyles.headerRow}>
-          <View style={cardStyles.nameBlock}>
-            <TouchableOpacity
-              style={cardStyles.nameTouchable}
-              onPress={() => card.username && onUsernameClick && onUsernameClick(card.username)}
-              activeOpacity={card.username ? 0.7 : 1}
-            >
-              <Text style={cardStyles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
-                {displayName}
-              </Text>
-            </TouchableOpacity>
-          </View>
+              <View style={cardStyles.headerActions}>
+                {isFavorited && <Text style={cardStyles.heartEmoji}>❤️</Text>}
+                {!isOwn && onMenuOpen && (() => {
+                  const normalizeGender = (g) => g ? String(g).trim().toLowerCase() : '';
+                  const currentG = normalizeGender(currentUserGender);
+                  const cardG = normalizeGender(card.gender || card.sex);
+                  const isMale = ['male', 'm', 'man'].includes(currentG);
+                  const cardIsMale = ['male', 'm', 'man'].includes(cardG);
+                  const isFemale = ['female', 'f', 'woman'].includes(currentG);
+                  const cardIsFemale = ['female', 'f', 'woman'].includes(cardG);
+                  return !currentG || !cardG || (isMale && cardIsFemale) || (isFemale && cardIsMale);
+                })() && (
+                  <TouchableOpacity
+                    style={cardStyles.menuButton}
+                    onPress={() => onMenuOpen(card)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={cardStyles.menuButtonText}>⋮</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
 
-          <View style={cardStyles.headerActions}>
-            {isFavorited && <Text style={cardStyles.heartEmoji}>❤️</Text>}
-            {!isOwn && onMenuOpen && (() => {
-              const normalizeGender = (g) => g ? String(g).trim().toLowerCase() : '';
-              const currentG = normalizeGender(currentUserGender);
-              const cardG = normalizeGender(card.gender || card.sex);
-              const isMale = ['male', 'm', 'man'].includes(currentG);
-              const cardIsMale = ['male', 'm', 'man'].includes(cardG);
-              const isFemale = ['female', 'f', 'woman'].includes(currentG);
-              const cardIsFemale = ['female', 'f', 'woman'].includes(cardG);
-              return !currentG || !cardG || (isMale && cardIsFemale) || (isFemale && cardIsMale);
-            })() && (
-              <TouchableOpacity
-                style={cardStyles.menuButton}
-                onPress={() => onMenuOpen(card)}
-                activeOpacity={0.7}
-              >
-                <Text style={cardStyles.menuButtonText}>⋮</Text>
-              </TouchableOpacity>
+            {primaryPills.length > 0 && (
+              <View style={cardStyles.pillRow}>
+                {primaryPills.map((p, i) => (
+                  <View key={i} style={cardStyles.pill}>
+                    <Text style={cardStyles.pillText}>{p}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {secondaryPills.length > 0 && (
+              <View style={cardStyles.pillRow}>
+                {secondaryPills.map((p, i) => (
+                  <View key={i} style={cardStyles.subPill}>
+                    <Text style={cardStyles.subPillText}>{p}</Text>
+                  </View>
+                ))}
+              </View>
             )}
           </View>
         </View>
-
-        {primaryPills.length > 0 && (
-          <View style={cardStyles.pillRow}>
-            {primaryPills.map((p, i) => (
-              <View key={i} style={cardStyles.pill}>
-                <Text style={cardStyles.pillText}>{p}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {secondaryPills.length > 0 && (
-          <View style={cardStyles.pillRow}>
-            {secondaryPills.map((p, i) => (
-              <View key={i} style={cardStyles.subPill}>
-                <Text style={cardStyles.subPillText}>{p}</Text>
-              </View>
-            ))}
-          </View>
-        )}
 
       {Array.isArray(card.educationHistory) && card.educationHistory.length > 0 && (
         <View style={cardStyles.section}>
@@ -1842,6 +1843,9 @@ const styles = StyleSheet.create({
   messageBubbleCard: {
     width: '85%',
     maxWidth: 520,
+    padding: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
   },
   messageBubbleNotif: {
     borderWidth: 1,
@@ -2243,7 +2247,7 @@ const cardStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f472b6',
     borderRadius: 24,
-    padding: 14,
+    padding: 6,
     marginTop: 4,
     alignSelf: 'stretch',
     width: '100%',
@@ -2254,23 +2258,35 @@ const cardStyles = StyleSheet.create({
   },
   cardInner: {
     backgroundColor: '#11244f',
-    borderWidth: 1,
-    borderColor: '#1f3f7a',
+    borderWidth: 0,
     borderRadius: 18,
-    padding: 12,
+    padding: 10,
   },
   heroImageWrap: {
-    marginBottom: 10,
+    marginBottom: 8,
+    position: 'relative',
+  },
+  heroOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    backgroundColor: 'rgba(9, 20, 46, 0.64)',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: 5,
   },
   avatar: {
     width: '100%',
-    height: 170,
+    height: 290,
     borderRadius: 12,
     backgroundColor: '#1b3567',
   },
@@ -2318,10 +2334,11 @@ const cardStyles = StyleSheet.create({
   },
   name: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 28,
     fontWeight: '700',
     marginRight: 8,
     flexShrink: 1,
+    lineHeight: 32,
   },
   username: {
     color: '#e2e8f0',
@@ -2333,30 +2350,30 @@ const cardStyles = StyleSheet.create({
   pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   pill: {
-    backgroundColor: 'rgba(29, 78, 216, 0.35)',
+    backgroundColor: 'rgba(30, 64, 175, 0.62)',
     borderWidth: 1,
-    borderColor: 'rgba(96, 165, 250, 0.55)',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    borderColor: 'rgba(147, 197, 253, 0.75)',
+    paddingHorizontal: 11,
+    paddingVertical: 4,
     borderRadius: 999,
     marginRight: 6,
     marginBottom: 6,
   },
   pillText: {
     color: '#dbeafe',
-    fontSize: 12,
+    fontSize: 18,
     fontWeight: '600',
-    lineHeight: 16,
+    lineHeight: 24,
   },
   subPill: {
-    backgroundColor: 'rgba(30, 64, 175, 0.25)',
+    backgroundColor: 'rgba(30, 64, 175, 0.5)',
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.50)',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    borderColor: 'rgba(129, 140, 248, 0.75)',
+    paddingHorizontal: 11,
+    paddingVertical: 4,
     borderRadius: 999,
     alignSelf: 'flex-start',
     marginRight: 6,
@@ -2364,8 +2381,8 @@ const cardStyles = StyleSheet.create({
   },
   subPillText: {
     color: '#c7d2fe',
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 18,
+    lineHeight: 24,
   },
   section: {
     marginTop: 10,
