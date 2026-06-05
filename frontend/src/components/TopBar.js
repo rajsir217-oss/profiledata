@@ -5,12 +5,10 @@ import socketService from '../services/socketService';
 import { getApiUrl, getMessengerUrl } from '../config/apiConfig';
 // eslint-disable-next-line no-unused-vars
 import { getImageUrl, getProfilePicUrl } from '../utils/urlHelper';
-import MessagesDropdown from './MessagesDropdown';
-import MessageModal from './MessageModal';
 import Logo from './Logo';
 import InfoTicker from './InfoTicker';
 import EventCountdown from './EventCountdown';
-import { getFirstName, getShortName } from '../utils/userDisplay';
+import { getShortName } from '../utils/userDisplay';
 import { useContribution } from '../contexts/ContributionContext';
 import logger from '../utils/logger';
 import { loadWhitelabelConfig } from '../utils/whitelabelConfig';
@@ -25,10 +23,6 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [userRole, setUserRole] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [showMessagesDropdown, setShowMessagesDropdown] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState(null);
-  const [showMessageModal, setShowMessageModal] = useState(false);
   const [violations, setViolations] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [adminPendingCounts, setAdminPendingCounts] = useState(null); // Unified admin pending counts
@@ -63,7 +57,6 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     : urgencyCounts.medium > 0 ? 'medium'
     : urgencyCounts.pending > 0 ? 'pending'
     : null;
-  const totalUnattended = urgencyCounts.critical + urgencyCounts.high + urgencyCounts.medium + urgencyCounts.pending;
   const navigate = useNavigate();
   const { logActivity, ActivityType } = useActivityLogger();
 
@@ -71,34 +64,6 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   useEffect(() => {
     loadWhitelabelConfig().then(cfg => setBrandConfig(cfg));
   }, []);
-
-  // Handle message deleted callback
-  const handleMessageDeleted = (messageId) => {
-    logger.debug('🗑️ Message deleted:', messageId);
-    // Refresh the messages dropdown by closing and reopening it
-    if (showMessagesDropdown) {
-      // Temporarily close and reopen to refresh the data
-      setShowMessagesDropdown(false);
-      setTimeout(() => setShowMessagesDropdown(true), 100);
-    }
-  };
-
-  // Handle urgency count update
-  const handleCriticalCountUpdate = async () => {
-    try {
-      const response = await api.get('/messages/unattended');
-      const data = response.data;
-      setUrgencyCounts({
-        pending: data.pendingCount || 0,
-        medium: data.mediumCount || 0,
-        high: data.highCount || 0,
-        critical: data.criticalCount || 0
-      });
-      setUnattendedConversations(data.conversations || []);
-    } catch (error) {
-      logger.error('Error updating critical messages count:', error);
-    }
-  };
 
   // Get page title based on current route
   const getPageTitle = () => {
@@ -266,31 +231,6 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
       window.removeEventListener('loginStatusChanged', checkLoginStatus);
     };
   }, []);
-
-  // Listen for WebSocket updates (unread messages)
-  useEffect(() => {
-    if (!currentUser) return;
-
-    // Update unread count from WebSocket
-    const handleUnreadUpdate = (data) => {
-      setUnreadCount(data.totalUnread || 0);
-    };
-
-    const handleUnreadCountsLoaded = (data) => {
-      setUnreadCount(data.totalUnread || 0);
-    };
-
-    socketService.on('unread_update', handleUnreadUpdate);
-    socketService.on('unread_counts_loaded', handleUnreadCountsLoaded);
-
-    // Get initial counts
-    setUnreadCount(socketService.getTotalUnread());
-
-    return () => {
-      socketService.off('unread_update', handleUnreadUpdate);
-      socketService.off('unread_counts_loaded', handleUnreadCountsLoaded);
-    };
-  }, [currentUser]);
 
   // Online count listener moved to PlatformActivityBar (footer)
 
@@ -865,44 +805,18 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
             💌
           </button>
 
-          {/* Messages Icon with Dropdown */}
+          {/*
+            Topbar messages dropdown intentionally disabled.
+            Dashboard V2 Recent Conversations now owns the primary message-entry UX.
+            Keep this block commented for quick restore if needed.
+          */}
+          {/*
           <div className="messages-icon-container">
-            <button 
-              className={`btn-messages ${urgencyLevel || ''}`}
-              onClick={() => setShowMessagesDropdown(!showMessagesDropdown)}
-              title={urgencyLevel === 'critical'
-                ? `${urgencyCounts.critical} critical message${urgencyCounts.critical > 1 ? 's' : ''} — reply now!`
-                : urgencyLevel === 'high'
-                  ? `${urgencyCounts.high} message${urgencyCounts.high > 1 ? 's' : ''} waiting 6-9 days`
-                  : urgencyLevel === 'medium'
-                    ? `${urgencyCounts.medium} message${urgencyCounts.medium > 1 ? 's' : ''} waiting 3-5 days`
-                    : urgencyLevel === 'pending'
-                      ? `${urgencyCounts.pending} message${urgencyCounts.pending > 1 ? 's' : ''} waiting 1-2 days`
-                      : 'Messages'
-              }
-            >
+            <button className={`btn-messages ${urgencyLevel || ''}`} type="button" title="Messages">
               💬
-              {unreadCount > 0 && (
-                <span className="unread-count-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
-              )}
             </button>
-
-            <MessagesDropdown
-              isOpen={showMessagesDropdown}
-              onClose={() => setShowMessagesDropdown(false)}
-              onOpenMessage={(profile) => {
-                // Merge profile with callbacks
-                const profileWithCallback = {
-                  ...profile,
-                  onMessageDeleted: handleMessageDeleted,
-                  onCriticalCountUpdate: handleCriticalCountUpdate
-                };
-                setSelectedProfile(profileWithCallback);
-                setShowMessageModal(true);
-              }}
-              onMessageDeleted={handleMessageDeleted}
-            />
           </div>
+          */}
           
           {/* Online member count moved to PlatformActivityBar (footer) */}
 
@@ -985,18 +899,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
           )}
         </div>
 
-        {/* Message Modal */}
-        {showMessageModal && selectedProfile && (
-          <MessageModal
-            isOpen={showMessageModal}
-            profile={selectedProfile}
-            onClose={() => {
-              setShowMessageModal(false);
-              setSelectedProfile(null);
-            }}
-            onMessageDeleted={handleMessageDeleted}
-          />
-        )}
+        {/* Topbar message modal disabled along with topbar messages dropdown. */}
       </div>
       
       {/* Info Ticker - Scrolling information bar */}
