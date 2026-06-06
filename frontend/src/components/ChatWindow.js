@@ -33,7 +33,7 @@ const QUICK_REPLY_TEMPLATES = [
   ]}
 ];
 
-const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted, onBack, conversationStatus, onCloseConversation, isGroupChat, groupInfo }) => {
+const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted, onBack, conversationStatus, onCloseConversation, onArchiveConversation, isGroupChat, groupInfo }) => {
   const messagesEndRef = useRef(null);
   const [messageText, setMessageText] = useState('');
   const [deletingMessage, setDeletingMessage] = useState(null);
@@ -54,6 +54,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const [sendingReconnect, setSendingReconnect] = useState(false);
   const [showNotInterestedMenu, setShowNotInterestedMenu] = useState(false);
   const [notInterestedProcessing, setNotInterestedProcessing] = useState(false);
+  const [archivingConversation, setArchivingConversation] = useState(false);
   const [showStopTip, setShowStopTip] = useState(false);
   const [acknowledgingConversation, setAcknowledgingConversation] = useState(false);
   const notInterestedRef = useRef(null);
@@ -112,6 +113,23 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       toastService.error('Failed to add to exclusion list.');
     } finally {
       setAddingToExclusion(false);
+    }
+  };
+
+  const handleArchiveConversation = async () => {
+    if (!otherUser?.username || !onArchiveConversation || archivingConversation) return;
+    setArchivingConversation(true);
+    try {
+      await onArchiveConversation(otherUser.username);
+      const toastService = (await import('../services/toastService')).default;
+      toastService.success('Conversation archived');
+      setShowNotInterestedMenu(false);
+    } catch (error) {
+      logger.error('Error archiving conversation:', error);
+      const toastService = (await import('../services/toastService')).default;
+      toastService.error('Failed to archive conversation. Please try again.');
+    } finally {
+      setArchivingConversation(false);
     }
   };
 
@@ -437,6 +455,17 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
             >
               {acknowledgingConversation ? '⏳' : '🙏'}
             </button>
+
+            {onArchiveConversation && (
+              <button
+                className="archive-conversation-header-btn"
+                onClick={handleArchiveConversation}
+                title="Archive conversation"
+                disabled={archivingConversation}
+              >
+                {archivingConversation ? '⏳' : '📦'}
+              </button>
+            )}
             
             {/* Not Interested button */}
             <button

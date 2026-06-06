@@ -204,7 +204,10 @@ export async function fetchTheirFavorites() {
   if (!username) return [];
   try {
     const { data } = await api.get(`/their-favorites/${username}`);
-    return data.favoritedBy || data || [];
+    if (Array.isArray(data?.users)) return data.users;
+    if (Array.isArray(data?.favoritedBy)) return data.favoritedBy;
+    if (Array.isArray(data)) return data;
+    return [];
   } catch (err) {
     logger.error('fetchTheirFavorites failed:', err);
     return [];

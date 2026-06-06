@@ -530,6 +530,7 @@ const Messages = () => {
           onBack={handleBackToList}
           conversationStatus={conversationStatus}
           onCloseConversation={handleCloseConversation}
+          onArchiveConversation={handleArchiveConversation}
         />
       </div>
     </div>
