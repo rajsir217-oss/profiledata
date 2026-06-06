@@ -160,9 +160,10 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                   <button 
                     className="view-profile-btn"
                     onClick={(e) => handleViewProfile(e, conv.username)}
-                    title="View Profile"
+                    title="View profile"
+                    aria-label={`View ${getDisplayName(conv.userProfile) || conv.username}'s profile`}
                   >
-                    👁️
+                    View
                   </button>
                 )}
               </div>
