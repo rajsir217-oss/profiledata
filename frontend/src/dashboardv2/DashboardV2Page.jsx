@@ -168,25 +168,28 @@ const DashboardV2Page = () => {
           {data.userProfile?.firstName ? (
             <>
               Hi <span className="dv2-name">{data.userProfile.firstName}</span>
-              {newestMatch.pick?.savedSearch ? (
-                <>
-                  {' '}— newest match from your default saved search{' '}
-                  <span className="dv2-name">
-                    "{newestMatch.pick.savedSearch.name}"
-                  </span>
-                </>
-              ) : newestMatch.pick ? (
-                <>
-                  {' '}— newest match from your default partner criteria
-                </>
-              ) : (
-                ''
-              )}
+              {newestMatch.pick ? " — congrats! Here's the newest match." : ''}
             </>
           ) : (
             'Welcome back'
           )}
         </h1>
+
+        {newestMatch.pick ? (
+          <div className="dv2-hero-source" aria-label="Newest match source">
+            {newestMatch.pick?.savedSearch ? (
+              <>
+                <span className="dv2-hero-source-label">source:</span> default saved search
+                {' '}
+                <span className="dv2-hero-source-value">"{newestMatch.pick.savedSearch.name}"</span>
+              </>
+            ) : (
+              <>
+                <span className="dv2-hero-source-label">source:</span> default partner criteria
+              </>
+            )}
+          </div>
+        ) : null}
 
         <HeroNewestMatch
           pick={newestMatch.pick}
