@@ -112,8 +112,19 @@ export async function fetchProfileViews() {
   const username = getCurrentUsername();
   if (!username) return { viewers: [], totalViews: 0, uniqueViewers: 0 };
   try {
-    const { data } = await api.get(`/views/${username}`);
-    return data;
+    const { data } = await api.get(`/profile-views/${username}`);
+    const views = Array.isArray(data?.views) ? data.views : [];
+    const viewers = Array.isArray(data?.viewers)
+      ? data.viewers
+      : views.map((v) => v?.viewerProfile).filter(Boolean);
+
+    return {
+      ...data,
+      views,
+      viewers,
+      uniqueViewers: Number.isFinite(data?.uniqueViewers) ? data.uniqueViewers : viewers.length,
+      totalViews: Number.isFinite(data?.totalViews) ? data.totalViews : views.length,
+    };
   } catch (err) {
     logger.error('fetchProfileViews failed:', err);
     return { viewers: [], totalViews: 0, uniqueViewers: 0 };

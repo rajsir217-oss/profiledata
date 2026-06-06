@@ -802,7 +802,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
             }}
             title="Open Messenger"
           >
-            💌
+            <span className="messenger-launcher-icon" aria-hidden="true">💬</span>
           </button>
 
           {/*

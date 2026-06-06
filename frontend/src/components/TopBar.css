@@ -733,6 +733,16 @@
   transform: scale(0.95);
 }
 
+.messenger-launcher-icon {
+  font-size: 21px;
+  line-height: 1;
+  font-weight: 700;
+  font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols 2', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .btn-messages:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
