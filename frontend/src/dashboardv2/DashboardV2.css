@@ -52,23 +52,41 @@
   color: var(--text-muted, #888);
   margin-bottom: var(--spacing-xs, 6px);
 }
+.dv2-hero-footer {
+  margin-top: var(--spacing-md, 16px);
+  padding-top: var(--spacing-sm, 10px);
+  border-top: 1px solid var(--border-color, #e5e5e5);
+}
 .dv2-hero-meta {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   margin-left: auto;
-  gap: var(--spacing-md, 16px);
+  gap: var(--spacing-xs, 8px);
   flex-wrap: wrap;
 }
 .dv2-hero-last-login {
-  font-size: 13px;
+  font-size: 9px;
   color: var(--text-muted, #888);
+  opacity: 0.55;
+  letter-spacing: 0.1px;
   white-space: nowrap;
 }
 
 .dv2-hero-meta .dv2-link {
   align-self: flex-end;
   width: fit-content;
+  font-size: 9px;
+  color: var(--text-muted, #888);
+  opacity: 0.6;
+  text-decoration: none;
+  text-underline-offset: 2px;
+  padding: 0;
+}
+
+.dv2-hero-meta .dv2-link:hover {
+  color: var(--primary-color, #d4736a);
+  opacity: 1;
 }
 
 @media (max-width: 560px) {

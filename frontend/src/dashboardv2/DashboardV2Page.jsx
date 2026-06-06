@@ -164,38 +164,20 @@ const DashboardV2Page = () => {
       ) : null}
       {/* ============ HERO ============ */}
       <section className="dv2-hero">
-        <div className="dv2-hero-header">
-          <div className="dv2-hero-greeting">
-            {new Date().toLocaleDateString(undefined, {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric',
-            })}{' '}
-            · Welcome back
-          </div>
-
-          <div className="dv2-hero-meta">
-            {lastLoginAt ? (
-              <div className="dv2-hero-last-login" title={formatShortDateTime(lastLoginAt)}>
-                Last login: {formatShortDateTime(lastLoginAt)}
-              </div>
-            ) : null}
-
-            <button className="dv2-link" type="button" onClick={() => navigate('/dashboard')}>
-              Legacy dashboard
-            </button>
-          </div>
-        </div>
         <h1 className="dv2-hero-title">
           {data.userProfile?.firstName ? (
             <>
               Hi <span className="dv2-name">{data.userProfile.firstName}</span>
               {newestMatch.pick?.savedSearch ? (
                 <>
-                  {' '}— newest match in{' '}
+                  {' '}— newest match from your default saved search{' '}
                   <span className="dv2-name">
                     "{newestMatch.pick.savedSearch.name}"
                   </span>
+                </>
+              ) : newestMatch.pick ? (
+                <>
+                  {' '}— newest match from your default partner criteria
                 </>
               ) : (
                 ''
@@ -218,6 +200,20 @@ const DashboardV2Page = () => {
           onFavoriteOptimistic={setFavoriteOptimistic}
           onRetry={newestMatch.reload}
         />
+
+        <div className="dv2-hero-footer">
+          <div className="dv2-hero-meta">
+            {lastLoginAt ? (
+              <div className="dv2-hero-last-login" title={formatShortDateTime(lastLoginAt)}>
+                Last login: {formatShortDateTime(lastLoginAt)}
+              </div>
+            ) : null}
+
+            <button className="dv2-link" type="button" onClick={() => navigate('/dashboard')}>
+              Legacy dashboard
+            </button>
+          </div>
+        </div>
       </section>
 
       <AttentionGrid
