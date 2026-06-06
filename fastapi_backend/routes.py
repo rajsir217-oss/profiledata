@@ -8308,12 +8308,15 @@ async def remove_from_exclusions(
 
 @router.get("/messages/conversations")
 async def get_conversations_enhanced(
+    include_archived: bool = Query(False, alias="includeArchived"),
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Get list of all conversations with privacy checks"""
     username = current_user["username"]
-    logger.info(f"💬 ========== GET /messages/conversations called for username={username} ==========")
+    logger.info(
+        f"💬 ========== GET /messages/conversations called for username={username}, include_archived={include_archived} =========="
+    )
     
     # Check if current user is admin
     is_admin = current_user.get("role") == "admin"
@@ -8424,6 +8427,19 @@ async def get_conversations_enhanced(
         result = []
         for conv in conversations:
             other_username = conv["_id"]
+
+            sorted_participants = sorted([username, other_username])
+            conversation_state = await db.conversation_status.find_one(
+                {"participants": {"$all": sorted_participants}},
+                {"archivedFor": 1}
+            )
+            archived_for = (conversation_state or {}).get("archivedFor", {}) or {}
+            is_archived_for_user = bool(archived_for.get(username))
+
+            if include_archived and not is_archived_for_user:
+                continue
+            if not include_archived and is_archived_for_user:
+                continue
             
             # Check visibility
             is_visible = await check_message_visibility(username, other_username, db)
@@ -8495,7 +8511,8 @@ async def get_conversations_enhanced(
                 "lastMessage": _maybe_decrypt_message(conv["lastMessage"].get("content", "")),
                 "lastMessageTime": last_msg_time,
                 "unreadCount": conv["unreadCount"],
-                "isVisible": is_visible
+                "isVisible": is_visible,
+                "isArchived": is_archived_for_user,
             }
             result.append(conv_data)
         
@@ -8571,16 +8588,22 @@ async def get_unattended_chats(
             is_visible = await check_message_visibility(username, sender, db)
             if not is_visible:
                 continue
+
+            sorted_participants = sorted([username, sender])
+            conv_state = await db.conversation_status.find_one({"participants": {"$all": sorted_participants}})
+
+            # Archived chats are outside unattended/critical workflow.
+            archived_for = (conv_state or {}).get("archivedFor", {}) or {}
+            if archived_for.get(username):
+                continue
             
             # Check if conversation is closed
-            conv_status = await db.conversation_status.find_one({"participants": {"$all": [username, sender]}, "status": "closed"})
-            if conv_status:
+            if conv_state and conv_state.get("status") == "closed":
                 continue
             
             # Check if conversation was acknowledged (Stay in Touch) and no new messages since
-            conv_ack = await db.conversation_status.find_one({"participants": {"$all": [username, sender]}})
-            if conv_ack and conv_ack.get("lastAcknowledgement"):
-                last_ack = conv_ack.get("lastAcknowledgement")
+            if conv_state and conv_state.get("lastAcknowledgement"):
+                last_ack = conv_state.get("lastAcknowledgement")
                 # Make timezone-naive for comparison
                 if hasattr(last_ack, 'tzinfo') and last_ack.tzinfo is not None:
                     last_ack = last_ack.replace(tzinfo=None)
@@ -8778,6 +8801,18 @@ async def send_message(
     try:
         # Store in MongoDB
         await db.messages.insert_one(message)
+
+        # New incoming message should auto-unarchive for recipient (1:1 behavior).
+        sorted_participants = sorted([from_username, to_username])
+        await db.conversation_status.update_one(
+            {"participants": sorted_participants},
+            {
+                "$unset": {f"archivedFor.{to_username}": ""},
+                "$set": {"updatedAt": datetime.utcnow(), "participants": sorted_participants},
+                "$setOnInsert": {"createdAt": datetime.utcnow()},
+            },
+            upsert=True,
+        )
         
         # Send via Redis for real-time delivery
         from redis_manager import get_redis_manager
@@ -9346,6 +9381,18 @@ async def send_message_enhanced(
     
     try:
         result = await db.messages.insert_one(message)
+
+        # New incoming message should auto-unarchive for recipient (1:1 behavior).
+        sorted_participants = sorted([username, message_data.toUsername])
+        await db.conversation_status.update_one(
+            {"participants": sorted_participants},
+            {
+                "$unset": {f"archivedFor.{message_data.toUsername}": ""},
+                "$set": {"updatedAt": datetime.utcnow(), "participants": sorted_participants},
+                "$setOnInsert": {"createdAt": datetime.utcnow()},
+            },
+            upsert=True,
+        )
         
         # Send via Redis for real-time delivery (only if message is visible)
         if is_visible:
@@ -9708,6 +9755,86 @@ async def delete_conversation(
     except Exception as e:
         logger.error(f"❌ Error deleting conversation: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/messages/conversation/{other_username}/archive")
+async def archive_conversation(
+    other_username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Archive a 1:1 conversation for the current user only."""
+    username = current_user["username"]
+
+    if other_username == username:
+        raise HTTPException(status_code=400, detail="Cannot archive self conversation")
+
+    convo_exists = await db.messages.find_one({
+        "$or": [
+            {"fromUsername": username, "toUsername": other_username},
+            {"fromUsername": other_username, "toUsername": username}
+        ]
+    })
+    if not convo_exists:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    now = datetime.utcnow()
+    sorted_participants = sorted([username, other_username])
+    await db.conversation_status.update_one(
+        {"participants": sorted_participants},
+        {
+            "$set": {
+                f"archivedFor.{username}": now,
+                "updatedAt": now,
+                "participants": sorted_participants,
+            },
+            "$setOnInsert": {"createdAt": now},
+        },
+        upsert=True,
+    )
+
+    logger.info(f"🗂️ Archived conversation for {username} with {other_username}")
+    return {"success": True, "archived": True, "archivedAt": now.isoformat()}
+
+
+@router.post("/messages/conversation/{other_username}/unarchive")
+async def unarchive_conversation(
+    other_username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Unarchive a 1:1 conversation for the current user only."""
+    username = current_user["username"]
+
+    if other_username == username:
+        raise HTTPException(status_code=400, detail="Cannot unarchive self conversation")
+
+    convo_exists = await db.messages.find_one({
+        "$or": [
+            {"fromUsername": username, "toUsername": other_username},
+            {"fromUsername": other_username, "toUsername": username}
+        ]
+    })
+    if not convo_exists:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    now = datetime.utcnow()
+    sorted_participants = sorted([username, other_username])
+    await db.conversation_status.update_one(
+        {"participants": sorted_participants},
+        {
+            "$unset": {f"archivedFor.{username}": ""},
+            "$set": {
+                "updatedAt": now,
+                "participants": sorted_participants,
+            },
+            "$setOnInsert": {"createdAt": now},
+        },
+        upsert=True,
+    )
+
+    logger.info(f"📂 Unarchived conversation for {username} with {other_username}")
+    return {"success": True, "archived": False}
 
 
 # ===== UNATTENDED CHATS SYSTEM =====

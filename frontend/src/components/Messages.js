@@ -17,6 +17,7 @@ const Messages = () => {
   const [unattendedData, setUnattendedData] = useState(null);
   const [conversationStatus, setConversationStatus] = useState(null);
   const [pendingDismissed, setPendingDismissed] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('messagesSidebarWidth');
     return saved ? parseInt(saved, 10) : 280;
@@ -93,7 +94,7 @@ const Messages = () => {
 
     // Load unattended first so sort order is correct when conversations arrive
     loadUnattendedChats().then((unattended) => {
-      loadConversations(unattended).then((convos) => {
+      loadConversations(unattended, false).then((convos) => {
         if (toUsername) {
           handleSelectUser(toUsername);
         } else if (convos.length > 0 && !selectedUser) {
@@ -148,10 +149,10 @@ const Messages = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, currentUsername]);
 
-  const loadConversations = async (unattendedOverride) => {
+  const loadConversations = async (unattendedOverride, includeArchived = showArchived) => {
     console.log('📥 Messages.js: Loading conversations for:', currentUsername);
     try {
-      const url = `/messages/conversations`;
+      const url = `/messages/conversations${includeArchived ? '?includeArchived=true' : ''}`;
       console.log('📡 Messages.js: Making request to:', url);
       const response = await api.get(url);
       console.log('✅ Messages.js: Response received:', response.data);
@@ -173,6 +174,40 @@ const Messages = () => {
       setError('Failed to load conversations');
       setLoading(false);
       return [];
+    }
+  };
+
+  const handleArchiveConversation = async (username) => {
+    try {
+      await api.post(`/messages/conversation/${username}/archive`);
+      const toastService = (await import('../services/toastService')).default;
+      toastService.success('Conversation archived');
+
+      if (selectedUser === username) {
+        setSelectedUser(null);
+        selectedUserRef.current = null;
+        setMessages([]);
+        setOtherUser(null);
+      }
+
+      await loadConversations(undefined, false);
+    } catch (err) {
+      console.error('Error archiving conversation:', err);
+      const toastService = (await import('../services/toastService')).default;
+      toastService.error('Failed to archive conversation');
+    }
+  };
+
+  const handleUnarchiveConversation = async (username) => {
+    try {
+      await api.post(`/messages/conversation/${username}/unarchive`);
+      const toastService = (await import('../services/toastService')).default;
+      toastService.success('Conversation moved back to inbox');
+      await loadConversations(undefined, true);
+    } catch (err) {
+      console.error('Error unarchiving conversation:', err);
+      const toastService = (await import('../services/toastService')).default;
+      toastService.error('Failed to unarchive conversation');
     }
   };
 
@@ -332,7 +367,7 @@ const Messages = () => {
       
       // Refresh unattended data first, then reload conversations with fresh urgency data
       const freshUnattended = await loadUnattendedChats();
-      await loadConversations(freshUnattended);
+      await loadConversations(freshUnattended, showArchived);
       
       // Show success toast
       const toastService = (await import('../services/toastService')).default;
@@ -391,8 +426,26 @@ const Messages = () => {
   return (
     <div className="messages-page">
 
+      <div className="messages-toolbar">
+        <button
+          type="button"
+          className={`messages-view-toggle ${showArchived ? 'archived' : 'inbox'}`}
+          onClick={async () => {
+            const next = !showArchived;
+            setShowArchived(next);
+            setSelectedUser(null);
+            selectedUserRef.current = null;
+            setMessages([]);
+            setOtherUser(null);
+            await loadConversations(undefined, next);
+          }}
+        >
+          {showArchived ? 'Showing: Archived' : 'Showing: Inbox'}
+        </button>
+      </div>
+
       {/* Warning Banner for High/Medium/Pending messages (dismissible, non-blocking) */}
-      {unattendedData && unattendedData.warningCount > 0 && unattendedData.criticalCount === 0 && !pendingDismissed && (
+      {!showArchived && unattendedData && unattendedData.warningCount > 0 && unattendedData.criticalCount === 0 && !pendingDismissed && (
         <div className="pending-warning-banner">
           <div className="pending-warning-content">
             <span className="pending-icon">💬</span>
@@ -425,7 +478,7 @@ const Messages = () => {
       )}
 
       {/* Critical Chats Banner (10+ days - BLOCKS navigation) */}
-      {unattendedData && unattendedData.criticalCount > 0 && (
+      {!showArchived && unattendedData && unattendedData.criticalCount > 0 && (
         <div className="unattended-banner">
           <div className="unattended-banner-content">
             <span className="unattended-icon">�</span>
@@ -460,6 +513,9 @@ const Messages = () => {
           currentUsername={currentUsername}
           unattendedData={unattendedData}
           onQuickResponse={handleQuickResponse}
+          onArchiveConversation={handleArchiveConversation}
+          onUnarchiveConversation={handleUnarchiveConversation}
+          showArchived={showArchived}
         />
         <div 
           className="messages-resizer"

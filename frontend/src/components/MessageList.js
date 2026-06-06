@@ -6,7 +6,17 @@ import { getProfilePicUrl } from '../utils/urlHelper';
 import { formatShortDateTime } from '../utils/timeFormatter';
 import './MessageList.css';
 
-const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsername, unattendedData, onQuickResponse }) => {
+const MessageList = ({
+  conversations,
+  selectedUser,
+  onSelectUser,
+  currentUsername,
+  unattendedData,
+  onQuickResponse,
+  onArchiveConversation,
+  onUnarchiveConversation,
+  showArchived,
+}) => {
   // Check if a conversation is a group chat
   const isGroupChat = (conv) => {
     return conv.type === 'group' || conv.type === 'public_group' || !!conv.groupName;
@@ -72,6 +82,15 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
     e.stopPropagation();
     if (onQuickResponse) {
       onQuickResponse(username, responseType);
+    }
+  };
+
+  const handleArchiveToggle = (e, username) => {
+    e.stopPropagation();
+    if (showArchived) {
+      onUnarchiveConversation?.(username);
+    } else {
+      onArchiveConversation?.(username);
     }
   };
 
@@ -157,14 +176,24 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                 
                 {/* View Profile Button - only for 1:1 chats */}
                 {!isGroup && (
-                  <button 
-                    className="view-profile-btn"
-                    onClick={(e) => handleViewProfile(e, conv.username)}
-                    title="View profile"
-                    aria-label={`View ${getDisplayName(conv.userProfile) || conv.username}'s profile`}
-                  >
-                    View
-                  </button>
+                  <div className="conversation-actions">
+                    <button 
+                      className="view-profile-btn"
+                      onClick={(e) => handleViewProfile(e, conv.username)}
+                      title="View profile"
+                      aria-label={`View ${getDisplayName(conv.userProfile) || conv.username}'s profile`}
+                    >
+                      View
+                    </button>
+                    <button
+                      className="archive-conversation-btn"
+                      onClick={(e) => handleArchiveToggle(e, conv.username)}
+                      title={showArchived ? 'Unarchive conversation' : 'Archive conversation'}
+                      aria-label={showArchived ? `Unarchive ${conv.username} conversation` : `Archive ${conv.username} conversation`}
+                    >
+                      {showArchived ? 'Unarchive' : 'Archive'}
+                    </button>
+                  </div>
                 )}
               </div>
             );
