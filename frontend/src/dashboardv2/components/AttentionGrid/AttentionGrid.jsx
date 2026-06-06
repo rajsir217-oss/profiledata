@@ -8,27 +8,34 @@ const AttentionGrid = ({ items, loading = false }) => {
     <section className="dv2-attention">
       <h2 className="dv2-section-title">What needs your attention</h2>
       <div className="dv2-attention-grid">
-        {items.map((item) => (
-          <button
-            key={item.key}
-            className={`dv2-attention-card dv2-variant-${item.variant || 'default'}${loading ? ' is-loading' : ''}`}
-            onClick={loading ? undefined : item.onClick}
-            type="button"
-            disabled={loading}
-            aria-busy={loading || undefined}
-          >
-            <span className="dv2-attention-icon-wrap" aria-hidden="true">
-              <span className="dv2-attention-icon">{item.icon}</span>
-            </span>
-            <span className="dv2-attention-title">{item.title}</span>
-            {loading ? (
-              <span className="dv2-attention-count dv2-attention-count-skeleton" aria-hidden="true" />
-            ) : item.count > 0 ? (
-              <span className="dv2-attention-count">{item.count}</span>
-            ) : null}
-            {item.subtitle ? <span className="dv2-attention-subtitle">{item.subtitle}</span> : null}
-          </button>
-        ))}
+        {items.map((item) => {
+          const parsedCount = Number(item.count);
+          const normalizedCount = Number.isFinite(parsedCount)
+            ? Math.max(0, Math.trunc(parsedCount))
+            : 0;
+
+          return (
+            <button
+              key={item.key}
+              className={`dv2-attention-card dv2-variant-${item.variant || 'default'}${loading ? ' is-loading' : ''}`}
+              onClick={loading ? undefined : item.onClick}
+              type="button"
+              disabled={loading}
+              aria-busy={loading || undefined}
+            >
+              <span className="dv2-attention-icon-wrap" aria-hidden="true">
+                <span className="dv2-attention-icon">{item.icon}</span>
+              </span>
+              <span className="dv2-attention-title">{item.title}</span>
+              {loading ? (
+                <span className="dv2-attention-count dv2-attention-count-skeleton" aria-hidden="true" />
+              ) : (
+                <span className="dv2-attention-count">{normalizedCount}</span>
+              )}
+              {item.subtitle ? <span className="dv2-attention-subtitle">{item.subtitle}</span> : null}
+            </button>
+          );
+        })}
       </div>
     </section>
   );

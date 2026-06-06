@@ -259,6 +259,15 @@ const RecentConversations = ({ conversations }) => {
     [activeUsername, loadConversationMessages]
   );
 
+  const handleArchiveConversation = useCallback(
+    async (username) => {
+      if (!username) return;
+      await api.post(`/messages/conversation/${encodeURIComponent(username)}/archive`);
+      closeConversation();
+    },
+    [closeConversation]
+  );
+
   return (
     <section className="dv2-conversations">
       <div className="dv2-conv-header">
@@ -379,6 +388,7 @@ const RecentConversations = ({ conversations }) => {
                             otherUser={activeProfile}
                             onSendMessage={handleSendMessage}
                             onMessageDeleted={handleMessageDeleted}
+                            onArchiveConversation={handleArchiveConversation}
                           />
                         )
                       ) : null}
