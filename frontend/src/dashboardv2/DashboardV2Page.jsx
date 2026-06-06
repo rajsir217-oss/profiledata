@@ -26,12 +26,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileViewsModal from '../components/ProfileViewsModal';
+import FavoritedByModal from '../components/FavoritedByModal';
 import ProfileNotes from '../components/ProfileNotes';
 import PollWidget from '../components/PollWidget';
 import { formatShortDateTime } from '../utils/timeFormatter';
 import { useDashboardData } from './hooks/useDashboardData';
 import { useNewestMatch } from './hooks/useNewestMatch';
-import { useStaleMessages } from './hooks/useStaleMessages';
 import HeroNewestMatch from './components/HeroNewestMatch/HeroNewestMatch';
 import DashboardBanners from './components/DashboardBanners/DashboardBanners';
 import AttentionGrid from './components/AttentionGrid/AttentionGrid';
@@ -56,13 +56,23 @@ const DashboardV2Page = () => {
     setFavoriteOptimistic,
   } = useDashboardData();
   const newestMatch = useNewestMatch(data.savedSearches, data.userProfile);
-  const staleMessages = useStaleMessages(data.conversations);
 
   const [showProfileViews, setShowProfileViews] = useState(false);
+  const [showFavoritedBy, setShowFavoritedBy] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
 
   const currentUsername = useMemo(() => localStorage.getItem('username'), []);
   const lastLoginAt = data.userProfile?.security?.last_login_at;
+
+  const getConversationUnreadCount = (conversation) => {
+    const rawUnread =
+      conversation?.unreadCount ??
+      conversation?.unread_count ??
+      conversation?.unread ??
+      0;
+    const parsed = Number(rawUnread);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
 
   const heroBusy =
     criticalLoading ||
@@ -121,9 +131,11 @@ const DashboardV2Page = () => {
     favoritedYou: data.theirFavorites?.length ?? 0,
     incomingPiiRequests: data.incomingPiiRequests?.length ?? 0,
     unreadConversations: (data.conversations || []).filter(
-      (c) => (c.unreadCount ?? 0) > 0
+      (c) => getConversationUnreadCount(c) > 0
     ).length,
-    staleMessages: staleMessages.length,
+    openConversations: (data.conversations || []).filter(
+      (c) => !c?.isArchived
+    ).length,
     activePolls: data.activePolls?.length ?? 0,
     // Search criteria breakdown - unique values count
     locationUnique: data.searchCriteriaBreakdown?.breakdown?.location?.total ?? 0,
@@ -260,13 +272,13 @@ const DashboardV2Page = () => {
             title: 'People who favorited you',
             count: counts.favoritedYou,
             variant: 'danger',
-            onClick: () => navigate('/favorites'),
+            onClick: () => setShowFavoritedBy(true),
           },
           {
             key: 'followUp',
             icon: '⏭',
             title: 'Follow up on chats',
-            count: counts.staleMessages,
+            count: counts.openConversations,
             variant: 'success',
             onClick: () => navigate('/messages'),
           },
@@ -368,6 +380,12 @@ const DashboardV2Page = () => {
       <ProfileViewsModal
         isOpen={showProfileViews}
         onClose={() => setShowProfileViews(false)}
+        username={currentUsername}
+      />
+
+      <FavoritedByModal
+        isOpen={showFavoritedBy}
+        onClose={() => setShowFavoritedBy(false)}
         username={currentUsername}
       />
 

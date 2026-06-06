@@ -19,11 +19,11 @@ const Requests = () => {
       }
 
       // Load received requests
-      const receivedResponse = await api.get(`/api/users/pii-requests/${username}?type=received`);
+      const receivedResponse = await api.get(`/pii-requests/${username}?type=received`);
       setReceivedRequests(receivedResponse.data.requests || []);
 
       // Load sent requests
-      const sentResponse = await api.get(`/api/users/pii-requests/${username}?type=sent`);
+      const sentResponse = await api.get(`/pii-requests/${username}?type=sent`);
       setSentRequests(sentResponse.data.requests || []);
 
     } catch (err) {
@@ -41,10 +41,11 @@ const Requests = () => {
   const respondToRequest = async (requestId, response) => {
     try {
       const username = localStorage.getItem('username');
-      await api.put(`/api/users/pii-request/${requestId}/respond`, {
-        response,
-        responder: username
-      });
+      const payload = new FormData();
+      payload.append('response', response);
+      payload.append('responder', username);
+
+      await api.put(`/pii-request/${requestId}/respond`, payload);
 
       // Refresh requests
       loadRequests();
