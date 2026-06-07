@@ -56,7 +56,7 @@ const getConversationChip = (conversation, unattendedByUsername) => {
   return null;
 };
 
-const RecentConversations = ({ conversations }) => {
+const RecentConversations = ({ conversations, onConversationsChanged }) => {
   const navigate = useNavigate();
 
   const currentUsername = useMemo(
@@ -263,9 +263,12 @@ const RecentConversations = ({ conversations }) => {
     async (username) => {
       if (!username) return;
       await api.post(`/messages/conversation/${encodeURIComponent(username)}/archive`);
+      if (typeof onConversationsChanged === 'function') {
+        await onConversationsChanged();
+      }
       closeConversation();
     },
-    [closeConversation]
+    [closeConversation, onConversationsChanged]
   );
 
   return (

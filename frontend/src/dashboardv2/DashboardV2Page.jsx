@@ -53,6 +53,7 @@ const DashboardV2Page = () => {
     refreshUserProfile,
     refreshExclusions,
     refreshFavorites,
+    refreshConversations,
     setFavoriteOptimistic,
   } = useDashboardData();
   const newestMatch = useNewestMatch(data.savedSearches, data.userProfile);
@@ -365,7 +366,10 @@ const DashboardV2Page = () => {
             ]}
           />
 
-          <RecentConversations conversations={data.conversations} />
+          <RecentConversations
+            conversations={data.conversations}
+            onConversationsChanged={refreshConversations}
+          />
         </div>
 
         <SideRail
