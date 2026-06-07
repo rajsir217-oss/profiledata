@@ -169,7 +169,7 @@
   padding: 4px 10px 10px 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   position: relative;
   z-index: 1;
 }
@@ -209,7 +209,7 @@
 }
 
 .contribution-member-stat-card {
-  background: var(--card-background);
+  background: linear-gradient(135deg, var(--card-background) 0%, var(--surface-color) 100%);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 6px;
@@ -219,6 +219,48 @@
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+.contribution-member-stat-card:nth-child(1) {
+  background: linear-gradient(135deg, var(--selected-background) 0%, var(--card-background) 100%);
+}
+
+.contribution-member-stat-card:nth-child(2) {
+  background: linear-gradient(135deg, var(--hover-background) 0%, var(--card-background) 100%);
+}
+
+.contribution-member-stat-card:nth-child(3) {
+  background: linear-gradient(135deg, var(--input-bg) 0%, var(--card-background) 100%);
+}
+
+.contribution-member-stat-card:nth-child(4) {
+  background: linear-gradient(135deg, var(--surface-color) 0%, var(--card-background) 100%);
+}
+
+.contribution-member-stat-card:nth-child(5) {
+  background: linear-gradient(135deg, var(--selected-background) 0%, var(--surface-color) 100%);
+}
+
+.contribution-block {
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 8px;
+}
+
+.contribution-block-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  padding: 0 2px;
+}
+
+.contribution-amounts-block {
+  background: linear-gradient(135deg, var(--surface-color) 0%, var(--input-bg) 100%);
+}
+
+.contribution-payment-block {
+  background: linear-gradient(135deg, var(--selected-background) 0%, var(--hover-background) 100%);
 }
 
 .contribution-member-stat-label {
@@ -259,7 +301,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
   gap: 5px;
-  margin: 6px 0;
+  margin: 2px 0 0;
 }
 
 @media (max-width: 480px) {
@@ -277,7 +319,7 @@
 .contribution-amount-option {
   position: relative;
   background: linear-gradient(135deg, var(--surface-color) 0%, var(--input-bg) 100%);
-  border: 2px solid var(--border-color);
+  border: 4px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
   display: flex;
@@ -310,6 +352,7 @@
 .contribution-amount-option.selected {
   background: linear-gradient(135deg, var(--selected-background) 0%, var(--hover-background) 100%);
   border-color: var(--primary-color);
+  border-width: 4px;
   transform: translateY(-2px);
 }
 
@@ -552,7 +595,7 @@
 
 .payment-method-toggle {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   margin-top: 0;
 }
 
