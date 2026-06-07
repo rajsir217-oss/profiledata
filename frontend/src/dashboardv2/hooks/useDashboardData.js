@@ -55,6 +55,7 @@ export function useDashboardData() {
   const userProfileRequestRef = useRef(null);
   const exclusionsRequestRef = useRef(null);
   const favoritesRequestRef = useRef(null);
+  const conversationsRequestRef = useRef(null);
 
   const refreshUserProfile = useCallback(async () => {
     if (userProfileRequestRef.current) {
@@ -77,6 +78,31 @@ export function useDashboardData() {
     } finally {
       if (userProfileRequestRef.current === request) {
         userProfileRequestRef.current = null;
+      }
+    }
+  }, []);
+
+  const refreshConversations = useCallback(async () => {
+    if (conversationsRequestRef.current) {
+      return conversationsRequestRef.current;
+    }
+
+    const request = (async () => {
+      const conversations = await fetchConversations();
+      setData((prev) => ({
+        ...prev,
+        conversations,
+      }));
+      return conversations;
+    })();
+
+    conversationsRequestRef.current = request;
+
+    try {
+      return await request;
+    } finally {
+      if (conversationsRequestRef.current === request) {
+        conversationsRequestRef.current = null;
       }
     }
   }, []);
@@ -304,6 +330,7 @@ export function useDashboardData() {
     refreshUserProfile,
     refreshExclusions,
     refreshFavorites,
+    refreshConversations,
     setFavoriteOptimistic,
   };
 }
