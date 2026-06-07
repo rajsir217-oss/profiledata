@@ -50,6 +50,7 @@ const readOverride = (key) => {
 const DEFAULT_BASE_URL =
   readOverride('MESSENGER_BACKEND_URL') ||
   (typeof process !== 'undefined' && process?.env ? process.env.MESSENGER_BACKEND_URL : null) ||
+  'https://api.l3v3lmatches.com' ||
   FALLBACK_BASE_URL ||
   readOverride('__L3V3L_MESSENGER_DEFAULT_BASE_URL__') ||
   (typeof process !== 'undefined' && process?.env ? process.env.__L3V3L_MESSENGER_DEFAULT_BASE_URL__ : null);
@@ -57,6 +58,7 @@ const DEFAULT_BASE_URL =
 const DEFAULT_WS_URL =
   readOverride('MESSENGER_WS_URL') ||
   (typeof process !== 'undefined' && process?.env ? process.env.MESSENGER_WS_URL : null) ||
+  'https://api.l3v3lmatches.com' ||
   FALLBACK_BASE_URL ||
   readOverride('__L3V3L_MESSENGER_DEFAULT_WS_URL__') ||
   (typeof process !== 'undefined' && process?.env ? process.env.__L3V3L_MESSENGER_DEFAULT_WS_URL__ : null) ||

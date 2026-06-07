@@ -180,7 +180,7 @@ function ProfileCard({ card, isOwn, onUsernameClick, onMenuOpen, isFavorited, cu
           </View>
 
         {Array.isArray(card.educationHistory) && card.educationHistory.length > 0 && (
-          <View style={cardStyles.section}>
+          <View style={[cardStyles.section, cardStyles.educationSection]}>
             <Text style={cardStyles.sectionTitle}>🎓 Education History</Text>
             {card.educationHistory.map((e, i) => {
               // Schema (Register2/EducationHistory.js): { level, degree, institution }
@@ -2281,11 +2281,11 @@ const cardStyles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
-    opacity: 0.38,
+    opacity: 0.95,
   },
   cardInnerBgTint: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(9, 20, 46, 0.60)',
+    backgroundColor: 'rgba(9, 20, 46, 0.22)',
   },
   cardContent: {
     position: 'relative',
@@ -2316,7 +2316,7 @@ const cardStyles = StyleSheet.create({
     paddingBottom: 10,
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
-    backgroundColor: 'rgba(9, 20, 46, 0.64)',
+    backgroundColor: 'rgba(9, 20, 46, 0.40)',
   },
   headerRow: {
     flexDirection: 'row',
@@ -2437,6 +2437,9 @@ const cardStyles = StyleSheet.create({
     backgroundColor: 'rgba(17, 36, 79, 0.22)',
     borderTopWidth: 1,
     borderTopColor: 'rgba(148, 163, 184, 0.25)',
+  },
+  educationSection: {
+    backgroundColor: 'rgba(9, 20, 46, 0.40)',
   },
   sectionTitle: {
     color: '#fff',
