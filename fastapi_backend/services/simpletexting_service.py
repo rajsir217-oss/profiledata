@@ -7,6 +7,7 @@ import logging
 from typing import Dict
 import httpx
 from config import settings
+from services.phone_utils import normalize_phone_for_sms
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +55,14 @@ class SimpleTextingService:
             }
         
         try:
-            # Format phone number (remove +1 if present, SimpleTexting wants just digits for US)
-            formatted_phone = phone.replace("+", "").replace("-", "").replace(" ", "")
-            if formatted_phone.startswith("1") and len(formatted_phone) == 11:
-                formatted_phone = formatted_phone[1:]  # Remove leading 1 for US numbers
+            # Format phone number for SimpleTexting (10 digits for US)
+            formatted_phone = normalize_phone_for_sms(phone)
+            if not formatted_phone:
+                logger.warning("SimpleTexting SMS not sent - invalid or empty phone after normalization")
+                return {
+                    "success": False,
+                    "error": "Invalid phone number"
+                }
             
             # Include L3V3LMATCHES branding and username in message
             profile_prefix = f"[L3V3LMATCHES | {username}] " if username else "[L3V3LMATCHES] "
@@ -174,9 +179,13 @@ class SimpleTextingService:
         
         try:
             # Format phone number
-            formatted_phone = phone.replace("+", "").replace("-", "").replace(" ", "")
-            if formatted_phone.startswith("1") and len(formatted_phone) == 11:
-                formatted_phone = formatted_phone[1:]
+            formatted_phone = normalize_phone_for_sms(phone)
+            if not formatted_phone:
+                logger.warning("SimpleTexting notification not sent - invalid or empty phone after normalization")
+                return {
+                    "success": False,
+                    "error": "Invalid phone number"
+                }
             
             # Prepare API request
             headers = {
@@ -230,11 +239,4 @@ class SimpleTextingService:
         Returns:
             Formatted 10-digit phone number
         """
-        # Remove all non-digit characters
-        digits = ''.join(filter(str.isdigit, phone))
-        
-        # Remove leading 1 for US numbers
-        if digits.startswith('1') and len(digits) == 11:
-            digits = digits[1:]
-        
-        return digits
+        return normalize_phone_for_sms(phone)
