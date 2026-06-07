@@ -11,6 +11,7 @@ import { openExternalUrl } from '../utils/openExternalUrl';
 
 // Messenger-web app version (shown in the About section of the profile panel)
 const APP_VERSION = '0.1.0';
+const SIDEBAR_PIN_STORAGE_KEY = 'messengerSidebarPinned';
 
 // Main matrimonial app URL — profile editing lives there, not in messenger-web.
 const getMainAppUrl = () => {
@@ -19,6 +20,7 @@ const getMainAppUrl = () => {
 
 export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout }) {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [sidebarPinned, setSidebarPinned] = useState(false);
   const [activeTab, setActiveTab] = useState('messages');
   const [error, setError] = useState(null);
   const [allConversations, setAllConversations] = useState([]);
@@ -62,6 +64,46 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   } = useMessengerStore();
 
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    try {
+      const saved = window?.localStorage?.getItem(SIDEBAR_PIN_STORAGE_KEY);
+      const isPinned = saved === 'true';
+      setSidebarPinned(isPinned);
+      if (isPinned) {
+        setSidebarExpanded(true);
+      }
+    } catch (_) {
+      // Ignore storage access issues in restricted environments
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window?.localStorage?.setItem(SIDEBAR_PIN_STORAGE_KEY, sidebarPinned ? 'true' : 'false');
+    } catch (_) {
+      // Ignore storage access issues in restricted environments
+    }
+  }, [sidebarPinned]);
+
+  const handleSidebarToggle = () => {
+    if (sidebarExpanded && sidebarPinned) {
+      setSidebarPinned(false);
+      setSidebarExpanded(false);
+      return;
+    }
+    setSidebarExpanded((prev) => !prev);
+  };
+
+  const handlePinToggle = () => {
+    setSidebarPinned((prev) => {
+      const next = !prev;
+      if (next) {
+        setSidebarExpanded(true);
+      }
+      return next;
+    });
+  };
 
   const openMainAppWithSso = async (redirectPath = '/dashboard') => {
     const mainAppUrl = getMainAppUrl();
@@ -188,10 +230,11 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       allConversations.forEach(conv => {
         const isBotConv = isL3V3LAgentConversation(conv);
         const unread = conv.unreadCount || 0;
+        const hasContent = Boolean(String(conv.lastMessagePreview || '').trim()) || Boolean(conv.lastMessageAt) || unread > 0;
 
         if (isBotConv) {
           l3v3lAgentUnread += unread;
-        } else {
+        } else if (hasContent) {
           myMessagesUnread += unread;
         }
       });
@@ -580,9 +623,21 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
+  const hasConversationContent = (conv) => {
+    if (!conv) return false;
+    const preview = String(conv.lastMessagePreview || '').trim();
+    const unread = Number(conv.unreadCount || 0);
+    return Boolean(preview) || Boolean(conv.lastMessageAt) || unread > 0;
+  };
+
   // Group conversations
   const groupConversations = allConversations.filter(c => c.type === 'group');
-  const directConversations = allConversations.filter(c => c.type !== 'group' && !isL3V3LAgentConversation(c));
+  const directConversations = allConversations.filter(
+    (c) => c.type !== 'group' && !isL3V3LAgentConversation(c) && hasConversationContent(c)
+  );
+  const myMessageConversations = allConversations.filter(
+    (c) => !isL3V3LAgentConversation(c) && hasConversationContent(c)
+  );
 
   // Helper: get display name for a conversation (L3V3L Messenger structure).
   // Returns `username` for direct chats so callers can do online-presence lookups.
@@ -961,13 +1016,23 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           footer sit in a right-side column next to it. */}
       <View style={[styles.sidebar, sidebarExpanded ? styles.sidebarExpanded : styles.sidebarCollapsed]}>
           {/* Toggle header */}
-          <TouchableOpacity
-            onPress={() => setSidebarExpanded(!sidebarExpanded)}
-            style={[styles.sidebarToggle, !sidebarExpanded && styles.sidebarToggleCollapsed]}
-          >
-            <Text style={styles.sidebarToggleText}>{sidebarExpanded ? '✕' : '☰'}</Text>
-            {sidebarExpanded && <Text style={styles.sidebarToggleLabel}>Close sidebar</Text>}
-          </TouchableOpacity>
+          <View style={[styles.sidebarHeaderRow, !sidebarExpanded && styles.sidebarHeaderRowCollapsed]}>
+            <TouchableOpacity
+              onPress={handleSidebarToggle}
+              style={[styles.sidebarToggleButton, !sidebarExpanded && styles.sidebarToggleButtonCollapsed]}
+            >
+              <Text style={styles.sidebarToggleText}>{sidebarExpanded ? '✕' : '☰'}</Text>
+              {sidebarExpanded && <Text style={styles.sidebarToggleLabel}>Close sidebar</Text>}
+            </TouchableOpacity>
+            {sidebarExpanded && (
+              <TouchableOpacity
+                onPress={handlePinToggle}
+                style={styles.sidebarPinButton}
+              >
+                <Text style={styles.sidebarPinIcon}>{sidebarPinned ? '📌' : '📍'}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Scrollable Menu */}
           <ScrollView style={styles.sidebarScroll} contentContainerStyle={styles.sidebarScrollContent}>
@@ -1022,10 +1087,10 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                     {isLoading && (
                       <Text style={styles.subMenuHint}>Loading...</Text>
                     )}
-                    {!isLoading && allConversations.length === 0 && (
+                    {!isLoading && myMessageConversations.length === 0 && (
                       <Text style={styles.subMenuHint}>No conversations</Text>
                     )}
-                    {!isLoading && allConversations.filter(c => !isL3V3LAgentConversation(c)).map((conv, index) => {
+                    {!isLoading && myMessageConversations.map((conv, index) => {
                       const display = getConvDisplay(conv);
                       const key = conv._id || conv.id || index;
                       const isLegacy = conv.type === 'direct_legacy';
@@ -1281,14 +1346,26 @@ const styles = StyleSheet.create({
   },
 
   // Sidebar toggle
-  sidebarToggle: {
+  sidebarHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  sidebarHeaderRowCollapsed: {
+    paddingHorizontal: 0,
+    justifyContent: 'center',
+    width: '100%',
+  },
+  sidebarToggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingHorizontal: 4,
+    flex: 1,
   },
-  sidebarToggleCollapsed: {
+  sidebarToggleButtonCollapsed: {
     paddingHorizontal: 0,
     justifyContent: 'center',
     width: '100%',
@@ -1303,6 +1380,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 10,
     fontWeight: '500',
+  },
+  sidebarPinButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  sidebarPinIcon: {
+    fontSize: 16,
   },
 
   // Menu items
