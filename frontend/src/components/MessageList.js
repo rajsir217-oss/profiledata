@@ -108,12 +108,16 @@ const MessageList = ({
             const isGroup = isGroupChat(conv);
             const urgencyClass = getUrgencyClass(conv.username);
             const urgencyInfo = getUrgencyInfo(conv.username);
+            const conversationIdentifier = isGroup
+              ? (conv.id || conv.username || conv.groupName)
+              : (conv.username || conv.id);
+            const isActiveConversation = selectedUser === conversationIdentifier || selectedUser === conv.username || selectedUser === conv.id;
             
             return (
               <div
-                key={conv.id || conv.username}
-                className={`conversation-item ${selectedUser === (conv.id || conv.username) ? 'active' : ''} ${isGroup ? 'group-chat' : ''} ${urgencyClass}`}
-                onClick={() => onSelectUser(conv.id || conv.username)}
+                key={conv.id || conv.username || conv.groupName}
+                className={`conversation-item ${isActiveConversation ? 'active' : ''} ${isGroup ? 'group-chat' : ''} ${urgencyClass}`}
+                onClick={() => onSelectUser(conversationIdentifier)}
               >
                 {/* Avatar - shows profile pic or initials */}
                 <div className="conversation-avatar">
@@ -166,35 +170,34 @@ const MessageList = ({
                           {urgencyInfo.urgency === 'medium' && '🟡 ' + urgencyInfo.waitingDays + 'd'}
                         </span>
                       )}
-                      <span className="conversation-time">{formatTime(conv.lastMessageTime)}</span>
                     </div>
                   </div>
                   <p className={`conversation-preview ${conv.unreadCount > 0 ? 'unread' : ''}`}>
                     {truncateMessage(conv.lastMessage)}
                   </p>
+
+                  {/* View/Profile actions under preview (mock-style layout) */}
+                  {!isGroup && (
+                    <div className="conversation-actions">
+                      <button
+                        className="view-profile-btn"
+                        onClick={(e) => handleViewProfile(e, conv.username)}
+                        title="View profile"
+                        aria-label={`View ${getDisplayName(conv.userProfile) || conv.username}'s profile`}
+                      >
+                        View
+                      </button>
+                      <button
+                        className="archive-conversation-btn"
+                        onClick={(e) => handleArchiveToggle(e, conv.username)}
+                        title={showArchived ? 'Unarchive conversation' : 'Archive conversation'}
+                        aria-label={showArchived ? `Unarchive ${conv.username} conversation` : `Archive ${conv.username} conversation`}
+                      >
+                        {showArchived ? 'Unarchive' : 'Archive'}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                
-                {/* View Profile Button - only for 1:1 chats */}
-                {!isGroup && (
-                  <div className="conversation-actions">
-                    <button 
-                      className="view-profile-btn"
-                      onClick={(e) => handleViewProfile(e, conv.username)}
-                      title="View profile"
-                      aria-label={`View ${getDisplayName(conv.userProfile) || conv.username}'s profile`}
-                    >
-                      View
-                    </button>
-                    <button
-                      className="archive-conversation-btn"
-                      onClick={(e) => handleArchiveToggle(e, conv.username)}
-                      title={showArchived ? 'Unarchive conversation' : 'Archive conversation'}
-                      aria-label={showArchived ? `Unarchive ${conv.username} conversation` : `Archive ${conv.username} conversation`}
-                    >
-                      {showArchived ? 'Unarchive' : 'Archive'}
-                    </button>
-                  </div>
-                )}
               </div>
             );
           })
