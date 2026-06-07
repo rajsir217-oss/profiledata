@@ -558,61 +558,65 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
           {error && <div className="contribution-error">{error}</div>}
 
-          <div className="contribution-amounts">
-            {amounts.map((amt) => (
-              <label 
-                key={amt} 
-                className={`contribution-amount-option ${selectedAmount === amt ? 'selected' : ''}`}
+          <section className="contribution-block contribution-amounts-block" aria-label="Contribution amount options">
+            <div className="contribution-block-title">Choose Your Contribution</div>
+            <div className="contribution-amounts">
+              {amounts.map((amt) => (
+                <label
+                  key={amt}
+                  className={`contribution-amount-option ${selectedAmount === amt ? 'selected' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="contributionAmount"
+                    value={amt}
+                    checked={selectedAmount === amt}
+                    onChange={() => {
+                      setSelectedAmount(amt);
+                      setCustomAmount('');
+                      setError('');
+                    }}
+                    disabled={loading}
+                  />
+                  <span className="contribution-amount-label">${amt}</span>
+                  {amt === 100 && <span className="heart-badge">❤️</span>}
+                </label>
+              ))}
+
+              <label
+                className={`contribution-amount-option custom-option ${selectedAmount === 'custom' ? 'selected' : ''}`}
               >
                 <input
                   type="radio"
                   name="contributionAmount"
-                  value={amt}
-                  checked={selectedAmount === amt}
-                  onChange={() => {
-                    setSelectedAmount(amt);
-                    setCustomAmount('');
-                    setError('');
-                  }}
+                  value="custom"
+                  checked={selectedAmount === 'custom'}
+                  onChange={() => setSelectedAmount('custom')}
                   disabled={loading}
                 />
-                <span className="contribution-amount-label">${amt}</span>
-                {amt === 100 && <span className="heart-badge">❤️</span>}
+                <span className="contribution-amount-label custom-amount-label">
+                  $
+                  <input
+                    type="number"
+                    className="custom-amount-input"
+                    value={customAmount}
+                    onChange={(e) => {
+                      setCustomAmount(e.target.value);
+                      setSelectedAmount('custom');
+                      setError('');
+                    }}
+                    placeholder="Amt"
+                    min="1"
+                    disabled={loading}
+                  />
+                </span>
               </label>
-            ))}
-            
-            <label 
-              className={`contribution-amount-option custom-option ${selectedAmount === 'custom' ? 'selected' : ''}`}
-            >
-              <input
-                type="radio"
-                name="contributionAmount"
-                value="custom"
-                checked={selectedAmount === 'custom'}
-                onChange={() => setSelectedAmount('custom')}
-                disabled={loading}
-              />
-              <span className="contribution-amount-label custom-amount-label">
-                $
-                <input
-                  type="number"
-                  className="custom-amount-input"
-                  value={customAmount}
-                  onChange={(e) => {
-                    setCustomAmount(e.target.value);
-                    setSelectedAmount('custom');
-                    setError('');
-                  }}
-                  placeholder="Amt"
-                  min="1"
-                  disabled={loading}
-                />
-              </span>
-            </label>
-          </div>
+            </div>
+          </section>
 
           {/* Payment Method Selection */}
-          <div>
+          <section className="contribution-block contribution-payment-block" aria-label="Payment method selection">
+            <div className="contribution-block-title">Select Payment Method</div>
             <div className="payment-method-toggle">
               <button
                 className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
@@ -647,7 +651,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                 Card
               </button>
             </div>
-          </div>
+          </section>
 
           {/* PayPal Buttons */}
           {paymentMethod === 'paypal' && (
