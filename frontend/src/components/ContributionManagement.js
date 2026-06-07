@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { getBackendUrl } from '../config/apiConfig';
+import { getBackendUrl, getFrontendUrl } from '../config/apiConfig';
 import { getSilenceDays } from '../utils/contributionSilence';
 import AddManualPayment from './AddManualPayment';
 import './ContributionManagement.css';
@@ -10,6 +10,7 @@ import './LoadMore.css';
 
 const ContributionManagement = () => {
   const navigate = useNavigate();
+  const reminderContributionUrl = `${getFrontendUrl().replace(/\/$/, '')}/preferences?tab=contributions`;
   const [activeTab, setActiveTab] = useState('contributions'); // 'contributions' or 'activity'
   const [contributions, setContributions] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -1203,13 +1204,13 @@ const ContributionManagement = () => {
                         <li>Security & privacy enhancements</li>
                         <li>New matching features & improvements</li>
                       </ul>
-                      <p><a href="https://l3v3lmatches.com/contribution" style={{color: '#667eea'}}>Make a Contribution →</a></p>
+                      <p><a href={reminderContributionUrl} style={{color: '#667eea'}}>Make a Contribution →</a></p>
                       <p>— The L3V3L Team</p>
                     </div>
                   </div>
                 ) : (
                   <div className="sms-preview">
-                    <p>Hi {reminderModal.bulk ? '<First Name>' : (reminderModal.user.fullName?.split(' ')[0] || 'Member')}! Hope your partner-search journey is going beautifully. 💝<br/><br/>Thank you for being part of our community. Your contribution plays a big role in keeping L3V3L MATCHES growing and improving for everyone.<br/><br/>Support here: https://l3v3lmatches.com/contribution<br/>— L3V3L Team</p>
+                    <p>Hi {reminderModal.bulk ? '<First Name>' : (reminderModal.user.fullName?.split(' ')[0] || 'Member')}! Hope your partner-search journey is going beautifully. 💝<br/><br/>Thank you for being part of our community. Your contribution plays a big role in keeping L3V3L MATCHES growing and improving for everyone.<br/><br/>Support here: {reminderContributionUrl}<br/>— L3V3L Team</p>
                   </div>
                 )}
               </div>

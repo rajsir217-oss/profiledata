@@ -125,6 +125,12 @@ async def get_unpaid_users(db: AsyncIOMotorDatabase, channel: str) -> List[Dict[
 # Message Templates (single source of truth)
 # ---------------------------------------------------------------------------
 EMAIL_SUBJECT = "We miss you at L3V3L MATCHES 💝"
+CONTRIBUTION_PATH = "/preferences?tab=contributions"
+
+
+def get_contribution_url() -> str:
+    base_url = (getattr(settings, "frontend_url", "") or "https://l3v3lmatches.com").rstrip("/")
+    return f"{base_url}{CONTRIBUTION_PATH}"
 
 
 def build_reminder_email(first_name: str, custom_message: Optional[str] = None) -> Tuple[str, str]:
@@ -145,6 +151,8 @@ def build_reminder_email(first_name: str, custom_message: Optional[str] = None) 
         '</ul>'
     )
 
+    contribution_url = get_contribution_url()
+
     html_body = f"""<html>
 <body style="font-family:Arial,sans-serif;padding:0;margin:0;background:#f8f9fa;">
   <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
@@ -155,7 +163,7 @@ def build_reminder_email(first_name: str, custom_message: Optional[str] = None) 
     <h2 style="color:#667eea;margin-top:0;">Hi {first_name},</h2>
     {body_inner}
     <p style="margin-top:24px;text-align:center;">
-      <a href="https://l3v3lmatches.com/contribution" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 28px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102,126,234,0.4);">
+      <a href="{contribution_url}" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 28px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102,126,234,0.4);">
         Make a Contribution
       </a>
     </p>
@@ -173,10 +181,11 @@ def build_reminder_sms(first_name: str, custom_message: Optional[str] = None) ->
     """Build the SMS reminder text."""
     if custom_message:
         return custom_message
+    contribution_url = get_contribution_url()
     return (
         f"Hi {first_name}! Hope your partner-search journey is going beautifully. 💝\n\n"
         f"Thank you for being part of our community. Your contribution plays a big role in keeping L3V3L MATCHES growing and improving for everyone.\n\n"
-        f"Support here: https://l3v3lmatches.com/contribution\n"
+        f"Support here: {contribution_url}\n"
         f"— L3V3L Team"
     )
 
