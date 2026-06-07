@@ -177,7 +177,7 @@ const InviteFriends = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${getBackendUrl()}/api/user-invitations/${invitationId}/resend?channel=email`,
+        `${getBackendUrl()}/api/user-invitations/${invitationId}/resend`,
         {
           method: 'POST',
           headers: {
