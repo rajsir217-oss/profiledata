@@ -12,6 +12,7 @@ from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import logging
 from config import settings
+from services.phone_utils import format_phone_for_twilio
 
 logger = logging.getLogger(__name__)
 
@@ -53,18 +54,7 @@ class SMSService:
     
     def format_phone_number(self, phone: str) -> str:
         """Format phone number to E.164 format (+1234567890)"""
-        # Remove all non-digit characters
-        digits = ''.join(filter(str.isdigit, phone))
-        
-        # Add country code if not present
-        if not digits.startswith('1') and len(digits) == 10:
-            digits = '1' + digits
-        
-        # Add + prefix
-        if not digits.startswith('+'):
-            digits = '+' + digits
-        
-        return digits
+        return format_phone_for_twilio(phone)
     
     async def send_otp(
         self, 
@@ -95,6 +85,12 @@ class SMSService:
         
         try:
             formatted_phone = self.format_phone_number(phone)
+            if not formatted_phone:
+                logger.warning("SMS not sent - invalid or empty phone after normalization")
+                return {
+                    "success": False,
+                    "error": "Invalid phone number"
+                }
             
             # Include username in message for multi-profile clarity
             profile_prefix = f"[L3V3LMATCHES | {username}] " if username else "[L3V3LMATCHES] "
@@ -172,6 +168,12 @@ class SMSService:
         
         try:
             formatted_phone = self.format_phone_number(phone)
+            if not formatted_phone:
+                logger.warning("SMS notification not sent - invalid or empty phone after normalization")
+                return {
+                    "success": False,
+                    "error": "Invalid phone number"
+                }
             
             message = self.client.messages.create(
                 body=message,
