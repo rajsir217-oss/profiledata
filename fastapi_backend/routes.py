@@ -8326,6 +8326,17 @@ async def get_conversations_enhanced(
         ack_cutoff = now - timedelta(hours=24)
         ack_phrase_regex = "we'?ve connected and will stay in touch"
 
+        def _to_naive_dt(value):
+            if isinstance(value, datetime):
+                return value.replace(tzinfo=None) if value.tzinfo else value
+            if isinstance(value, str):
+                try:
+                    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                    return parsed.replace(tzinfo=None) if parsed.tzinfo else parsed
+                except ValueError:
+                    return None
+            return None
+
         participant_clause = {
             "$or": [
                 {"fromUsername": username},
@@ -8431,10 +8442,11 @@ async def get_conversations_enhanced(
             sorted_participants = sorted([username, other_username])
             conversation_state = await db.conversation_status.find_one(
                 {"participants": {"$all": sorted_participants}},
-                {"archivedFor": 1}
+                {"archivedFor": 1, "clearedFor": 1}
             )
             archived_for = (conversation_state or {}).get("archivedFor", {}) or {}
             is_archived_for_user = bool(archived_for.get(username))
+            cleared_for_user = (conversation_state or {}).get("clearedFor", {}).get(username)
 
             if include_archived and not is_archived_for_user:
                 continue
@@ -8502,15 +8514,28 @@ async def get_conversations_enhanced(
             last_msg_time = conv["lastMessage"]["createdAt"]
             if isinstance(last_msg_time, datetime):
                 last_msg_time = last_msg_time.isoformat()
+
+            last_message_text = _maybe_decrypt_message(conv["lastMessage"].get("content", ""))
+            unread_count = conv["unreadCount"]
+
+            # Keep list preview consistent with /messages/conversation/{other_username}
+            # which hides messages older than user's clearedFor timestamp.
+            if cleared_for_user:
+                cleared_at = _to_naive_dt(cleared_for_user)
+                last_msg_at_dt = _to_naive_dt(conv["lastMessage"].get("createdAt"))
+                if cleared_at and last_msg_at_dt and last_msg_at_dt <= cleared_at:
+                    last_message_text = ""
+                    last_msg_time = None
+                    unread_count = 0
             
             conv_data = {
                 "username": other_username,
                 "userProfile": user,
                 # Legacy messages may carry a Fernet-encrypted content field
                 # from a removed encrypt-on-write path; new writes are plaintext.
-                "lastMessage": _maybe_decrypt_message(conv["lastMessage"].get("content", "")),
+                "lastMessage": last_message_text,
                 "lastMessageTime": last_msg_time,
-                "unreadCount": conv["unreadCount"],
+                "unreadCount": unread_count,
                 "isVisible": is_visible,
                 "isArchived": is_archived_for_user,
             }
