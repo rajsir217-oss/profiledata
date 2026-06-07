@@ -28,6 +28,17 @@ MAX_INVITATIONS_PER_USER = 10  # Each user can send up to 10 invitations
 INVITATION_VALIDITY_DAYS = 30
 
 
+def _current_month_bounds_utc() -> tuple[datetime, datetime]:
+    """Return [start, end) bounds for current UTC calendar month."""
+    now = datetime.utcnow()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if month_start.month == 12:
+        next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        next_month_start = month_start.replace(month=month_start.month + 1)
+    return month_start, next_month_start
+
+
 @router.get("/my-invitations", response_model=List[InvitationResponse])
 async def get_my_invitations(
     current_user: dict = Depends(get_current_user),
@@ -65,8 +76,17 @@ async def get_user_invitation_stats(
     """Get invitation statistics for current user"""
     username = current_user["username"]
     
-    total_sent = await db.invitations.count_documents({
+    total_sent_lifetime = await db.invitations.count_documents({
         "invitedBy": username
+    })
+
+    month_start, next_month_start = _current_month_bounds_utc()
+    monthly_sent = await db.invitations.count_documents({
+        "invitedBy": username,
+        "createdAt": {
+            "$gte": month_start,
+            "$lt": next_month_start,
+        }
     })
     
     accepted = await db.invitations.count_documents({
@@ -83,14 +103,18 @@ async def get_user_invitation_stats(
         ]
     })
     
-    remaining = MAX_INVITATIONS_PER_USER - total_sent
+    remaining = MAX_INVITATIONS_PER_USER - monthly_sent
     
     return {
-        "totalSent": total_sent,
+        "totalSent": monthly_sent,
+        "lifetimeTotalSent": total_sent_lifetime,
         "accepted": accepted,
         "pending": pending,
         "remaining": remaining if remaining > 0 else 0,
-        "maxAllowed": MAX_INVITATIONS_PER_USER
+        "maxAllowed": MAX_INVITATIONS_PER_USER,
+        "quotaPeriod": "monthly",
+        "quotaMonthStart": month_start,
+        "quotaMonthEnd": next_month_start,
     }
 
 
@@ -113,15 +137,20 @@ async def send_invitation(
     username = current_user["username"]
     service = InvitationService(db)
     
-    # Check invitation limit
-    total_sent = await db.invitations.count_documents({
+    # Check monthly invitation limit (resets every UTC calendar month)
+    month_start, next_month_start = _current_month_bounds_utc()
+    monthly_sent = await db.invitations.count_documents({
         "invitedBy": username
+        ,"createdAt": {
+            "$gte": month_start,
+            "$lt": next_month_start,
+        }
     })
     
-    if total_sent >= MAX_INVITATIONS_PER_USER:
+    if monthly_sent >= MAX_INVITATIONS_PER_USER:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"You have reached the maximum limit of {MAX_INVITATIONS_PER_USER} invitations"
+            detail=f"You have reached the monthly limit of {MAX_INVITATIONS_PER_USER} invitations"
         )
     
     try:
@@ -163,7 +192,7 @@ async def send_invitation(
 @router.post("/{invitation_id}/resend")
 async def resend_my_invitation(
     invitation_id: str,
-    channel: InvitationChannel = Query(InvitationChannel.EMAIL),
+    channel: Optional[InvitationChannel] = Query(None),
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
@@ -194,11 +223,18 @@ async def resend_my_invitation(
             detail="This invitation has already been accepted"
         )
     
+    resend_channel = channel
+    if resend_channel is None:
+        try:
+            resend_channel = InvitationChannel(invitation.channel)
+        except Exception:
+            resend_channel = InvitationChannel.EMAIL
+
     # Resend invitation
     from routers.invitations import send_invitation_notifications
     await send_invitation_notifications(
         invitation=invitation,
-        channel=channel,
+        channel=resend_channel,
         db=db
     )
     
