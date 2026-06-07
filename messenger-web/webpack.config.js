@@ -112,6 +112,7 @@ module.exports = (env, argv) => {
     }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'web/index.html'),
+      favicon: path.resolve(__dirname, 'web/favicon.svg'),
     }),
   ],
   devServer: {
