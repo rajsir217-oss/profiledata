@@ -100,125 +100,138 @@ function ProfileCard({ card, isOwn, onUsernameClick, onMenuOpen, isFavorited, cu
   return (
     <View style={[cardStyles.card, isOwn && cardStyles.cardOwn]}>
       <View style={cardStyles.cardInner}>
-        <View style={cardStyles.heroImageWrap}>
-          {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={cardStyles.avatar} />
-          ) : (
-            <View style={[cardStyles.avatar, cardStyles.avatarFallback]}>
-              <Text style={cardStyles.avatarFallbackText}>
-                {(card.fullName || card.username || '?').charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
-          <View style={cardStyles.heroOverlay}>
-            <View style={cardStyles.headerRow}>
-              <View style={cardStyles.nameBlock}>
-                <TouchableOpacity
-                  style={cardStyles.nameTouchable}
-                  onPress={() => card.username && onUsernameClick && onUsernameClick(card.username)}
-                  activeOpacity={card.username ? 0.7 : 1}
-                >
-                  <Text style={cardStyles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
-                    {displayName}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+        <View style={cardStyles.cardContent}>
+          <View style={cardStyles.cardTopArea}>
+            {avatarUri ? (
+              <>
+                <Image source={{ uri: avatarUri }} style={cardStyles.cardInnerBgImage} resizeMode="cover" />
+                <View style={cardStyles.cardInnerBgTint} />
+              </>
+            ) : null}
 
-              <View style={cardStyles.headerActions}>
-                {isFavorited && <Text style={cardStyles.heartEmoji}>❤️</Text>}
-                {!isOwn && onMenuOpen && (() => {
-                  const normalizeGender = (g) => g ? String(g).trim().toLowerCase() : '';
-                  const currentG = normalizeGender(currentUserGender);
-                  const cardG = normalizeGender(card.gender || card.sex);
-                  const isMale = ['male', 'm', 'man'].includes(currentG);
-                  const cardIsMale = ['male', 'm', 'man'].includes(cardG);
-                  const isFemale = ['female', 'f', 'woman'].includes(currentG);
-                  const cardIsFemale = ['female', 'f', 'woman'].includes(cardG);
-                  return !currentG || !cardG || (isMale && cardIsFemale) || (isFemale && cardIsMale);
-                })() && (
+            <View style={cardStyles.cardTopContent}>
+          <View style={cardStyles.heroImageWrap}>
+            {avatarUri ? (
+              <View style={cardStyles.heroPhotoSpacer} />
+            ) : (
+              <View style={[cardStyles.avatar, cardStyles.avatarFallback]}>
+                <Text style={cardStyles.avatarFallbackText}>
+                  {(card.fullName || card.username || '?').charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={cardStyles.heroOverlay}>
+              <View style={cardStyles.headerRow}>
+                <View style={cardStyles.nameBlock}>
                   <TouchableOpacity
-                    style={cardStyles.menuButton}
-                    onPress={() => onMenuOpen(card)}
-                    activeOpacity={0.7}
+                    style={cardStyles.nameTouchable}
+                    onPress={() => card.username && onUsernameClick && onUsernameClick(card.username)}
+                    activeOpacity={card.username ? 0.7 : 1}
                   >
-                    <Text style={cardStyles.menuButtonText}>⋮</Text>
+                    <Text style={cardStyles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+                      {displayName}
+                    </Text>
                   </TouchableOpacity>
-                )}
+                </View>
+
+                <View style={cardStyles.headerActions}>
+                  {isFavorited && <Text style={cardStyles.heartEmoji}>❤️</Text>}
+                  {!isOwn && onMenuOpen && (() => {
+                    const normalizeGender = (g) => g ? String(g).trim().toLowerCase() : '';
+                    const currentG = normalizeGender(currentUserGender);
+                    const cardG = normalizeGender(card.gender || card.sex);
+                    const isMale = ['male', 'm', 'man'].includes(currentG);
+                    const cardIsMale = ['male', 'm', 'man'].includes(cardG);
+                    const isFemale = ['female', 'f', 'woman'].includes(currentG);
+                    const cardIsFemale = ['female', 'f', 'woman'].includes(cardG);
+                    return !currentG || !cardG || (isMale && cardIsFemale) || (isFemale && cardIsMale);
+                  })() && (
+                    <TouchableOpacity
+                      style={cardStyles.menuButton}
+                      onPress={() => onMenuOpen(card)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={cardStyles.menuButtonText}>⋮</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
+
+              {primaryPills.length > 0 && (
+                <View style={cardStyles.pillRow}>
+                  {primaryPills.map((p, i) => (
+                    <View key={i} style={cardStyles.pill}>
+                      <Text style={cardStyles.pillText}>{p}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {secondaryPills.length > 0 && (
+                <View style={cardStyles.pillRow}>
+                  {secondaryPills.map((p, i) => (
+                    <View key={i} style={cardStyles.subPill}>
+                      <Text style={cardStyles.subPillText}>{p}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
-
-            {primaryPills.length > 0 && (
-              <View style={cardStyles.pillRow}>
-                {primaryPills.map((p, i) => (
-                  <View key={i} style={cardStyles.pill}>
-                    <Text style={cardStyles.pillText}>{p}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {secondaryPills.length > 0 && (
-              <View style={cardStyles.pillRow}>
-                {secondaryPills.map((p, i) => (
-                  <View key={i} style={cardStyles.subPill}>
-                    <Text style={cardStyles.subPillText}>{p}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
           </View>
-        </View>
 
-      {Array.isArray(card.educationHistory) && card.educationHistory.length > 0 && (
-        <View style={cardStyles.section}>
-          <Text style={cardStyles.sectionTitle}>🎓 Education History</Text>
-          {card.educationHistory.map((e, i) => {
-            // Schema (Register2/EducationHistory.js): { level, degree, institution }
-            // Display matches main app Profile.js: "Level - Degree" with institution below.
-            const title = e.level && e.degree
-              ? `${e.level} – ${e.degree}`
-              : (e.level || e.degree || e.qualification || '');
-            const where = e.institution || e.school || (Array.isArray(e.schools) ? e.schools.join(' & ') : '');
-            return (
-              <View key={i} style={cardStyles.row}>
-                {title ? <Text style={cardStyles.rowTitle}>{title}</Text> : null}
-                {where ? <Text style={cardStyles.rowText}>{where}</Text> : null}
-              </View>
-            );
-          })}
-        </View>
-      )}
+        {Array.isArray(card.educationHistory) && card.educationHistory.length > 0 && (
+          <View style={cardStyles.section}>
+            <Text style={cardStyles.sectionTitle}>🎓 Education History</Text>
+            {card.educationHistory.map((e, i) => {
+              // Schema (Register2/EducationHistory.js): { level, degree, institution }
+              // Display matches main app Profile.js: "Level - Degree" with institution below.
+              const title = e.level && e.degree
+                ? `${e.level} – ${e.degree}`
+                : (e.level || e.degree || e.qualification || '');
+              const where = e.institution || e.school || (Array.isArray(e.schools) ? e.schools.join(' & ') : '');
+              return (
+                <View key={i} style={cardStyles.row}>
+                  {title ? <Text style={cardStyles.rowTitle}>{title}</Text> : null}
+                  {where ? <Text style={cardStyles.rowText}>{where}</Text> : null}
+                </View>
+              );
+            })}
+          </View>
+        )}
+            </View>
+          </View>
 
-      {Array.isArray(card.workExperience) && card.workExperience.length > 0 && (
-        <View style={cardStyles.section}>
-          <Text style={cardStyles.sectionTitle}>💼 Work Experience</Text>
-          {card.workExperience.map((w, i) => {
-            // Schema (Register2/WorkExperience.js): { status: 'current'|'past'|'other',
-            //   workType, description, location }
-            // Display matches main app Profile.js exactly.
-            const isCurrent = w.status === 'current' || w.current === true || w.isCurrent === true;
-            const isPast = w.status === 'past';
-            const heading = isCurrent
-              ? '🟢 Current Position'
-              : isPast
-                ? '⚪ Past Position'
-                : (w.role || w.title || w.position || 'Position');
-            const desc = w.description || w.role || w.title || w.company || '';
-            const loc = w.location || '';
-            return (
-              <View key={i} style={cardStyles.row}>
-                <Text style={cardStyles.rowTitle}>{heading}</Text>
-                {desc ? <Text style={cardStyles.rowText}>{desc}</Text> : null}
-                {loc ? <Text style={cardStyles.rowText}>📍 {loc}</Text> : null}
-              </View>
-            );
-          })}
-        </View>
-      )}
+        {Array.isArray(card.workExperience) && card.workExperience.length > 0 && (
+          <View style={cardStyles.section}>
+            <Text style={cardStyles.sectionTitle}>💼 Work Experience</Text>
+            {card.workExperience.map((w, i) => {
+              // Schema (Register2/WorkExperience.js): { status: 'current'|'past'|'other',
+              //   workType, description, location }
+              // Display matches main app Profile.js exactly.
+              const isCurrent = w.status === 'current' || w.current === true || w.isCurrent === true;
+              const isPast = w.status === 'past';
+              const heading = isCurrent
+                ? '🟢 Current Position'
+                : isPast
+                  ? '⚪ Past Position'
+                  : (w.role || w.title || w.position || 'Position');
+              const desc = w.description || w.role || w.title || w.company || '';
+              const loc = w.location || '';
+              return (
+                <View key={i} style={cardStyles.row}>
+                  <Text style={cardStyles.rowTitle}>{heading}</Text>
+                  {desc ? <Text style={cardStyles.rowText}>{desc}</Text> : null}
+                  {loc ? <Text style={cardStyles.rowText}>📍 {loc}</Text> : null}
+                </View>
+              );
+            })}
+          </View>
+        )}
 
-      {card.message ? (
-        <Text style={cardStyles.message}>{card.message}</Text>
-      ) : null}
+        {card.message ? (
+          <Text style={cardStyles.message}>{card.message}</Text>
+        ) : null}
+        </View>
       </View>
     </View>
   );
@@ -2261,10 +2274,37 @@ const cardStyles = StyleSheet.create({
     borderWidth: 0,
     borderRadius: 18,
     padding: 10,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  cardInnerBgImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    opacity: 0.38,
+  },
+  cardInnerBgTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(9, 20, 46, 0.60)',
+  },
+  cardContent: {
+    position: 'relative',
+    zIndex: 1,
+  },
+  cardTopArea: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  cardTopContent: {
+    position: 'relative',
+    zIndex: 1,
   },
   heroImageWrap: {
     marginBottom: 8,
     position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 12,
   },
   heroOverlay: {
     position: 'absolute',
@@ -2286,9 +2326,13 @@ const cardStyles = StyleSheet.create({
   },
   avatar: {
     width: '100%',
-    height: 290,
+    height: 340,
     borderRadius: 12,
     backgroundColor: '#1b3567',
+  },
+  heroPhotoSpacer: {
+    width: '100%',
+    height: 340,
   },
   avatarFallback: {
     alignItems: 'center',
@@ -2387,6 +2431,10 @@ const cardStyles = StyleSheet.create({
   section: {
     marginTop: 10,
     paddingTop: 10,
+    paddingHorizontal: 10,
+    paddingBottom: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(17, 36, 79, 0.22)',
     borderTopWidth: 1,
     borderTopColor: 'rgba(148, 163, 184, 0.25)',
   },
