@@ -55,7 +55,7 @@
 .reports-content {
   background: var(--card-background);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Responsive design */
