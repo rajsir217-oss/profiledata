@@ -9,6 +9,7 @@
 # Quick git workflow script - gitp (git push)
 # Usage: 
 #   gitp ["Your commit message"]       - Commit and push to current branch
+#   gitp -m "Your commit message"      - Commit message via explicit flag (order-independent)
 #   gitp -main ["Your commit message"] - Commit to dev, merge to main, checkout back to dev
 #   gitp -n ["Your commit message"]    - Dry-run: preview changes without committing
 #   gitp -h                            - Show help
@@ -52,6 +53,10 @@ print_dry() {
 
 confirm_action() {
     local prompt="$1"
+    if [ "$AUTO_YES" = true ]; then
+        print_status "Auto-confirm enabled (-y): $prompt"
+        return 0
+    fi
     echo -n "$prompt (y/N): "
     read -r response
     [[ "$response" =~ ^[Yy]$ ]]
@@ -67,6 +72,8 @@ show_help() {
     echo "  gitp -n [message]           Dry-run: preview what would be committed"
     echo "  gitp -u [message]           Add only tracked files (default: includes untracked)"
     echo "  gitp -p <paths> [message]   Commit only selected paths (comma-separated)"
+    echo "  gitp -m <message>           Commit message (order-independent)"
+    echo "  gitp -y [message]           Auto-yes: skip all confirmation prompts"
     echo "  gitp -h, --help             Show this help message"
     echo ""
     echo -e "${YELLOW}Options:${NC}"
@@ -74,6 +81,9 @@ show_help() {
     echo "  -n        Dry-run mode: show what would happen without making changes"
     echo "  -u        Add only tracked files (exclude new untracked files)"
     echo "  -p        Commit only selected paths (e.g. -p file1.js,dir/file2.py)"
+    echo "  -m        Commit message (same as positional message)"
+    echo "  --message Commit message (supports --message=\"...\")"
+    echo "  -y        Auto-confirm all prompts (use with care)"
     echo "  --allow-large-deletions   Override safety abort for large staged deletions"
     echo "  -h        Show this help"
     echo ""
@@ -84,12 +94,15 @@ show_help() {
     echo "  gitp -main \"Release v1.2\"  # Push to dev, merge to main"
     echo "  gitp -u \"Fix bug\"          # Exclude untracked files"
     echo "  gitp -p messenger/src/stores/authStore.js,messenger-web/src/screens/ChatScreen.js \"Targeted fix\""
+    echo "  gitp -m \"Fix login bug\" -y # Order-independent message + auto-confirm"
+    echo "  gitp -y \"Hotfix\"            # Skip interactive confirmations"
     echo ""
     echo -e "${YELLOW}Notes:${NC}"
     echo "  • Timestamp is automatically appended to all commit messages"
     echo "  • By default, ALL files are staged including new untracked files"
     echo "  • Use -u to exclude untracked files"
     echo "  • Use -p to limit commit scope to selected paths"
+    echo "  • Use -y to auto-accept prompts (non-interactive mode)"
     echo "  • Script aborts when staged deletions exceed safety threshold"
     echo "  • Protected branches (main/master/production) will prompt for confirmation"
     exit 0
@@ -113,6 +126,9 @@ ADD_MODE="all"  # all | tracked | paths
 SELECTED_PATHS_ARG=""
 ALLOW_LARGE_DELETIONS=false
 LARGE_DELETE_THRESHOLD=10
+AUTO_YES=false
+COMMIT_MESSAGE_ARG=""
+POSITIONAL_ARGS=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -135,6 +151,31 @@ while [[ $# -gt 0 ]]; do
             ADD_MODE="tracked"
             shift
             ;;
+        -m|--message)
+            shift
+            if [[ $# -eq 0 ]]; then
+                print_error "-m/--message requires a commit message"
+                exit 1
+            fi
+            COMMIT_MESSAGE_ARG="$1"
+            shift
+            ;;
+        --message=*)
+            COMMIT_MESSAGE_ARG="${1#*=}"
+            shift
+            ;;
+        -m*)
+            COMMIT_MESSAGE_ARG="${1#-m}"
+            if [[ -z "$COMMIT_MESSAGE_ARG" ]]; then
+                print_error "-m requires a commit message"
+                exit 1
+            fi
+            shift
+            ;;
+        -y|--yes|--assume-yes)
+            AUTO_YES=true
+            shift
+            ;;
         -p|--paths)
             shift
             if [[ $# -eq 0 ]]; then
@@ -150,18 +191,22 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            break  # Stop parsing flags, rest is commit message
+            POSITIONAL_ARGS+=("$1")
+            shift
             ;;
     esac
 done
 
 # Check if commit message is provided, otherwise use default
-if [ $# -eq 0 ]; then
+if [ -n "$COMMIT_MESSAGE_ARG" ]; then
+    COMMIT_MESSAGE="$COMMIT_MESSAGE_ARG [$TIMESTAMP]"
+    print_status "Using commit message from -m/--message"
+elif [ ${#POSITIONAL_ARGS[@]} -eq 0 ]; then
     COMMIT_MESSAGE=$(generate_default_message)
     print_status "No commit message provided, using: \"$COMMIT_MESSAGE\""
 else
     # Append timestamp to provided message
-    COMMIT_MESSAGE="$* [$TIMESTAMP]"
+    COMMIT_MESSAGE="${POSITIONAL_ARGS[*]} [$TIMESTAMP]"
     print_status "Appending timestamp to your message"
 fi
 
@@ -179,9 +224,7 @@ if [ "$MERGE_MODE" = false ] && [ "$DRY_RUN" = false ]; then
     for protected in "${PROTECTED_BRANCHES[@]}"; do
         if [ "$CURRENT_BRANCH" == "$protected" ]; then
             print_warning "⚠️  You're about to push directly to protected branch: $CURRENT_BRANCH"
-            echo -n "Continue? (y/N): "
-            read -r response
-            if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            if ! confirm_action "Continue with protected branch push to '$CURRENT_BRANCH'?"; then
                 print_status "Aborted. Consider using a feature branch instead."
                 exit 0
             fi
