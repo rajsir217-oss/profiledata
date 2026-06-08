@@ -209,7 +209,7 @@ const DashboardV2Page = () => {
               </div>
             ) : null}
 
-            <button className="dv2-link" type="button" onClick={() => navigate('/dashboard')}>
+            <button className="dv2-link" type="button" onClick={() => navigate('/dashboard-legacy')}>
               Legacy dashboard
             </button>
           </div>
