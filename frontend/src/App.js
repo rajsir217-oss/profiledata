@@ -401,8 +401,9 @@ function AppContent() {
               
               {/* Protected routes - require active status except profile/edit-profile/preferences */}
               {/* Old dashboard route removed - file renamed to .toberemoved */}
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<Navigate to="/dashboardv2" replace />} />
               <Route path="/dashboardv2" element={<ProtectedRoute><DashboardV2Page /></ProtectedRoute>} />
+              <Route path="/dashboard-legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

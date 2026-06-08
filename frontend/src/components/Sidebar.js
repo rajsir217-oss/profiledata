@@ -169,7 +169,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         links: [
           {
             label: 'Legacy dashboard',
-            action: () => navigate('/dashboard'),
+            action: () => navigate('/dashboard-legacy'),
           },
         ],
         disabled: !isActive
