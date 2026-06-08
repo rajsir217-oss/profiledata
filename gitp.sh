@@ -50,6 +50,13 @@ print_dry() {
     echo -e "${MAGENTA}[DRY-RUN]${NC} $1"
 }
 
+confirm_action() {
+    local prompt="$1"
+    echo -n "$prompt (y/N): "
+    read -r response
+    [[ "$response" =~ ^[Yy]$ ]]
+}
+
 # Show help
 show_help() {
     echo -e "${CYAN}gitp${NC} - Quick git workflow script"
@@ -59,12 +66,15 @@ show_help() {
     echo "  gitp -main [message]        Commit, push, merge dev→main, return to dev"
     echo "  gitp -n [message]           Dry-run: preview what would be committed"
     echo "  gitp -u [message]           Add only tracked files (default: includes untracked)"
+    echo "  gitp -p <paths> [message]   Commit only selected paths (comma-separated)"
     echo "  gitp -h, --help             Show this help message"
     echo ""
     echo -e "${YELLOW}Options:${NC}"
     echo "  -main     Merge mode: push to dev, then merge into main"
     echo "  -n        Dry-run mode: show what would happen without making changes"
     echo "  -u        Add only tracked files (exclude new untracked files)"
+    echo "  -p        Commit only selected paths (e.g. -p file1.js,dir/file2.py)"
+    echo "  --allow-large-deletions   Override safety abort for large staged deletions"
     echo "  -h        Show this help"
     echo ""
     echo -e "${YELLOW}Examples:${NC}"
@@ -73,11 +83,14 @@ show_help() {
     echo "  gitp -n                     # Preview changes without committing"
     echo "  gitp -main \"Release v1.2\"  # Push to dev, merge to main"
     echo "  gitp -u \"Fix bug\"          # Exclude untracked files"
+    echo "  gitp -p messenger/src/stores/authStore.js,messenger-web/src/screens/ChatScreen.js \"Targeted fix\""
     echo ""
     echo -e "${YELLOW}Notes:${NC}"
     echo "  • Timestamp is automatically appended to all commit messages"
     echo "  • By default, ALL files are staged including new untracked files"
     echo "  • Use -u to exclude untracked files"
+    echo "  • Use -p to limit commit scope to selected paths"
+    echo "  • Script aborts when staged deletions exceed safety threshold"
     echo "  • Protected branches (main/master/production) will prompt for confirmation"
     exit 0
 }
@@ -96,7 +109,10 @@ PROTECTED_BRANCHES=("main" "master" "production")
 # Parse flags
 MERGE_MODE=false
 DRY_RUN=false
-ADD_ALL=true  # Default to adding all files including untracked
+ADD_MODE="all"  # all | tracked | paths
+SELECTED_PATHS_ARG=""
+ALLOW_LARGE_DELETIONS=false
+LARGE_DELETE_THRESHOLD=10
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -112,11 +128,25 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -a|--all)
-            ADD_ALL=true
+            ADD_MODE="all"
             shift
             ;;
         -u|--tracked-only)
-            ADD_ALL=false
+            ADD_MODE="tracked"
+            shift
+            ;;
+        -p|--paths)
+            shift
+            if [[ $# -eq 0 ]]; then
+                print_error "-p/--paths requires a comma-separated path list"
+                exit 1
+            fi
+            SELECTED_PATHS_ARG="$1"
+            ADD_MODE="paths"
+            shift
+            ;;
+        --allow-large-deletions)
+            ALLOW_LARGE_DELETIONS=true
             shift
             ;;
         *)
@@ -131,7 +161,7 @@ if [ $# -eq 0 ]; then
     print_status "No commit message provided, using: \"$COMMIT_MESSAGE\""
 else
     # Append timestamp to provided message
-    COMMIT_MESSAGE="$1 [$TIMESTAMP]"
+    COMMIT_MESSAGE="$* [$TIMESTAMP]"
     print_status "Appending timestamp to your message"
 fi
 
@@ -191,10 +221,12 @@ if [ "$DRY_RUN" = true ]; then
     if [ "$MERGE_MODE" = true ]; then
         print_dry "Would then merge dev → main"
     fi
-    if [ "$ADD_ALL" = true ]; then
+    if [ "$ADD_MODE" = "all" ]; then
         print_dry "Would add ALL files (including untracked)"
-    else
+    elif [ "$ADD_MODE" = "tracked" ]; then
         print_dry "Would add only tracked files (use -a for all)"
+    else
+        print_dry "Would add only selected paths: $SELECTED_PATHS_ARG"
     fi
     echo ""
     print_dry "=========================================="
@@ -203,8 +235,14 @@ if [ "$DRY_RUN" = true ]; then
     exit 0
 fi
 
-# Add changes (tracked only by default, or all with -a flag)
-if [ "$ADD_ALL" = true ]; then
+# Pre-stage confirmation
+if ! confirm_action "Proceed with staging + commit on branch '$CURRENT_BRANCH'?"; then
+    print_status "Aborted by user"
+    exit 0
+fi
+
+# Add changes based on selected mode
+if [ "$ADD_MODE" = "all" ]; then
     print_status "Adding ALL files to staging area (including untracked)..."
     if git add --all; then
         print_success "All files added successfully"
@@ -212,7 +250,7 @@ if [ "$ADD_ALL" = true ]; then
         print_error "Failed to add files"
         exit 1
     fi
-else
+elif [ "$ADD_MODE" = "tracked" ]; then
     print_status "Adding tracked files to staging area..."
     if git add -u; then
         print_success "Tracked files added successfully"
@@ -227,6 +265,61 @@ else
         print_warning "Untracked files not staged (use -a to include):"
         echo "$UNTRACKED" | sed 's/^??/  /'
     fi
+else
+    print_status "Adding only selected paths to staging area..."
+    IFS=',' read -r -a SELECTED_PATHS <<< "$SELECTED_PATHS_ARG"
+    CLEAN_PATHS=()
+    for p in "${SELECTED_PATHS[@]}"; do
+        trimmed=$(echo "$p" | sed 's/^ *//;s/ *$//')
+        if [ -n "$trimmed" ]; then
+            CLEAN_PATHS+=("$trimmed")
+        fi
+    done
+    if [ ${#CLEAN_PATHS[@]} -eq 0 ]; then
+        print_error "No valid paths were provided to -p/--paths"
+        exit 1
+    fi
+    if git add -- "${CLEAN_PATHS[@]}"; then
+        print_success "Selected paths added successfully"
+        print_status "Selected paths:"
+        for p in "${CLEAN_PATHS[@]}"; do
+            echo "  $p"
+        done
+    else
+        print_error "Failed to add selected paths"
+        exit 1
+    fi
+fi
+
+STAGED_DIFF=$(git diff --cached --name-status)
+if [ -z "$STAGED_DIFF" ]; then
+    print_warning "No staged changes to commit after applying selection"
+    exit 0
+fi
+
+print_status "Staged changes to be committed:"
+echo "$STAGED_DIFF" | sed 's/^/  /'
+
+STAGED_DELETE_COUNT=$(echo "$STAGED_DIFF" | awk '$1 == "D" {count++} END {print count+0}')
+if [ "$STAGED_DELETE_COUNT" -gt 0 ]; then
+    print_warning "Staged deletions detected: $STAGED_DELETE_COUNT"
+    echo "$STAGED_DIFF" | awk '$1 == "D" {print "  " $2}'
+
+    if [ "$STAGED_DELETE_COUNT" -gt "$LARGE_DELETE_THRESHOLD" ] && [ "$ALLOW_LARGE_DELETIONS" = false ]; then
+        print_error "Aborting: staged deletions ($STAGED_DELETE_COUNT) exceed threshold ($LARGE_DELETE_THRESHOLD)"
+        print_status "If intentional, re-run with: --allow-large-deletions"
+        exit 1
+    fi
+
+    if ! confirm_action "Continue with these staged deletions?"; then
+        print_status "Aborted by user due to deletions"
+        exit 0
+    fi
+fi
+
+if ! confirm_action "Create commit with the staged changes above?"; then
+    print_status "Aborted by user before commit"
+    exit 0
 fi
 
 # Commit with provided message
@@ -259,6 +352,11 @@ else
 fi
 
 print_status "Pushing to remote repository (branch: $CURRENT_BRANCH)..."
+
+if ! confirm_action "Push commit to origin/$CURRENT_BRANCH?"; then
+    print_status "Push skipped by user. Commit remains local."
+    exit 0
+fi
 
 # Push changes
 if git push origin "$CURRENT_BRANCH"; then
