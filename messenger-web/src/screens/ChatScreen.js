@@ -176,28 +176,26 @@ function ProfileCard({ card, isOwn, onUsernameClick, onMenuOpen, isFavorited, cu
                   ))}
                 </View>
               )}
+
+              {Array.isArray(card.educationHistory) && card.educationHistory.length > 0 && (
+                <View style={[cardStyles.section, cardStyles.educationSection]}>
+                  <Text style={cardStyles.sectionTitle}>🎓 Education History</Text>
+                  {card.educationHistory.map((e, i) => {
+                    const title = e.level && e.degree
+                      ? `${e.level} – ${e.degree}`
+                      : (e.level || e.degree || e.qualification || '');
+                    const where = e.institution || e.school || (Array.isArray(e.schools) ? e.schools.join(' & ') : '');
+                    return (
+                      <View key={i} style={cardStyles.row}>
+                        {title ? <Text style={cardStyles.rowTitle}>{title}</Text> : null}
+                        {where ? <Text style={cardStyles.rowText}>{where}</Text> : null}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
             </View>
           </View>
-
-        {Array.isArray(card.educationHistory) && card.educationHistory.length > 0 && (
-          <View style={[cardStyles.section, cardStyles.educationSection]}>
-            <Text style={cardStyles.sectionTitle}>🎓 Education History</Text>
-            {card.educationHistory.map((e, i) => {
-              // Schema (Register2/EducationHistory.js): { level, degree, institution }
-              // Display matches main app Profile.js: "Level - Degree" with institution below.
-              const title = e.level && e.degree
-                ? `${e.level} – ${e.degree}`
-                : (e.level || e.degree || e.qualification || '');
-              const where = e.institution || e.school || (Array.isArray(e.schools) ? e.schools.join(' & ') : '');
-              return (
-                <View key={i} style={cardStyles.row}>
-                  {title ? <Text style={cardStyles.rowTitle}>{title}</Text> : null}
-                  {where ? <Text style={cardStyles.rowText}>{where}</Text> : null}
-                </View>
-              );
-            })}
-          </View>
-        )}
             </View>
           </View>
 
@@ -2257,10 +2255,10 @@ const styles = StyleSheet.create({
 const cardStyles = StyleSheet.create({
   card: {
     backgroundColor: '#e94477',
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#f472b6',
     borderRadius: 24,
-    padding: 6,
+    padding: 1,
     marginTop: 4,
     alignSelf: 'stretch',
     width: '100%',
@@ -2378,7 +2376,7 @@ const cardStyles = StyleSheet.create({
   },
   name: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: '700',
     marginRight: 8,
     flexShrink: 1,
@@ -2386,7 +2384,7 @@ const cardStyles = StyleSheet.create({
   },
   username: {
     color: '#e2e8f0',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     flexShrink: 1,
     marginLeft: 4,
@@ -2408,7 +2406,7 @@ const cardStyles = StyleSheet.create({
   },
   pillText: {
     color: '#dbeafe',
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '600',
     lineHeight: 14,
   },
@@ -2425,7 +2423,7 @@ const cardStyles = StyleSheet.create({
   },
   subPillText: {
     color: '#c7d2fe',
-    fontSize: 11,
+    fontSize: 9,
     lineHeight: 14,
   },
   section: {

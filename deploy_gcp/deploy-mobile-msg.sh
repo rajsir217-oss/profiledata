@@ -261,10 +261,22 @@ ensure_capacitor_android_launcher_icons() {
 
   local mipmap_dirs=(mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi)
   local mipmap_sizes=(48 72 96 144 192)
-  local icon_files=(ic_launcher.png ic_launcher_round.png ic_launcher_foreground.png)
+  local icon_files=(ic_launcher.png ic_launcher_round.png)
+  local legacy_foreground_png="ic_launcher_foreground.png"
 
   mkdir -p "$backup_root"
   shopt -s nullglob
+
+  # Legacy cleanup: older scripts wrote launcher PNGs into an invalid Android
+  # resource folder named `res/0`, which breaks `mergeReleaseResources`.
+  if [[ -d "$res_dir/0" ]]; then
+    local legacy_zero_backup="$backup_root/0.toberemoved"
+    if [[ -e "$legacy_zero_backup" ]]; then
+      legacy_zero_backup="$backup_root/0.toberemoved.$(date +%Y%m%d-%H%M%S)"
+    fi
+    mv "$res_dir/0" "$legacy_zero_backup"
+    echo "🧹 Moved legacy invalid Android res directory: $legacy_zero_backup"
+  fi
 
   for i in "${!mipmap_dirs[@]}"; do
     local out_dir="$res_dir/${mipmap_dirs[$i]}"
@@ -299,6 +311,17 @@ ensure_capacitor_android_launcher_icons() {
       fi
       sips -z "$size" "$size" "$src_png" --out "$target" >/dev/null 2>&1
     done
+
+    # Foreground launcher is vector XML in this project; ensure any stale PNG
+    # copy is quarantined to avoid resource-merger failures.
+    local stale_foreground="$out_dir/$legacy_foreground_png"
+    if [[ -f "$stale_foreground" ]]; then
+      local stale_moved="$backup_dir/${legacy_foreground_png}.toberemoved"
+      if [[ -e "$stale_moved" ]]; then
+        stale_moved="$backup_dir/${legacy_foreground_png}.toberemoved.$(date +%Y%m%d-%H%M%S)"
+      fi
+      mv "$stale_foreground" "$stale_moved"
+    fi
   done
 }
 
@@ -638,8 +661,15 @@ run_capacitor_android() {
 
       echo "🔐 Authenticating with Play Console service account..."
       local token
+      local play_scope="https://www.googleapis.com/auth/androidpublisher"
       token=$(GOOGLE_APPLICATION_CREDENTIALS="$PLAY_CONSOLE_SERVICE_KEY" \
-        gcloud auth application-default print-access-token 2>/dev/null)
+        gcloud auth application-default print-access-token --scopes="$play_scope" 2>/dev/null || true)
+
+      # Fallback for older gcloud versions that do not support --scopes.
+      if [[ -z "$token" || "$token" == "null" ]]; then
+        token=$(GOOGLE_APPLICATION_CREDENTIALS="$PLAY_CONSOLE_SERVICE_KEY" \
+          gcloud auth application-default print-access-token 2>/dev/null || true)
+      fi
 
       if [[ -z "$token" || "$token" == "null" ]]; then
         echo "❌ Failed to get access token. Check PLAY_CONSOLE_SERVICE_KEY and API enablement."

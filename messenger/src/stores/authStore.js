@@ -211,8 +211,10 @@ const useAuthStore = create((set, get) => ({
   ssoFromUrl: async () => {
     if (typeof window === 'undefined' || !window.location) return false;
     const params = new URLSearchParams(window.location.search);
+    const ssoCode = params.get('sso_code');
     const ssoToken = params.get('token');
-    if (!ssoToken) return false;
+    const ssoRefreshToken = params.get('refresh_token');
+    if (!ssoCode && !ssoToken) return false;
 
     const stripUrlToken = () => {
       try {
@@ -221,26 +223,84 @@ const useAuthStore = create((set, get) => ({
       } catch (_) { /* noop */ }
     };
 
-    try {
-      // Validate token + fetch user via /api/auth/me
-      const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${ssoToken}` },
+    const persistSession = async ({ accessToken, refreshToken, user }) => {
+      await Promise.all([
+        AsyncStorage.setItem(TOKEN_KEY, accessToken),
+        refreshToken
+          ? AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+          : AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
+        AsyncStorage.setItem(USER_KEY, JSON.stringify(user)),
+      ]);
+
+      set({
+        token: accessToken,
+        refreshToken: refreshToken || null,
+        user,
+        isLoading: false,
+        error: null,
       });
-      const user = res.data?.user || res.data;
+      get().startKeepAlive();
+      get().prefetchIntroCard({ force: false });
+    };
+
+    try {
+      if (ssoCode) {
+        const exchangeRes = await axios.post(`${API_BASE_URL}/api/auth/sso/exchange`, {
+          code: ssoCode,
+        });
+
+        const accessToken = exchangeRes.data?.access_token;
+        const refreshToken = exchangeRes.data?.refresh_token || ssoRefreshToken || null;
+        const user = exchangeRes.data?.user;
+
+        if (!accessToken || !user || !user.username) {
+          console.warn('🔒 SSO failed: invalid /sso/exchange response');
+          stripUrlToken();
+          return false;
+        }
+
+        await persistSession({ accessToken, refreshToken, user });
+        stripUrlToken();
+        return true;
+      }
+
+      let accessToken = ssoToken;
+      let refreshToken = ssoRefreshToken || null;
+      let user = null;
+
+      if (!refreshToken && ssoToken) {
+        try {
+          const issueRes = await axios.post(
+            `${API_BASE_URL}/api/auth/sso/issue`,
+            {},
+            { headers: { Authorization: `Bearer ${ssoToken}` } }
+          );
+          const code = issueRes.data?.code;
+
+          if (code) {
+            const exchangeRes = await axios.post(`${API_BASE_URL}/api/auth/sso/exchange`, { code });
+            accessToken = exchangeRes.data?.access_token || ssoToken;
+            refreshToken = exchangeRes.data?.refresh_token || null;
+            user = exchangeRes.data?.user || null;
+          }
+        } catch (_) {
+        }
+      }
+
+      if (!user) {
+        const meRes = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        user = meRes.data?.user || meRes.data;
+      }
+
       if (!user || !user.username) {
-        console.warn('🔒 SSO failed: invalid /me response');
+        console.warn('🔒 SSO failed: invalid session response');
         stripUrlToken();
         return false;
       }
 
-      await Promise.all([
-        AsyncStorage.setItem(TOKEN_KEY, ssoToken),
-        AsyncStorage.setItem(USER_KEY, JSON.stringify(user)),
-      ]);
-
-      set({ token: ssoToken, refreshToken: null, user, isLoading: false, error: null });
-      get().startKeepAlive();
-      get().prefetchIntroCard({ force: false });
+      await persistSession({ accessToken, refreshToken, user });
 
       // Strip the token from the URL — security & cleanliness.
       stripUrlToken();
