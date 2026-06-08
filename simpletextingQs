@@ -1,0 +1,103 @@
+1. A brief description of what your business/organization does, and what you will use the texting service for.
+
+Business Description:
+
+L3V3LMATCH is a premium matrimonial platform that helps individuals find meaningful, long-term relationships through advanced compatibility matching. We operate a web-based service at l3v3lmatches.com that connects users seeking marriage partners with privacy-first approach and verified profiles.
+
+SMS Usage:
+
+We will use the texting service for:
+
+Account Security:
+Multi-factor authentication (MFA) codes for secure login
+Password reset verification codes
+Account verification during registration
+Time-Sensitive Notifications:
+Match notifications when highly compatible profiles are found
+Message alerts when users receive new messages
+Profile view notifications
+Transactional Alerts:
+Subscription renewal reminders
+Profile completion status updates
+Security alerts (unusual login activity)
+All messages are transactional and user-requested. We do not send marketing messages via SMS. Users can opt-in/opt-out of SMS notifications in their account settings.
+
+
+
+2. Please indicate the platform you intend to integrate with SimpleTexting and the specific type of automation you are interested in building.
+SimpleTexting Integration Answer:
+Platform Integration:
+
+We will integrate SimpleTexting with our L3V3LMATCH matrimonial web platform (l3v3lmatches.com), which is built on:
+
+Backend: FastAPI (Python) with MongoDB database
+Frontend: React web application
+Integration Method: REST API calls from our FastAPI backend to SimpleTexting API
+Automation Types:
+
+We are interested in building the following automated SMS workflows:
+
+Authentication & Security Automation:
+Automatically send 6-digit OTP codes for multi-factor authentication (MFA) during login
+Send password reset verification codes when users request password recovery
+Send account verification codes during new user registration
+Real-Time Notification Automation:
+Trigger SMS alerts when users receive new messages from matches
+Send instant notifications when highly compatible profiles view their profile
+Alert users about important account activities (profile likes, favorites)
+Transactional Reminders:
+Send profile completion reminders to improve user engagement
+Subscription renewal notifications
+Scheduled reminders for upcoming events or matches
+Technical Implementation:
+
+API-triggered messages (not bulk campaigns)
+Dynamic content personalization (user names, codes, timestamps)
+Webhook integration for delivery status tracking
+Opt-in/opt-out management through our user preference system
+Key Technical Details:
+Trigger: Server-side events (user actions, security events)
+Volume: Low to moderate (transactional only, not marketing)
+Response: No two-way conversation needed initially (one-way notifications)
+Compliance: Users opt-in during registration, can opt-out anytime
+
+
+
+3. Please describe your opt-in process by which you are obtaining express consent to send your contacts text messages (i.e. web sign up form, paper form, etc)? Please provide any evidence of this process (e.g. web form link).
+
+SMS Opt-In Process Description:
+Primary Opt-In Method:
+
+Users provide express consent to receive SMS notifications through our web registration form and account settings page:
+
+During Registration (https://l3v3lmatches.com/register):**:)
+Users enter their phone number in the registration form
+A clear checkbox labeled "I agree to receive SMS notifications for security codes, matches, and important account updates" is displayed
+Users must actively check this box to enable SMS (not pre-checked)
+Terms clearly state: "Standard message and data rates may apply. You can opt-out anytime in settings."
+In Account Settings (https://l3v3lmatches.com/settings):**:)
+Users can enable/disable SMS notifications after registration
+Granular controls for different notification types (security, matches, messages)
+Toggle switch with clear label: "SMS Notifications: Receive text alerts for important updates"
+Instant opt-out available 24/7
+SMS Verification:
+After opt-in, we send a welcome SMS: "Welcome to L3V3LMATCH! You've subscribed to SMS notifications. Reply STOP to unsubscribe anytime."
+Users can reply STOP to any message to immediately opt-out
+Evidence:
+
+Web Form Link: https://l3v3lmatches.com/register
+Settings Page: https://l3v3lmatches.com/edit-profile (SMS preferences section)
+Database Field: smsOptIn: true/false stored for each user
+Audit Trail: All opt-in/opt-out actions are logged with timestamps
+Opt-Out Process:
+
+Users can opt-out by:
+
+Replying STOP to any SMS
+Disabling SMS in account settings
+Contacting support
+
+
+
+4. A written acknowledgment that you have read and accept our terms and conditions and Compliance 101.
+﻿​﻿You can also reply to this message with "Yes" or "I agree" and that will provide our Enterprise Client Success team with the documentation they need to grant the token.
