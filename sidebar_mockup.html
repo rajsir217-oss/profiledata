@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Sidebar Mockups — Edge-Inspired</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0e0e18; color: #ccc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 30px; }
+  h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; font-size: 24px; }
+  .subtitle { text-align: center; color: #888; margin-bottom: 30px; font-size: 14px; }
+  .mockups { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; max-width: 1100px; margin: 0 auto; }
+  .mockup { border-radius: 14px; overflow: hidden; border: 1px solid #2a2a3e; }
+  .mockup-label { text-align: center; padding: 14px 12px 4px; background: #14142a; font-weight: 700; font-size: 15px; color: #e0e0e0; }
+  .mockup-sublabel { text-align: center; padding: 2px 12px 14px; background: #14142a; font-size: 12px; color: #888; }
+  
+  .app-frame { display: flex; height: 460px; position: relative; overflow: hidden; }
+  
+  /* Header bar */
+  .header {
+    position: absolute; top: 0; right: 0; height: 54px; z-index: 2;
+    background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 100%);
+    display: flex; align-items: center; padding: 0 16px; gap: 10px;
+  }
+  .header-logo { font-size: 14px; font-weight: 700; color: white; display: flex; align-items: center; gap: 6px; }
+  .header-logo span { font-size: 16px; }
+  .header-text { font-size: 10px; color: rgba(255,255,255,0.8); }
+  .header-spacer { flex: 1; }
+  .header-btn { width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+  /* Sidebar base */
+  .sidebar {
+    width: 48px; height: 100%; display: flex; flex-direction: column;
+    align-items: center; padding-top: 8px; z-index: 3; flex-shrink: 0;
+  }
+  .sidebar-icon { 
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; border-radius: 8px; margin-bottom: 2px; cursor: default;
+    transition: background 0.15s;
+  }
+  .sidebar-icon:hover { background: rgba(255,255,255,0.1); }
+  .sidebar-divider { width: 28px; height: 1px; background: rgba(255,255,255,0.08); margin: 6px 0; }
+  
+  /* Content area */
+  .content {
+    flex: 1; background: #1e1b2e; display: flex; flex-direction: column;
+  }
+  .content-body { padding: 16px; padding-top: 64px; }
+  .page-title-bar { 
+    margin-top: 54px; padding: 8px 16px; 
+    background: rgba(0,0,0,0.15); font-size: 11px; color: rgba(255,255,255,0.8);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .content-card {
+    background: #2a2740; border-radius: 10px; padding: 14px; margin-bottom: 12px;
+  }
+  .content-card h3 { font-size: 12px; color: #a78bfa; margin-bottom: 8px; }
+  .stat-row { display: flex; gap: 8px; }
+  .stat-box { flex: 1; background: #3a3450; border-radius: 8px; padding: 10px; text-align: center; }
+  .stat-num { font-size: 18px; font-weight: 700; color: #a78bfa; }
+  .stat-label { font-size: 9px; color: #999; margin-top: 2px; }
+
+  /* === OPTION A: Current (opaque surface-color) === */
+  .sidebar-current { 
+    background: #2a2740;
+  }
+
+  /* === OPTION B: Edge-style frosted glass (dark) === */
+  .sidebar-glass-dark { 
+    background: rgba(20, 16, 40, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(167, 139, 250, 0.1);
+  }
+
+  /* === OPTION C: Edge-style frosted glass (purple tint) === */
+  .sidebar-glass-purple { 
+    background: rgba(50, 30, 90, 0.6);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-right: 1px solid rgba(167, 139, 250, 0.15);
+  }
+
+  /* === OPTION D: Edge-style semi-transparent + gradient === */
+  .sidebar-glass-gradient { 
+    background: linear-gradient(180deg, 
+      rgba(80, 50, 140, 0.5) 0%, 
+      rgba(30, 20, 55, 0.8) 40%,
+      rgba(15, 12, 30, 0.9) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(167, 139, 250, 0.12);
+  }
+
+  .note { text-align: center; margin-top: 24px; color: #777; font-size: 13px; }
+  .note strong { color: #a78bfa; }
+  
+  @media (max-width: 700px) {
+    .mockups { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🎨 Sidebar Background — Dark Theme Mockups</h1>
+<p class="subtitle">Comparing 4 options for the collapsed sidebar background against the purple header gradient</p>
+
+<div class="mockups">
+
+  <!-- OPTION A: Current (opaque) -->
+  <div class="mockup">
+    <div class="mockup-label">A: Current (Opaque)</div>
+    <div class="mockup-sublabel">Solid #2a2740 — what you have now</div>
+    <div class="app-frame">
+      <div class="sidebar sidebar-current">
+        <div class="sidebar-icon">☰</div>
+        <div class="sidebar-icon">🦋</div>
+        <div class="sidebar-icon">👤</div>
+        <div class="sidebar-icon">🔍</div>
+        <div class="sidebar-icon">💬</div>
+        <div class="sidebar-icon">🔒</div>
+        <div class="sidebar-icon">🤝</div>
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-icon">🔐</div>
+        <div class="sidebar-icon">👥</div>
+        <div class="sidebar-icon">🎭</div>
+      </div>
+      <div class="content">
+        <div class="header" style="left: 48px;">
+          <div class="header-logo"><span>🦋</span> L3V3L</div>
+          <div class="header-text">USVEDIKA</div>
+          <div class="header-spacer"></div>
+          <div class="header-btn">🔍</div>
+          <div class="header-btn">🔔</div>
+          <div class="header-btn">💬</div>
+        </div>
+        <div class="page-title-bar">📮 Email Analytics // Track opens</div>
+        <div class="content-body">
+          <div class="content-card">
+            <h3>📊 Comparison Results</h3>
+            <div class="stat-row">
+              <div class="stat-box"><div class="stat-num">298</div><div class="stat-label">VERIFIED</div></div>
+              <div class="stat-box" style="background:#4a3030;"><div class="stat-num" style="color:#f87171;">484</div><div class="stat-label">UNAUTH</div></div>
+              <div class="stat-box"><div class="stat-num">107</div><div class="stat-label">NOT IN</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION B: Edge-style frosted glass (dark) -->
+  <div class="mockup">
+    <div class="mockup-label">B: Frosted Glass (Dark)</div>
+    <div class="mockup-sublabel">Edge-style — translucent dark + blur</div>
+    <div class="app-frame">
+      <div class="sidebar sidebar-glass-dark">
+        <div class="sidebar-icon">☰</div>
+        <div class="sidebar-icon">🦋</div>
+        <div class="sidebar-icon">👤</div>
+        <div class="sidebar-icon">🔍</div>
+        <div class="sidebar-icon">💬</div>
+        <div class="sidebar-icon">🔒</div>
+        <div class="sidebar-icon">🤝</div>
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-icon">🔐</div>
+        <div class="sidebar-icon">👥</div>
+        <div class="sidebar-icon">🎭</div>
+      </div>
+      <div class="content">
+        <div class="header" style="left: 48px;">
+          <div class="header-logo"><span>🦋</span> L3V3L</div>
+          <div class="header-text">USVEDIKA</div>
+          <div class="header-spacer"></div>
+          <div class="header-btn">🔍</div>
+          <div class="header-btn">🔔</div>
+          <div class="header-btn">💬</div>
+        </div>
+        <div class="page-title-bar">📮 Email Analytics // Track opens</div>
+        <div class="content-body">
+          <div class="content-card">
+            <h3>📊 Comparison Results</h3>
+            <div class="stat-row">
+              <div class="stat-box"><div class="stat-num">298</div><div class="stat-label">VERIFIED</div></div>
+              <div class="stat-box" style="background:#4a3030;"><div class="stat-num" style="color:#f87171;">484</div><div class="stat-label">UNAUTH</div></div>
+              <div class="stat-box"><div class="stat-num">107</div><div class="stat-label">NOT IN</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION C: Edge-style frosted glass (purple tint) -->
+  <div class="mockup">
+    <div class="mockup-label">C: Frosted Glass (Purple)</div>
+    <div class="mockup-sublabel">Edge-style — translucent purple + blur</div>
+    <div class="app-frame">
+      <div class="sidebar sidebar-glass-purple">
+        <div class="sidebar-icon">☰</div>
+        <div class="sidebar-icon">🦋</div>
+        <div class="sidebar-icon">👤</div>
+        <div class="sidebar-icon">🔍</div>
+        <div class="sidebar-icon">💬</div>
+        <div class="sidebar-icon">🔒</div>
+        <div class="sidebar-icon">🤝</div>
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-icon">🔐</div>
+        <div class="sidebar-icon">👥</div>
+        <div class="sidebar-icon">🎭</div>
+      </div>
+      <div class="content">
+        <div class="header" style="left: 48px;">
+          <div class="header-logo"><span>🦋</span> L3V3L</div>
+          <div class="header-text">USVEDIKA</div>
+          <div class="header-spacer"></div>
+          <div class="header-btn">🔍</div>
+          <div class="header-btn">🔔</div>
+          <div class="header-btn">💬</div>
+        </div>
+        <div class="page-title-bar">📮 Email Analytics // Track opens</div>
+        <div class="content-body">
+          <div class="content-card">
+            <h3>📊 Comparison Results</h3>
+            <div class="stat-row">
+              <div class="stat-box"><div class="stat-num">298</div><div class="stat-label">VERIFIED</div></div>
+              <div class="stat-box" style="background:#4a3030;"><div class="stat-num" style="color:#f87171;">484</div><div class="stat-label">UNAUTH</div></div>
+              <div class="stat-box"><div class="stat-num">107</div><div class="stat-label">NOT IN</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION D: Edge-style gradient glass -->
+  <div class="mockup">
+    <div class="mockup-label">D: Frosted Gradient</div>
+    <div class="mockup-sublabel">Edge-style — purple top fading to dark + blur</div>
+    <div class="app-frame">
+      <div class="sidebar sidebar-glass-gradient">
+        <div class="sidebar-icon">☰</div>
+        <div class="sidebar-icon">🦋</div>
+        <div class="sidebar-icon">👤</div>
+        <div class="sidebar-icon">🔍</div>
+        <div class="sidebar-icon">💬</div>
+        <div class="sidebar-icon">🔒</div>
+        <div class="sidebar-icon">🤝</div>
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-icon">🔐</div>
+        <div class="sidebar-icon">👥</div>
+        <div class="sidebar-icon">🎭</div>
+      </div>
+      <div class="content">
+        <div class="header" style="left: 48px;">
+          <div class="header-logo"><span>🦋</span> L3V3L</div>
+          <div class="header-text">USVEDIKA</div>
+          <div class="header-spacer"></div>
+          <div class="header-btn">🔍</div>
+          <div class="header-btn">🔔</div>
+          <div class="header-btn">💬</div>
+        </div>
+        <div class="page-title-bar">📮 Email Analytics // Track opens</div>
+        <div class="content-body">
+          <div class="content-card">
+            <h3>📊 Comparison Results</h3>
+            <div class="stat-row">
+              <div class="stat-box"><div class="stat-num">298</div><div class="stat-label">VERIFIED</div></div>
+              <div class="stat-box" style="background:#4a3030;"><div class="stat-num" style="color:#f87171;">484</div><div class="stat-label">UNAUTH</div></div>
+              <div class="stat-box"><div class="stat-num">107</div><div class="stat-label">NOT IN</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="note">Inspired by <strong>Microsoft Edge</strong> sidebar. Options B/C/D use <code>backdrop-filter: blur()</code> for the frosted glass effect.</p>
+
+</body>
+</html>
