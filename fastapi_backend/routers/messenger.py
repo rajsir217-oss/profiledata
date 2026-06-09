@@ -7,7 +7,7 @@ import logging
 import asyncio
 from time import perf_counter
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Any, Dict, List
 from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File, Query, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
@@ -29,6 +29,12 @@ from services import messenger_media_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/messenger", tags=["messenger"])
+
+
+def _require_admin(current_user: dict) -> None:
+    role = str((current_user or {}).get("role") or "").strip().lower()
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
 
 
 def _decrypt_contact_info(value: str) -> str:
@@ -642,6 +648,7 @@ async def list_messages(
     conversation_id: str,
     limit: int = Query(50, ge=1, le=200),
     before: Optional[str] = Query(None, description="Cursor: message _id to paginate before"),
+    after: Optional[str] = Query(None, description="Cursor: message _id to fetch newer messages after"),
     include_total: bool = Query(False, alias="includeTotal", description="Include total message count (slower on large conversations)"),
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database),
@@ -656,6 +663,7 @@ async def list_messages(
         current_user["username"],
         limit,
         before,
+        after,
         include_total,
         debug_timing_enabled,
     )
@@ -680,12 +688,13 @@ async def list_messages(
         }
         merged_timings = {**(service_timings or {}), **router_timings}
         logger.debug(
-            "⏱️ messenger.list_messages timings user=%s conv=%s limit=%s includeTotal=%s before=%s timings=%s",
+            "⏱️ messenger.list_messages timings user=%s conv=%s limit=%s includeTotal=%s before=%s after=%s timings=%s",
             current_user.get("username"),
             conversation_id,
             limit,
             include_total,
             bool(before),
+            bool(after),
             merged_timings,
         )
         response["debugTimings"] = merged_timings
@@ -1900,6 +1909,382 @@ async def unregister_device(
     if not ok:
         raise HTTPException(status_code=404, detail="Token not found")
     return {"success": True}
+
+
+# =========================================================================
+# Realtime Admin (Phase 3 stubs)
+# =========================================================================
+
+
+@router.get("/realtime/ops/summary")
+async def get_realtime_ops_summary(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Realtime operations summary for admin dashboard."""
+    _require_admin(current_user)
+
+    now = datetime.utcnow()
+    five_minutes_ago = now - timedelta(minutes=5)
+    one_hour_ago = now - timedelta(hours=1)
+
+    failures_5m = await db.messenger_realtime_emit_failures.count_documents(
+        {"occurredAt": {"$gte": five_minutes_ago}}
+    )
+    failures_1h = await db.messenger_realtime_emit_failures.count_documents(
+        {"occurredAt": {"$gte": one_hour_ago}}
+    )
+    active_alert_count = await db.messenger_realtime_alerts.count_documents(
+        {"status": "active"}
+    )
+
+    health_doc = await db.messenger_realtime_health.find_one(
+        {"kind": "current"},
+        {
+            "emitLagP95Ms": 1,
+            "emitLagP99Ms": 1,
+        },
+    ) or {}
+
+    return {
+        "emitFailuresLast5m": failures_5m,
+        "emitFailuresLast1h": failures_1h,
+        "emitLagP95Ms": health_doc.get("emitLagP95Ms"),
+        "emitLagP99Ms": health_doc.get("emitLagP99Ms"),
+        "activeAlertCount": active_alert_count,
+        "stub": True,
+    }
+
+
+@router.get("/realtime/ops/recent-failures")
+async def get_realtime_recent_failures(
+    limit: int = Query(25, ge=1, le=200),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Recent realtime emit failures for operations dashboard."""
+    _require_admin(current_user)
+
+    rows = await db.messenger_realtime_emit_failures.find(
+        {},
+        {
+            "conversationId": 1,
+            "error": 1,
+            "attempts": 1,
+            "occurredAt": 1,
+        },
+    ).sort("occurredAt", -1).limit(limit).to_list(length=limit)
+
+    items: List[Dict[str, Any]] = []
+    for row in rows:
+        items.append({
+            "id": str(row.get("_id")),
+            "conversationId": str(row.get("conversationId")) if row.get("conversationId") is not None else None,
+            "error": row.get("error"),
+            "attempts": row.get("attempts", 0),
+            "occurredAt": row.get("occurredAt").isoformat() if isinstance(row.get("occurredAt"), datetime) else row.get("occurredAt"),
+        })
+
+    return {
+        "items": items,
+        "stub": True,
+    }
+
+
+@router.post("/realtime/seed-sample")
+async def seed_realtime_sample_data(
+    payload: Optional[Dict[str, Any]] = Body(None),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Seed sample realtime docs so Phase 3 admin UIs show data immediately."""
+    _require_admin(current_user)
+
+    seed_tag = "phase3_sample"
+    now = datetime.utcnow()
+    reset = bool((payload or {}).get("reset", False))
+
+    if reset:
+        await db.messenger_realtime_emit_failures.delete_many({"seedTag": seed_tag})
+        await db.messenger_realtime_outbox.delete_many({"seedTag": seed_tag})
+        await db.messenger_realtime_alerts.delete_many({"seedTag": seed_tag})
+
+    failures_result = await db.messenger_realtime_emit_failures.insert_many([
+        {
+            "conversationId": ObjectId(),
+            "error": "Socket timeout during conversation room emit",
+            "attempts": 2,
+            "occurredAt": now - timedelta(minutes=7),
+            "seedTag": seed_tag,
+        },
+        {
+            "conversationId": ObjectId(),
+            "error": "Redis manager unavailable during fanout",
+            "attempts": 1,
+            "occurredAt": now - timedelta(minutes=2),
+            "seedTag": seed_tag,
+        },
+    ])
+
+    outbox_result = await db.messenger_realtime_outbox.insert_many([
+        {
+            "status": "failed",
+            "topic": "messenger:new_message",
+            "attempts": 3,
+            "payload": {"conversationId": str(ObjectId())},
+            "createdAt": now - timedelta(minutes=25),
+            "updatedAt": now - timedelta(minutes=10),
+            "seedTag": seed_tag,
+        },
+        {
+            "status": "pending",
+            "topic": "messenger:new_message",
+            "attempts": 0,
+            "payload": {"conversationId": str(ObjectId())},
+            "createdAt": now - timedelta(minutes=4),
+            "updatedAt": now - timedelta(minutes=4),
+            "seedTag": seed_tag,
+        },
+    ])
+
+    alert_result = await db.messenger_realtime_alerts.insert_one({
+        "key": "emit_failure_burst",
+        "title": "Realtime emit failures spike",
+        "severity": "high",
+        "status": "active",
+        "startedAt": now - timedelta(minutes=12),
+        "lastEventAt": now - timedelta(minutes=1),
+        "seedTag": seed_tag,
+    })
+
+    await db.messenger_realtime_health.update_one(
+        {"kind": "current"},
+        {
+            "$set": {
+                "kind": "current",
+                "emitSuccessRate1h": 98.7,
+                "emitLagP50Ms": 62,
+                "emitLagP95Ms": 180,
+                "emitLagP99Ms": 340,
+                "reconnectCatchupCount1h": 14,
+                "fallbackPollingCount1h": 9,
+                "updatedAt": now,
+                "seedTag": seed_tag,
+            }
+        },
+        upsert=True,
+    )
+
+    return {
+        "success": True,
+        "seeded": {
+            "emitFailures": len(failures_result.inserted_ids),
+            "outboxItems": len(outbox_result.inserted_ids),
+            "alerts": 1 if alert_result.inserted_id else 0,
+            "health": 1,
+        },
+        "reset": reset,
+        "stub": True,
+    }
+
+
+@router.post("/realtime/ops/retry-failed-emits")
+async def retry_realtime_failed_emits(
+    payload: Optional[Dict[str, Any]] = Body(None),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Stub operation: mark failed outbox events as queued for replay."""
+    _require_admin(current_user)
+
+    scope = (payload or {}).get("scope") or "recent"
+    query: Dict[str, Any] = {"status": "failed"}
+    if scope == "recent":
+        query["createdAt"] = {"$gte": datetime.utcnow() - timedelta(hours=24)}
+
+    result = await db.messenger_realtime_outbox.update_many(
+        query,
+        {
+            "$set": {
+                "status": "queued",
+                "updatedAt": datetime.utcnow(),
+                "retryRequestedBy": current_user.get("username"),
+            }
+        },
+    )
+
+    return {
+        "success": True,
+        "scope": scope,
+        "updatedCount": int(result.modified_count),
+        "stub": True,
+    }
+
+
+@router.get("/realtime/outbox")
+async def get_realtime_outbox(
+    status: str = Query("pending,failed", description="Comma-separated statuses"),
+    limit: int = Query(50, ge=1, le=200),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Outbox view for queued/pending/failed realtime events."""
+    _require_admin(current_user)
+
+    statuses = [s.strip() for s in status.split(",") if s.strip()]
+    query: Dict[str, Any] = {}
+    if statuses:
+        query["status"] = {"$in": statuses}
+
+    rows = await db.messenger_realtime_outbox.find(
+        query,
+        {
+            "status": 1,
+            "topic": 1,
+            "attempts": 1,
+            "createdAt": 1,
+            "updatedAt": 1,
+            "payload": 1,
+        },
+    ).sort("createdAt", -1).limit(limit).to_list(length=limit)
+
+    items: List[Dict[str, Any]] = []
+    for row in rows:
+        payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
+        items.append({
+            "id": str(row.get("_id")),
+            "status": row.get("status"),
+            "topic": row.get("topic") or "messenger:new_message",
+            "attempts": row.get("attempts", 0),
+            "createdAt": row.get("createdAt").isoformat() if isinstance(row.get("createdAt"), datetime) else row.get("createdAt"),
+            "updatedAt": row.get("updatedAt").isoformat() if isinstance(row.get("updatedAt"), datetime) else row.get("updatedAt"),
+            "conversationId": payload.get("conversationId"),
+        })
+
+    return {
+        "items": items,
+        "stub": True,
+    }
+
+
+@router.post("/realtime/outbox/replay")
+async def replay_realtime_outbox_events(
+    payload: Optional[Dict[str, Any]] = Body(None),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Replay selected outbox events by moving them to queued status."""
+    _require_admin(current_user)
+
+    event_ids = (payload or {}).get("eventIds") or []
+    valid_ids = []
+    for eid in event_ids:
+        try:
+            valid_ids.append(ObjectId(str(eid)))
+        except Exception:
+            continue
+
+    if not valid_ids:
+        return {"success": True, "updatedCount": 0, "stub": True}
+
+    result = await db.messenger_realtime_outbox.update_many(
+        {"_id": {"$in": valid_ids}},
+        {
+            "$set": {
+                "status": "queued",
+                "updatedAt": datetime.utcnow(),
+                "replayRequestedBy": current_user.get("username"),
+            }
+        },
+    )
+
+    return {
+        "success": True,
+        "updatedCount": int(result.modified_count),
+        "stub": True,
+    }
+
+
+@router.post("/realtime/outbox/replay-all-failed")
+async def replay_all_failed_outbox_events(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Replay all failed outbox events by moving them to queued status."""
+    _require_admin(current_user)
+
+    result = await db.messenger_realtime_outbox.update_many(
+        {"status": "failed"},
+        {
+            "$set": {
+                "status": "queued",
+                "updatedAt": datetime.utcnow(),
+                "replayRequestedBy": current_user.get("username"),
+            }
+        },
+    )
+
+    return {
+        "success": True,
+        "updatedCount": int(result.modified_count),
+        "stub": True,
+    }
+
+
+@router.get("/realtime/health")
+async def get_realtime_health(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Realtime health metric snapshot for reports dashboard."""
+    _require_admin(current_user)
+
+    doc = await db.messenger_realtime_health.find_one({"kind": "current"}) or {}
+    return {
+        "emitSuccessRate1h": doc.get("emitSuccessRate1h"),
+        "emitLagP50Ms": doc.get("emitLagP50Ms"),
+        "emitLagP95Ms": doc.get("emitLagP95Ms"),
+        "emitLagP99Ms": doc.get("emitLagP99Ms"),
+        "reconnectCatchupCount1h": doc.get("reconnectCatchupCount1h"),
+        "fallbackPollingCount1h": doc.get("fallbackPollingCount1h"),
+        "stub": True,
+    }
+
+
+@router.get("/realtime/alerts/active")
+async def get_realtime_active_alerts(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Active realtime alerts for operations/reports dashboards."""
+    _require_admin(current_user)
+
+    rows = await db.messenger_realtime_alerts.find(
+        {"status": "active"},
+        {
+            "key": 1,
+            "title": 1,
+            "severity": 1,
+            "startedAt": 1,
+            "lastEventAt": 1,
+        },
+    ).sort("startedAt", -1).limit(100).to_list(length=100)
+
+    items: List[Dict[str, Any]] = []
+    for row in rows:
+        items.append({
+            "id": str(row.get("_id")),
+            "key": row.get("key"),
+            "title": row.get("title"),
+            "severity": row.get("severity"),
+            "startedAt": row.get("startedAt").isoformat() if isinstance(row.get("startedAt"), datetime) else row.get("startedAt"),
+            "lastEventAt": row.get("lastEventAt").isoformat() if isinstance(row.get("lastEventAt"), datetime) else row.get("lastEventAt"),
+        })
+
+    return {
+        "items": items,
+        "stub": True,
+    }
 
 
 # =========================================================================

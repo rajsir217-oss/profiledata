@@ -5,6 +5,7 @@ import AdminReports from './AdminReports';
 import PauseAnalyticsDashboard from './PauseAnalyticsDashboard';
 import EmailAnalytics from './EmailAnalytics';
 import InactiveUsersReport from './InactiveUsersReport';
+import MessengerRealtimeHealth from './MessengerRealtimeHealth';
 import './UnifiedReports.css';
 
 const UnifiedReports = () => {
@@ -47,6 +48,7 @@ const UnifiedReports = () => {
     { id: 'email-analytics', label: 'Email Analytics', icon: '📮', component: EmailAnalytics },
     { id: 'inactive-users', label: 'Inactive Users', icon: '😴', component: InactiveUsersReport },
     { id: 'pause-analytics', label: 'Pause Analytics', icon: '⏸️', component: PauseAnalyticsDashboard },
+    { id: 'messenger-realtime-health', label: 'Realtime Health', icon: '📡', component: MessengerRealtimeHealth },
   ];
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || ActivityLogs;
