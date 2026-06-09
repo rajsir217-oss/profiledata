@@ -276,6 +276,7 @@ async def get_messages(
     username: str,
     limit: int = 50,
     before: Optional[str] = None,
+    after: Optional[str] = None,
     include_total: bool = False,
     debug_timing: bool = False,
 ) -> Tuple[List[Dict[str, Any]], Optional[int], bool, Optional[Dict[str, float]]]:
@@ -311,6 +312,7 @@ async def get_messages(
         conv.get("type") == "group"
         and conv.get("groupName") == "Portal Members"
         and not before
+        and not after
         and not include_total
     )
 
@@ -340,6 +342,8 @@ async def get_messages(
     and_clauses: List[Dict[str, Any]] = []
     if before:
         and_clauses.append({"_id": {"$lt": ObjectId(before)}})
+    if after:
+        and_clauses.append({"_id": {"$gt": ObjectId(after)}})
 
     # Per-user "clear chat" filter — hide messages older than the user's clearedAt timestamp
     cleared_for = (conv.get("clearedFor") or {}).get(username)
@@ -375,9 +379,10 @@ async def get_messages(
         _mark("count_ms", started)
 
     started = perf_counter()
+    sort_order = 1 if after else -1
     cursor = (
         db.messenger_messages.find(query)
-        .sort("_id", -1)  # newest first
+        .sort("_id", sort_order)
         .limit(limit + 1)
     )
     messages = await cursor.to_list(length=limit + 1)
@@ -521,8 +526,11 @@ async def get_messages(
             m["publicEmailsSent"] = enriched
     _mark("enrichment_ms", started)
 
-    # Return in chronological order (oldest first) for display
-    messages.reverse()
+    # Return in chronological order (oldest first) for display.
+    # - before-cursor path fetched newest-first, so reverse it.
+    # - after-cursor path already fetched oldest->newest deltas.
+    if not after:
+        messages.reverse()
 
     if can_use_portal_first_page_cache:
         started = perf_counter()

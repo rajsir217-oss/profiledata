@@ -6,6 +6,8 @@ import EventQueueManager from './EventQueueManager';
 import TemplateManager from './TemplateManager';
 import EventStatusLog from './EventStatusLog';
 import DeliveryLogTab from './DeliveryLogTab';
+import MessengerRealtimeOps from './MessengerRealtimeOps';
+import MessengerOutboxManager from './MessengerOutboxManager';
 
 const NotificationManagement = () => {
   const navigate = useNavigate();
@@ -15,7 +17,9 @@ const NotificationManagement = () => {
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam === 'templates' ? 'templates' : 
                      tabParam === 'logs' ? 'logs' :
-                     tabParam === 'delivery' ? 'delivery' : 'queue';
+                     tabParam === 'delivery' ? 'delivery' :
+                     tabParam === 'messenger-realtime' ? 'messenger-realtime' :
+                     tabParam === 'messenger-outbox' ? 'messenger-outbox' : 'queue';
 
   // Admin-only protection
   useEffect(() => {
@@ -117,6 +121,18 @@ const NotificationManagement = () => {
             icon: '📧',
             label: 'MsgTempl',
             content: <TemplateManager />
+          },
+          {
+            id: 'messenger-realtime',
+            icon: '⚡',
+            label: 'MsgRealtime',
+            content: <MessengerRealtimeOps />
+          },
+          {
+            id: 'messenger-outbox',
+            icon: '📤',
+            label: 'MsgOutbox',
+            content: <MessengerOutboxManager />
           }
         ]}
       />

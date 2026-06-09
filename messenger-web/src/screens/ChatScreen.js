@@ -274,6 +274,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   const { user } = useAuthStore();
   const storeMessages = useMessengerStore((state) => (id ? (state.messages[id] ?? EMPTY_MESSAGES) : EMPTY_MESSAGES));
   const fetchStoreMessages = useMessengerStore((state) => state.fetchMessages);
+  const fetchStoreMessagesAfter = useMessengerStore((state) => state.fetchMessagesAfter);
   const sendStoreMessage = useMessengerStore((state) => state.sendMessage);
   const onStoreNewMessage = useMessengerStore((state) => state.onNewMessage);
   const deleteStoreMessage = useMessengerStore((state) => state.deleteMessage);
@@ -307,6 +308,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   // (re-login, role promotion) flip the UI without a full reload.
   const isAdminOrModerator = user?.role === 'admin' || user?.role === 'moderator';
   const isL3v3lAgentTopic = !isLegacy && String(name || '').trim().toLowerCase() === 'l3v3l agent';
+  const isPortalMembersTopic = !isLegacy && String(name || '').trim().toLowerCase() === 'portal members';
   const isComposerRestrictedTopic = isL3v3lAgentTopic;
   const canComposeInCurrentTopic = !isComposerRestrictedTopic || isAdminOrModerator;
   const canUsePublicRecipientFlow = isL3v3lAgentTopic && isAdminOrModerator;
@@ -322,6 +324,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   const [favoritedUsernames, setFavoritedUsernames] = useState(new Set());
   // ScrollView ref for scrolling to bottom
   const scrollViewRef = useRef(null);
+  const wasSocketConnectedRef = useRef(true);
   // Quick Messages popup (⚡ button next to composer). Only "Introduction" is
   // wired up; the other categories are visible-but-disabled placeholders.
   const [showQuickMessages, setShowQuickMessages] = useState(false);
@@ -354,6 +357,62 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (!id || isLegacy || !isPortalMembersTopic) {
+      wasSocketConnectedRef.current = socketConnected;
+      return;
+    }
+
+    const wasConnected = wasSocketConnectedRef.current;
+    wasSocketConnectedRef.current = socketConnected;
+
+    // Catch up missed messages once when connection is restored.
+    if (wasConnected || !socketConnected) return;
+
+    let cancelled = false;
+    (async () => {
+      const existing = useMessengerStore.getState().messages[id] ?? EMPTY_MESSAGES;
+      const afterId = existing.length ? existing[existing.length - 1]?.id : null;
+      if (cancelled) return;
+
+      if (afterId) {
+        await fetchStoreMessagesAfter(id, afterId);
+      } else {
+        await fetchStoreMessages(id);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isLegacy, isPortalMembersTopic, socketConnected, fetchStoreMessages, fetchStoreMessagesAfter]);
+
+  useEffect(() => {
+    if (!id || isLegacy || !isPortalMembersTopic || socketConnected) return;
+
+    let cancelled = false;
+    const poll = async () => {
+      const existing = useMessengerStore.getState().messages[id] ?? EMPTY_MESSAGES;
+      const afterId = existing.length ? existing[existing.length - 1]?.id : null;
+      if (cancelled) return;
+
+      if (afterId) {
+        await fetchStoreMessagesAfter(id, afterId);
+      } else {
+        await fetchStoreMessages(id);
+      }
+    };
+
+    // Kick off immediately, then continue until socket recovers.
+    poll();
+    const timer = setInterval(poll, 12000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [id, isLegacy, isPortalMembersTopic, socketConnected, fetchStoreMessages, fetchStoreMessagesAfter]);
 
   useEffect(() => {
     if (!armedDeleteId) return;
@@ -2122,8 +2181,8 @@ const styles = StyleSheet.create({
   // Shared tiny header icon button (⏱️ retention, 🗑️ clear chat).
   // Kept small so the chat header stays compact on narrow screens.
   iconButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 5,
     borderRadius: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,

@@ -36,6 +36,61 @@ const useMessengerStore = create((set, get) => ({
     }
   },
 
+  fetchMessagesAfter: async (conversationId, after = null) => {
+    if (!conversationId || !after) {
+      return { hasMore: false, cursor: null, fetched: 0 };
+    }
+
+    try {
+      const api = useAuthStore.getState().getApi();
+      const res = await api.get(
+        `${MESSENGER_API}/conversations/${conversationId}/messages`,
+        { params: { limit: 50, after } },
+      );
+
+      const fetched = Array.isArray(res?.data?.messages) ? res.data.messages : [];
+
+      if (!fetched.length) {
+        return { hasMore: false, cursor: null, fetched: 0 };
+      }
+
+      let mergedNewCount = 0;
+      set((state) => {
+        const existing = state.messages[conversationId] || [];
+        const existingIds = new Set(existing.map((m) => m.id));
+        const appended = [];
+
+        for (const msg of fetched) {
+          if (!msg?.id || existingIds.has(msg.id)) continue;
+          existingIds.add(msg.id);
+          appended.push(msg);
+        }
+
+        mergedNewCount = appended.length;
+        if (!mergedNewCount) return state;
+
+        return {
+          messages: { ...state.messages, [conversationId]: [...existing, ...appended] },
+        };
+      });
+
+      if (mergedNewCount > 0) {
+        const latest = fetched[fetched.length - 1];
+        if (latest) {
+          get()._bumpConversation(conversationId, latest.content, latest.contentType);
+        }
+      }
+
+      return {
+        hasMore: Boolean(res?.data?.hasMore),
+        cursor: res?.data?.cursor || null,
+        fetched: mergedNewCount,
+      };
+    } catch (e) {
+      return { hasMore: false, cursor: null, fetched: 0 };
+    }
+  },
+
   createConversation: async (participantUsernames, type = 'direct', groupName = null) => {
     try {
       const api = useAuthStore.getState().getApi();

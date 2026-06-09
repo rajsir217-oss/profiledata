@@ -1001,7 +1001,7 @@ class EventDispatcher:
             return
 
         try:
-            from websocket_manager import online_users, sio
+            from websocket_manager import sio
         except Exception as e:
             logger.warning(f"⚠️ Activation intro: dependencies unavailable: {e}")
             return
@@ -1226,14 +1226,31 @@ class EventDispatcher:
             "cardSnapshot": snapshot,
         }
 
-        for p in (conv_fresh.get("participants") or []):
-            recipient = p.get("username")
-            if recipient and recipient in online_users:
-                await sio.emit(
-                    "messenger:new_message",
-                    {"conversationId": str(conv_oid), "message": payload},
-                    room=online_users[recipient],
-                )
+        conv_id = str(conv_oid)
+
+        await sio.emit(
+            "messenger:new_message",
+            {"conversationId": conv_id, "message": payload},
+            room=f"conversation:{conv_id}",
+        )
+
+        recipients = {
+            p.get("username")
+            for p in (conv_fresh.get("participants") or [])
+            if p.get("username")
+        }
+        for recipient in recipients:
+            await sio.emit(
+                "messenger:new_message",
+                {"conversationId": conv_id, "message": payload},
+                room=f"user:{recipient}",
+            )
+
+        try:
+            from services import messenger_service
+            messenger_service.invalidate_portal_first_page_cache(conv_id)
+        except Exception as e:
+            logger.warning(f"⚠️ Activation intro: failed to invalidate Portal first-page cache: {e}")
 
         logger.info(
             f"✅ Activation intro posted in Portal Members for {activated_username}: message={msg_id}"
