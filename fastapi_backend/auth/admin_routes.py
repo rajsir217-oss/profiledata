@@ -3,7 +3,7 @@
 Admin Management Endpoints - User, Role, and Permission Management
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
@@ -31,6 +31,30 @@ import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
+
+
+async def _dispatch_status_change_event_background(
+    db,
+    event_type: UserEventType,
+    actor_username: str,
+    target_username: str,
+    metadata: dict,
+    priority: str,
+) -> None:
+    try:
+        event_dispatcher = EventDispatcher(db)
+        await event_dispatcher.dispatch(
+            event_type=event_type,
+            actor_username=actor_username,
+            target_username=target_username,
+            metadata=metadata,
+            priority=priority,
+        )
+    except Exception as e:
+        logger.error(
+            f"❌ Background status change dispatch failed for {target_username}: {e}",
+            exc_info=True,
+        )
 
 # ===== USER MANAGEMENT =====
 
@@ -549,6 +573,7 @@ class StatusUpdateRequest(BaseModel):
 async def update_user_status(
     username: str,
     request: StatusUpdateRequest,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
@@ -733,8 +758,6 @@ async def update_user_status(
         should_dispatch_event = notification_config["should_notify"] or new_account_status == "active"
 
         if should_dispatch_event:
-            event_dispatcher = EventDispatcher(db)
-            
             # Map new status to event type
             event_type_map = {
                 'active': UserEventType.USER_APPROVED,
@@ -760,23 +783,27 @@ async def update_user_status(
             # Get user's name with fallbacks for different field names
             user_firstname = user.get("firstName") or user.get("firstname") or user.get("first_name") or username
             user_lastname = user.get("lastName") or user.get("lastname") or user.get("last_name") or ""
-            
-            await event_dispatcher.dispatch(
-                event_type=event_type,
-                actor_username=current_user.get("username"),
-                target_username=username,
-                metadata={
-                    "firstname": user_firstname,
-                    "lastname": user_lastname,
-                    "old_status": old_status_value,
-                    "new_status": new_account_status,
-                    "reason": request.reason,
-                    "status_transition": f"{old_status_value} → {new_account_status}",
-                    "notification_trigger": notification_config.get("trigger") or "status_approved",
-                    "notification_should_send_email": notification_config["should_notify"],
-                    "lineage_token": lineage_token  # Track workflow end-to-end
-                },
-                priority=notification_config.get("priority") or "medium"
+
+            dispatch_metadata = {
+                "firstname": user_firstname,
+                "lastname": user_lastname,
+                "old_status": old_status_value,
+                "new_status": new_account_status,
+                "reason": request.reason,
+                "status_transition": f"{old_status_value} → {new_account_status}",
+                "notification_trigger": notification_config.get("trigger") or "status_approved",
+                "notification_should_send_email": notification_config["should_notify"],
+                "lineage_token": lineage_token,
+            }
+
+            background_tasks.add_task(
+                _dispatch_status_change_event_background,
+                db,
+                event_type,
+                current_user.get("username"),
+                username,
+                dispatch_metadata,
+                notification_config.get("priority") or "medium",
             )
         else:
             logger.info(f"ℹ️ Status change {old_status_value} → {new_account_status} does not trigger notification (disabled in config)")

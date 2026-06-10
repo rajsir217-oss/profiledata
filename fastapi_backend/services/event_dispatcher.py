@@ -990,7 +990,16 @@ class EventDispatcher:
                     f"ℹ️ Skipping email notification for user_approved: target={target} trigger={trigger} (lineage: {lineage_token})"
                 )
 
-            await self._post_activation_intro_to_portal_members(target, old_status)
+            async def _post_intro_wrapper() -> None:
+                try:
+                    await self._post_activation_intro_to_portal_members(target, old_status)
+                except Exception as intro_err:
+                    logger.error(
+                        f"❌ Error posting activation intro for {target}: {intro_err}",
+                        exc_info=True,
+                    )
+
+            asyncio.create_task(_post_intro_wrapper())
             
         except Exception as e:
             logger.error(f"❌ Error handling user_approved: {e}", exc_info=True)
@@ -1210,7 +1219,6 @@ class EventDispatcher:
             },
         )
 
-        conv_fresh = await self.db.messenger_conversations.find_one({"_id": conv_oid}) or {}
         payload = {
             "id": msg_id,
             "conversationId": str(conv_oid),
@@ -1236,15 +1244,27 @@ class EventDispatcher:
 
         recipients = {
             p.get("username")
-            for p in (conv_fresh.get("participants") or [])
+            for p in ((conv.get("participants") or []) if isinstance(conv, dict) else [])
             if p.get("username")
         }
-        for recipient in recipients:
-            await sio.emit(
-                "messenger:new_message",
-                {"conversationId": conv_id, "message": payload},
-                room=f"user:{recipient}",
-            )
+        recipients.add(activated_username)
+
+        emit_semaphore = asyncio.Semaphore(50)
+
+        async def _emit_user_room(recipient: str) -> None:
+            async with emit_semaphore:
+                try:
+                    await sio.emit(
+                        "messenger:new_message",
+                        {"conversationId": conv_id, "message": payload},
+                        room=f"user:{recipient}",
+                    )
+                except Exception as emit_err:
+                    logger.warning(
+                        f"⚠️ Activation intro user-room emit failed for {recipient}: {emit_err}"
+                    )
+
+        await asyncio.gather(*(_emit_user_room(recipient) for recipient in recipients), return_exceptions=True)
 
         try:
             from services import messenger_service
