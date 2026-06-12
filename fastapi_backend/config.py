@@ -177,6 +177,7 @@ class Settings(BaseSettings):
     # Geo-IP enrichment for request location metadata
     geoip_lookup_enabled: Optional[bool] = True
     geoip_api_url_template: Optional[str] = "https://ipapi.co/{ip}/json/"
+    geoip_fallback_api_url_template: Optional[str] = "https://ipwho.is/{ip}"
     geoip_api_key: Optional[str] = None
     geoip_timeout_seconds: Optional[int] = 3
 

@@ -10,7 +10,7 @@ import os
 import re
 import ipaddress
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 from urllib.parse import quote
 from pydantic import BaseModel, EmailStr, Field
 from bson import ObjectId
@@ -114,54 +114,87 @@ async def _lookup_location_from_ip(ip: Optional[str]) -> Optional[dict]:
     if not _is_public_ip(ip):
         return None
 
-    url_template = (settings.geoip_api_url_template or "").strip()
-    if not url_template:
+    url_templates = []
+    primary_url_template = (settings.geoip_api_url_template or "").strip()
+    fallback_url_template = (settings.geoip_fallback_api_url_template or "").strip()
+
+    if primary_url_template:
+        url_templates.append(primary_url_template)
+    if fallback_url_template and fallback_url_template not in url_templates:
+        url_templates.append(fallback_url_template)
+
+    if not url_templates:
         return None
 
-    lookup_url = url_template.replace("{ip}", ip)
+    def _clean(value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        value_str = str(value).strip()
+        return value_str or None
+
+    def _parse_geo_response(data: Any) -> Optional[dict]:
+        if not isinstance(data, dict):
+            return None
+
+        if data.get("success") is False:
+            return None
+
+        city = _clean(data.get("city"))
+
+        region = _clean(
+            data.get("region")
+            or data.get("region_name")
+            or data.get("state")
+            or data.get("state_prov")
+        )
+
+        country = _clean(
+            data.get("country_name")
+            or data.get("country")
+            or data.get("countryCode")
+            or data.get("country_code")
+        )
+
+        timezone_value = data.get("timezone")
+        if isinstance(timezone_value, dict):
+            timezone = _clean(timezone_value.get("id") or timezone_value.get("name"))
+        else:
+            timezone = _clean(timezone_value)
+
+        if not any([city, region, country, timezone]):
+            return None
+
+        return {
+            "city": city,
+            "region": region,
+            "country": country,
+            "timezone": timezone,
+        }
+
     timeout_seconds = int(settings.geoip_timeout_seconds or 3)
     headers = {}
     if settings.geoip_api_key:
         headers["Authorization"] = f"Bearer {settings.geoip_api_key}"
 
-    try:
-        timeout = aiohttp.ClientTimeout(total=max(timeout_seconds, 1))
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(lookup_url, headers=headers) as response:
-                if response.status >= 400:
-                    return None
-                data = await response.json()
-    except Exception as exc:
-        logger.debug(f"Geo-IP lookup failed for {ip}: {exc}")
-        return None
+    timeout = aiohttp.ClientTimeout(total=max(timeout_seconds, 1))
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        for url_template in url_templates:
+            lookup_url = url_template.replace("{ip}", ip)
+            try:
+                async with session.get(lookup_url, headers=headers) as response:
+                    if response.status >= 400:
+                        logger.debug(f"Geo-IP lookup HTTP {response.status} for {ip} via {lookup_url}")
+                        continue
+                    data = await response.json()
+            except Exception as exc:
+                logger.debug(f"Geo-IP lookup failed for {ip} via {lookup_url}: {exc}")
+                continue
 
-    city = (data.get("city") or "").strip() or None
-    region = (
-        data.get("region")
-        or data.get("region_name")
-        or data.get("state")
-        or data.get("state_prov")
-    )
-    region = (region or "").strip() or None
+            parsed_location = _parse_geo_response(data)
+            if parsed_location:
+                return parsed_location
 
-    country = (
-        data.get("country_name")
-        or data.get("country")
-        or data.get("countryCode")
-        or data.get("country_code")
-    )
-    country = (country or "").strip() or None
-    timezone = (data.get("timezone") or "").strip() or None
-
-    if not any([city, region, country, timezone]):
-        return None
-
-    return {
-        "city": city,
-        "region": region,
-        "country": country,
-        "timezone": timezone,
-    }
+    return None
 
 
 async def _extract_submission_location(request: Request) -> Optional[dict]:
