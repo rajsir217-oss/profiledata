@@ -3,12 +3,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import toastService from '../services/toastService';
 
-// Theme-aware colors that work in both light and dark themes
+// Theme-aware colors driven by CSS variables from themes.css
 const TOAST_COLORS = {
-  success: { border: '#10b981', bg: 'rgba(16, 185, 129, 0.94)', text: '#064e3b', icon: '✅' },
-  error: { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.94)', text: '#7f1d1d', icon: '❌' },
-  warning: { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.94)', text: '#78350f', icon: '⚠️' },
-  info: { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.94)', text: '#1e3a8a', icon: 'ℹ️' },
+  success: { border: 'var(--success-color)', bg: 'var(--success-light, var(--card-background))', text: 'var(--text-color)', icon: '✅' },
+  error: { border: 'var(--danger-color)', bg: 'var(--danger-light, var(--card-background))', text: 'var(--text-color)', icon: '❌' },
+  warning: { border: 'var(--warning-color)', bg: 'var(--warning-light, var(--card-background))', text: 'var(--text-color)', icon: '⚠️' },
+  info: { border: 'var(--info-color, var(--primary-color))', bg: 'var(--info-background, var(--selected-background))', text: 'var(--text-color)', icon: 'ℹ️' },
 };
 
 const containerStyle = {
@@ -34,15 +34,15 @@ const getToastStyle = (type) => {
     background: colors.bg,
     color: colors.text,
     borderRadius: '12px',
-    border: '1px solid rgba(15, 23, 42, 0.18)',
+    border: '1px solid var(--border-color)',
     backdropFilter: 'blur(2px)',
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
+    boxShadow: 'var(--shadow-lg)',
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
     borderLeft: `4px solid ${colors.border}`,
     animation: 'toast-slide-in 0.3s ease-out',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily: 'var(--font-family)',
     fontSize: '14px',
     lineHeight: '1.4',
     fontWeight: '500',
@@ -72,7 +72,7 @@ const closeStyle = {
   alignItems: 'center',
   justifyContent: 'center',
   borderRadius: '4px',
-  color: '#6b7280',
+  color: 'var(--text-secondary)',
   opacity: 0.7,
 };
 
