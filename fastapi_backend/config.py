@@ -174,6 +174,12 @@ class Settings(BaseSettings):
     log_level: Optional[str] = "INFO"
     log_file: Optional[str] = "logs/app.log"
 
+    # Geo-IP enrichment for request location metadata
+    geoip_lookup_enabled: Optional[bool] = True
+    geoip_api_url_template: Optional[str] = "https://ipapi.co/{ip}/json/"
+    geoip_api_key: Optional[str] = None
+    geoip_timeout_seconds: Optional[int] = 3
+
     # Optional alternate connection strings for Cloud Run deployments
     gcp_mongodb_url: Optional[str] = None
     gcp_redis_url: Optional[str] = None

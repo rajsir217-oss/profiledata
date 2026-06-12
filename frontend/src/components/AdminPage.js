@@ -538,6 +538,9 @@ const AdminPage = () => {
               <th onClick={() => handleSort('adminApprovedAt')} style={{ cursor: 'pointer' }}>
                 APPRV DT {sortField === 'adminApprovedAt' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
+              <th onClick={() => handleSort('adminApprovedBy')} style={{ cursor: 'pointer' }}>
+                APPRV BY {sortField === 'adminApprovedBy' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th onClick={() => handleSort('accountStatus')} style={{ cursor: 'pointer' }}>
                 STATUS {sortField === 'accountStatus' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
@@ -546,7 +549,7 @@ const AdminPage = () => {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="14" className="text-center text-muted py-4">
+                <td colSpan="15" className="text-center text-muted py-4">
                   No users found
                 </td>
               </tr>
@@ -638,6 +641,13 @@ const AdminPage = () => {
                       <span style={{ fontSize: '12px' }}>
                         {new Date(user.adminApprovedAt).toLocaleDateString()}
                       </span>
+                    ) : (
+                      <span style={{ color: '#999', fontStyle: 'italic', fontSize: '12px' }}>—</span>
+                    )}
+                  </td>
+                  <td>
+                    {user.adminApprovedBy ? (
+                      <span style={{ fontSize: '12px' }}>{user.adminApprovedBy}</span>
                     ) : (
                       <span style={{ color: '#999', fontStyle: 'italic', fontSize: '12px' }}>—</span>
                     )}

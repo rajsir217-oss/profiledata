@@ -5,6 +5,25 @@
   gap: 12px;
 }
 
+@media (max-width: 560px) {
+  .dv2-conv-header {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .dv2-conv-title-wrap {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .dv2-conv-header .dv2-link {
+    align-self: flex-start;
+    margin-top: 0;
+  }
+}
+
 .dv2-conv-title-wrap {
   display: inline-flex;
   align-items: center;
