@@ -8,12 +8,14 @@ Admin endpoints for review queue management.
 import logging
 import os
 import re
+import ipaddress
 from datetime import datetime
 from typing import Optional, List
 from urllib.parse import quote
 from pydantic import BaseModel, EmailStr, Field
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, status, Depends, Request, Query
+import aiohttp
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from database import get_database
 from crypto_utils import PIIEncryption
@@ -55,6 +57,165 @@ class RegistrationInterestCreate(BaseModel):
 class RegistrationInterestResponse(BaseModel):
     success: bool
     message: str
+
+
+def _first_header_value(request: Request, header_name: str) -> Optional[str]:
+    raw = (request.headers.get(header_name) or "").strip()
+    if not raw:
+        return None
+    return raw.split(",", 1)[0].strip() or None
+
+
+def _normalize_ip(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+
+    ip = value.strip()
+    if not ip:
+        return None
+
+    if ":" in ip and ip.count(":") == 1 and "." in ip:
+        ip = ip.split(":", 1)[0].strip()
+
+    return ip or None
+
+
+def _extract_client_ip(request: Request) -> Optional[str]:
+    header_ip = (
+        _first_header_value(request, "cf-connecting-ip")
+        or _first_header_value(request, "x-forwarded-for")
+        or _first_header_value(request, "x-real-ip")
+    )
+    return _normalize_ip(header_ip) or _normalize_ip(request.client.host if request and request.client else None)
+
+
+def _is_public_ip(ip: Optional[str]) -> bool:
+    if not ip:
+        return False
+
+    try:
+        parsed = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+
+    return not (
+        parsed.is_private
+        or parsed.is_loopback
+        or parsed.is_reserved
+        or parsed.is_link_local
+        or parsed.is_multicast
+        or parsed.is_unspecified
+    )
+
+
+async def _lookup_location_from_ip(ip: Optional[str]) -> Optional[dict]:
+    if not settings.geoip_lookup_enabled:
+        return None
+    if not _is_public_ip(ip):
+        return None
+
+    url_template = (settings.geoip_api_url_template or "").strip()
+    if not url_template:
+        return None
+
+    lookup_url = url_template.replace("{ip}", ip)
+    timeout_seconds = int(settings.geoip_timeout_seconds or 3)
+    headers = {}
+    if settings.geoip_api_key:
+        headers["Authorization"] = f"Bearer {settings.geoip_api_key}"
+
+    try:
+        timeout = aiohttp.ClientTimeout(total=max(timeout_seconds, 1))
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(lookup_url, headers=headers) as response:
+                if response.status >= 400:
+                    return None
+                data = await response.json()
+    except Exception as exc:
+        logger.debug(f"Geo-IP lookup failed for {ip}: {exc}")
+        return None
+
+    city = (data.get("city") or "").strip() or None
+    region = (
+        data.get("region")
+        or data.get("region_name")
+        or data.get("state")
+        or data.get("state_prov")
+    )
+    region = (region or "").strip() or None
+
+    country = (
+        data.get("country_name")
+        or data.get("country")
+        or data.get("countryCode")
+        or data.get("country_code")
+    )
+    country = (country or "").strip() or None
+    timezone = (data.get("timezone") or "").strip() or None
+
+    if not any([city, region, country, timezone]):
+        return None
+
+    return {
+        "city": city,
+        "region": region,
+        "country": country,
+        "timezone": timezone,
+    }
+
+
+async def _extract_submission_location(request: Request) -> Optional[dict]:
+    if not request:
+        return None
+
+    client_ip = _extract_client_ip(request)
+
+    country = (
+        _first_header_value(request, "cf-ipcountry")
+        or _first_header_value(request, "x-appengine-country")
+        or _first_header_value(request, "cloudfront-viewer-country")
+        or _first_header_value(request, "x-vercel-ip-country")
+        or _first_header_value(request, "x-country-code")
+    )
+    region = (
+        _first_header_value(request, "x-appengine-region")
+        or _first_header_value(request, "cloudfront-viewer-country-region")
+        or _first_header_value(request, "x-vercel-ip-country-region")
+        or _first_header_value(request, "x-region")
+    )
+    city = (
+        _first_header_value(request, "cf-ipcity")
+        or _first_header_value(request, "x-appengine-city")
+        or _first_header_value(request, "cloudfront-viewer-city")
+        or _first_header_value(request, "x-vercel-ip-city")
+        or _first_header_value(request, "x-city")
+    )
+    timezone = (
+        _first_header_value(request, "cf-timezone")
+        or _first_header_value(request, "x-vercel-ip-timezone")
+        or _first_header_value(request, "x-timezone")
+    )
+
+    if not any([city, region, country]):
+        ip_location = await _lookup_location_from_ip(client_ip)
+        if ip_location:
+            city = city or ip_location.get("city")
+            region = region or ip_location.get("region")
+            country = country or ip_location.get("country")
+            timezone = timezone or ip_location.get("timezone")
+
+    location = {
+        "country": country,
+        "region": region,
+        "city": city,
+        "timezone": timezone,
+        "forwardedIp": client_ip,
+    }
+
+    if not any(location.values()):
+        return None
+
+    return location
 
 
 # --- Public Endpoint ---
@@ -106,6 +267,8 @@ async def submit_registration_interest(
             }
 
     now = datetime.utcnow()
+    client_ip = _extract_client_ip(request)
+    submission_location = await _extract_submission_location(request)
     doc = {
         "registeringFor": data.registeringFor,
         "firstName": data.firstName.strip(),
@@ -125,7 +288,8 @@ async def submit_registration_interest(
         "reviewedBy": None,
         "reviewedAt": None,
         "reviewNotes": None,
-        "ipAddress": request.client.host if request else None,
+        "ipAddress": client_ip,
+        "submissionLocation": submission_location,
         "userAgent": request.headers.get("user-agent") if request else None,
         "createdAt": now,
         "updatedAt": now,

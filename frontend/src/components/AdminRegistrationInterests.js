@@ -274,6 +274,22 @@ const AdminRegistrationInterests = () => {
       ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const getSubmissionLocationLabel = (interest) => {
+    const location = interest?.submissionLocation;
+    if (!location) return null;
+
+    const city = (location.city || '').trim();
+    const region = (location.region || '').trim();
+    const country = (location.country || '').trim();
+    const parts = [city, region, country].filter(Boolean);
+
+    if (parts.length > 0) {
+      return parts.join(', ');
+    }
+
+    return null;
+  };
+
   const getStatusBadge = (status) => {
     const config = STATUS_CONFIG[status] || { label: status, color: 'var(--text-muted)', icon: '?' };
     return (
@@ -341,6 +357,9 @@ const AdminRegistrationInterests = () => {
                     <span>📧 {interest.email}</span>
                     <span>📱 {interest.phone}</span>
                     <span>📅 {formatDate(interest.createdAt)}</span>
+                    {getSubmissionLocationLabel(interest) && (
+                      <span>📍 {getSubmissionLocationLabel(interest)}</span>
+                    )}
                   </div>
                 </div>
                 <div className="ari-card-right">
@@ -429,6 +448,26 @@ const AdminRegistrationInterests = () => {
                     <div className="ari-detail-section">
                       <h4>How Did You Hear About Us</h4>
                       <p className="ari-detail-value">{HOW_DID_YOU_HEAR_LABELS[interest.howDidYouHear] || interest.howDidYouHear}</p>
+                    </div>
+                  )}
+
+                  {(interest.submissionLocation || interest.ipAddress) && (
+                    <div className="ari-detail-section">
+                      <h4>Submission Location</h4>
+                      <div className="ari-detail-grid">
+                        {getSubmissionLocationLabel(interest) && (
+                          <span><strong>Location:</strong> {getSubmissionLocationLabel(interest)}</span>
+                        )}
+                        {interest.submissionLocation?.timezone && (
+                          <span><strong>Timezone:</strong> {interest.submissionLocation.timezone}</span>
+                        )}
+                        {interest.submissionLocation?.forwardedIp && (
+                          <span><strong>Forwarded IP:</strong> {interest.submissionLocation.forwardedIp}</span>
+                        )}
+                        {interest.ipAddress && (
+                          <span><strong>Client IP:</strong> {interest.ipAddress}</span>
+                        )}
+                      </div>
                     </div>
                   )}
 

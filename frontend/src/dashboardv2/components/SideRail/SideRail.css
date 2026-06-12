@@ -22,6 +22,26 @@
   gap: 8px;
 }
 
+@media (max-width: 560px) {
+  .dv2-rail-title {
+    justify-content: flex-start;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .dv2-poll-title-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .dv2-rail-title .dv2-ss-manage,
+  .dv2-rail-title .dv2-poll-inactive-link {
+    align-self: flex-start;
+  }
+}
+
 .dv2-rail-pill {
   background: var(--accent-color, #6ba8a0);
   color: white;
