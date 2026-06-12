@@ -5,10 +5,10 @@ import toastService from '../services/toastService';
 
 // Theme-aware colors that work in both light and dark themes
 const TOAST_COLORS = {
-  success: { border: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', text: '#10b981', icon: '✅' },
-  error: { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', text: '#ef4444', icon: '❌' },
-  warning: { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', text: '#f59e0b', icon: '⚠️' },
-  info: { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', text: '#3b82f6', icon: 'ℹ️' },
+  success: { border: '#10b981', bg: 'rgba(16, 185, 129, 0.94)', text: '#064e3b', icon: '✅' },
+  error: { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.94)', text: '#7f1d1d', icon: '❌' },
+  warning: { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.94)', text: '#78350f', icon: '⚠️' },
+  info: { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.94)', text: '#1e3a8a', icon: 'ℹ️' },
 };
 
 const containerStyle = {
@@ -34,6 +34,8 @@ const getToastStyle = (type) => {
     background: colors.bg,
     color: colors.text,
     borderRadius: '12px',
+    border: '1px solid rgba(15, 23, 42, 0.18)',
+    backdropFilter: 'blur(2px)',
     boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
     display: 'flex',
     alignItems: 'center',
