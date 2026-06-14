@@ -5403,11 +5403,17 @@ async def search_users(
             and_conditions.append({"$expr": {"$gt": [{"$size": {"$ifNull": ["$images", []]}}, 0]}})
             logger.info(f"📸 Has Photo filter applied")
 
-        # Newly added filter (last 7 days) - legacy, use daysBack instead
+        # Newly added filter (last 7 days) - also considers updated profiles
         if newlyAdded:
             from datetime import datetime, timedelta
-            seven_days_ago = datetime.now() - timedelta(days=7)
-            query["createdAt"] = {"$gte": seven_days_ago.isoformat()}
+            seven_days_ago = datetime.utcnow() - timedelta(days=7)
+            seven_days_iso = seven_days_ago.isoformat()
+            and_conditions.append({"$or": [
+                {"createdAt": {"$gte": seven_days_ago, "$type": "date"}},
+                {"createdAt": {"$gte": seven_days_iso, "$type": "string"}},
+                {"updatedAt": {"$gte": seven_days_ago, "$type": "date"}},
+                {"updatedAt": {"$gte": seven_days_iso, "$type": "string"}}
+            ]})
         
         # Days back filter - filter by adminApprovedAt or createdAt date
         # If daysBack=30, show profiles created/approved in the last 30 days
@@ -5418,6 +5424,7 @@ async def search_users(
             
             # Handle both datetime objects AND ISO string dates in database
             # Production has mixed formats - some datetime, some string
+            # Also consider updatedAt so recently-edited profiles appear in window
             days_back_query = {"$or": [
                 # adminApprovedAt as datetime object
                 {"adminApprovedAt": {"$gte": cutoff_date, "$type": "date"}},
@@ -5432,7 +5439,10 @@ async def search_users(
                 {"$and": [
                     {"$or": [{"adminApprovedAt": {"$exists": False}}, {"adminApprovedAt": None}]},
                     {"createdAt": {"$gte": cutoff_iso, "$type": "string"}}
-                ]}
+                ]},
+                # Recently updated profiles (regardless of adminApprovedAt)
+                {"updatedAt": {"$gte": cutoff_date, "$type": "date"}},
+                {"updatedAt": {"$gte": cutoff_iso, "$type": "string"}}
             ]}
             and_conditions.append(days_back_query)
             logger.info(f"📅 Days back filter: {daysBack} days, cutoff: {cutoff_date} / {cutoff_iso}")
@@ -5463,12 +5473,12 @@ async def search_users(
     # Sort options - always include stable tie-breakers for deterministic pagination.
     sort_options = {
         "newest": {
-            "desc": [("createdAt", -1), ("_id", -1)],
-            "asc": [("createdAt", 1), ("_id", 1)],
+            "desc": [("_sortFreshness", -1), ("_id", -1)],
+            "asc": [("_sortFreshness", 1), ("_id", 1)],
         },
         "oldest": {
-            "desc": [("createdAt", -1), ("_id", -1)],
-            "asc": [("createdAt", 1), ("_id", 1)],
+            "desc": [("_sortFreshness", -1), ("_id", -1)],
+            "asc": [("_sortFreshness", 1), ("_id", 1)],
         },
         "firstName": {
             "asc": [("_sortFirstName", 1), ("username", 1), ("_id", 1)],
@@ -5503,6 +5513,12 @@ async def search_users(
     sort = sort_options.get(normalized_sort_by, sort_options["newest"])[normalized_sort_order]
 
     sort_computed_fields = {
+        "_sortFreshness": {
+            "$max": [
+                {"$convert": {"input": "$updatedAt", "to": "date", "onError": None, "onNull": None}},
+                {"$convert": {"input": "$createdAt", "to": "date", "onError": None, "onNull": None}}
+            ]
+        },
         "_sortHeightInches": {"$ifNull": ["$heightInches", 0]},
         "_sortFirstName": {
             "$toLower": {
@@ -5713,6 +5729,7 @@ async def search_users(
                 # Stage 8: Remove temporary sort helper fields from payload
                 {"$project": {
                     "_hasPhoto": 0,
+                    "_sortFreshness": 0,
                     "_sortHeightInches": 0,
                     "_sortFirstName": 0,
                     "_sortLocation": 0,
@@ -5845,6 +5862,7 @@ async def search_users(
                 {"$sort": {"_hasPhoto": -1, **dict(sort)}},
                 {"$project": {
                     "_hasPhoto": 0,
+                    "_sortFreshness": 0,
                     "_sortHeightInches": 0,
                     "_sortFirstName": 0,
                     "_sortLocation": 0,
