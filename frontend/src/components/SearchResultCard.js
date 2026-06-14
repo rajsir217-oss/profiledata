@@ -341,6 +341,37 @@ const SearchResultCard = ({
     ? (numericMatchScore <= 1 ? numericMatchScore * 100 : numericMatchScore)
     : null;
 
+  const getUpdatedAgoText = () => {
+    if (!user.updatedAt) return null;
+
+    const updatedDate = new Date(user.updatedAt);
+    if (Number.isNaN(updatedDate.getTime())) return null;
+
+    const diffMs = Date.now() - updatedDate.getTime();
+    if (diffMs <= 0) return 'Updated just now';
+
+    const minuteMs = 60 * 1000;
+    const hourMs = 60 * minuteMs;
+    const dayMs = 24 * hourMs;
+
+    if (diffMs < minuteMs) return 'Updated just now';
+
+    if (diffMs < hourMs) {
+      const minutes = Math.floor(diffMs / minuteMs);
+      return `Updated ${minutes} min${minutes === 1 ? '' : 's'} ago`;
+    }
+
+    if (diffMs < dayMs) {
+      const hours = Math.floor(diffMs / hourMs);
+      return `Updated ${hours} hour${hours === 1 ? '' : 's'} ago`;
+    }
+
+    const days = Math.floor(diffMs / dayMs);
+    return `Updated ${days} day${days === 1 ? '' : 's'} ago`;
+  };
+
+  const updatedAgoText = getUpdatedAgoText();
+
   // Debug: Log if education/occupation is missing
   if (!displayEducation || !displayOccupation) {
     console.log(`[SearchCard] ${user.username} - Missing data:`, {
@@ -686,10 +717,15 @@ const SearchResultCard = ({
         {/* 3. Top header: name + kebab */}
         <div className="card-photo-header" onClick={(e) => e.stopPropagation()}>
           <div className="card-photo-name-row">
-            <h6 className="card-photo-name">
-              {debugIndex && <span className="card-photo-debug">#{debugIndex}</span>}
-              {getShortName(user)}
-            </h6>
+            <div className="card-photo-identity">
+              <h6 className="card-photo-name">
+                {debugIndex && <span className="card-photo-debug">#{debugIndex}</span>}
+                {getShortName(user)}
+              </h6>
+              {updatedAgoText && (
+                <div className="card-photo-updated-at">{updatedAgoText}</div>
+              )}
+            </div>
           </div>
 
           <div className="card-photo-kebab">

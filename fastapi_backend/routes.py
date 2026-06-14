@@ -217,6 +217,7 @@ SEARCH_RESULT_PROJECTION = {
     "partnerPreference": 1,
     "partnerCriteria": 1,
     "createdAt": 1,
+    "updatedAt": 1,
     "adminApprovedAt": 1,
     "contributionPopupDisabledByAdmin": 1,
     "badges": 1,
@@ -273,6 +274,7 @@ DASHBOARD_USER_PROJECTION = {
     "lookingFor": 1,
     # Date fields for sorting
     "createdAt": 1,
+    "updatedAt": 1,
     "adminApprovedAt": 1,
     "badges": 1,
     # All other fields automatically excluded (MongoDB inclusion projection)
