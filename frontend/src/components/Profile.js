@@ -20,7 +20,7 @@ import { getWorkingStatus } from "../utils/workStatusHelper";
 import RichTextEditor from "./shared/RichTextEditor";
 import { getAuthenticatedImageUrl } from "../utils/imageUtils";
 import logger from "../utils/logger";
-import { formatFullDateTime } from "../utils/timeFormatter";
+import { formatFullDateTime, formatRelativeTime } from "../utils/timeFormatter";
 import ActivitySummaryPanel from "./ActivitySummaryPanel";
 import { useContribution } from "../contexts/ContributionContext";
 import "./Profile.css";
@@ -135,6 +135,15 @@ const Profile = ({
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, []);
+
+  const getProfileUpdatedText = (dateValue) => {
+    if (!dateValue) return null;
+    const relative = formatRelativeTime(dateValue);
+    if (!relative || relative === 'Never') return null;
+    if (relative === 'Just now') return 'Updated just now';
+    if (relative === 'Yesterday') return 'Updated yesterday';
+    return `Updated ${relative}`;
+  };
   
   // Extract search carousel context from navigation state
   useEffect(() => {
@@ -1624,8 +1633,9 @@ const Profile = ({
         <div className={`profile-header-inner ${isOwnProfile ? 'profile-header-inner-own' : ''}`}>
           {/* Profile Avatar - Always shown */}
           <div className="profile-avatar-container">
-            {/* Main Avatar - Always use image[0] (profile picture) */}
-            {(() => {
+            <div className="profile-avatar-image-shell">
+              {/* Main Avatar - Always use image[0] (profile picture) */}
+              {(() => {
               // Check per-image access for avatar (first image, index 0)
               const avatarAccessInfo = accessibleImages.find(img => img.imageOrder === 0);
               // If accessibleImages is empty (not loaded yet), default to false for non-owners
@@ -1646,65 +1656,75 @@ const Profile = ({
               const canOpenAvatar = viewerHasAvatarAccess && !!avatarSrc;
 
               return (
-            <div style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: 'var(--radius-md)',
-              overflow: 'hidden',
-              border: '1px solid var(--border-color)',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-              backgroundColor: 'var(--surface-color)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '48px',
-              fontWeight: 'bold',
-              color: 'var(--primary-color)',
-              cursor: canOpenAvatar ? 'pointer' : 'default',
-              position: 'relative'
-            }}
-            onClick={() => {
-              if (canOpenAvatar) {
-                openLightbox(avatarSrc, user?.images?.filter(Boolean) || []);
-              }
-            }}
-            title={canOpenAvatar ? 'Click to enlarge' : ''}
-            >
-              {/* Show actual image if own profile, has access, or is admin */}
-              {(canOpenAvatar && avatarSrc) ? (
-                <img src={getAuthenticatedImageUrl(avatarSrc)} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : user.images?.[0] ? (
-                /* Show blurred image if user has photos but viewer has no access */
-                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                  <img 
-                    src={getAuthenticatedImageUrl(user.images[0])} 
-                    alt={user.firstName} 
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'cover',
-                      filter: 'blur(15px)',
-                      transform: 'scale(1.1)'
-                    }} 
-                  />
-                  <div style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    fontSize: '24px',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                  }}>
-                    🔒
-                  </div>
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: 'var(--radius-md)',
+                  overflow: 'hidden',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                  backgroundColor: 'var(--surface-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '48px',
+                  fontWeight: 'bold',
+                  color: 'var(--primary-color)',
+                  cursor: canOpenAvatar ? 'pointer' : 'default',
+                  position: 'relative'
+                }}
+                onClick={() => {
+                  if (canOpenAvatar) {
+                    openLightbox(avatarSrc, user?.images?.filter(Boolean) || []);
+                  }
+                }}
+                title={canOpenAvatar ? 'Click to enlarge' : ''}
+                >
+                  {/* Show actual image if own profile, has access, or is admin */}
+                  {(canOpenAvatar && avatarSrc) ? (
+                    <img src={getAuthenticatedImageUrl(avatarSrc)} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : user.images?.[0] ? (
+                    /* Show blurred image if user has photos but viewer has no access */
+                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                      <img 
+                        src={getAuthenticatedImageUrl(user.images[0])} 
+                        alt={user.firstName} 
+                        style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'cover',
+                          filter: 'blur(15px)',
+                          transform: 'scale(1.1)'
+                        }} 
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        fontSize: '24px',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                      }}>
+                        🔒
+                      </div>
+                    </div>
+                  ) : (
+                    /* Show initials if no photos */
+                    <span>{user.firstName?.[0]}{user.lastName?.[0]}</span>
+                  )}
                 </div>
-              ) : (
-                /* Show initials if no photos */
-                <span>{user.firstName?.[0]}{user.lastName?.[0]}</span>
-              )}
-            </div>
               );
-            })()}
+              })()}
+            </div>
+
+            {getProfileUpdatedText(user.updatedAt) && (
+              <div
+                className="profile-avatar-updated-at"
+                title={`Last updated: ${formatFullDateTime(user.updatedAt)}`}
+              >
+                {getProfileUpdatedText(user.updatedAt)}
+              </div>
+            )}
           </div>
           
           {/* Profile Info */}
@@ -1732,7 +1752,7 @@ const Profile = ({
                 </span>
               )}
             </h2>
-            
+
             {/* Quick Info Pills - Age, Born, Height */}
             {(age || (user.birthMonth && user.birthYear) || user.height) && (
               <div className="profile-quick-pills">

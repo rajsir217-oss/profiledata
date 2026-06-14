@@ -2089,6 +2089,14 @@ button.card-image-nav {
   min-width: 0;
 }
 
+.card-photo-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
 .card-photo-badges {
   display: flex;
   align-items: center;
@@ -2110,6 +2118,18 @@ button.card-image-nav {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.card-photo-updated-at {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .card-photo-debug {
@@ -2567,6 +2587,10 @@ button.card-image-nav {
 
   .card-photo-name {
     font-size: 14px;
+  }
+
+  .card-photo-updated-at {
+    font-size: 9px;
   }
 
   .card-photo-age {
