@@ -3289,12 +3289,10 @@ const SearchPage2 = () => {
       {showMatchScoreModal && (
         <div className="modal-overlay" onClick={handleMatchScoreModalCancel}>
           <div className="modal-content contribution-appeal-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={handleMatchScoreModalCancel}>✕</button>
-            <div className="modal-icon">🎯</div>
-            <h3>Compatibility Score — Work in Progress</h3>
+            <h3>🎯 Compatibility Score — Work in Progress</h3>
             <p className="modal-description">
               Our AI compatibility engine is resource-intensive. Your contribution helps keep this feature
-              running for everyone — please consider contributing if you can.
+              running for everyone — please consider contributing if you can. Thanks!
             </p>
             <div className="modal-actions">
               <button className="btn btn-primary" onClick={handleMatchScoreModalContribute}>
