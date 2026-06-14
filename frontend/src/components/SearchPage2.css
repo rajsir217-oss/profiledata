@@ -2158,24 +2158,34 @@ button.card-image-nav {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-/* Stats row — single line, no wrap */
+/* Stats row — wrap pills so all chips remain visible */
 .card-photo-stats {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
+  flex-wrap: wrap;
+  column-gap: 5px;
+  row-gap: 4px;
   font-size: 10px;
   color: rgba(255, 255, 255, 0.75);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .card-photo-stats > span,
 .card-photo-stats > * {
   background: rgba(255, 255, 255, 0.1);
-  padding: 2px 6px;
+  padding: 1px 5px;
   border-radius: 4px;
   backdrop-filter: blur(2px);
   white-space: nowrap;
   flex-shrink: 0;
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+.card-photo-match {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
 }
 
 /* Details row */
@@ -2578,6 +2588,16 @@ button.card-image-nav {
   .card-photo-stats,
   .card-photo-details {
     font-size: 10px;
+  }
+
+  .card-photo-stats {
+    column-gap: 4px;
+    row-gap: 3px;
+  }
+
+  .card-photo-stats > span,
+  .card-photo-stats > * {
+    padding: 1px 4px;
   }
 
   .card-photo-looking-for {
@@ -3487,4 +3507,124 @@ button.card-image-nav {
     padding: 6px 10px;
     font-size: 12px;
   }
+}
+
+/* ============================================
+   Compatibility Score Contribution Modal
+   ============================================ */
+.contribution-appeal-modal {
+  max-width: 480px;
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.contribution-appeal-modal .modal-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  transition: background 0.2s;
+}
+
+.contribution-appeal-modal .modal-close-btn:hover {
+  background: var(--hover-background);
+}
+
+.contribution-appeal-modal .modal-icon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-md);
+}
+
+.contribution-appeal-modal h3 {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.contribution-appeal-modal .modal-description {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+.contribution-appeal-modal .modal-cost-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  background: var(--info-background, var(--selected-background));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-align: left;
+  line-height: 1.5;
+}
+
+.contribution-appeal-modal .cost-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.contribution-appeal-modal .modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.contribution-appeal-modal .modal-actions .btn {
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  width: 100%;
+}
+
+.contribution-appeal-modal .modal-actions .btn-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+}
+
+.contribution-appeal-modal .modal-actions .btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.contribution-appeal-modal .modal-actions .btn-outline {
+  background: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.contribution-appeal-modal .modal-actions .btn-outline:hover {
+  background: var(--hover-background);
+}
+
+.contribution-appeal-modal .modal-actions .btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  font-weight: 400;
+}
+
+.contribution-appeal-modal .modal-actions .btn-ghost:hover {
+  color: var(--text-color);
+  background: var(--hover-background);
 }

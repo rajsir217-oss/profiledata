@@ -28,6 +28,7 @@ import { buildDefaultCriteria, normalizeDaysBackValue } from '../utils/searchDef
 import { generateSearchDescription } from '../utils/searchDescription';
 import useSavedSearches from '../hooks/useSavedSearches';
 import useInitialSearchBootstrap from '../hooks/useInitialSearchBootstrap';
+import { useContribution } from '../contexts/ContributionContext';
 import SavedSearchesPanel from './search/SavedSearchesPanel';
 import './SearchFiltersModal.css';
 import './SearchPage2.css';
@@ -56,6 +57,9 @@ const SearchPage2 = () => {
   // second mount sees an empty sessionStorage and returns null. The bootstrap
   // hook combines this captured value with its own module-level guard to
   // ensure the action is processed at most once per page session.
+  const { openPopup: openContributionPopup, shouldShowContribution } = useContribution();
+  const [showMatchScoreModal, setShowMatchScoreModal] = useState(false);
+
   const [pendingSearchAction] = useState(() => {
     try {
       const raw = sessionStorage.getItem('pendingSearchAction');
@@ -1140,12 +1144,35 @@ const SearchPage2 = () => {
 
   const handleSortChange = useCallback((e) => {
     const newSortBy = normalizeSortBy(e.target.value);
+    if (newSortBy === 'matchScore') {
+      if (shouldShowContribution) {
+        setShowMatchScoreModal(true);
+        e.target.value = normalizeSortBy(sortBy);
+        return;
+      }
+      applyServerSort('matchScore', 'desc');
+      return;
+    }
     const currentSortBy = normalizeSortBy(sortBy);
     const nextSortOrder = currentSortBy === newSortBy
       ? sortOrder
       : getDefaultSortOrderForField(newSortBy);
     applyServerSort(newSortBy, nextSortOrder);
-  }, [applyServerSort, getDefaultSortOrderForField, normalizeSortBy, sortBy, sortOrder]);
+  }, [applyServerSort, getDefaultSortOrderForField, normalizeSortBy, shouldShowContribution, sortBy, sortOrder]);
+
+  const handleMatchScoreModalContinue = useCallback(() => {
+    setShowMatchScoreModal(false);
+    applyServerSort('matchScore', 'desc');
+  }, [applyServerSort]);
+
+  const handleMatchScoreModalContribute = useCallback(() => {
+    setShowMatchScoreModal(false);
+    openContributionPopup();
+  }, [openContributionPopup]);
+
+  const handleMatchScoreModalCancel = useCallback(() => {
+    setShowMatchScoreModal(false);
+  }, []);
 
   const toggleSortOrder = useCallback(() => {
     const nextOrder = sortOrder === 'desc' ? 'asc' : 'desc';
@@ -3252,6 +3279,36 @@ const SearchPage2 = () => {
                 style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', cursor: 'pointer', fontWeight: '600' }}
               >
                 {exclusionLoading ? '⏳ Processing...' : '🙈 Confirm Hide'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Compatibility Score Contribution Modal */}
+      {showMatchScoreModal && (
+        <div className="modal-overlay" onClick={handleMatchScoreModalCancel}>
+          <div className="modal-content contribution-appeal-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={handleMatchScoreModalCancel}>✕</button>
+            <div className="modal-icon">🎯</div>
+            <h3>Compatibility Score — Work in Progress</h3>
+            <p className="modal-description">
+              Our compatibility scoring engine uses AI to match profiles based on deep compatibility analysis.
+              Every search consumes significant computing resources and API costs.
+            </p>
+            <div className="modal-cost-note">
+              <span className="cost-icon">⚡</span>
+              <span>Each compatibility search costs us ~$0.03 in AI compute. Your contribution helps keep this feature running for everyone.</span>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-primary" onClick={handleMatchScoreModalContribute}>
+                💝 Contribute & Unlock
+              </button>
+              <button className="btn btn-outline" onClick={handleMatchScoreModalContinue}>
+                Try Anyway (Free)
+              </button>
+              <button className="btn btn-ghost" onClick={handleMatchScoreModalCancel}>
+                Cancel
               </button>
             </div>
           </div>

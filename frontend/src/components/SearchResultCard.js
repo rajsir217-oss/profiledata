@@ -335,6 +335,11 @@ const SearchResultCard = ({
 
   const displayHeight = getDisplayHeight();
   const displayDOB = getDisplayDOB();
+  const rawMatchScore = user.matchScore ?? user.l3v3lScore ?? user.compatibilityScore;
+  const numericMatchScore = Number(rawMatchScore);
+  const displayMatchScore = Number.isFinite(numericMatchScore) && numericMatchScore > 0
+    ? (numericMatchScore <= 1 ? numericMatchScore * 100 : numericMatchScore)
+    : null;
 
   // Debug: Log if education/occupation is missing
   if (!displayEducation || !displayOccupation) {
@@ -745,9 +750,9 @@ const SearchResultCard = ({
             )}
             {user.religion && <span>{user.religion}</span>}
             {user.eatingPreference && <span>{user.eatingPreference}</span>}
-            {Number(user.matchScore) > 0 && (
+            {displayMatchScore !== null && (
               <span className="card-photo-match" title={user.compatibilityLevel}>
-                🦋 {Math.round(Number(user.matchScore) * 10) / 10}%
+                🦋 {Math.round(displayMatchScore * 10) / 10}%
               </span>
             )}
           </div>
