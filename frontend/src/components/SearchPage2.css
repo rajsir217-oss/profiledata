@@ -3513,9 +3513,9 @@ button.card-image-nav {
    Compatibility Score Contribution Modal
    ============================================ */
 .contribution-appeal-modal {
-  max-width: 480px;
+  max-width: 540px;
   text-align: center;
-  padding: var(--spacing-2xl);
+  padding: 18px 18px 14px;
 }
 
 .contribution-appeal-modal .modal-close-btn {
@@ -3541,22 +3541,23 @@ button.card-image-nav {
 }
 
 .contribution-appeal-modal .modal-icon {
-  font-size: 48px;
-  margin-bottom: var(--spacing-md);
+  font-size: 32px;
+  margin-bottom: 8px;
 }
 
 .contribution-appeal-modal h3 {
-  font-size: var(--font-size-xl);
+  font-size: clamp(18px, 2.2vw, 28px);
   font-weight: 700;
   color: var(--text-color);
-  margin: 0 0 var(--spacing-sm) 0;
+  margin: 0 0 10px 0;
 }
 
 .contribution-appeal-modal .modal-description {
-  font-size: var(--font-size-base);
+  font-size: clamp(13px, 1.35vw, 16px);
   color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 0 0 var(--spacing-lg) 0;
+  line-height: 1.45;
+  margin: 0 0 12px 0;
+  word-break: normal;
 }
 
 .contribution-appeal-modal .modal-cost-note {
@@ -3581,20 +3582,24 @@ button.card-image-nav {
 }
 
 .contribution-appeal-modal .modal-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .contribution-appeal-modal .modal-actions .btn {
-  padding: 12px 20px;
+  padding: 9px 16px;
   border-radius: var(--radius-md);
-  font-size: var(--font-size-base);
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
   width: 100%;
+  min-height: 44px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .contribution-appeal-modal .modal-actions .btn-primary {
@@ -3621,10 +3626,53 @@ button.card-image-nav {
   background: transparent;
   color: var(--text-secondary);
   border: none;
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .contribution-appeal-modal .modal-actions .btn-ghost:hover {
   color: var(--text-color);
   background: var(--hover-background);
+}
+
+@media (max-width: 640px) {
+  .contribution-appeal-modal {
+    width: calc(100vw - 18px);
+    max-width: calc(100vw - 18px);
+    padding: 14px 12px 10px;
+  }
+
+  .contribution-appeal-modal .modal-close-btn {
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    font-size: 18px;
+  }
+
+  .contribution-appeal-modal .modal-icon {
+    font-size: 28px;
+    margin-bottom: 6px;
+  }
+
+  .contribution-appeal-modal h3 {
+    font-size: 16px;
+    margin: 0 0 8px 0;
+  }
+
+  .contribution-appeal-modal .modal-description {
+    font-size: 12px;
+    line-height: 1.35;
+    margin: 0 0 10px 0;
+  }
+
+  .contribution-appeal-modal .modal-actions {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .contribution-appeal-modal .modal-actions .btn {
+    min-height: 36px;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
 }
