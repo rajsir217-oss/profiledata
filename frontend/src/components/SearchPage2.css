@@ -1125,7 +1125,7 @@
   }
   
   .trigger-icon {
-    font-size: 20px;
+    font-size: 18px;
   }
   
   .active-criteria-bar-header {
@@ -1875,8 +1875,8 @@ button.card-image-nav {
 }
 
 .card-action-icon-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   min-width: 32px;
   min-height: 32px;
   border-radius: 50%;
@@ -3513,22 +3513,22 @@ button.card-image-nav {
    Compatibility Score Contribution Modal
    ============================================ */
 .contribution-appeal-modal {
-  max-width: 540px;
+  max-width: 420px;
   text-align: center;
-  padding: 18px 18px 14px;
+  padding: 8px 10px 8px;
 }
 
 .contribution-appeal-modal .modal-close-btn {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
   color: var(--text-secondary);
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3540,23 +3540,22 @@ button.card-image-nav {
   background: var(--hover-background);
 }
 
-.contribution-appeal-modal .modal-icon {
-  font-size: 32px;
-  margin-bottom: 8px;
-}
-
 .contribution-appeal-modal h3 {
-  font-size: clamp(18px, 2.2vw, 28px);
+  font-size: clamp(12px, 1.5vw, 20px);
   font-weight: 700;
   color: var(--text-color);
-  margin: 0 0 10px 0;
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .contribution-appeal-modal .modal-description {
-  font-size: clamp(13px, 1.35vw, 16px);
+  font-size: clamp(11px, 1.1vw, 14px);
   color: var(--text-secondary);
-  line-height: 1.45;
-  margin: 0 0 12px 0;
+  line-height: 1.35;
+  margin: 0 0 4px 0;
   word-break: normal;
 }
 
@@ -3583,20 +3582,23 @@ button.card-image-nav {
 
 .contribution-appeal-modal .modal-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, auto);
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
 }
 
 .contribution-appeal-modal .modal-actions .btn {
-  padding: 9px 16px;
+  padding: 6px 8px;
   border-radius: var(--radius-md);
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
-  width: 100%;
-  min-height: 44px;
+  width: auto;
+  min-width: 118px;
+  min-height: 32px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3636,43 +3638,42 @@ button.card-image-nav {
 
 @media (max-width: 640px) {
   .contribution-appeal-modal {
-    width: calc(100vw - 18px);
-    max-width: calc(100vw - 18px);
-    padding: 14px 12px 10px;
+    width: calc(100vw - 14px);
+    max-width: calc(100vw - 14px);
+    padding: 8px 10px 8px;
   }
 
   .contribution-appeal-modal .modal-close-btn {
-    top: 8px;
-    right: 8px;
-    width: 28px;
-    height: 28px;
-    font-size: 18px;
-  }
-
-  .contribution-appeal-modal .modal-icon {
-    font-size: 28px;
-    margin-bottom: 6px;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
   }
 
   .contribution-appeal-modal h3 {
-    font-size: 16px;
-    margin: 0 0 8px 0;
+    font-size: 12px;
+    margin: 0 0 4px 0;
+    gap: 4px;
   }
 
   .contribution-appeal-modal .modal-description {
-    font-size: 12px;
-    line-height: 1.35;
-    margin: 0 0 10px 0;
+    font-size: 11px;
+    line-height: 1.25;
+    margin: 0 0 6px 0;
   }
 
   .contribution-appeal-modal .modal-actions {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    grid-template-columns: repeat(3, auto);
+    justify-content: center;
+    gap: 4px;
   }
 
   .contribution-appeal-modal .modal-actions .btn {
-    min-height: 36px;
-    padding: 7px 10px;
-    font-size: 12px;
+    width: auto;
+    min-width: 86px;
+    min-height: 28px;
+    padding: 4px 6px;
+    font-size: 10px;
   }
 }
