@@ -3293,16 +3293,12 @@ const SearchPage2 = () => {
             <div className="modal-icon">🎯</div>
             <h3>Compatibility Score — Work in Progress</h3>
             <p className="modal-description">
-              Our compatibility scoring engine uses AI to match profiles based on deep compatibility analysis.
-              Every search consumes significant computing resources and API costs.
+              Our AI compatibility engine is resource-intensive. Your contribution helps keep this feature
+              running for everyone — please consider contributing if you can.
             </p>
-            <div className="modal-cost-note">
-              <span className="cost-icon">⚡</span>
-              <span>Each compatibility search costs us ~$0.03 in AI compute. Your contribution helps keep this feature running for everyone.</span>
-            </div>
             <div className="modal-actions">
               <button className="btn btn-primary" onClick={handleMatchScoreModalContribute}>
-                💝 Contribute & Unlock
+                💝 Contribute
               </button>
               <button className="btn btn-outline" onClick={handleMatchScoreModalContinue}>
                 Try Anyway (Free)
