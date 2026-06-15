@@ -5414,7 +5414,9 @@ async def search_users(
                 {"createdAt": {"$gte": seven_days_ago, "$type": "date"}},
                 {"createdAt": {"$gte": seven_days_iso, "$type": "string"}},
                 {"updatedAt": {"$gte": seven_days_ago, "$type": "date"}},
-                {"updatedAt": {"$gte": seven_days_iso, "$type": "string"}}
+                {"updatedAt": {"$gte": seven_days_iso, "$type": "string"}},
+                {"updated_at": {"$gte": seven_days_ago, "$type": "date"}},
+                {"updated_at": {"$gte": seven_days_iso, "$type": "string"}}
             ]})
         
         # Days back filter - filter by adminApprovedAt or createdAt date
@@ -5444,7 +5446,9 @@ async def search_users(
                 ]},
                 # Recently updated profiles (regardless of adminApprovedAt)
                 {"updatedAt": {"$gte": cutoff_date, "$type": "date"}},
-                {"updatedAt": {"$gte": cutoff_iso, "$type": "string"}}
+                {"updatedAt": {"$gte": cutoff_iso, "$type": "string"}},
+                {"updated_at": {"$gte": cutoff_date, "$type": "date"}},
+                {"updated_at": {"$gte": cutoff_iso, "$type": "string"}}
             ]}
             and_conditions.append(days_back_query)
             logger.info(f"📅 Days back filter: {daysBack} days, cutoff: {cutoff_date} / {cutoff_iso}")
@@ -5517,6 +5521,7 @@ async def search_users(
     sort_computed_fields = {
         "_sortFreshness": {
             "$max": [
+                {"$convert": {"input": "$updated_at", "to": "date", "onError": None, "onNull": None}},
                 {"$convert": {"input": "$updatedAt", "to": "date", "onError": None, "onNull": None}},
                 {"$convert": {"input": "$createdAt", "to": "date", "onError": None, "onNull": None}}
             ]
