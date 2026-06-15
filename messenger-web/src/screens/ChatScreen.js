@@ -1104,7 +1104,11 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                 msg.senderUsername === 'L3V3LMatchAgent' &&
                 msg.contentType === 'profile_card' &&
                 msg.cardSnapshot &&
-                (msg.cardSnapshot.systemTag === 'newly_activated' || msg.cardSnapshot.systemTag === 'reactivated');
+                (
+                  msg.cardSnapshot.systemTag === 'newly_activated' ||
+                  msg.cardSnapshot.systemTag === 'reactivated' ||
+                  msg.cardSnapshot.systemTag === 'updated'
+                );
               const senderName = isGroup && !isOwn ? (msg.senderUsername || msg.fromUsername || 'Unknown') : null;
               const publicEmailsSent = Array.isArray(msg.publicEmailsSent) ? msg.publicEmailsSent : [];
               const notifUrl = msg.senderUsername === 'l3v3lagent' ? getNotificationLink(msg.content) : null;
