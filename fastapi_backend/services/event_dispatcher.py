@@ -1004,8 +1004,14 @@ class EventDispatcher:
         except Exception as e:
             logger.error(f"❌ Error handling user_approved: {e}", exc_info=True)
 
-    async def _post_activation_intro_to_portal_members(self, activated_username: str, old_status: str = "") -> None:
-        """Post a system 'Introduction' profile card message to the Portal Members group."""
+    async def _post_activation_intro_to_portal_members(
+        self,
+        activated_username: str,
+        old_status: str = "",
+        intro_type: str = "activation",
+        updated_fields: Optional[List[str]] = None,
+    ) -> None:
+        """Post a system profile card message to the Portal Members group."""
         if not activated_username:
             return
 
@@ -1154,17 +1160,25 @@ class EventDispatcher:
                 [v for v in [user.get("city"), user.get("state"), user.get("country")] if v]
             ) or None
 
-        gender = str(user.get("gender") or "").strip().lower()
-        if gender in ("male", "m", "man"):
-            intro_message = "Looking for a suitable bride for our son — please review the profile for details and Contact me. Thanks"
-        elif gender in ("female", "f", "woman"):
-            intro_message = "Looking for a suitable groom for our daughter — please review the profile for details and Contact me. Thanks"
+        is_profile_update = str(intro_type or "").strip().lower() == "updated"
+        if is_profile_update:
+            intro_message = "Profile recently updated — please review the latest details."
+            system_label = "Updated"
+            system_tag = "updated"
+            preview_text = "📇 Updated profile"
         else:
-            intro_message = "Looking for a suitable match — please review the profile for details and Contact me. Thanks"
+            gender = str(user.get("gender") or "").strip().lower()
+            if gender in ("male", "m", "man"):
+                intro_message = "Looking for a suitable bride for our son — please review the profile for details and Contact me. Thanks"
+            elif gender in ("female", "f", "woman"):
+                intro_message = "Looking for a suitable groom for our daughter — please review the profile for details and Contact me. Thanks"
+            else:
+                intro_message = "Looking for a suitable match — please review the profile for details and Contact me. Thanks"
 
-        is_reactivation = str(old_status or "").strip().lower() in ("suspended", "paused", "banned")
-        system_label = "Reactivated" if is_reactivation else "Newly activated"
-        system_tag = "reactivated" if is_reactivation else "newly_activated"
+            is_reactivation = str(old_status or "").strip().lower() in ("suspended", "paused", "banned")
+            system_label = "Reactivated" if is_reactivation else "Newly activated"
+            system_tag = "reactivated" if is_reactivation else "newly_activated"
+            preview_text = "📇 Reactivated profile" if is_reactivation else "📇 Newly activated profile"
 
         snapshot = {
             "username": activated_username,
@@ -1182,6 +1196,8 @@ class EventDispatcher:
             "systemLabel": system_label,
             "systemTag": system_tag,
         }
+        if is_profile_update and updated_fields:
+            snapshot["updatedFields"] = updated_fields
 
         msg = {
             "conversationId": conv_oid,
@@ -1213,7 +1229,7 @@ class EventDispatcher:
             {
                 "$set": {
                     "lastMessageAt": now,
-                    "lastMessagePreview": "📇 Reactivated profile" if is_reactivation else "📇 Newly activated profile",
+                    "lastMessagePreview": preview_text,
                     "updatedAt": now,
                 }
             },
@@ -1554,8 +1570,35 @@ class EventDispatcher:
         logger.debug(f"🔓 User logged out: {event_data.get('actor')}")
     
     async def _handle_profile_updated(self, event_data: Dict):
-        """Handle profile_updated event - No notification (routine activity)"""
-        logger.debug(f"📝 Profile updated: {event_data.get('actor')}")
+        """Handle profile_updated event - post Updated profile card to Portal Members."""
+        actor = event_data.get("actor")
+        metadata = event_data.get("metadata", {}) or {}
+        if not actor:
+            return
+
+        fields_updated = metadata.get("fields_updated", [])
+        if isinstance(fields_updated, list):
+            meaningful_fields = [f for f in fields_updated if f and f != "updatedAt"]
+            if not meaningful_fields:
+                logger.debug(f"📝 Profile updated skipped for {actor}: no meaningful fields")
+                return
+        else:
+            meaningful_fields = []
+
+        try:
+            user = await self.db.users.find_one({"username": actor}, {"accountStatus": 1})
+            if not user or user.get("accountStatus") != "active":
+                logger.info(f"📝 Profile updated skipped for {actor}: account not active")
+                return
+
+            await self._post_activation_intro_to_portal_members(
+                actor,
+                intro_type="updated",
+                updated_fields=meaningful_fields,
+            )
+            logger.info(f"✅ Posted updated profile card in Portal Members for {actor}")
+        except Exception as e:
+            logger.error(f"❌ Error handling profile_updated for {actor}: {e}", exc_info=True)
     
     async def _handle_pii_revoked(self, event_data: Dict):
         """Handle pii_revoked event"""
