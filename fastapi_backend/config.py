@@ -115,6 +115,7 @@ class Settings(BaseSettings):
     # log a warning and allow the upload through. Prevents legitimate users
     # from being blocked by a transient detection-backend outage.
     face_detection_strict_mode: Optional[bool] = False
+    profile_updated_portal_card_cooldown_minutes: Optional[int] = 30
     
     # ==========================================================================
     # PROFILE PICTURE VISIBILITY SETTING

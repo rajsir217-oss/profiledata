@@ -12,6 +12,7 @@ from enum import Enum
 
 from bson import ObjectId
 
+from config import settings
 from redis_manager import get_redis_manager
 from services.notification_service import NotificationService
 
@@ -83,6 +84,11 @@ class EventDispatcher:
     Enterprise-grade Event Dispatcher
     Handles all user events, publishes to Redis, queues notifications
     """
+
+    PROFILE_UPDATED_PORTAL_CARD_COOLDOWN_MINUTES = max(
+        0,
+        int(getattr(settings, "profile_updated_portal_card_cooldown_minutes", 30) or 30),
+    )
     
     def __init__(self, db, cache_service=None):
         self.db = db
@@ -1641,15 +1647,37 @@ class EventDispatcher:
             meaningful_fields = []
 
         try:
-            user = await self.db.users.find_one({"username": actor}, {"accountStatus": 1})
+            user = await self.db.users.find_one(
+                {"username": actor},
+                {"accountStatus": 1, "portalProfileUpdateCardPostedAt": 1},
+            )
             if not user or user.get("accountStatus") != "active":
                 logger.info(f"📝 Profile updated skipped for {actor}: account not active")
                 return
+
+            cooldown_minutes = self.PROFILE_UPDATED_PORTAL_CARD_COOLDOWN_MINUTES
+            last_posted_at = user.get("portalProfileUpdateCardPostedAt")
+            if isinstance(last_posted_at, str):
+                try:
+                    last_posted_at = datetime.fromisoformat(last_posted_at.replace("Z", "+00:00"))
+                except Exception:
+                    last_posted_at = None
+
+            if isinstance(last_posted_at, datetime) and cooldown_minutes > 0:
+                if (datetime.utcnow() - last_posted_at).total_seconds() < cooldown_minutes * 60:
+                    logger.info(
+                        f"📝 Profile updated skipped for {actor}: within {cooldown_minutes}m cooldown"
+                    )
+                    return
 
             await self._post_activation_intro_to_portal_members(
                 actor,
                 intro_type="updated",
                 updated_fields=meaningful_fields,
+            )
+            await self.db.users.update_one(
+                {"username": actor},
+                {"$set": {"portalProfileUpdateCardPostedAt": datetime.utcnow()}},
             )
             logger.info(f"✅ Posted updated profile card in Portal Members for {actor}")
         except Exception as e:
