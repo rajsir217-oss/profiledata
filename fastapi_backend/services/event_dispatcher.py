@@ -947,6 +947,8 @@ class EventDispatcher:
             target = event_data.get("target")
             metadata = event_data.get("metadata", {})
             lineage_token = metadata.get("lineage_token")
+            reason = metadata.get("reason") if isinstance(metadata.get("reason"), str) else ""
+            reason = reason.strip()
             
             # Use the trigger from notification config (handles reactivation vs approval)
             trigger = metadata.get("notification_trigger", "status_approved")
@@ -960,26 +962,32 @@ class EventDispatcher:
                 message = "Your account has been reactivated! You now have full access to all features again."
             else:
                 message = "Your profile has been approved and is now active. You can now access all features and start connecting with matches!"
+            if reason:
+                message = f"{message} Reason: {reason}"
             
             logger.info(f"📧 Queueing '{trigger}' for {target} with firstname={firstname}, lastname={lastname}")
 
             should_send_email = metadata.get("notification_should_send_email", True)
 
             if should_send_email:
+                template_data = {
+                    "username": target,
+                    "profileId": metadata.get("profileId", ""),
+                    "firstname": firstname,
+                    "lastname": lastname,
+                    "full_name": full_name,
+                    "status": "active",
+                    "old_status": old_status,
+                    "message": message
+                }
+                if reason:
+                    template_data["reason"] = reason
+
                 await self.notification_service.queue_notification(
                     username=target,
                     trigger=trigger,
                     channels=["email"],  # Email only for admin status changes
-                    template_data={
-                        "username": target,
-                        "profileId": metadata.get("profileId", ""),
-                        "firstname": firstname,
-                        "lastname": lastname,
-                        "full_name": full_name,
-                        "status": "active",
-                        "old_status": old_status,
-                        "message": message
-                    },
+                    template_data=template_data,
                     priority="high",
                     lineage_token=lineage_token,
                     force_send=True  # Admin status notifications bypass user preference checks
@@ -1299,24 +1307,33 @@ class EventDispatcher:
             metadata = event_data.get("metadata", {})
             lineage_token = metadata.get("lineage_token")
             trigger = metadata.get("notification_trigger", "status_suspended")
+            reason = metadata.get("reason") if isinstance(metadata.get("reason"), str) else ""
+            reason = reason.strip()
             
             # Get user's names using consistent helper
             firstname, lastname, full_name = await self._get_user_names(target, metadata)
             
+            message = "Your account has been temporarily suspended. Please contact support for more information."
+            if reason:
+                message = f"{message} Reason: {reason}"
+
+            template_data = {
+                "username": target,
+                "profileId": metadata.get("profileId", ""),
+                "firstname": firstname,
+                "lastname": lastname,
+                "full_name": full_name,
+                "status": "suspended",
+                "message": message,
+            }
+            if reason:
+                template_data["reason"] = reason
+
             await self.notification_service.queue_notification(
                 username=target,
                 trigger=trigger,
                 channels=["email"],  # Email only for admin status changes
-                template_data={
-                    "username": target,
-                    "profileId": metadata.get("profileId", ""),
-                    "firstname": firstname,
-                    "lastname": lastname,
-                    "full_name": full_name,
-                    "status": "suspended",
-                    "reason": metadata.get("reason", "Pending investigation"),
-                    "message": "Your account has been temporarily suspended. Please contact support for more information."
-                },
+                template_data=template_data,
                 priority="high",
                 lineage_token=lineage_token,
                 force_send=True  # Admin status notifications bypass user preference checks
@@ -1333,24 +1350,33 @@ class EventDispatcher:
             metadata = event_data.get("metadata", {})
             lineage_token = metadata.get("lineage_token")
             trigger = metadata.get("notification_trigger", "status_banned")
+            reason = metadata.get("reason") if isinstance(metadata.get("reason"), str) else ""
+            reason = reason.strip()
             
             # Get user's names using consistent helper
             firstname, lastname, full_name = await self._get_user_names(target, metadata)
             
+            message = "Your account has been permanently banned and you can no longer access USVedika."
+            if reason:
+                message = f"{message} Reason: {reason}"
+
+            template_data = {
+                "username": target,
+                "profileId": metadata.get("profileId", ""),
+                "firstname": firstname,
+                "lastname": lastname,
+                "full_name": full_name,
+                "status": "banned",
+                "message": message,
+            }
+            if reason:
+                template_data["reason"] = reason
+
             await self.notification_service.queue_notification(
                 username=target,
                 trigger=trigger,
                 channels=["email"],
-                template_data={
-                    "username": target,
-                    "profileId": metadata.get("profileId", ""),
-                    "firstname": firstname,
-                    "lastname": lastname,
-                    "full_name": full_name,
-                    "status": "banned",
-                    "reason": metadata.get("reason", "Violation of terms of service"),
-                    "message": "Your account has been permanently banned and you can no longer access USVedika."
-                },
+                template_data=template_data,
                 priority="high",
                 lineage_token=lineage_token,
                 force_send=True  # Admin status notifications bypass user preference checks
@@ -1367,24 +1393,33 @@ class EventDispatcher:
             metadata = event_data.get("metadata", {})
             lineage_token = metadata.get("lineage_token")
             trigger = metadata.get("notification_trigger", "status_paused")
+            reason = metadata.get("reason") if isinstance(metadata.get("reason"), str) else ""
+            reason = reason.strip()
             
             # Get user's names using consistent helper
             firstname, lastname, full_name = await self._get_user_names(target, metadata)
             
+            message = "Your account has been paused by an administrator. Your profile is temporarily hidden and you cannot access certain features."
+            if reason:
+                message = f"{message} Reason: {reason}"
+
+            template_data = {
+                "username": target,
+                "profileId": metadata.get("profileId", ""),
+                "firstname": firstname,
+                "lastname": lastname,
+                "full_name": full_name,
+                "status": "paused",
+                "message": message,
+            }
+            if reason:
+                template_data["reason"] = reason
+
             await self.notification_service.queue_notification(
                 username=target,
                 trigger=trigger,
                 channels=["email"],
-                template_data={
-                    "username": target,
-                    "profileId": metadata.get("profileId", ""),
-                    "firstname": firstname,
-                    "lastname": lastname,
-                    "full_name": full_name,
-                    "status": "paused",
-                    "reason": metadata.get("reason", "Administrative action"),
-                    "message": "Your account has been paused by an administrator. Your profile is temporarily hidden and you cannot access certain features."
-                },
+                template_data=template_data,
                 priority="high",
                 lineage_token=lineage_token,
                 force_send=True  # Admin status notifications bypass user preference checks
@@ -1500,24 +1535,34 @@ class EventDispatcher:
             metadata = event_data.get("metadata", {})
             lineage_token = metadata.get("lineage_token")
             trigger = metadata.get("notification_trigger", "status_reactivated")
+            reason = metadata.get("reason") if isinstance(metadata.get("reason"), str) else ""
+            reason = reason.strip()
             
             # Get user's names using consistent helper
             firstname, lastname, full_name = await self._get_user_names(target, metadata)
             
+            message = "Your account has been reactivated! You now have full access to all features again."
+            if reason:
+                message = f"{message} Reason: {reason}"
+
+            template_data = {
+                "username": target,
+                "profileId": metadata.get("profileId", ""),
+                "firstname": firstname,
+                "lastname": lastname,
+                "full_name": full_name,
+                "status": "active",
+                "old_status": "suspended",
+                "message": message,
+            }
+            if reason:
+                template_data["reason"] = reason
+
             await self.notification_service.queue_notification(
                 username=target,
                 trigger=trigger,
                 channels=["email"],  # Email only for admin status changes
-                template_data={
-                    "username": target,
-                    "profileId": metadata.get("profileId", ""),
-                    "firstname": firstname,
-                    "lastname": lastname,
-                    "full_name": full_name,
-                    "status": "active",
-                    "old_status": "suspended",
-                    "message": "Your account has been reactivated! You now have full access to all features again."
-                },
+                template_data=template_data,
                 priority="high",
                 lineage_token=lineage_token,
                 force_send=True  # Admin status notifications bypass user preference checks
@@ -1534,24 +1579,34 @@ class EventDispatcher:
             metadata = event_data.get("metadata", {})
             lineage_token = metadata.get("lineage_token")
             trigger = metadata.get("notification_trigger", "status_reactivated")
+            reason = metadata.get("reason") if isinstance(metadata.get("reason"), str) else ""
+            reason = reason.strip()
             
             # Get user's names using consistent helper
             firstname, lastname, full_name = await self._get_user_names(target, metadata)
             
+            message = "Your account has been unbanned and you can now access all features."
+            if reason:
+                message = f"{message} Reason: {reason}"
+
+            template_data = {
+                "username": target,
+                "profileId": metadata.get("profileId", ""),
+                "firstname": firstname,
+                "lastname": lastname,
+                "full_name": full_name,
+                "status": "active",
+                "old_status": "banned",
+                "message": message,
+            }
+            if reason:
+                template_data["reason"] = reason
+
             await self.notification_service.queue_notification(
                 username=target,
                 trigger=trigger,
                 channels=["email"],  # Email only for admin status changes
-                template_data={
-                    "username": target,
-                    "profileId": metadata.get("profileId", ""),
-                    "firstname": firstname,
-                    "lastname": lastname,
-                    "full_name": full_name,
-                    "status": "active",
-                    "old_status": "banned",
-                    "message": "Your account has been unbanned and you can now access all features."
-                },
+                template_data=template_data,
                 priority="high",
                 lineage_token=lineage_token,
                 force_send=True  # Admin status notifications bypass user preference checks

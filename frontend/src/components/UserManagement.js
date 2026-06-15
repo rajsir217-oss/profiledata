@@ -346,6 +346,21 @@ const UserManagement = () => {
   };
 
   const handleUserAction = async (username, action, reason) => {
+    const statusActionMap = {
+      activate: 'active',
+      deactivate: 'deactivated',
+      suspend: 'suspended',
+      ban: 'banned'
+    };
+
+    if (statusActionMap[action]) {
+      await adminApi.patch(`/api/admin/users/${username}/status`, {
+        status: statusActionMap[action],
+        reason: reason || `${action} by admin`
+      });
+      return;
+    }
+
     await adminApi.post(`/api/admin/users/${username}/manage`, {
       action: action,
       reason: reason || `${action} by admin`
