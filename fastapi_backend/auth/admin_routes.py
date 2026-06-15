@@ -363,6 +363,7 @@ async def get_user_details(
 async def manage_user(
     username: str,
     request: UserManagementRequest,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
@@ -386,42 +387,28 @@ async def manage_user(
         }
         
         action = request.action
-        
-        if action == "activate":
-            update_data["accountStatus"] = "active"  # Use accountStatus (unified field)
-            # CRITICAL FIX: Also approve admin approval when activating
-            update_data["adminApprovalStatus"] = "approved"
-            update_data["adminApprovedBy"] = current_user.get("username")
-            update_data["adminApprovedAt"] = datetime.utcnow().isoformat()
-            event = SECURITY_EVENTS["ACCOUNT_UNLOCKED"]
-            logger.info(f"✅ Setting adminApprovalStatus='approved' for user '{username}' (activated by {current_user.get('username')})")
-            
-            # Clear all content violations when reactivating user
-            violation_result = await db.content_violations.delete_many({
-                "username": username,
-                "type": "message_profanity"
-            })
-            if violation_result.deleted_count > 0:
-                logger.info(f"✅ Cleared {violation_result.deleted_count} violations for user '{username}' during activation")
-        
-        elif action == "deactivate":
-            update_data["accountStatus"] = "deactivated"  # Use accountStatus (unified field)
-            event = "account_deactivated"
-        
-        elif action == "suspend":
-            update_data["accountStatus"] = "suspended"  # Use accountStatus (unified field)
-            event = "account_suspended"
-        
-        elif action == "ban":
-            update_data["accountStatus"] = "suspended"  # Use accountStatus (banned → suspended)
-            # Revoke all sessions
-            await db.sessions.update_many(
-                {"username": username},
-                {"$set": {"revoked": True, "revoked_at": datetime.utcnow(), "revoked_reason": "Account banned"}}
+
+        # Unify all account status changes through PATCH /users/{username}/status logic
+        status_action_map = {
+            "activate": "active",
+            "deactivate": "deactivated",
+            "suspend": "suspended",
+            "ban": "banned",
+        }
+        if action in status_action_map:
+            status_request = StatusUpdateRequest(
+                status=status_action_map[action],
+                reason=request.reason,
             )
-            event = "account_banned"
+            return await update_user_status(
+                username=username,
+                request=status_request,
+                background_tasks=background_tasks,
+                current_user=current_user,
+                db=db,
+            )
         
-        elif action == "unlock":
+        if action == "unlock":
             update_data["security.locked_until"] = None
             update_data["security.failed_login_attempts"] = 0
             event = SECURITY_EVENTS["ACCOUNT_UNLOCKED"]
@@ -753,12 +740,17 @@ async def update_user_status(
         
         # Check if this status change should trigger a notification
         # This is configurable via notification_config/notification_triggers.py
-        notification_config = should_notify_status_change(old_status_value, new_account_status)
+        # Preserve requested status semantics for notification/event mapping.
+        # Example: request.status='banned' maps to accountStatus='suspended' in DB,
+        # but notifications must still use banned trigger/event.
+        notification_status = 'banned' if request.status == 'banned' else new_account_status
 
-        should_dispatch_event = notification_config["should_notify"] or new_account_status == "active"
+        notification_config = should_notify_status_change(old_status_value, notification_status)
+
+        should_dispatch_event = notification_config["should_notify"] or notification_status == "active"
 
         if should_dispatch_event:
-            # Map new status to event type
+            # Explicit event mapping by notification status
             event_type_map = {
                 'active': UserEventType.USER_APPROVED,
                 'suspended': UserEventType.USER_SUSPENDED,
@@ -767,18 +759,18 @@ async def update_user_status(
             }
             
             # Get event type or default to PROFILE_UPDATED
-            event_type = event_type_map.get(new_account_status, UserEventType.PROFILE_UPDATED)
-            
-            # For suspended status, check if it's actually a ban based on reason
-            if new_account_status == 'suspended' and request.reason:
-                if 'ban' in request.reason.lower() or 'permanent' in request.reason.lower():
-                    event_type = UserEventType.USER_BANNED
+            event_type = event_type_map.get(notification_status, UserEventType.PROFILE_UPDATED)
             
             # Generate lineage token to trace the entire workflow
             import uuid
             lineage_token = str(uuid.uuid4())
             
-            logger.info(f"📧 Dispatching notification for status change: {old_status_value} → {new_account_status} (trigger: {notification_config['trigger']}, lineage: {lineage_token})")
+            logger.info(
+                f"📧 Dispatching notification for status change: "
+                f"{old_status_value} → {notification_status} "
+                f"(requested={request.status}, accountStatus={new_account_status}, "
+                f"trigger={notification_config['trigger']}, lineage={lineage_token})"
+            )
             
             # Get user's name with fallbacks for different field names
             user_firstname = user.get("firstName") or user.get("firstname") or user.get("first_name") or username
@@ -788,9 +780,11 @@ async def update_user_status(
                 "firstname": user_firstname,
                 "lastname": user_lastname,
                 "old_status": old_status_value,
-                "new_status": new_account_status,
+                "new_status": notification_status,
+                "requested_status": request.status,
+                "account_status": new_account_status,
                 "reason": request.reason,
-                "status_transition": f"{old_status_value} → {new_account_status}",
+                "status_transition": f"{old_status_value} → {notification_status}",
                 "notification_trigger": notification_config.get("trigger") or "status_approved",
                 "notification_should_send_email": notification_config["should_notify"],
                 "lineage_token": lineage_token,
