@@ -79,13 +79,14 @@
 
 /* Header - Cute Style */
 .contribution-popup-header {
-  background: transparent;
+  background: var(--card-background);
   padding: 8px 10px 2px 10px;
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
-  position: relative;
-  z-index: 1;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 .contribution-popup-header h2 {
@@ -136,18 +137,21 @@
 
 /* Cute Close Button */
 .contribution-popup-close {
-  background: linear-gradient(135deg, var(--selected-background) 0%, var(--hover-background) 100%);
-  border: none;
-  width: 32px;
-  height: 32px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border: 2px solid var(--card-background);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  color: var(--primary-color);
-  font-size: 14px;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
   position: absolute;
   top: 6px;
@@ -1024,22 +1028,124 @@
     font-size: 15px;
   }
 
+  .contribution-popup-close {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+    top: 8px;
+    right: 8px;
+  }
+
   .contribution-icon {
     font-size: 24px;
   }
 
   .contribution-popup-body {
-    padding: 4px 10px 10px 10px;
+    padding: 4px 8px 8px 8px;
+    gap: 6px;
+  }
+
+  .contribution-message {
+    font-size: 12px;
+    line-height: 1.25;
+    padding: 6px 10px;
+  }
+
+  .contribution-member-stats {
+    padding: 6px;
+  }
+
+  .contribution-member-stats-title {
+    font-size: 12px;
+    margin-bottom: 4px;
   }
 
   .contribution-member-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
   }
 
   .contribution-member-stat-card {
-    min-height: 62px;
+    min-height: 44px;
+    padding: 4px 2px;
   }
 
+  /* Mobile: show only the emoji (hide text label) to save space */
+  .contribution-member-stat-label {
+    font-size: 0;
+  }
+
+  .contribution-member-stat-emoji {
+    font-size: 16px;
+    margin-right: 0;
+  }
+
+  .contribution-member-stat-value {
+    font-size: 15px;
+  }
+
+  .contribution-block {
+    padding: 6px;
+  }
+
+  .contribution-block-title {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  /* Mobile: drop the payment method heading to reclaim space */
+  .contribution-payment-block .contribution-block-title {
+    display: none;
+  }
+
+  .contribution-amounts {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .contribution-amount-option {
+    min-height: 34px;
+    padding: 6px 4px;
+    border-width: 2px;
+    min-width: 0;
+  }
+
+  .contribution-amount-option.selected {
+    border-width: 2px;
+  }
+
+  .custom-option {
+    grid-column: 1 / -1;
+  }
+
+  .contribution-amount-label {
+    font-size: 14px;
+    gap: 1px;
+  }
+
+  .custom-amount-label {
+    font-size: 13px;
+    gap: 4px;
+    justify-content: flex-start;
+  }
+
+  .custom-amount-input {
+    font-size: 12px;
+    padding: 3px 6px;
+    width: 100%;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .payment-method-btn {
+    padding: 4px 5px;
+    font-size: 11px;
+  }
+
+  .contribution-remind-btn {
+    padding: 8px;
+    font-size: 13px;
+  }
 
   .custom-amount-input {
     width: auto;
