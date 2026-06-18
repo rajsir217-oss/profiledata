@@ -639,10 +639,6 @@ const PhotoVisibilityManager = ({
 
   return (
     <div className="photo-visibility-manager">
-      <div className="manager-header">
-        <h5>📸 Manage Your Photos</h5>
-        <p className="tip">💡 Drag to reorder • Click visibility badge to change • First photo is your profile picture</p>
-      </div>
       
       {/* Status Banners */}
       {uploading && (
@@ -812,6 +808,9 @@ const PhotoVisibilityManager = ({
           <span>On Request - Requires approval</span>
         </div>
       </div>
+
+      {/* Tip */}
+      <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '6px 0 0 0', textAlign: 'center' }}>💡 Upload up to 5 photos. You can control who sees each photo using the visibility settings. Drag to reorder • Click visibility badge to change •</p>
       
       {/* Lightbox */}
       {showLightbox && lightboxImage && ReactDOM.createPortal(
