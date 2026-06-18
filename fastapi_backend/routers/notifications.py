@@ -1069,38 +1069,116 @@ async def collect_pending_messages(
     db: AsyncIOMotorDatabase,
     username: str
 ) -> dict:
-    """Collect pending message statistics"""
-    conversations = await db.messenger_conversations.find({
-        "participants.username": username
-    }).to_list(None)
-    
-    unreadCount = 0
-    pendingReplyCount = 0
-    convDetails = []
-    
-    for conv in conversations:
-        unread = await db.messenger_messages.count_documents({
-            "conversationId": conv["_id"],
-            "senderUsername": {"$ne": username},
-            "readAt": None
+    """Collect pending message statistics aligned with main app inbox semantics."""
+    now = datetime.utcnow()
+    retention_clause = {
+        "$or": [
+            {"scheduledDeleteAt": {"$exists": False}},
+            {"scheduledDeleteAt": None},
+            {"scheduledDeleteAt": {"$gt": now}},
+        ]
+    }
+
+    pipeline = [
+        {
+            "$match": {
+                "$and": [
+                    {"toUsername": username},
+                    {"isRead": False},
+                    {
+                        "$or": [
+                            {"isVisible": {"$ne": False}},
+                            {"isVisible": {"$exists": False}},
+                        ]
+                    },
+                    retention_clause,
+                ]
+            }
+        },
+        {
+            "$group": {
+                "_id": "$fromUsername",
+                "unreadCount": {"$sum": 1},
+                "lastMessageAt": {"$max": "$createdAt"},
+            }
+        },
+        {"$sort": {"lastMessageAt": -1}},
+    ]
+
+    grouped = await db.messages.aggregate(pipeline).to_list(None)
+    if not grouped:
+        return {
+            "unreadCount": 0,
+            "pendingReplyCount": 0,
+            "conversations": [],
+        }
+
+    counterpart_usernames = [
+        row.get("_id")
+        for row in grouped
+        if isinstance(row.get("_id"), str) and row.get("_id")
+    ]
+    if not counterpart_usernames:
+        return {
+            "unreadCount": 0,
+            "pendingReplyCount": 0,
+            "conversations": [],
+        }
+
+    active_users_cursor = db.users.find(
+        {
+            "username": {"$in": counterpart_usernames},
+            "accountStatus": "active",
+        },
+        {"username": 1},
+    )
+    active_users = await active_users_cursor.to_list(None)
+    active_usernames = {u.get("username") for u in active_users if u.get("username")}
+
+    archived_usernames = set()
+    status_cursor = db.conversation_status.find(
+        {"participants": username},
+        {"participants": 1, "archivedFor": 1},
+    )
+    async for status_doc in status_cursor:
+        archived_for = (status_doc.get("archivedFor") or {}).get(username)
+        if not archived_for:
+            continue
+        participants = status_doc.get("participants") or []
+        for participant in participants:
+            if participant and participant != username:
+                archived_usernames.add(participant)
+
+    unread_count = 0
+    pending_reply_count = 0
+    conv_details = []
+
+    for row in grouped:
+        other_user = row.get("_id")
+        if not isinstance(other_user, str) or not other_user:
+            continue
+        if other_user not in active_usernames:
+            continue
+        if other_user in archived_usernames:
+            continue
+
+        unread = int(row.get("unreadCount") or 0)
+        if unread <= 0:
+            continue
+
+        unread_count += unread
+        pending_reply_count += 1
+        conv_details.append({
+            "conversationId": f"legacy:{other_user}",
+            "otherUser": other_user,
+            "lastMessageAt": row.get("lastMessageAt"),
+            "unreadCount": unread,
         })
-        
-        if unread > 0:
-            unreadCount += unread
-            pendingReplyCount += 1
-            
-            otherUser = [p for p in conv["participants"] if p["username"] != username][0]
-            convDetails.append({
-                "conversationId": str(conv["_id"]),
-                "otherUser": otherUser["username"],
-                "lastMessageAt": conv.get("lastMessageAt"),
-                "unreadCount": unread
-            })
-    
+
     return {
-        "unreadCount": unreadCount,
-        "pendingReplyCount": pendingReplyCount,
-        "conversations": convDetails
+        "unreadCount": unread_count,
+        "pendingReplyCount": pending_reply_count,
+        "conversations": conv_details,
     }
 
 
