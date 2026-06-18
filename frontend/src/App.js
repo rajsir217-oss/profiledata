@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'r
 import { HelmetProvider } from 'react-helmet-async';
 // Registration and Profile pages
 import Register2 from './components/Register2';
+import Register3 from './components/Register3';
 import EmailVerificationSent from './components/EmailVerificationSent';
 import Login from './components/Login';
 import ForgotPassword from './components/ForgotPassword';
@@ -133,7 +134,7 @@ const applyTheme = (themeId) => {
 // Auth Guard Component - checks token before rendering protected content
 function AuthGuard({ children }) {
   const location = useLocation();
-  const publicRoutes = ['/', '/login', '/register', '/register2', '/register-interest', '/messenger/public-reply', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/refund', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
+  const publicRoutes = ['/', '/login', '/register', '/register2', '/register3', '/register-interest', '/messenger/public-reply', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/refund', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
   const isPublicRoute = publicRoutes.some(route => location.pathname === route || location.pathname.startsWith(route + '/'));
   const token = localStorage.getItem('token');
   
@@ -155,7 +156,7 @@ function AppContent() {
   const location = useLocation();
   
   // Routes where sidebar and topbar should be hidden
-  const hideNavigation = ['/', '/login', '/register', '/register2', '/register-interest', '/verify-email', '/verify-email-sent'].includes(location.pathname) || location.pathname.startsWith('/messenger/public-reply');
+  const hideNavigation = ['/', '/login', '/register', '/register2', '/register3', '/register-interest', '/verify-email', '/verify-email-sent'].includes(location.pathname) || location.pathname.startsWith('/messenger/public-reply');
 
   // Fetch current user profile for profile completion check
   useEffect(() => {
@@ -368,9 +369,10 @@ function AppContent() {
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
-              {/* Redirect old /register to /register2 */}
-              <Route path="/register" element={<Navigate to="/register2" replace />} />
+              {/* Redirect old /register to /register3 */}
+              <Route path="/register" element={<Navigate to="/register3" replace />} />
               <Route path="/register2" element={<Register2 />} />
+              <Route path="/register3" element={<Register3 />} />
               <Route path="/register-interest" element={<RegisterInterest />} />
               <Route path="/messenger/public-reply/:token" element={<PublicReply />} />
               <Route path="/login" element={<Login />} />
@@ -408,7 +410,7 @@ function AppContent() {
               <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/p/:profileId" element={<ProtectedRoute><ProfileRedirect /></ProtectedRoute>} />
-              <Route path="/edit-profile" element={<ProtectedRoute><Register2 mode="edit" /></ProtectedRoute>} />
+              <Route path="/edit-profile" element={<ProtectedRoute><Register3 mode="edit" /></ProtectedRoute>} />
               <Route path="/preferences" element={<ProtectedRoute><UnifiedPreferences /></ProtectedRoute>} />
               <Route path="/android-apk" element={<ProtectedRoute><AndroidApkDownload /></ProtectedRoute>} />
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />

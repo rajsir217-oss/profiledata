@@ -54,14 +54,14 @@ const TextAreaWithSamples = ({
       {showSamples && samples.length > 0 && (
         <>
           <div className="d-flex justify-content-between align-items-center mb-2">
-            <small className="text-muted">💡 Sample texts to help you get started:</small>
+            <small className="text-muted" style={{ fontSize: '10px' }}>💡 Sample texts to help you get started:</small>
             <div className="d-flex align-items-center gap-2">
               <button
                 type="button"
                 className="btn btn-sm"
                 onClick={handlePrevSample}
                 style={{ 
-                  width: '32px', height: '32px', padding: '0', fontSize: '16px', lineHeight: '1', 
+                  width: '20px', height: '20px', padding: '0', fontSize: '11px', lineHeight: '1', 
                   borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
                 }}
@@ -72,8 +72,8 @@ const TextAreaWithSamples = ({
               <span 
                 className="badge" 
                 style={{ 
-                  height: '32px', lineHeight: '32px', minWidth: '50px', padding: '0 12px', 
-                  fontSize: '14px', borderRadius: '6px',
+                  height: '20px', lineHeight: '20px', minWidth: '32px', padding: '0 6px', 
+                  fontSize: '10px', borderRadius: '4px',
                   background: 'var(--success-color, #28a745)', color: 'white'
                 }}
               >
@@ -84,7 +84,7 @@ const TextAreaWithSamples = ({
                 className="btn btn-sm"
                 onClick={handleNextSample}
                 style={{ 
-                  width: '32px', height: '32px', padding: '0', fontSize: '16px', lineHeight: '1', 
+                  width: '20px', height: '20px', padding: '0', fontSize: '11px', lineHeight: '1', 
                   borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
                 }}

@@ -63,6 +63,7 @@
   margin-bottom: 12px;
   font-size: 14px;
   color: var(--text-color);
+  text-align: center;
 }
 
 /* Danger/Error Alert - Red banner */
@@ -436,38 +437,45 @@
   min-width: 0;
 }
 
-.contact-visibility-toggle {
-  display: flex;
+.btn-visibility-toggle {
+  display: inline-flex !important;
   align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  cursor: pointer;
-}
-
-.contact-visibility-toggle .form-check-input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  cursor: pointer;
-}
-
-.contact-visibility-toggle .form-check-label {
+  justify-content: center;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
   font-size: 14px;
   cursor: pointer;
-  user-select: none;
+  flex-shrink: 0;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.btn-visibility-toggle:hover {
+  background: var(--hover-bg, rgba(0,0,0,0.07));
+  transform: scale(1.15);
 }
 
 .btn-contact-remove {
-  display: flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
   border: none;
   border-radius: 50%;
   background: var(--danger-light, rgba(220, 53, 69, 0.1));
   color: var(--danger-color, #dc3545);
-  font-size: 14px;
+  font-size: 10px;
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.2s ease;
@@ -500,19 +508,34 @@
   border-color: var(--primary-color);
 }
 
-/* Mobile: Stack label and number vertically */
+/* Mobile: two-line layout — label+number on top, controls bottom-right */
 @media (max-width: 576px) {
   .contact-number-fields {
     flex-wrap: wrap;
+    gap: 6px;
   }
 
   .contact-label-select {
-    flex: 0 0 100%;
-    max-width: 100%;
+    flex: 0 0 46px !important;
+    max-width: 46px !important;
+    min-width: 46px !important;
+    font-size: 0.8rem;
+    padding: 6px 2px !important;
   }
 
   .contact-number-input {
     flex: 1;
+    min-width: 0;
+    font-size: 0.9rem;
+  }
+
+  .contact-visibility-toggle {
+    margin-left: auto;
+  }
+
+  .btn-contact-remove {
+    width: 18px;
+    height: 18px;
   }
 }
 
@@ -638,6 +661,10 @@
   color: var(--text-secondary);
   margin: 0;
   font-style: italic;
+}
+
+.register-container .section-subtitle {
+  font-size: 12px;
 }
 
 .creator-info-section .form-control {
@@ -1200,6 +1227,7 @@
   display: flex !important;
   padding: 2px !important; /* Reduce padding to fit height */
   gap: 4px !important;
+  margin: 0 !important; /* Kill 24px top margin from UnifiedPreferences.css */
 }
 
 .register-container .button-group-container .button-group .btn-option {

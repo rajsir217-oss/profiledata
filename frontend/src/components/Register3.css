@@ -1,0 +1,38 @@
+/* Register3.css — 3-section layout styles */
+
+.register3-section {
+  border: 1px solid var(--border-color, #dee2e6);
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: 24px;
+  background: var(--card-bg, #fff);
+  overflow: hidden;
+}
+
+.register3-section-header {
+  padding: 16px 20px;
+  background: var(--section-header-bg, #f8f9fa);
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.register3-section-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color, #1f2937);
+}
+
+.register3-section-header small {
+  font-size: 0.8rem;
+}
+
+.register3-section-optional .register3-section-header {
+  user-select: none;
+}
+
+.register3-section-optional .register3-section-header:hover {
+  background: var(--hover-bg, #e9ecef);
+}
