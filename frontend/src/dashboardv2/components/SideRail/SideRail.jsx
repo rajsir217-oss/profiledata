@@ -2,6 +2,7 @@ import React from 'react';
 import ProfileCompletenessCard from './cards/ProfileCompletenessCard';
 import SavedSearchesListCard from './cards/SavedSearchesListCard';
 import NotificationsCard from './cards/NotificationsCard';
+import InviteFriendsCard from './cards/InviteFriendsCard';
 import ActivePollsCard from './cards/ActivePollsCard';
 import './SideRail.css';
 
@@ -18,6 +19,7 @@ const SideRail = ({
       <ActivePollsCard polls={activePolls} onPollResponded={onPollResponded} />
       <SavedSearchesListCard savedSearches={savedSearches} onOpenSavedSearch={onOpenSavedSearch} />
       <NotificationsCard savedSearches={savedSearches} />
+      <InviteFriendsCard />
     </aside>
   );
 };
