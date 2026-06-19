@@ -55,7 +55,6 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const [showNotInterestedMenu, setShowNotInterestedMenu] = useState(false);
   const [notInterestedProcessing, setNotInterestedProcessing] = useState(false);
   const [archivingConversation, setArchivingConversation] = useState(false);
-  const [showStopTip, setShowStopTip] = useState(false);
   const [acknowledgingConversation, setAcknowledgingConversation] = useState(false);
   const notInterestedRef = useRef(null);
   
@@ -251,17 +250,6 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       setNotInterestedProcessing(false);
     }
   };
-
-  // Show stop tip bubble when conversation loads (first conversation per page visit)
-  useEffect(() => {
-    if (otherUser && conversationStatus?.status !== 'closed' && !blockStatus.iBlockedThem && !blockStatus.theyBlockedMe) {
-      setShowStopTip(true);
-      const timer = setTimeout(() => setShowStopTip(false), 8000);
-      return () => clearTimeout(timer);
-    } else {
-      setShowStopTip(false);
-    }
-  }, [otherUser?.username]);
 
   // Close the Not Interested dropdown when clicking outside
   useEffect(() => {
@@ -470,18 +458,12 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
             {/* Not Interested button */}
             <button
               className={`not-interested-btn ${showNotInterestedMenu ? 'active' : ''}`}
-              onClick={() => { setShowNotInterestedMenu(!showNotInterestedMenu); setShowStopTip(false); }}
+              onClick={() => setShowNotInterestedMenu(!showNotInterestedMenu)}
               title="Not interested — decline, close & exclude"
               disabled={notInterestedProcessing}
             >
               {notInterestedProcessing ? '...' : '✋'}
             </button>
-            {showStopTip && (
-              <div className="stop-tip-bubble" onClick={() => setShowStopTip(false)}>
-                To stop messaging further, click stop
-                <span className="stop-tip-arrow" />
-              </div>
-            )}
             {showNotInterestedMenu && (
               <div className="not-interested-dropdown">
                 <div className="ni-dropdown-header">Not Interested?</div>
