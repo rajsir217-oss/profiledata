@@ -5,6 +5,7 @@ import UniversalTabContainer from './UniversalTabContainer';
 import ContributionPopup from './ContributionPopup';
 import SystemStatus from './SystemStatus';
 import PauseSettings from './PauseSettings';
+import MembershipModal from './MembershipModal';
 import { getBackendUrl } from '../config/apiConfig';
 import './UnifiedPreferences.css';
 import { 
@@ -139,6 +140,7 @@ const UnifiedPreferences = () => {
   // Account Deletion State
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMembershipModal, setShowMembershipModal] = useState(false);
   const [deletionReason, setDeletionReason] = useState('');
   const [downloadData, setDownloadData] = useState(false);
 
@@ -1104,20 +1106,28 @@ const UnifiedPreferences = () => {
             );
           })}
         </div>
-        {membership.role === 'free_user' && (
-          <a href="/pricing" style={{
+        <button
+          onClick={() => setShowMembershipModal(true)}
+          style={{
             background: 'var(--primary-color)',
             color: '#fff',
             padding: '6px 16px',
             borderRadius: '8px',
             fontSize: '13px',
             fontWeight: 600,
-            textDecoration: 'none'
-          }}>
-            Upgrade →
-          </a>
-        )}
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          {membership.role === 'free_user' ? 'Upgrade →' : 'View Plans'}
+        </button>
       </div>
+
+      <MembershipModal
+        isOpen={showMembershipModal}
+        onClose={() => setShowMembershipModal(false)}
+        currentPlan={membership.premiumStatus || 'free'}
+      />
 
       <UniversalTabContainer
         variant="underlined"
