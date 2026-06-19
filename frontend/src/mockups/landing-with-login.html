@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mockup — Landing Page with Inline Login</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      background:
+        linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
+        url('/Users/rajsiripuram02/opt/appsrc/profiledata/frontend/public/images/wedding-bg.jpg') center/cover no-repeat fixed;
+      color: #fff;
+    }
+
+    /* ── HEADER ─────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 48px;
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .header-badge {
+      font-size: 12px;
+      color: rgba(255,255,255,0.75);
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      padding: 4px 12px;
+    }
+
+    /* ── HERO (2-COLUMN) ────────────────────────────── */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 40px;
+      align-items: center;
+      min-height: calc(100vh - 66px);
+      padding: 24px 32px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    /* LEFT COLUMN */
+    .hero-left {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .butterfly {
+      font-size: 52px;
+      line-height: 1;
+    }
+
+    .trust-pill {
+      display: inline-flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.9);
+      max-width: 600px;
+      line-height: 1.5;
+    }
+
+    .trust-pill .check { color: #4caf50; font-weight: 700; margin-top: 1px; flex-shrink: 0; }
+
+    .hero-title {
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 900;
+      line-height: 1.15;
+      color: #fff;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+
+    .hero-title span { color: #a89ff5; }
+
+    .hero-subtitle {
+      font-size: 16px;
+      color: rgba(255,255,255,0.8);
+      max-width: 520px;
+      line-height: 1.7;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-register {
+      padding: 13px 28px;
+      border-radius: 50px;
+      border: 2px solid #4a4aaa;
+      background: transparent;
+      color: #4a4aaa;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-register:hover { background: #4a4aaa; color: white; }
+
+    .btn-learn {
+      padding: 13px 28px;
+      border-radius: 50px;
+      border: 2px solid #2ecc71;
+      background: transparent;
+      color: #27ae60;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .feature-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .feature-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 50px;
+      padding: 7px 16px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.9);
+    }
+
+    /* RIGHT COLUMN — LOGIN CARD */
+    .login-card {
+      background: white;
+      border-radius: 14px;
+      padding: 22px 22px;
+      box-shadow: 0 8px 40px rgba(74, 74, 170, 0.15), 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid rgba(255,255,255,0.9);
+    }
+
+    .login-card-logo {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .login-card-logo h2 {
+      font-size: 17px;
+      font-weight: 900;
+      color: #1a1a2e;
+    }
+    .login-card-logo p {
+      font-size: 11px;
+      color: #888;
+      margin-top: 3px;
+    }
+
+    .divider {
+      height: 1px;
+      background: #f0f0f8;
+      margin: 10px 0 12px;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 8px 11px;
+      border: 1.5px solid #dde3f0;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #1a1a2e;
+      background: #f9faff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus { border-color: #4a4aaa; background: white; }
+
+    .forgot-link {
+      display: block;
+      text-align: right;
+      font-size: 11px;
+      color: #4a4aaa;
+      margin-top: -6px;
+      margin-bottom: 12px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .btn-signin {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(135deg, #5a5ac8 0%, #7b59c8 100%);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 16px rgba(90, 90, 200, 0.35);
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-signin:hover { opacity: 0.92; transform: translateY(-1px); }
+
+    .signup-row {
+      text-align: center;
+      font-size: 12px;
+      color: #777;
+      margin-top: 12px;
+    }
+    .signup-row a { color: #4a4aaa; font-weight: 700; text-decoration: none; }
+
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 10px 0;
+      font-size: 11px;
+      color: #bbb;
+    }
+    .or-divider::before, .or-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #eee;
+    }
+
+    .social-btn {
+      width: 100%;
+      padding: 8px;
+      border: 1.5px solid #dde3f0;
+      border-radius: 50px;
+      background: white;
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* MOCKUP LABEL */
+    .mockup-banner {
+      background: #ff6b35;
+      color: white;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px;
+      letter-spacing: 1px;
+    }
+
+    /* STATS BAR BELOW HERO */
+    .stats-bar {
+      background: rgba(0,0,0,0.35);
+      border-top: 1px solid rgba(255,255,255,0.15);
+      display: flex;
+      justify-content: center;
+      gap: 64px;
+      padding: 20px 48px;
+    }
+    .stat { text-align: center; }
+    .stat-number { font-size: 26px; font-weight: 900; color: #fff; }
+    .stat-label { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 2px; }
+
+    /* OPTION B label */
+    .option-label {
+      font-size: 11px;
+      background: #4a4aaa;
+      color: white;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="mockup-banner">⚡ MOCKUP — Landing Page with Inline Login (Option A: Split Hero)</div>
+
+<header>
+  <div class="logo">
+    🦋 <span>L3V3L</span>
+    <span class="option-label">Matches</span>
+  </div>
+  <span class="header-badge">Matrimonial Match Making Platform</span>
+</header>
+
+<!-- HERO: 2-COLUMN -->
+<div class="hero">
+
+  <!-- LEFT: Marketing -->
+  <div class="hero-left">
+    <div class="trust-pill">
+      <span class="check">✓</span>
+      Search with confidence. Every profile on L3V3LMatches.com is genuine, verified, and community-collected — supporting families in finding the right match
+    </div>
+
+    <h1 class="hero-title">
+      Transform Your Search.<br/>
+      Discover <span>True Compatibility.</span>
+    </h1>
+
+    <p class="hero-subtitle">
+      L3V3L uses AI to analyze 50+ compatibility factors, creating meaningful connections beyond surface-level matching. Your perfect match isn't random — it's calculated.
+    </p>
+
+    <div class="hero-cta">
+      <button class="btn-register">Register Profile</button>
+      <button class="btn-learn">↓ Learn How It Works</button>
+    </div>
+
+    <div class="feature-pills">
+      <div class="feature-pill">🧬 Deep Compatibility Analysis</div>
+      <div class="feature-pill">🎯 Precision Matching Algorithm</div>
+      <div class="feature-pill">🔒 Privacy-First Approach</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Login Card -->
+  <div class="login-card">
+    <div class="login-card-logo">
+      <h2>Welcome Back!</h2>
+      <p>Sign in to continue to your account</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" placeholder="Enter your username" value="ramsr1995" />
+    </div>
+
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" placeholder="••••••••••" value="password123" />
+    </div>
+
+    <a class="forgot-link">Forgot Password?</a>
+
+    <button class="btn-signin">Sign In</button>
+
+    <div class="or-divider">or</div>
+
+    <button class="social-btn">📱 Sign in with OTP</button>
+
+    <div class="signup-row">
+      Don't have an account? <a href="#">Register</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-number">10,000+</div>
+    <div class="stat-label">Verified Profiles</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">2,400+</div>
+    <div class="stat-label">Successful Matches</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">50+</div>
+    <div class="stat-label">Compatibility Factors</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">98%</div>
+    <div class="stat-label">Profile Verification</div>
+  </div>
+</div>
+
+</body>
+</html>

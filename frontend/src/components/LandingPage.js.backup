@@ -1,54 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SEO from './SEO';
 import { getPageSEO, getOrganizationSchema, getWebsiteSchema, injectStructuredData } from '../utils/seo';
-import { getBackendUrl } from '../config/apiConfig';
 import './LandingPage.css';
 
 const LandingPage = () => {
   const navigate = useNavigate();
-
-  // Inline login state
-  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginError, setLoginError] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
-
-  const handleLoginChange = (e) => {
-    const { name, value } = e.target;
-    setLoginForm(prev => ({ ...prev, [name]: value }));
-    setLoginError('');
-  };
-
-  const handleLoginSubmit = useCallback(async (e) => {
-    e.preventDefault();
-    if (!loginForm.username.trim() || !loginForm.password) {
-      setLoginError('Please enter username and password.');
-      return;
-    }
-    setLoginLoading(true);
-    setLoginError('');
-    try {
-      const res = await fetch(`${getBackendUrl()}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: loginForm.username.trim(), password: loginForm.password })
-      });
-      const data = await res.json();
-      if (res.ok && data.access_token) {
-        localStorage.setItem('token', data.access_token);
-        localStorage.setItem('username', data.username || loginForm.username.trim());
-        if (data.role) localStorage.setItem('userRole', data.role);
-        navigate('/dashboardv2');
-      } else {
-        setLoginError(data.detail || 'Invalid username or password.');
-      }
-    } catch (_) {
-      setLoginError('Connection error. Please try again.');
-    } finally {
-      setLoginLoading(false);
-    }
-  }, [loginForm, navigate]);
 
   // Inject structured data for SEO
   useEffect(() => {
@@ -74,114 +31,64 @@ const LandingPage = () => {
       />
     <div className="landing-page">
       {/* Header */}
-      <header className="landing-header lp-dark-header">
+      <header className="landing-header">
         <div className="landing-header-content">
           <div className="logo-section">
             <span className="logo-icon">🦋</span>
             <span className="logo-text">L3V3L</span>
-            <span className="lp-matches-badge">Matches</span>
           </div>
-          <span className="lp-platform-badge">Matrimonial Match Making Platform</span>
+          <div className="header-actions">
+            <span className="already-member">Already a member?</span>
+            <button className="btn-login" onClick={() => navigate('/login')}>
+              LOG IN
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section — Split Layout */}
-      <section className="hero-section lp-hero-split" style={{ background: `linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55)), url('/images/wedding-bg.jpg') center/cover no-repeat fixed` }}>
-        {/* Left: Marketing */}
-        <div className="lp-hero-left">
-          <div className="lp-trust-pill">
-            <span className="lp-trust-check">✓</span>
+      {/* Hero Section */}
+      <section className="hero-section">
+        <div className="hero-content-centered">
+          <div className="butterfly-animation">🦋</div>
+          <p className="hero-trust-message">
             Search with confidence. Every profile on L3V3LMatches.com is genuine, verified, and community‑collected — supporting families in finding the right match
-          </div>
-          <h1 className="hero-title lp-hero-title-dark">
+          </p>
+          <h1 className="hero-title">
             Transform Your Search.<br/>
-            Discover <span className="lp-title-accent">True Compatibility.</span>
+            Discover True Compatibility.
           </h1>
-          <p className="hero-subtitle lp-subtitle-dark">
+          <p className="hero-subtitle">
             L3V3L uses AI to analyze 50+ compatibility factors, creating meaningful connections beyond surface-level matching. Your perfect match isn't random—it's calculated.
           </p>
+          
           <div className="hero-cta">
+            <button className="btn-get-started" onClick={() => navigate('/login')}>
+              Member Login
+            </button>
             <button className="btn-register-profile" onClick={() => navigate('/register-interest')}>
               Register Profile
             </button>
             <button className="btn-learn-more" onClick={() => document.querySelector('.how-it-works').scrollIntoView({ behavior: 'smooth' })}>
-              ↓ Learn How It Works
+              Learn How It Works
             </button>
           </div>
-          <div className="hero-features lp-features-dark">
-            <div className="hero-feature"><span className="feature-icon">🧬</span><span className="feature-text">Deep Compatibility Analysis</span></div>
-            <div className="hero-feature"><span className="feature-icon">🎯</span><span className="feature-text">Precision Matching Algorithm</span></div>
-            <div className="hero-feature"><span className="feature-icon">🔒</span><span className="feature-text">Privacy-First Approach</span></div>
-          </div>
-        </div>
 
-        {/* Right: Inline Login Card */}
-        <div className="lp-login-card">
-          <div className="lp-login-card-header">
-            <h2>Welcome Back!</h2>
-            <p>Sign in to continue to your account</p>
+          <div className="hero-features">
+            <div className="hero-feature">
+              <span className="feature-icon">🧬</span>
+              <span className="feature-text">Deep Compatibility Analysis</span>
+            </div>
+            <div className="hero-feature">
+              <span className="feature-icon">🎯</span>
+              <span className="feature-text">Precision Matching Algorithm</span>
+            </div>
+            <div className="hero-feature">
+              <span className="feature-icon">🔒</span>
+              <span className="feature-text">Privacy-First Approach</span>
+            </div>
           </div>
-          <div className="lp-login-divider" />
-          <form onSubmit={handleLoginSubmit} autoComplete="on">
-            <div className="lp-form-group">
-              <label htmlFor="lp-username">USERNAME</label>
-              <input
-                id="lp-username"
-                name="username"
-                type="text"
-                placeholder="Enter your username"
-                value={loginForm.username}
-                onChange={handleLoginChange}
-                autoComplete="username"
-              />
-            </div>
-            <div className="lp-form-group">
-              <label htmlFor="lp-password">PASSWORD</label>
-              <div className="lp-password-wrap">
-                <input
-                  id="lp-password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••••"
-                  value={loginForm.password}
-                  onChange={handleLoginChange}
-                  autoComplete="current-password"
-                />
-                <button type="button" className="lp-eye-btn" onClick={() => setShowPassword(p => !p)}>
-                  {showPassword ? '🙈' : '👁'}
-                </button>
-              </div>
-            </div>
-            <div className="lp-forgot-row">
-              <button type="button" className="lp-forgot-link" onClick={() => navigate('/forgot-password')}>
-                Forgot Password?
-              </button>
-            </div>
-            {loginError && <p className="lp-login-error">{loginError}</p>}
-            <button type="submit" className="lp-signin-btn" disabled={loginLoading}>
-              {loginLoading ? 'Signing in…' : 'Sign In'}
-            </button>
-          </form>
-          <div className="lp-or-divider"><span>or</span></div>
-          <button type="button" className="lp-otp-btn" onClick={() => navigate('/login?method=otp')}>
-            � Sign in with OTP
-          </button>
-          <p className="lp-signup-row">
-            Don't have an account?{' '}
-            <button type="button" className="lp-register-link" onClick={() => navigate('/register-interest')}>
-              Register
-            </button>
-          </p>
         </div>
       </section>
-
-      {/* Stats Bar */}
-      <div className="lp-stats-bar">
-        <div className="lp-stat"><div className="lp-stat-number">10,000+</div><div className="lp-stat-label">Verified Profiles</div></div>
-        <div className="lp-stat"><div className="lp-stat-number">2,400+</div><div className="lp-stat-label">Successful Matches</div></div>
-        <div className="lp-stat"><div className="lp-stat-number">50+</div><div className="lp-stat-label">Compatibility Factors</div></div>
-        <div className="lp-stat"><div className="lp-stat-number">98%</div><div className="lp-stat-label">Profile Verification</div></div>
-      </div>
 
       {/* How L3V3L Works Section */}
       <section className="how-it-works">
