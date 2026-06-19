@@ -80,6 +80,10 @@
   margin-bottom: 2rem;
 }
 
+.plans-grid.three-col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .plan-card {
   background: var(--card-background);
   border: 2px solid var(--border-color);
@@ -120,17 +124,30 @@
   text-transform: uppercase;
 }
 
+.plan-icon {
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
 .plan-name {
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--text-color);
-  margin-bottom: 1rem;
+  margin-bottom: 0.25rem;
   text-align: center;
 }
 
 .plan-price {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.plan-billing {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.25rem;
 }
 
 .price-currency {
@@ -168,6 +185,46 @@
 .feature-check {
   color: var(--success-color);
   font-weight: bold;
+}
+
+.feature-limit {
+  color: #f59e0b;
+  font-weight: 600;
+  font-size: 0.85rem;
+  min-width: 18px;
+}
+
+.feature-cross {
+  color: #ef4444;
+  font-weight: 700;
+  min-width: 18px;
+}
+
+.feature-missing {
+  opacity: 0.6;
+}
+
+.current-badge {
+  background: var(--primary-color) !important;
+}
+
+.pricing-heading {
+  text-align: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 1.5rem;
+}
+
+.current-plan-banner {
+  background: var(--primary-light, #eff6ff);
+  border: 1px solid var(--primary-border, #bfdbfe);
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: var(--primary-dark, #1e40af);
+  text-align: center;
 }
 
 .plan-select {
@@ -326,60 +383,73 @@
   justify-content: center;
 }
 
-/* Braintree Drop-in Container */
-.braintree-container {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--surface-color);
-  min-height: 200px;
+/* Clover Checkout Section */
+.clover-checkout-section {
+  margin: 16px 0;
+  text-align: center;
 }
 
-.braintree-loading {
+.clover-info {
+  margin-bottom: 12px;
+}
+
+.clover-info p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+
+.clover-pay-btn {
+  width: 100%;
+}
+
+/* Clover Card Form (iframe SDK) */
+.clover-card-form {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.clover-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.clover-field-row {
+  display: flex;
+  gap: 10px;
+}
+
+.clover-field-half {
+  flex: 1;
+}
+
+.clover-label {
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.braintree-loading .spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border-color);
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 0.75rem;
-}
-
-/* Braintree Drop-in UI Overrides */
-#braintree-dropin .braintree-dropin {
-  font-family: inherit;
-}
-
-#braintree-dropin .braintree-sheet {
-  border-color: var(--border-color);
-  background: var(--card-background);
-}
-
-#braintree-dropin .braintree-sheet__header {
-  border-color: var(--border-color);
-}
-
-#braintree-dropin .braintree-sheet__text {
-  color: var(--text-color);
-}
-
-#braintree-dropin .braintree-form__label {
-  color: var(--text-color);
-}
-
-#braintree-dropin .braintree-form__hosted-field {
-  border-color: var(--border-color);
+.clover-input-container {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0 4px;
   background: var(--input-bg);
+  transition: border-color 0.2s ease;
+}
+
+.clover-input-container iframe {
+  height: 44px !important;
+  min-height: unset !important;
+}
+
+.clover-input-container:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
 .promo-section {
@@ -586,7 +656,8 @@
     font-size: 1.75rem;
   }
 
-  .plans-grid {
+  .plans-grid,
+  .plans-grid.three-col {
     grid-template-columns: 1fr;
   }
 

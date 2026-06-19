@@ -1,11 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
 import toastService from '../services/toastService';
 import './PricingPage.css';
 
+const FREE_PLAN = {
+  id: 'free',
+  name: 'Free',
+  icon: '🆓',
+  price: 0,
+  duration: null,
+  features: [
+    '1 Search result',
+    '1 Favorite',
+    '1 Shortlist',
+    '1 Message / day',
+    '1 Profile view / day',
+    '1 PII request / month',
+  ],
+  missing: [
+    'Privacy controls',
+    'L3V3L matching',
+  ]
+};
+
 const PricingPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -14,15 +35,16 @@ const PricingPage = () => {
   const [applyingPromo, setApplyingPromo] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
-  const [braintreeConfigured, setBraintreeConfigured] = useState(false);
   const [paypalConfigured, setPaypalConfigured] = useState(false);
   const [paypalClientId, setPaypalClientId] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'braintree' or 'paypal'
-  const [braintreeReady, setBraintreeReady] = useState(false);
-  const [braintreeInstance, setBraintreeInstance] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('paypal');
   const [paypalReady, setPaypalReady] = useState(false);
-  const braintreeContainerRef = useRef(null);
   const paypalContainerRef = useRef(null);
+  const [cloverLoading, setCloverLoading] = useState(false);
+  const [cloverReady, setCloverReady] = useState(false);
+  const [cloverConfig, setCloverConfig] = useState(null);
+  const cloverInstanceRef = useRef(null);
+  const cloverMountedRef = useRef(false);
 
   useEffect(() => {
     loadPlans();
@@ -32,94 +54,106 @@ const PricingPage = () => {
 
   const checkPaymentConfigs = async () => {
     const token = localStorage.getItem('token');
-    
-    // Check Braintree
     try {
-      const braintreeResponse = await fetch(`${getBackendUrl()}/api/braintree/status`, {
+      const pr = await fetch(`${getBackendUrl()}/api/paypal/config`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const braintreeData = await braintreeResponse.json();
-      setBraintreeConfigured(braintreeData.configured);
-    } catch (error) {
-      console.error('Error checking Braintree config:', error);
-    }
-    
-    // Check PayPal Direct
-    try {
-      const paypalResponse = await fetch(`${getBackendUrl()}/api/paypal/config`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const paypalData = await paypalResponse.json();
-      setPaypalConfigured(paypalData.configured);
-      if (paypalData.configured && paypalData.client_id) {
-        setPaypalClientId(paypalData.client_id);
-      }
-    } catch (error) {
-      console.error('Error checking PayPal config:', error);
-    }
+      const pd = await pr.json();
+      setPaypalConfigured(pd.configured);
+      if (pd.configured && pd.client_id) setPaypalClientId(pd.client_id);
+    } catch (e) { console.error('PayPal config check:', e); }
   };
 
-  // Initialize Braintree Drop-in when payment method changes to braintree
   useEffect(() => {
-    if (paymentMethod === 'braintree' && braintreeConfigured && selectedPlan) {
-      initializeBraintree();
+    if (paymentMethod === 'clover' && selectedPlan && selectedPlan !== 'free') {
+      if (cloverMountedRef.current) return;
+      initClover();
     }
-    
     return () => {
-      // Cleanup Braintree instance - check if teardown hasn't been called
-      if (braintreeInstance && typeof braintreeInstance.teardown === 'function') {
-        try {
-          braintreeInstance.teardown().catch(() => {});
-        } catch (e) {
-          // Ignore teardown errors
-        }
-        setBraintreeInstance(null);
-        setBraintreeReady(false);
-      }
+      cloverMountedRef.current = false;
+      setCloverReady(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentMethod, braintreeConfigured, selectedPlan]);
+  }, [paymentMethod, selectedPlan]);
 
-  // Initialize PayPal SDK when payment method changes to paypal
   useEffect(() => {
-    if (paymentMethod === 'paypal' && paypalConfigured && paypalClientId && selectedPlan) {
+    if (paymentMethod === 'paypal' && paypalConfigured && paypalClientId && selectedPlan && selectedPlan !== 'free') {
       initializePayPal();
     }
-    
     const containerRef = paypalContainerRef.current;
     return () => {
-      // Cleanup PayPal buttons
-      if (containerRef) {
-        containerRef.innerHTML = '';
-      }
+      if (containerRef) containerRef.innerHTML = '';
       setPaypalReady(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentMethod, paypalConfigured, paypalClientId, selectedPlan]);
 
-  const initializeBraintree = async () => {
-    if (!window.braintree) {
-      // Load Braintree Drop-in script
-      const script = document.createElement('script');
-      script.src = 'https://js.braintreegateway.com/web/dropin/1.42.0/js/dropin.min.js';
-      script.async = true;
-      script.onload = () => setupBraintreeDropin();
-      document.body.appendChild(script);
-    } else {
-      setupBraintreeDropin();
+  const initClover = async () => {
+    try {
+      if (!window.isSecureContext) {
+        toastService.error('Card payments require HTTPS. Please use PayPal.');
+        return;
+      }
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${getBackendUrl()}/api/clover/sdk-config`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const config = await res.json();
+      if (!res.ok || !config.public_key) {
+        toastService.error('Clover card payments not available.');
+        return;
+      }
+      setCloverConfig(config);
+
+      if (!window.Clover) {
+        await new Promise((resolve, reject) => {
+          const existing = document.querySelector(`script[src="${config.sdk_url}"]`);
+          if (existing) { resolve(); return; }
+          const script = document.createElement('script');
+          script.src = config.sdk_url;
+          script.async = true;
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Failed to load Clover SDK'));
+          document.head.appendChild(script);
+        });
+      }
+
+      const clover = new window.Clover(config.public_key);
+      cloverInstanceRef.current = clover;
+      const elements = clover.elements();
+      const styles = {
+        body: { fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontSize: '14px' },
+        input: { fontSize: '15px', padding: '10px 8px' }
+      };
+      const cardNumber = elements.create('CARD_NUMBER', styles);
+      const cardDate = elements.create('CARD_DATE', styles);
+      const cardCvv = elements.create('CARD_CVV', styles);
+      const cardPostalCode = elements.create('CARD_POSTAL_CODE', styles);
+
+      setTimeout(() => {
+        try {
+          cardNumber.mount('#pricing-clover-card-number');
+          cardDate.mount('#pricing-clover-card-date');
+          cardCvv.mount('#pricing-clover-card-cvv');
+          cardPostalCode.mount('#pricing-clover-card-zip');
+          cloverMountedRef.current = true;
+          setCloverReady(true);
+        } catch (mountErr) {
+          toastService.error('Failed to mount card form. Please try again.');
+        }
+      }, 300);
+    } catch (err) {
+      toastService.error('Failed to initialize card payment form.');
     }
   };
 
   const initializePayPal = async () => {
-    // Check if PayPal SDK is already loaded
     if (!window.paypal) {
       const script = document.createElement('script');
       script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`;
       script.async = true;
       script.onload = () => renderPayPalButtons();
-      script.onerror = () => {
-        toastService.error('Failed to load PayPal SDK');
-      };
+      script.onerror = () => toastService.error('Failed to load PayPal SDK');
       document.body.appendChild(script);
     } else {
       renderPayPalButtons();
@@ -128,65 +162,36 @@ const PricingPage = () => {
 
   const renderPayPalButtons = async () => {
     if (!window.paypal || !paypalContainerRef.current) return;
-    
-    // Clear previous buttons
     paypalContainerRef.current.innerHTML = '';
-    
     const plan = plans.find(p => p.id === selectedPlan);
     if (!plan) return;
-    
     const amount = getSelectedPlanPrice().toFixed(2);
     const token = localStorage.getItem('token');
-    
     try {
       window.paypal.Buttons({
-        style: {
-          layout: 'vertical',
-          color: 'gold',
-          shape: 'rect',
-          label: 'paypal'
-        },
+        style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
         createOrder: async () => {
-          try {
-            const response = await fetch(`${getBackendUrl()}/api/paypal/create-order`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({
-                amount: amount,
-                currency: 'USD',
-                plan_id: selectedPlan,
-                description: `${plan.name} Membership`
-              })
-            });
-            const data = await response.json();
-            if (data.order_id) {
-              return data.order_id;
-            } else {
-              throw new Error(data.detail || 'Failed to create PayPal order');
-            }
-          } catch (error) {
-            toastService.error(error.message || 'Failed to create PayPal order');
-            throw error;
-          }
+          const response = await fetch(`${getBackendUrl()}/api/paypal/create-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ amount, currency: 'USD', plan_id: selectedPlan, description: `${plan.name} Membership` })
+          });
+          const data = await response.json();
+          if (data.order_id) return data.order_id;
+          throw new Error(data.detail || 'Failed to create PayPal order');
         },
         onApprove: async (data) => {
           setCheckingOut(true);
           try {
             const response = await fetch(`${getBackendUrl()}/api/paypal/capture-order`, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({
-                order_id: data.orderID
-              })
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ order_id: data.orderID })
             });
             const captureData = await response.json();
             if (captureData.success) {
+              const plan = plans.find(p => p.id === selectedPlan);
+              await activateMembership(selectedPlan, plan?.name || selectedPlan, parseFloat(amount), 'paypal', captureData.capture_id || data.orderID);
               toastService.success('Payment successful! Welcome to Premium!');
               navigate(`/payment/success?provider=paypal&transaction_id=${captureData.capture_id || ''}`);
             } else {
@@ -194,67 +199,15 @@ const PricingPage = () => {
             }
           } catch (error) {
             toastService.error('Payment failed. Please try again.');
-          } finally {
-            setCheckingOut(false);
-          }
+          } finally { setCheckingOut(false); }
         },
-        onCancel: () => {
-          toastService.warning('Payment cancelled');
-        },
-        onError: (err) => {
-          console.error('PayPal error:', err);
-          toastService.error('PayPal encountered an error. Please try again.');
-        }
+        onCancel: () => toastService.warning('Payment cancelled'),
+        onError: (err) => { console.error('PayPal error:', err); toastService.error('PayPal error. Please try again.'); }
       }).render(paypalContainerRef.current);
-      
       setPaypalReady(true);
     } catch (error) {
       console.error('Error rendering PayPal buttons:', error);
       toastService.error('Failed to initialize PayPal');
-    }
-  };
-
-  const setupBraintreeDropin = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${getBackendUrl()}/api/braintree/client-token`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      
-      if (!data.clientToken) {
-        toastService.error('Failed to initialize Braintree payment');
-        return;
-      }
-
-      // Clear previous instance and container
-      if (braintreeInstance) {
-        await braintreeInstance.teardown();
-        setBraintreeInstance(null);
-      }
-      
-      // Clear the container HTML
-      if (braintreeContainerRef.current) {
-        braintreeContainerRef.current.innerHTML = '';
-      }
-
-      // Create Drop-in instance - card only (PayPal disabled until sandbox account is linked)
-      const instance = await window.braintree.dropin.create({
-        authorization: data.clientToken,
-        container: braintreeContainerRef.current,
-        paymentOptionPriority: ['card'], // Only show card, hide PayPal
-        card: {
-          cardholderName: {
-            required: true
-          }
-        }
-      });
-
-      setBraintreeInstance(instance);
-      setBraintreeReady(true);
-    } catch (error) {
-      console.error('Error initializing Braintree:', error);
-      toastService.error('Failed to initialize payment form');
     }
   };
 
@@ -268,26 +221,29 @@ const PricingPage = () => {
       const data = await response.json();
       if (data.success && data.membership) {
         const allPlans = data.membership.plans || [];
-        const activePlans = allPlans.filter(p => p.isActive !== false).sort((a, b) => a.price - b.price);
+        const activePlans = allPlans
+          .filter(p => p.isActive !== false && (p.id === 'premium' || p.id === 'lifetime'))
+          .sort((a, b) => a.price - b.price);
         setPlans(activePlans);
+        const urlPlanId = searchParams.get('plan');
         const defaultPlanId = data.membership.defaultPlanId;
-        const popularPlan = activePlans.find(p => p.id === defaultPlanId) || activePlans[0];
-        if (popularPlan) {
-          setSelectedPlan(popularPlan.id);
-        }
+        const preselectedPlan = activePlans.find(p => p.id === urlPlanId)
+          || activePlans.find(p => p.id === defaultPlanId)
+          || activePlans[0];
+        if (preselectedPlan) setSelectedPlan(preselectedPlan.id);
       }
     } catch (error) {
       console.error('Error loading plans:', error);
       toastService.error('Failed to load membership plans');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const loadSubscriptionStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${getBackendUrl()}/api/users/me`, {
+      const username = localStorage.getItem('username');
+      if (!username) return;
+      const response = await fetch(`${getBackendUrl()}/api/users/profile/${username}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -301,14 +257,12 @@ const PricingPage = () => {
           isLifetime: data.membershipPlanId === 'lifetime'
         });
       }
-    } catch (error) {
-      console.error('Error loading subscription status:', error);
-    }
+    } catch (error) { console.error('Error loading subscription:', error); }
   };
 
   const handleApplyPromo = async () => {
-    if (!promoCode.trim() || !selectedPlan) {
-      toastService.warning('Please select a plan and enter a promo code');
+    if (!promoCode.trim() || !selectedPlan || selectedPlan === 'free') {
+      toastService.warning('Please select a paid plan and enter a promo code');
       return;
     }
     setApplyingPromo(true);
@@ -329,70 +283,78 @@ const PricingPage = () => {
     } catch (error) {
       toastService.error('Failed to apply promo code');
       setPromoApplied(null);
-    } finally {
-      setApplyingPromo(false);
-    }
+    } finally { setApplyingPromo(false); }
   };
 
-  const handleCheckout = async () => {
-    if (!selectedPlan) {
-      toastService.warning('Please select a membership plan');
+  const handleCloverPay = async () => {
+    if (!cloverInstanceRef.current) return;
+    const amount = getSelectedPlanPrice();
+    if (!amount || amount < 1) {
+      toastService.error('Please select a valid plan');
       return;
     }
-    
-    if (paymentMethod === 'braintree') {
-      await handleBraintreeCheckout();
-    }
-    // PayPal checkout is handled by the PayPal buttons directly
-  };
-
-  const handleBraintreeCheckout = async () => {
-    if (!braintreeConfigured || !braintreeInstance) {
-      toastService.error('PayPal payment is not ready. Please try again.');
-      return;
-    }
-    
-    setCheckingOut(true);
+    setCloverLoading(true);
     try {
-      // Get payment method nonce from Drop-in
-      const { nonce } = await braintreeInstance.requestPaymentMethod();
-      
+      const result = await cloverInstanceRef.current.createToken();
+      if (result.errors) {
+        const errMsgs = Object.values(result.errors).map(e => typeof e === 'string' ? e : (e?.message || JSON.stringify(e)));
+        toastService.error(errMsgs.join(', '));
+        setCloverLoading(false);
+        return;
+      }
+      const sourceToken = result.token;
       const token = localStorage.getItem('token');
       const plan = plans.find(p => p.id === selectedPlan);
-      const amount = getSelectedPlanPrice().toFixed(2);
-      
-      const response = await fetch(`${getBackendUrl()}/api/braintree/process-payment`, {
+      const chargeRes = await fetch(`${getBackendUrl()}/api/clover/charge`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${token}` 
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          payment_method_nonce: nonce,
-          amount: amount,
-          plan_type: plan?.duration === 12 ? 'yearly' : plan?.duration === 6 ? '6month' : plan?.duration === 3 ? '3month' : 'monthly',
-          order_id: `${selectedPlan}-${Date.now()}`
+          source: sourceToken,
+          amount: amount.toFixed(2),
+          description: `${plan?.name || 'Membership'} - $${amount.toFixed(2)}`,
+          recurring: false
         })
       });
-      
-      const data = await response.json();
-      
-      if (data.success) {
+      const chargeData = await chargeRes.json();
+      if (chargeData.success) {
+        const plan = plans.find(p => p.id === selectedPlan);
+        await activateMembership(selectedPlan, plan?.name || selectedPlan, amount, 'clover', chargeData.charge_id || '');
         toastService.success('Payment successful! Welcome to Premium!');
-        navigate(`/payment/success?provider=braintree&transaction_id=${data.transactionId || ''}`);
+        navigate(`/payment/success?provider=clover&transaction_id=${chargeData.charge_id || ''}`);
       } else {
-        toastService.error(data.detail || 'Payment failed. Please try again.');
-        navigate('/payment/cancel?provider=braintree');
+        const detail = chargeData.detail;
+        const msg = typeof detail === 'string' ? detail
+          : Array.isArray(detail) ? detail.map(d => d.msg || JSON.stringify(d)).join(', ')
+          : (detail?.msg || 'Card charge failed. Please try again.');
+        toastService.error(msg);
       }
-    } catch (error) {
-      if (error.message?.includes('No payment method')) {
-        toastService.warning('Please select a payment method');
-      } else {
-        toastService.error('Payment failed. Please try again.');
-      }
+    } catch (err) {
+      toastService.error('Failed to process card payment. Please try again.');
     } finally {
-      setCheckingOut(false);
+      setCloverLoading(false);
     }
+  };
+
+  const activateMembership = async (planId, planName, amount, paymentMethod, transactionId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${getBackendUrl()}/api/membership/activate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          plan_id: planId,
+          plan_name: planName,
+          amount: amount,
+          payment_method: paymentMethod,
+          transaction_id: transactionId,
+          promo_code: promoApplied?.promoCode || null,
+          discount_amount: promoApplied?.discountAmount || 0,
+        })
+      });
+    } catch (e) { console.error('Failed to activate membership:', e); }
   };
 
   const getSelectedPlanPrice = () => {
@@ -409,6 +371,13 @@ const PricingPage = () => {
     return `${months} months`;
   };
 
+  const getPlanBilling = (plan) => {
+    if (plan.id === 'lifetime') return 'Pay once, forever access';
+    if (!plan.duration) return 'No cost, limited access';
+    if (plan.duration === 12) return `or $${plan.price.toFixed(2)}/year`;
+    return `${formatDuration(plan.duration)} plan`;
+  };
+
   if (loading) {
     return (
       <div className="pricing-page">
@@ -417,19 +386,18 @@ const PricingPage = () => {
     );
   }
 
-  if (subscriptionStatus?.isPremium) {
+  if (subscriptionStatus?.isPremium && subscriptionStatus?.isLifetime) {
     return (
       <div className="pricing-page">
         <div className="pricing-container">
           <div className="current-subscription">
             <div className="subscription-card">
               <div className="subscription-badge">Active</div>
-              <h3>{subscriptionStatus.planId === 'lifetime' ? 'Lifetime' : 'Premium'} Membership</h3>
+              <h3>💎 Lifetime Membership</h3>
               <div className="subscription-details">
                 <p><strong>Status:</strong> <span className="status-active">Active</span></p>
                 {subscriptionStatus.activatedAt && <p><strong>Member since:</strong> {new Date(subscriptionStatus.activatedAt).toLocaleDateString()}</p>}
-                {subscriptionStatus.expiresAt && !subscriptionStatus.isLifetime && <p><strong>Renews on:</strong> {new Date(subscriptionStatus.expiresAt).toLocaleDateString()}</p>}
-                {subscriptionStatus.isLifetime && <p className="lifetime-badge">Lifetime Access - Never Expires!</p>}
+                <p className="lifetime-badge">Lifetime Access - Never Expires!</p>
               </div>
             </div>
           </div>
@@ -439,32 +407,90 @@ const PricingPage = () => {
     );
   }
 
+  const isFreeSelected = selectedPlan === 'free';
+  const selectedPaidPlan = plans.find(p => p.id === selectedPlan);
+
   return (
     <div className="pricing-page">
       <div className="pricing-container">
-        {!braintreeConfigured && !paypalConfigured && <div className="payment-warning">Payment system is being configured. Please check back soon.</div>}
-        <div className="plans-grid">
-          {plans.map(plan => (
-            <div key={plan.id} className={`plan-card ${selectedPlan === plan.id ? 'selected' : ''} ${plan.isPopular ? 'popular' : ''}`} onClick={() => { setSelectedPlan(plan.id); setPromoApplied(null); }}>
-              {plan.isPopular && <div className="popular-badge">Most Popular</div>}
-              <div className="plan-name">{plan.name}</div>
-              <div className="plan-price"><span className="price-currency">$</span><span className="price-amount">{plan.price}</span><span className="price-period">/{formatDuration(plan.duration)}</span></div>
-              <ul className="plan-features">{plan.features.map((feature, idx) => <li key={idx}><span className="feature-check">✓</span>{feature}</li>)}</ul>
-              <div className="plan-select"><div className={`radio-button ${selectedPlan === plan.id ? 'checked' : ''}`}>{selectedPlan === plan.id && <div className="radio-inner"></div>}</div><span>Select {plan.name}</span></div>
+        {subscriptionStatus?.isPremium && !subscriptionStatus?.isLifetime && (
+          <div className="current-plan-banner">
+            ⭐ You currently have <strong>Premium</strong>. Upgrade to Lifetime for permanent access!
+          </div>
+        )}
+
+        <h2 className="pricing-heading">Choose Your Membership</h2>
+
+        {/* 3-Column Plan Cards */}
+        <div className="plans-grid three-col">
+          {/* Free */}
+          <div
+            className={`plan-card ${isFreeSelected ? 'selected' : ''} ${subscriptionStatus?.premiumStatus === 'free' && !subscriptionStatus?.isPremium ? 'current' : ''}`}
+            onClick={() => { setSelectedPlan('free'); setPromoApplied(null); }}
+          >
+            {subscriptionStatus?.premiumStatus === 'free' && !subscriptionStatus?.isPremium && (
+              <div className="popular-badge current-badge">Current Plan</div>
+            )}
+            <div className="plan-icon">{FREE_PLAN.icon}</div>
+            <div className="plan-name">{FREE_PLAN.name}</div>
+            <div className="plan-price"><span className="price-amount">$0</span><span className="price-period">/mo</span></div>
+            <div className="plan-billing">No cost, limited access</div>
+            <ul className="plan-features">
+              {FREE_PLAN.features.map((f, i) => <li key={i}><span className="feature-limit">1</span>{f.replace(/^\d+\s/, '')}</li>)}
+              {FREE_PLAN.missing.map((f, i) => <li key={`m-${i}`} className="feature-missing"><span className="feature-cross">✕</span>{f}</li>)}
+            </ul>
+            <div className="plan-select">
+              <div className={`radio-button ${isFreeSelected ? 'checked' : ''}`}>
+                {isFreeSelected && <div className="radio-inner"></div>}
+              </div>
+              <span>Current Plan</span>
             </div>
-          ))}
+          </div>
+
+          {/* Paid Plans from API */}
+          {plans.map(plan => {
+            const isSelected = selectedPlan === plan.id;
+            const isCurrent = subscriptionStatus?.planId === plan.id;
+            const isLifetime = plan.id === 'lifetime';
+            return (
+              <div
+                key={plan.id}
+                className={`plan-card ${isSelected ? 'selected' : ''} ${plan.isPopular ? 'popular' : ''} ${isCurrent ? 'current' : ''}`}
+                onClick={() => { setSelectedPlan(plan.id); setPromoApplied(null); }}
+              >
+                {plan.isPopular && <div className="popular-badge">Most Popular</div>}
+                {isCurrent && !plan.isPopular && <div className="popular-badge current-badge">Current Plan</div>}
+                <div className="plan-icon">{isLifetime ? '💎' : '⭐'}</div>
+                <div className="plan-name">{plan.name}</div>
+                <div className="plan-price">
+                  <span className="price-amount">${plan.price}</span>
+                  <span className="price-period">/{formatDuration(plan.duration)}</span>
+                </div>
+                <div className="plan-billing">{getPlanBilling(plan)}</div>
+                <ul className="plan-features">
+                  {plan.features && plan.features.map((f, i) => (
+                    <li key={i}><span className="feature-check">✓</span>{f}</li>
+                  ))}
+                </ul>
+                <div className="plan-select">
+                  <div className={`radio-button ${isSelected ? 'checked' : ''}`}>
+                    {isSelected && <div className="radio-inner"></div>}
+                  </div>
+                  <span>{isCurrent ? 'Current Plan' : `Select ${plan.name}`}</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <div className="checkout-section">
-          {/* Payment Method Selector */}
-          {(braintreeConfigured || paypalConfigured) && (
+
+        {/* Checkout Section (only for paid plans) */}
+        {!isFreeSelected && selectedPaidPlan && (
+          <div className="checkout-section">
             <div className="payment-method-section">
               <label>Choose Payment Method</label>
               <div className="payment-methods">
                 {paypalConfigured && (
-                  <div 
-                    className={`payment-method-option ${paymentMethod === 'paypal' ? 'selected' : ''}`}
-                    onClick={() => setPaymentMethod('paypal')}
-                  >
+                  <div className={`payment-method-option ${paymentMethod === 'paypal' ? 'selected' : ''}`} onClick={() => setPaymentMethod('paypal')}>
                     <div className="payment-method-icon paypal-icon">P</div>
                     <div className="payment-method-info">
                       <span className="payment-method-name">PayPal</span>
@@ -475,88 +501,93 @@ const PricingPage = () => {
                     </div>
                   </div>
                 )}
-                {braintreeConfigured && (
-                  <div 
-                    className={`payment-method-option ${paymentMethod === 'braintree' ? 'selected' : ''}`}
-                    onClick={() => setPaymentMethod('braintree')}
-                  >
-                    <div className="payment-method-icon">💳</div>
-                    <div className="payment-method-info">
-                      <span className="payment-method-name">Card (Braintree)</span>
-                      <span className="payment-method-desc">Alternative payment processor</span>
-                    </div>
-                    <div className={`radio-button ${paymentMethod === 'braintree' ? 'checked' : ''}`}>
-                      {paymentMethod === 'braintree' && <div className="radio-inner"></div>}
-                    </div>
+                <div className={`payment-method-option ${paymentMethod === 'clover' ? 'selected' : ''}`} onClick={() => setPaymentMethod('clover')}>
+                  <div className="payment-method-icon">☘</div>
+                  <div className="payment-method-info">
+                    <span className="payment-method-name">Card</span>
+                    <span className="payment-method-desc">Pay securely with credit or debit card</span>
                   </div>
-                )}
+                  <div className={`radio-button ${paymentMethod === 'clover' ? 'checked' : ''}`}>
+                    {paymentMethod === 'clover' && <div className="radio-inner"></div>}
+                  </div>
+                </div>
               </div>
             </div>
-          )}
 
-          {/* PayPal Buttons Container */}
-          {paymentMethod === 'paypal' && selectedPlan && (
-            <div className="paypal-container">
-              <div ref={paypalContainerRef} id="paypal-buttons"></div>
-              {!paypalReady && (
-                <div className="paypal-loading">
-                  <div className="spinner"></div>
-                  <p>Loading PayPal...</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Braintree Drop-in Container */}
-          {paymentMethod === 'braintree' && selectedPlan && (
-            <div className="braintree-container">
-              <div ref={braintreeContainerRef} id="braintree-dropin"></div>
-              {!braintreeReady && (
-                <div className="braintree-loading">
-                  <div className="spinner"></div>
-                  <p>Loading payment form...</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="promo-section">
-            <label>Have a promo code?</label>
-            <div className="promo-input-group">
-              <input type="text" value={promoCode} onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoApplied(null); }} placeholder="Enter promo code" disabled={!selectedPlan} />
-              <button onClick={handleApplyPromo} disabled={!promoCode.trim() || !selectedPlan || applyingPromo} className="btn-apply-promo">{applyingPromo ? 'Applying...' : 'Apply'}</button>
-            </div>
-            {promoApplied && <div className="promo-success">✓ {promoApplied.promoCode} applied - {promoApplied.discountType === 'percentage' ? `${promoApplied.discountValue}% off` : `$${promoApplied.discountValue} off`}</div>}
-          </div>
-          <div className="order-summary">
-            <h3>Order Summary</h3>
-            {selectedPlan && (
-              <>
-                <div className="summary-row"><span>{plans.find(p => p.id === selectedPlan)?.name} Membership</span><span>${plans.find(p => p.id === selectedPlan)?.price.toFixed(2)}</span></div>
-                {promoApplied && <div className="summary-row discount"><span>Discount ({promoApplied.promoCode})</span><span>-${promoApplied.discountAmount.toFixed(2)}</span></div>}
-                <div className="summary-row total"><span>Total</span><span>${getSelectedPlanPrice().toFixed(2)}</span></div>
-              </>
+            {paymentMethod === 'paypal' && (
+              <div className="paypal-container">
+                <div ref={paypalContainerRef} id="paypal-buttons"></div>
+                {!paypalReady && <div className="paypal-loading"><div className="spinner"></div><p>Loading PayPal...</p></div>}
+              </div>
             )}
+
+            {paymentMethod === 'clover' && (
+              <div className="clover-checkout-section">
+                <div className="clover-info">
+                  <p>Pay securely with credit or debit card.</p>
+                </div>
+                <div className="clover-card-form">
+                  <div className="clover-field">
+                    <label className="clover-label">Card Number</label>
+                    <div id="pricing-clover-card-number" className="clover-input-container"></div>
+                  </div>
+                  <div className="clover-field-row">
+                    <div className="clover-field clover-field-half">
+                      <label className="clover-label">Expiry</label>
+                      <div id="pricing-clover-card-date" className="clover-input-container"></div>
+                    </div>
+                    <div className="clover-field clover-field-half">
+                      <label className="clover-label">CVV</label>
+                      <div id="pricing-clover-card-cvv" className="clover-input-container"></div>
+                    </div>
+                  </div>
+                  <div className="clover-field">
+                    <label className="clover-label">ZIP Code</label>
+                    <div id="pricing-clover-card-zip" className="clover-input-container"></div>
+                  </div>
+                </div>
+                <button
+                  className="btn-checkout clover-pay-btn"
+                  onClick={handleCloverPay}
+                  disabled={cloverLoading || !cloverReady}
+                >
+                  {cloverLoading ? (
+                    <><span className="spinner"></span> Processing...</>
+                  ) : !cloverReady ? (
+                    <><span className="spinner"></span> Loading card form...</>
+                  ) : (
+                    `Pay $${getSelectedPlanPrice().toFixed(2)}`
+                  )}
+                </button>
+              </div>
+            )}
+
+            <div className="promo-section">
+              <label>Have a promo code?</label>
+              <div className="promo-input-group">
+                <input type="text" value={promoCode} onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoApplied(null); }} placeholder="Enter promo code" />
+                <button onClick={handleApplyPromo} disabled={!promoCode.trim() || applyingPromo} className="btn-apply-promo">{applyingPromo ? 'Applying...' : 'Apply'}</button>
+              </div>
+              {promoApplied && <div className="promo-success">✓ {promoApplied.promoCode} applied - {promoApplied.discountType === 'percentage' ? `${promoApplied.discountValue}% off` : `$${promoApplied.discountValue} off`}</div>}
+            </div>
+
+            <div className="order-summary">
+              <h3>Order Summary</h3>
+              <div className="summary-row"><span>{selectedPaidPlan.name} Membership</span><span>${selectedPaidPlan.price.toFixed(2)}</span></div>
+              {promoApplied && <div className="summary-row discount"><span>Discount ({promoApplied.promoCode})</span><span>-${promoApplied.discountAmount.toFixed(2)}</span></div>}
+              <div className="summary-row total"><span>Total</span><span>${getSelectedPlanPrice().toFixed(2)}</span></div>
+            </div>
+
+            <p className="secure-notice">
+              {paymentMethod === 'paypal' && '🔒 Secure payment powered by PayPal'}
+              {paymentMethod === 'clover' && '🔒 Secure payment powered by Clover'}
+            </p>
           </div>
-          {/* Only show checkout button for non-PayPal methods (PayPal has its own buttons) */}
-          {paymentMethod !== 'paypal' && (
-            <button 
-              className="btn-checkout" 
-              onClick={handleCheckout} 
-              disabled={
-                !selectedPlan || 
-                checkingOut || 
-                (paymentMethod === 'braintree' && (!braintreeConfigured || !braintreeReady))
-              }
-            >
-              {checkingOut ? 'Processing...' : `Proceed to Payment - $${getSelectedPlanPrice().toFixed(2)}`}
-            </button>
-          )}
-          <p className="secure-notice">
-            {paymentMethod === 'paypal' && '🔒 Secure payment powered by PayPal'}
-            {paymentMethod === 'braintree' && '🔒 Secure payment powered by Braintree'}
-          </p>
-        </div>
+        )}
+
+        {!paypalConfigured && (
+          <div className="payment-warning">Payment system is being configured. Please check back soon.</div>
+        )}
       </div>
     </div>
   );

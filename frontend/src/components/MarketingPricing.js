@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import PromoCodeManager from './PromoCodeManager';
 import PricingPage from './PricingPage';
 import PromoCodeAccounting from './PromoCodeAccounting';
+import MembersList from './MembersList';
 import './MarketingPricing.css';
 
 const MarketingPricing = () => {
@@ -39,6 +40,7 @@ const MarketingPricing = () => {
     { id: 'promo-codes', label: 'Promo Codes', icon: '🎫', component: PromoCodeManager },
     { id: 'pricing', label: 'Pricing', icon: '💳', component: PricingPage },
     { id: 'lead-generation', label: 'Lead Generation', icon: '📈', component: PromoCodeAccounting },
+    { id: 'members', label: 'Members', icon: '👥', component: MembersList },
   ];
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || PromoCodeManager;

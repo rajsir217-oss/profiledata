@@ -484,7 +484,7 @@ function AppContent() {
               {/* Backward compatibility - redirect old routes to unified page */}
               <Route path="/promo-codes" element={<Navigate to="/marketing-pricing?tab=promo-codes" replace />} />
               <Route path="/pricing" element={<Navigate to="/marketing-pricing?tab=pricing" replace />} />
-              <Route path="/membership-plans" element={<ProtectedRoute><MembershipPlans /></ProtectedRoute>} />
+              <Route path="/membership-plans" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
               <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
               <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
               <Route path="/payment/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
