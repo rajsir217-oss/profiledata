@@ -4,6 +4,8 @@ import SEO from './SEO';
 import { getPageSEO, getOrganizationSchema, getWebsiteSchema, injectStructuredData } from '../utils/seo';
 import { getBackendUrl, getTurnstileSiteKey } from '../config/apiConfig';
 import Turnstile from 'react-turnstile';
+import socketService from '../services/socketService';
+import sessionManager from '../services/sessionManager';
 import './LandingPage.css';
 
 const LandingPage = () => {
@@ -43,16 +45,31 @@ const LandingPage = () => {
       const res = await fetch(`${getBackendUrl()}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: loginForm.username.trim(), password: loginForm.password })
+        body: JSON.stringify({
+          username: loginForm.username.trim(),
+          password: loginForm.password,
+          captchaToken: isDevelopment ? 'XXXX.DUMMY.TOKEN.XXXX' : (captchaToken || '')
+        })
       });
       const data = await res.json();
       if (res.ok && data.access_token) {
+        // Mirror exactly what Login.js stores
+        const user = data.user || {};
         localStorage.setItem('token', data.access_token);
-        localStorage.setItem('username', data.username || loginForm.username.trim());
-        if (data.role) localStorage.setItem('userRole', data.role);
+        localStorage.setItem('username', user.username || loginForm.username.trim());
+        if (data.refresh_token) localStorage.setItem('refreshToken', data.refresh_token);
+        localStorage.setItem('userStatus', user.accountStatus || 'active');
+        localStorage.setItem('userRole', user.role_name || user.role || data.role || 'free_user');
+        localStorage.removeItem('appTheme');
+        sessionStorage.removeItem('photoReminderDismissed');
+        sessionManager.init();
+        socketService.connect(user.username || loginForm.username.trim());
+        window.dispatchEvent(new Event('loginStatusChanged'));
+        window.dispatchEvent(new Event('userLoggedIn'));
         navigate('/dashboardv2');
       } else {
         setLoginError(data.detail || 'Invalid username or password.');
+        if (turnstileRef.current) { turnstileRef.current.reset(); setCaptchaToken(null); }
       }
     } catch (_) {
       setLoginError('Connection error. Please try again.');
