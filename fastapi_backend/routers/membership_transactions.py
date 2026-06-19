@@ -78,6 +78,7 @@ async def activate_membership(
         "isPremium": True,
         "premiumStatus": body.plan_id,
         "membershipPlanId": body.plan_id,
+        # NOTE: role_name intentionally NOT updated yet — membership limits not enforced in production
         "premiumActivatedAt": now,
         "membershipAmount": body.amount,
         "membershipPaymentMethod": body.payment_method,
