@@ -1685,18 +1685,20 @@
 
 /* Dark header */
 .lp-dark-header {
-  background: rgba(0,0,0,0.35) !important;
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255,255,255,0.15) !important;
-  box-shadow: none !important;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 60%, #1a1040 100%) !important;
+  backdrop-filter: none;
+  border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.5) !important;
 }
 
 .lp-dark-header .logo-text {
-  color: #fff !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.2);
 }
 
 .lp-dark-header .logo-icon {
   color: #fff;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.2));
 }
 
 .lp-matches-badge {
@@ -1712,11 +1714,13 @@
 
 .lp-platform-badge {
   font-size: 12px;
-  color: rgba(255,255,255,0.75);
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
+  font-weight: 600;
+  background: linear-gradient(135deg, #e63b2e 0%, #f5a623 100%);
+  border: none;
   border-radius: 20px;
   padding: 4px 14px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
 }
 
 /* Left column */
