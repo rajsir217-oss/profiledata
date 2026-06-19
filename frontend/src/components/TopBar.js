@@ -262,7 +262,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     // Dispatch custom event for sidebar to update
     window.dispatchEvent(new Event('loginStatusChanged'));
     
-    navigate('/login');
+    navigate('/');
   };
 
   const handleLogin = () => {

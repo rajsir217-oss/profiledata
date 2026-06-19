@@ -120,7 +120,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
     // Dispatch event to notify other components (TopBar, etc.)
     window.dispatchEvent(new Event('loginStatusChanged'));
     
-    navigate('/login');
+    navigate('/');
   };
 
   // Helper function to handle menu item clicks
