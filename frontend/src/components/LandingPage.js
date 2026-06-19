@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SEO from './SEO';
 import { getPageSEO, getOrganizationSchema, getWebsiteSchema, injectStructuredData } from '../utils/seo';
-import { getBackendUrl } from '../config/apiConfig';
+import { getBackendUrl, getTurnstileSiteKey } from '../config/apiConfig';
+import Turnstile from 'react-turnstile';
 import './LandingPage.css';
 
 const LandingPage = () => {
@@ -13,6 +14,12 @@ const LandingPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const [captchaError, setCaptchaError] = useState(false);
+  const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
+  const turnstileRef = useRef();
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const canBypassCaptcha = captchaRetryCount >= 3;
 
   const handleLoginChange = (e) => {
     const { name, value } = e.target;
@@ -24,6 +31,10 @@ const LandingPage = () => {
     e.preventDefault();
     if (!loginForm.username.trim() || !loginForm.password) {
       setLoginError('Please enter username and password.');
+      return;
+    }
+    if (!isDevelopment && !captchaToken && !canBypassCaptcha) {
+      setLoginError('Please complete the CAPTCHA verification.');
       return;
     }
     setLoginLoading(true);
@@ -45,10 +56,11 @@ const LandingPage = () => {
       }
     } catch (_) {
       setLoginError('Connection error. Please try again.');
+      if (turnstileRef.current) { turnstileRef.current.reset(); setCaptchaToken(null); }
     } finally {
       setLoginLoading(false);
     }
-  }, [loginForm, navigate]);
+  }, [loginForm, navigate, captchaToken, isDevelopment, canBypassCaptcha]);
 
   // Inject structured data for SEO
   useEffect(() => {
@@ -157,6 +169,31 @@ const LandingPage = () => {
                 Forgot Password?
               </button>
             </div>
+            {/* Cloudflare Turnstile */}
+            {captchaError ? (
+              <div className="lp-captcha-error">
+                {!canBypassCaptcha ? (
+                  <button type="button" className="lp-captcha-retry" onClick={() => { setCaptchaError(false); setCaptchaRetryCount(r => r + 1); }}>
+                    Retry CAPTCHA ({3 - captchaRetryCount} left)
+                  </button>
+                ) : (
+                  <p className="lp-captcha-bypass">✓ Cloudflare issue — proceeding without captcha</p>
+                )}
+              </div>
+            ) : (
+              <div className="lp-turnstile-wrap">
+                <Turnstile
+                  ref={turnstileRef}
+                  sitekey={getTurnstileSiteKey()}
+                  onVerify={(token) => setCaptchaToken(token)}
+                  onLoad={() => {}}
+                  onError={() => { setCaptchaError(true); setCaptchaRetryCount(r => r + 1); }}
+                  onExpire={() => setCaptchaToken(null)}
+                  theme="light"
+                  size="flexible"
+                />
+              </div>
+            )}
             {loginError && <p className="lp-login-error">{loginError}</p>}
             <button type="submit" className="lp-signin-btn" disabled={loginLoading}>
               {loginLoading ? 'Signing in…' : 'Sign In'}
