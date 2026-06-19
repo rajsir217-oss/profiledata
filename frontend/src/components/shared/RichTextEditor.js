@@ -26,6 +26,8 @@ const RichTextEditor = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
   const [activeFormats, setActiveFormats] = useState({});
+  const [currentHeading, setCurrentHeading] = useState('p');
+  const [fontSize, setFontSize] = useState(3);
 
   // Predefined colors for the color picker - diverse palette
   const colors = [
@@ -60,6 +62,22 @@ const RichTextEditor = ({
       insertOrderedList: document.queryCommandState('insertOrderedList'),
       insertUnorderedList: document.queryCommandState('insertUnorderedList'),
     });
+    // Detect current heading
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      let node = sel.anchorNode;
+      while (node) {
+        if (node.nodeType === 1) {
+          const tag = node.tagName?.toLowerCase();
+          if (['h1', 'h2', 'h3', 'h4', 'p'].includes(tag)) {
+            setCurrentHeading(tag);
+            return;
+          }
+        }
+        node = node.parentNode;
+      }
+    }
+    setCurrentHeading('p');
   }, []);
 
   // Handle content changes
@@ -91,6 +109,25 @@ const RichTextEditor = ({
   const applyBgColor = (color) => {
     execCommand('hiliteColor', color);
     setShowBgColorPicker(false);
+  };
+
+  // Apply heading
+  const applyHeading = (tag) => {
+    execCommand('formatBlock', tag);
+    setCurrentHeading(tag);
+  };
+
+  // Font size controls
+  const increaseFontSize = () => {
+    const next = Math.min(7, fontSize + 1);
+    setFontSize(next);
+    execCommand('fontSize', next);
+  };
+
+  const decreaseFontSize = () => {
+    const next = Math.max(1, fontSize - 1);
+    setFontSize(next);
+    execCommand('fontSize', next);
   };
 
   // Clear formatting
@@ -177,6 +214,40 @@ const RichTextEditor = ({
       {/* Toolbar */}
       {!readOnly && (
         <div className="rte-toolbar">
+          {/* Heading & Font Size */}
+          <div className="toolbar-group">
+            <select
+              className="toolbar-select heading-select"
+              value={currentHeading}
+              onChange={(e) => applyHeading(e.target.value)}
+              title="Heading style"
+            >
+              <option value="p">Paragraph</option>
+              <option value="h1">Heading 1</option>
+              <option value="h2">Heading 2</option>
+              <option value="h3">Heading 3</option>
+              <option value="h4">Heading 4</option>
+            </select>
+            <button
+              type="button"
+              className="toolbar-btn font-size-btn"
+              onClick={decreaseFontSize}
+              title="Decrease font size"
+              tabIndex={-1}
+            >
+              A<sup>-</sup>
+            </button>
+            <button
+              type="button"
+              className="toolbar-btn font-size-btn"
+              onClick={increaseFontSize}
+              title="Increase font size"
+              tabIndex={-1}
+            >
+              A<sup>+</sup>
+            </button>
+          </div>
+
           {/* Text Formatting */}
           <div className="toolbar-group">
             <ToolbarButton 

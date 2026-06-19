@@ -217,12 +217,19 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         action: () => navigate('/virtual-meets'),
         disabled: !isActive
       },
+      { 
+        icon: '📝', 
+        label: 'Blogs', 
+        subLabel: 'Read our latest articles',
+        action: () => navigate('/blog'),
+        disabled: false
+      },
     ];
 
     // Support L3V3L — always-visible voluntary contribution for regular users
     if (!isAdmin && !isModerator) {
       items.push({
-        icon: '💜',
+        icon: '�💜',
         label: 'Support L3V3L',
         subLabel: 'Keep us free & ad-free',
         action: () => openPopup(),
@@ -264,6 +271,13 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         label: 'Announcement Management',
         subLabel: 'Site-wide announcements & polls',
         action: () => navigate('/announcement-management')
+      });
+
+      items.push({
+        icon: '📝',
+        label: 'Blog Management',
+        subLabel: 'Create & manage blog posts',
+        action: () => navigate('/blog-management')
       });
 
       // === UTILITIES ===
@@ -362,6 +376,13 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         label: 'Announcement Management',
         subLabel: 'Site-wide announcements',
         action: () => navigate('/announcement-management')
+      });
+
+      items.push({
+        icon: '📝',
+        label: 'Blog Management',
+        subLabel: 'Create & manage blog posts',
+        action: () => navigate('/blog-management')
       });
 
       items.push({ isHeader: true, label: 'GROWTH' });

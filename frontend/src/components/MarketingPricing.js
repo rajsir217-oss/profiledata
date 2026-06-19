@@ -9,6 +9,7 @@ const MarketingPricing = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('promo-codes');
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   // Admin-only access check
   React.useEffect(() => {
@@ -16,7 +17,9 @@ const MarketingPricing = () => {
     if (userRole !== 'admin') {
       console.warn('⚠️ Unauthorized access attempt to Marketing & Pricing');
       navigate('/dashboard');
+      return;
     }
+    setIsAuthorized(true);
   }, [navigate]);
 
   React.useEffect(() => {
@@ -39,6 +42,10 @@ const MarketingPricing = () => {
   ];
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || PromoCodeManager;
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="marketing-pricing">

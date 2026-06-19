@@ -15,6 +15,7 @@ import {
   requestAccountDeletion,
   exportAccountData
 } from '../api';
+import { getUserLimit, getRoleDisplayName, getRoleBadgeColor } from '../utils/permissions';
 import api from '../api';
 import { 
   requestNotificationPermission, 
@@ -97,6 +98,13 @@ const UnifiedPreferences = () => {
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [savingNotifications, setSavingNotifications] = useState(false);
   
+  // Membership Tier State
+  const [membership, setMembership] = useState({
+    role: 'free_user',
+    premiumStatus: 'free',
+    isPremium: false
+  });
+
   // Privacy Settings State (Premium feature)
   const [userRole, setUserRole] = useState('free_user');
   const [privacySettings, setPrivacySettings] = useState({
@@ -370,6 +378,12 @@ const UnifiedPreferences = () => {
           const phoneNumber = response.data.contactNumber;
           const hasPhone = phoneNumber && phoneNumber.trim() !== '' && !phoneNumber.includes('***');
           setHasPhoneNumber(hasPhone);
+          // Load membership info
+          setMembership({
+            role: response.data.role_name || response.data.role || 'free_user',
+            premiumStatus: response.data.premiumStatus || 'free',
+            isPremium: response.data.isPremium || false
+          });
         }
       } catch (error) {
         console.error('Error loading SMS opt-in status:', error);
@@ -1042,6 +1056,68 @@ const UnifiedPreferences = () => {
 
   return (
     <div className="unified-preferences-container">
+
+      {/* Membership Tier Card */}
+      <div className="membership-tier-card" style={{
+        background: `linear-gradient(135deg, ${getRoleBadgeColor(membership.role)}22 0%, var(--surface-color) 100%)`,
+        border: `1px solid ${getRoleBadgeColor(membership.role)}44`,
+        borderRadius: '12px',
+        padding: '16px 20px',
+        marginBottom: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{
+            background: getRoleBadgeColor(membership.role),
+            color: '#fff',
+            padding: '4px 12px',
+            borderRadius: '20px',
+            fontSize: '13px',
+            fontWeight: 600
+          }}>
+            {getRoleDisplayName(membership.role)}
+          </span>
+          {membership.premiumStatus !== 'free' && (
+            <span style={{
+              background: membership.premiumStatus === 'lifetime' ? '#f59e0b' : '#8b5cf6',
+              color: '#fff',
+              padding: '4px 12px',
+              borderRadius: '20px',
+              fontSize: '13px',
+              fontWeight: 600
+            }}>
+              {membership.premiumStatus === 'lifetime' ? '💎 Lifetime' : '⭐ Premium'}
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          {['favorites_max', 'shortlist_max', 'messages_per_day', 'search_results_max'].map(limit => {
+            const val = getUserLimit(limit);
+            return (
+              <span key={limit} style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <strong>{val === null ? '∞' : val}</strong> {limit.replace(/_/g, ' ').replace('max', '').replace('per day', '/day').replace('per month', '/mo')}
+              </span>
+            );
+          })}
+        </div>
+        {membership.role === 'free_user' && (
+          <a href="/pricing" style={{
+            background: 'var(--primary-color)',
+            color: '#fff',
+            padding: '6px 16px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            textDecoration: 'none'
+          }}>
+            Upgrade →
+          </a>
+        )}
+      </div>
 
       <UniversalTabContainer
         variant="underlined"

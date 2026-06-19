@@ -36,6 +36,35 @@
   padding-right: 0;
 }
 
+/* Heading Select Dropdown */
+.toolbar-select.heading-select {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--input-bg, #fff);
+  color: var(--text-color);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  min-width: 110px;
+}
+
+.toolbar-select.heading-select:focus {
+  border-color: var(--primary-color);
+}
+
+/* Font Size Buttons */
+.font-size-btn {
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 28px;
+}
+
+.font-size-btn sup {
+  font-size: 9px;
+}
+
 /* Toolbar Buttons */
 .toolbar-btn {
   width: 32px;

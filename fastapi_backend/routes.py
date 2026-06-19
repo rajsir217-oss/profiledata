@@ -26,7 +26,7 @@ from models import (
 from database import get_database
 from auth.password_utils import PasswordManager
 from auth.jwt_auth import JWTManager, get_current_user_dependency as get_current_user, get_current_user_optional, get_current_user_from_token
-from auth.authorization import require_moderator_or_admin
+from auth.authorization import require_moderator_or_admin, LimitChecker
 from l3v3l_matching_engine import matching_engine
 from l3v3l_ml_enhancer import ml_enhancer
 from config import settings
@@ -4646,6 +4646,14 @@ async def create_pii_access_request(
     requester = current_user["username"]
     logger.info(f"🔐 Access request: {requester} → {requested_user}")
     
+    # Check role-based monthly PII request limit
+    month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    pii_count = await db.pii_requests.count_documents({
+        "requesterUsername": requester,
+        "createdAt": {"$gte": month_start}
+    })
+    LimitChecker.require_limit(current_user, "pii_requests_per_month", pii_count)
+    
     from pii_security import create_access_request
     result = await create_access_request(db, requester, requested_user, message)
     
@@ -5196,6 +5204,11 @@ async def search_users(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account must be fully activated to search for profiles. Please verify your email."
         )
+
+    # Enforce role-based search results limit
+    max_results = LimitChecker.get_user_limit(current_user, "search_results_max")
+    if max_results is not None and limit > max_results:
+        limit = max_results
 
     # Build query using a safer pattern to avoid malformed $and/$or combinations
     query = {}
@@ -6893,6 +6906,10 @@ async def add_to_favorites(
     username = current_user["username"]
     logger.info(f"⭐ Adding {target_username} to {username}'s favorites")
 
+    # Check role-based limit
+    fav_count = await db.favorites.count_documents({"userUsername": username})
+    LimitChecker.require_limit(current_user, "favorites_max", fav_count)
+
     # Check if already in favorites
     existing = await db.favorites.find_one({
         "userUsername": username,
@@ -7335,6 +7352,10 @@ async def add_to_shortlist(
     
     username = current_user["username"]
     logger.info(f"📝 Adding {target_username} to {username}'s shortlist")
+
+    # Check role-based limit
+    shortlist_count = await db.shortlists.count_documents({"userUsername": username})
+    LimitChecker.require_limit(current_user, "shortlist_max", shortlist_count)
 
     # Check if already in shortlist
     existing = await db.shortlists.find_one({
@@ -9305,6 +9326,14 @@ async def send_message_enhanced(
     username = current_user["username"]
     logger.info(f"💬 Enhanced message from {username} to {message_data.toUsername}")
     
+    # Check role-based daily message limit
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    msgs_today = await db.messages.count_documents({
+        "fromUsername": username,
+        "createdAt": {"$gte": today_start}
+    })
+    LimitChecker.require_limit(current_user, "messages_per_day", msgs_today)
+    
     # Check for profanity FIRST
     from profanity_filter import check_message_content
     content_check = check_message_content(message_data.content)
@@ -10697,6 +10726,14 @@ async def track_profile_view(
         raise HTTPException(status_code=404, detail="Profile user not found")
     if not viewer_user:
         raise HTTPException(status_code=404, detail="Viewer user not found")
+    
+    # Check role-based daily profile view limit (only for new unique profiles viewed today)
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    views_today = await db.profile_views.count_documents({
+        "viewedByUsername": profile_view.viewedByUsername,
+        "lastViewedAt": {"$gte": today_start}
+    })
+    LimitChecker.require_limit(viewer_user, "profile_views_per_day", views_today)
     
     try:
         # Check if this user has viewed this profile before
@@ -12582,12 +12619,12 @@ async def get_role_config(db = Depends(get_database)):
                         "search_results_max": 50
                     },
                     "free_user": {
-                        "favorites_max": 10,
-                        "shortlist_max": 5,
-                        "messages_per_day": 5,
-                        "profile_views_per_day": 20,
-                        "pii_requests_per_month": 3,
-                        "search_results_max": 20
+                        "favorites_max": 1,
+                        "shortlist_max": 1,
+                        "messages_per_day": 1,
+                        "profile_views_per_day": 1,
+                        "pii_requests_per_month": 1,
+                        "search_results_max": 1
                     }
                 }
             }

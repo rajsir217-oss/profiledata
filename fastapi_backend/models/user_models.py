@@ -47,8 +47,7 @@ class PremiumStatus(str, Enum):
     """Premium subscription tier"""
     FREE = "free"
     PREMIUM = "premium"
-    ELITE = "elite"
-    VIP = "vip"
+    LIFETIME = "lifetime"
 
 class BackgroundCheckStatus(str, Enum):
     """Background check status"""

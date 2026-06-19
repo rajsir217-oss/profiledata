@@ -1,0 +1,285 @@
+v<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Membership Tiers - Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* Modal overlay */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    max-width: 960px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+
+  .modal-header {
+    padding: 24px 32px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    border-radius: 16px 16px 0 0;
+    z-index: 1;
+  }
+
+  .modal-header h2 { font-size: 22px; font-weight: 700; color: #111827; }
+  .close-btn {
+    background: none; border: none; font-size: 24px; cursor: pointer;
+    color: #6b7280; padding: 4px 8px; border-radius: 6px;
+  }
+  .close-btn:hover { background: #f3f4f6; }
+
+  .modal-body { padding: 24px 32px 32px; }
+
+  /* Current plan badge */
+  .current-plan-banner {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 24px;
+    font-size: 14px;
+    color: #1e40af;
+    text-align: center;
+  }
+
+  /* 3-column grid */
+  .plans-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .plan-card {
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px 20px;
+    text-align: center;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .plan-card:hover { border-color: #6366f1; }
+  .plan-card.current { border-color: #6366f1; background: #faf5ff; }
+  .plan-card.featured { border-color: #f59e0b; box-shadow: 0 4px 20px rgba(245,158,11,0.15); }
+
+  .current-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: #6366f1; color: #fff; padding: 3px 14px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+
+  .popular-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: #f59e0b; color: #fff; padding: 3px 14px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+
+  .plan-icon { font-size: 32px; margin-bottom: 8px; }
+  .plan-name { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+  .plan-price { font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 4px; }
+  .plan-price span { font-size: 14px; font-weight: 400; color: #6b7280; }
+  .plan-billing { font-size: 12px; color: #9ca3af; margin-bottom: 16px; }
+
+  .plan-btn {
+    width: 100%; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.2s; margin-bottom: 20px;
+  }
+  .plan-btn.current-plan { background: #e5e7eb; color: #6b7280; cursor: default; }
+  .plan-btn.primary { background: #6366f1; color: #fff; }
+  .plan-btn.primary:hover { background: #4f46e5; }
+  .plan-btn.gold { background: #f59e0b; color: #fff; }
+  .plan-btn.gold:hover { background: #d97706; }
+
+  /* Feature list */
+  .feature-list { text-align: left; }
+  .feature-list .feature {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; font-size: 13px; color: #374151;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .feature-list .feature:last-child { border-bottom: none; }
+
+  .feature .check { color: #10b981; font-weight: 700; font-size: 14px; }
+  .feature .cross { color: #ef4444; font-weight: 700; font-size: 14px; }
+  .feature .limit { color: #f59e0b; font-weight: 600; font-size: 12px; }
+
+  /* Feature comparison table */
+  .comparison-table {
+    width: 100%; border-collapse: collapse; margin-top: 24px;
+  }
+  .comparison-table th {
+    text-align: left; padding: 10px 16px; font-size: 13px; font-weight: 600;
+    color: #6b7280; border-bottom: 2px solid #e5e7eb;
+  }
+  .comparison-table th:first-child { width: 40%; }
+  .comparison-table th:not(:first-child) { text-align: center; width: 20%; }
+
+  .comparison-table td {
+    padding: 10px 16px; font-size: 13px; color: #374151;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .comparison-table td:not(:first-child) { text-align: center; }
+
+  .comparison-table tr:hover td { background: #f9fafb; }
+
+  .section-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: #6366f1; padding: 16px 16px 4px;
+  }
+
+  @media (max-width: 768px) {
+    .plans-grid { grid-template-columns: 1fr; }
+    .modal { max-width: 100%; }
+    .modal-body { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Choose Your Membership</h2>
+      <button class="close-btn" title="Close">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Current plan banner -->
+      <div class="current-plan-banner">
+        You are currently on the <strong>Free</strong> plan. Upgrade to unlock all features.
+      </div>
+
+      <!-- 3 Plan Cards -->
+      <div class="plans-grid">
+
+        <!-- FREE -->
+        <div class="plan-card current">
+          <div class="current-badge">Current Plan</div>
+          <div class="plan-icon">🆓</div>
+          <div class="plan-name">Free</div>
+          <div class="plan-price">$0<span>/mo</span></div>
+          <div class="plan-billing">No cost, limited access</div>
+          <button class="plan-btn current-plan" disabled>Current Plan</button>
+          <div class="feature-list">
+            <div class="feature"><span class="limit">1</span> Search result</div>
+            <div class="feature"><span class="limit">1</span> Favorite</div>
+            <div class="feature"><span class="limit">1</span> Shortlist</div>
+            <div class="feature"><span class="limit">1</span> Message / day</div>
+            <div class="feature"><span class="limit">1</span> Profile view / day</div>
+            <div class="feature"><span class="limit">1</span> PII request / month</div>
+            <div class="feature"><span class="cross">✕</span> Privacy controls</div>
+            <div class="feature"><span class="cross">✕</span> L3V3L matching</div>
+          </div>
+        </div>
+
+        <!-- PREMIUM -->
+        <div class="plan-card featured">
+          <div class="popular-badge">Most Popular</div>
+          <div class="plan-icon">⭐</div>
+          <div class="plan-name">Premium</div>
+          <div class="plan-price">$9.99<span>/mo</span></div>
+          <div class="plan-billing">or $79.99/year (save 33%)</div>
+          <button class="plan-btn primary">Upgrade to Premium</button>
+          <div class="feature-list">
+            <div class="feature"><span class="check">✓</span> Unlimited search results</div>
+            <div class="feature"><span class="check">✓</span> Unlimited favorites</div>
+            <div class="feature"><span class="check">✓</span> Unlimited shortlist</div>
+            <div class="feature"><span class="check">✓</span> Unlimited messages</div>
+            <div class="feature"><span class="check">✓</span> Unlimited profile views</div>
+            <div class="feature"><span class="limit">10/mo</span> PII requests</div>
+            <div class="feature"><span class="check">✓</span> Privacy controls</div>
+            <div class="feature"><span class="check">✓</span> L3V3L matching</div>
+          </div>
+        </div>
+
+        <!-- LIFETIME -->
+        <div class="plan-card">
+          <div class="plan-icon">💎</div>
+          <div class="plan-name">Lifetime</div>
+          <div class="plan-price">$199<span> one-time</span></div>
+          <div class="plan-billing">Pay once, forever access</div>
+          <button class="plan-btn gold">Get Lifetime</button>
+          <div class="feature-list">
+            <div class="feature"><span class="check">✓</span> Unlimited search results</div>
+            <div class="feature"><span class="check">✓</span> Unlimited favorites</div>
+            <div class="feature"><span class="check">✓</span> Unlimited shortlist</div>
+            <div class="feature"><span class="check">✓</span> Unlimited messages</div>
+            <div class="feature"><span class="check">✓</span> Unlimited profile views</div>
+            <div class="feature"><span class="check">✓</span> Unlimited PII requests</div>
+            <div class="feature"><span class="check">✓</span> Privacy controls</div>
+            <div class="feature"><span class="check">✓</span> L3V3L matching</div>
+            <div class="feature"><span class="check">✓</span> Lifetime badge</div>
+            <div class="feature"><span class="check">✓</span> Priority support</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Detailed Comparison Table -->
+      <h3 style="font-size:16px; font-weight:700; color:#111827; margin-bottom:8px;">Full Feature Comparison</h3>
+      <table class="comparison-table">
+        <thead>
+          <tr><th>Feature</th><th>Free</th><th>Premium</th><th>Lifetime</th></tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="4" class="section-label">Search & Discovery</td></tr>
+          <tr><td>Search results</td><td><span class="limit">1</span></td><td><span class="check">✓</span> 100</td><td><span class="check">✓</span> Unlimited</td></tr>
+          <tr><td>L3V3L compatibility filter</td><td><span class="cross">✕</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Profile views / day</td><td><span class="limit">1</span></td><td><span class="check">✓</span> Unlimited</td><td><span class="check">✓</span> Unlimited</td></tr>
+
+          <tr><td colspan="4" class="section-label">Interactions</td></tr>
+          <tr><td>Favorites</td><td><span class="limit">1</span></td><td><span class="check">✓</span> Unlimited</td><td><span class="check">✓</span> Unlimited</td></tr>
+          <tr><td>Shortlist</td><td><span class="limit">1</span></td><td><span class="check">✓</span> Unlimited</td><td><span class="check">✓</span> Unlimited</td></tr>
+          <tr><td>Messages / day</td><td><span class="limit">1</span></td><td><span class="check">✓</span> Unlimited</td><td><span class="check">✓</span> Unlimited</td></tr>
+
+          <tr><td colspan="4" class="section-label">Privacy & PII</td></tr>
+          <tr><td>PII requests / month</td><td><span class="limit">1</span></td><td><span class="limit">10</span></td><td><span class="check">✓</span> Unlimited</td></tr>
+          <tr><td>Hide favorites from others</td><td><span class="cross">✕</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Hide shortlist from others</td><td><span class="cross">✕</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Hide profile views</td><td><span class="cross">✕</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+
+          <tr><td colspan="4" class="section-label">Perks</td></tr>
+          <tr><td>Premium badge on profile</td><td><span class="cross">✕</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Lifetime badge on profile</td><td><span class="cross">✕</span></td><td><span class="cross">✕</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Priority support</td><td><span class="cross">✕</span></td><td><span class="cross">✕</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Recurring payment</td><td><span class="cross">✕</span></td><td>Monthly / Yearly</td><td><span class="check">✓</span> One-time</td></tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

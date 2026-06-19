@@ -25,10 +25,22 @@ const PromoCodeAccounting = () => {
   const [yearPayments, setYearPayments] = useState([]); // Payments for detail modal
   const [loadingYearPayments, setLoadingYearPayments] = useState(false);
 
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
   useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+      navigate('/dashboard');
+      return;
+    }
+    setIsAuthorized(true);
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!isAuthorized) return;
     loadPromoCodes();
     loadYearlySummary();
-  }, []);
+  }, [isAuthorized]);
 
   const loadPromoCodes = async () => {
     try {
@@ -215,6 +227,10 @@ const PromoCodeAccounting = () => {
   // Calculate totals
   const totalMembers = promoCodes.reduce((sum, code) => sum + (code.registrations || code.currentUses || 0), 0);
   const totalRevenue = promoCodes.reduce((sum, code) => sum + (code.revenue || 0), 0);
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   if (loading) {
     return (
