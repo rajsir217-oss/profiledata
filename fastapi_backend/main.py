@@ -37,6 +37,7 @@ from routers.email_templates import router as email_templates_router
 from routers.email_tracking import router as email_tracking_router
 from routers.account_deletion import router as account_deletion_router
 from routers.announcements import router as announcements_router
+from routers.blog import router as blog_router
 from routers.short_urls import router as short_urls_router
 from routers.ai_router import router as ai_router
 from routers.polls import router as polls_router
@@ -509,6 +510,7 @@ app.include_router(system_health_router, prefix="/api/users/system", tags=["syst
 app.include_router(email_tracking_router)  # Email tracking routes (already has /api/email-tracking prefix)
 app.include_router(account_deletion_router)  # Account deletion routes (already has /api/users/account prefix)
 app.include_router(announcements_router, prefix="/api", tags=["announcements"])  # Announcement/marquee routes
+app.include_router(blog_router)  # Blog routes (already has /api/blog prefix)
 app.include_router(short_urls_router)  # Short URL redirects (no prefix - uses /s/{code})
 app.include_router(ai_router)  # AI routes (already has /api/ai prefix)
 app.include_router(polls_router)  # Polls routes (already has /api/polls prefix)

@@ -70,6 +70,9 @@ import ProfileCompletionChecker from './components/ProfileCompletionChecker';
 import BrandBanner from './components/BrandBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
 import AnnouncementManagement from './components/AnnouncementManagement';
+import BlogManagement from './components/BlogManagement';
+import BlogList from './components/BlogList';
+import BlogView from './components/BlogView';
 import PollManagement from './components/PollManagement';
 import VirtualMeets from './components/VirtualMeets';
 import AdminReports from './components/AdminReports';
@@ -369,6 +372,9 @@ function AppContent() {
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
+              {/* Blog public routes */}
+              <Route path="/blog" element={<BlogList />} />
+              <Route path="/blog/:slug" element={<BlogView />} />
               {/* Redirect old /register to /register3 */}
               <Route path="/register" element={<Navigate to="/register3" replace />} />
               <Route path="/register2" element={<Register2 />} />
@@ -460,6 +466,7 @@ function AppContent() {
               <Route path="/admin/notification-config" element={<Navigate to="/admin-utilities?tab=notification-config" replace />} />
               <Route path="/email-templates" element={<Navigate to="/admin-utilities?tab=email-templates" replace />} />
               <Route path="/announcement-management" element={<ProtectedRoute><AnnouncementManagement /></ProtectedRoute>} />
+              <Route path="/blog-management" element={<ProtectedRoute><BlogManagement /></ProtectedRoute>} />
               {/* Unified Reports Page */}
               <Route path="/unified-reports" element={<ProtectedRoute><UnifiedReports /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old report routes to unified page */}

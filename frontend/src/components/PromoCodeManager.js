@@ -54,23 +54,28 @@ const PromoCodeManager = () => {
     tags: ''
   });
 
-  // Check admin access
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  // Check admin access - gate everything behind this
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
     if (userRole !== 'admin') {
       console.warn('⚠️ Unauthorized access attempt to PromoCodeManager');
       navigate('/dashboard');
+      return;
     }
+    setIsAuthorized(true);
   }, [navigate]);
 
-  // Load promo codes and membership plans
+  // Load promo codes and membership plans (only after auth confirmed)
   useEffect(() => {
+    if (!isAuthorized) return;
     loadPromoCodes();
     loadArchivedCodes();
     loadStats();
     loadMembershipPlans();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAuthorized]);
 
   // ESC key handler
   useEffect(() => {
@@ -595,6 +600,10 @@ const PromoCodeManager = () => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString();
   };
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   if (loading) {
     return (

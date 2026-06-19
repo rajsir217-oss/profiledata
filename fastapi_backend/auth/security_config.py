@@ -205,12 +205,12 @@ ROLE_LIMITS = {
         "search_results_max": 100
     },
     "free_user": {
-        "favorites_max": 10,
-        "shortlist_max": 5,
-        "messages_per_day": 5,
-        "profile_views_per_day": 20,
-        "pii_requests_per_month": 3,
-        "search_results_max": 20
+        "favorites_max": 1,
+        "shortlist_max": 1,
+        "messages_per_day": 1,
+        "profile_views_per_day": 1,
+        "pii_requests_per_month": 1,
+        "search_results_max": 1
     }
 }
 
