@@ -64,6 +64,7 @@ from routers.virtual_meets import router as virtual_meets_router
 from routers.platform_stats import router as platform_stats_router
 from routers.messenger import router as messenger_router
 from routers.mobile_downloads import router as mobile_downloads_router
+from routers.membership_transactions import router as membership_transactions_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -537,6 +538,7 @@ app.include_router(virtual_meets_router)  # Virtual Meets routes (already has /a
 app.include_router(platform_stats_router)  # Platform stats routes (already has /api/platform-stats prefix)
 app.include_router(messenger_router)  # L3V3L Messenger routes (already has /api/messenger prefix)
 app.include_router(mobile_downloads_router)  # Mobile build downloads (already has /api/mobile prefix)
+app.include_router(membership_transactions_router)  # Membership transactions (already has /api/membership and /api/admin prefixes)
 
 # Health check endpoint — used by Cloud Run liveness probe.
 # Tests MongoDB connectivity so probe fails (503) if workers are deadlocked
