@@ -229,7 +229,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
     // Support L3V3L — always-visible voluntary contribution for regular users
     if (!isAdmin && !isModerator) {
       items.push({
-        icon: '�💜',
+        icon: '💜',
         label: 'Support L3V3L',
         subLabel: 'Keep us free & ad-free',
         action: () => openPopup(),
