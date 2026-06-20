@@ -137,11 +137,6 @@ const LandingPage = () => {
               ↓ Learn How It Works
             </button>
           </div>
-          <div className="hero-features lp-features-dark">
-            <div className="hero-feature"><span className="feature-icon">🧬</span><span className="feature-text">Deep Compatibility Analysis</span></div>
-            <div className="hero-feature"><span className="feature-icon">🎯</span><span className="feature-text">Precision Matching Algorithm</span></div>
-            <div className="hero-feature"><span className="feature-icon">🔒</span><span className="feature-text">Privacy-First Approach</span></div>
-          </div>
         </div>
 
         {/* Right: Inline Login Card */}
@@ -328,35 +323,6 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* L3V3L Difference Section */}
-      <section className="stats-section">
-        <div className="stats-container">
-          <div className="stat-item">
-            <div className="stat-icon">🧬</div>
-            <div className="stat-content">
-              <div className="stat-value">50+</div>
-              <div className="stat-label">Compatibility Factors Analyzed</div>
-              <div className="stat-description">Values, lifestyle, goals, personality & more</div>
-            </div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-icon">🎯</div>
-            <div className="stat-content">
-              <div className="stat-value">0-100</div>
-              <div className="stat-label">L3V3L Score Range</div>
-              <div className="stat-description">Scientific compatibility measurement</div>
-            </div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-icon">🦋</div>
-            <div className="stat-content">
-              <div className="stat-value">Transform</div>
-              <div className="stat-label">Your Search Journey</div>
-              <div className="stat-description">From random to meaningful connections</div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* About Us Section */}
       <section className="about-section">
@@ -364,7 +330,7 @@ const LandingPage = () => {
           <div className="about-content">
             <span className="about-title-badge">About L3V3L Matches</span>
             <p className="about-description">
-              L3V3L Matches is a premium <strong>matrimonial and matchmaking platform</strong> designed to help individuals find meaningful, long-term relationships leading to marriage. Founded with the belief that compatibility goes beyond surface-level attraction, we use advanced AI algorithms to analyze 50+ compatibility factors.
+              L3V3L Matches is a premium <strong>matrimonial and matchmaking platform</strong> designed to help individuals find meaningful, long-term relationships leading to marriage. Founded with the belief that compatibility goes beyond surface-level attraction, we use advanced AI to analyze what truly matters in a life partner.
             </p>
             <p className="about-description">
               Our platform serves individuals seeking serious relationships and marriage partners. We prioritize <strong>privacy, safety, and genuine connections</strong> over casual dating. Every profile is verified, and our matching system focuses on values, lifestyle compatibility, and long-term relationship potential.
@@ -400,7 +366,7 @@ const LandingPage = () => {
           <div className="service-card">
             <div className="service-icon">🧬</div>
             <h3>AI-Powered Compatibility Matching</h3>
-            <p>Our proprietary L3V3L algorithm analyzes <strong>50+ compatibility factors</strong> including personality traits, values, lifestyle preferences, communication styles, and life goals to calculate a precise compatibility score (0-100) for every potential match.</p>
+            <p>Our proprietary L3V3L algorithm analyzes personality traits, values, lifestyle preferences, communication styles, and life goals to calculate a precise compatibility score (0-100) for every potential match.</p>
           </div>
           
           <div className="service-card">
@@ -442,225 +408,95 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Virtual Meetups Section */}
-      <section className="virtual-meetups-section">
-        <div className="section-badge">🎥 NEW</div>
-        <span className="meetups-title-badge">Virtual Meetups & Zoom Sessions</span>
-        <p className="section-subtitle">Connect face-to-face from anywhere in the world</p>
+      {/* Events & Meetups Section */}
+      <section className="events-unified-section">
+        <span className="meetups-title-badge">Events & Meetups</span>
+        <p className="section-subtitle">Connect online and in person — wherever you are</p>
         
-        <div className="meetups-content">
-          <div className="meetups-description">
-            <p className="meetups-intro">
-              We believe meaningful connections happen through real conversations. That's why L3V3L hosts <strong>exclusive virtual meetups</strong> via Zoom, giving our members the opportunity to interact in a safe, moderated environment before meeting in person.
-            </p>
-          </div>
-          
-          <div className="meetups-grid">
-            <div className="meetup-card">
-              <div className="meetup-icon">🎯</div>
-              <h3>Speed Dating Sessions</h3>
-              <p>5-minute rotating video chats with pre-matched compatible members. Meet 8-10 potential matches in one evening from the comfort of your home.</p>
-              <span className="meetup-frequency">Every Saturday • 7 PM PST</span>
+        <div className="events-tabs">
+          {/* Virtual Events */}
+          <div className="events-category">
+            <div className="events-category-header">
+              <span className="category-badge">🎥 Virtual</span>
+              <h3>Online Meetups & Zoom Sessions</h3>
             </div>
-            
-            <div className="meetup-card">
-              <div className="meetup-icon">💬</div>
-              <h3>Compatibility Workshops</h3>
-              <p>Interactive group sessions led by relationship experts. Discuss values, communication styles, and what makes relationships work.</p>
-              <span className="meetup-frequency">Bi-weekly • Wednesdays</span>
-            </div>
-            
-            <div className="meetup-card">
-              <div className="meetup-icon">🌍</div>
-              <h3>Cultural Connection Calls</h3>
-              <p>Themed meetups celebrating diverse backgrounds. Connect with members who share your heritage, traditions, and cultural values.</p>
-              <span className="meetup-frequency">Monthly • Various times</span>
-            </div>
-            
-            <div className="meetup-card">
-              <div className="meetup-icon">☕</div>
-              <h3>Coffee Chat Mixers</h3>
-              <p>Casual, low-pressure video hangouts. Grab your favorite beverage and join small group conversations with fellow members.</p>
-              <span className="meetup-frequency">Sundays • 10 AM PST</span>
+            <div className="meetups-grid">
+              <div className="meetup-card">
+                <div className="meetup-icon">🎯</div>
+                <h3>Speed Dating Sessions</h3>
+                <p>5-minute rotating video chats with pre-matched compatible members. Meet 8-10 potential matches in one evening.</p>
+                <span className="meetup-frequency">Every Saturday • 7 PM PST</span>
+              </div>
+              <div className="meetup-card">
+                <div className="meetup-icon">💬</div>
+                <h3>Compatibility Workshops</h3>
+                <p>Interactive group sessions led by relationship experts on values, communication, and what makes relationships work.</p>
+                <span className="meetup-frequency">Bi-weekly • Wednesdays</span>
+              </div>
+              <div className="meetup-card">
+                <div className="meetup-icon">🌍</div>
+                <h3>Cultural Connection Calls</h3>
+                <p>Themed meetups celebrating diverse backgrounds. Connect with members who share your heritage and values.</p>
+                <span className="meetup-frequency">Monthly • Various times</span>
+              </div>
             </div>
           </div>
-          
-          <div className="meetups-benefits">
-            <div className="benefit-item">
-              <span className="benefit-icon">✓</span>
-              <span>Professional moderation for safety</span>
-            </div>
-            <div className="benefit-item">
-              <span className="benefit-icon">✓</span>
-              <span>Pre-screened, verified participants only</span>
-            </div>
-            <div className="benefit-item">
-              <span className="benefit-icon">✓</span>
-              <span>No pressure—participate at your comfort level</span>
-            </div>
-            <div className="benefit-item">
-              <span className="benefit-icon">✓</span>
-              <span>Free for Premium members</span>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Social Events Section */}
-      <section className="social-events-section">
-        <div className="section-badge">🎉 EXCLUSIVE</div>
-        <span className="events-title-badge">In-Person Social Events</span>
-        <p className="section-subtitle">Where online connections become real-world relationships</p>
-        
-        <div className="events-content">
-          <div className="events-description">
-            <p className="events-intro">
-              L3V3L organizes <strong>exclusive in-person events</strong> in major cities across the US. These curated gatherings provide the perfect setting to meet your matches face-to-face in a fun, relaxed atmosphere.
-            </p>
-          </div>
-          
-          <div className="events-grid">
-            <div className="event-card">
-              <div className="event-image-placeholder">🍷</div>
-              <div className="event-details">
-                <h3>Wine & Dine Mixers</h3>
-                <p>Elegant evening events at upscale venues. Enjoy fine wine, gourmet appetizers, and meaningful conversations with compatible matches.</p>
-                <span className="event-location">📍 San Francisco, LA, NYC</span>
+          {/* In-Person Events */}
+          <div className="events-category">
+            <div className="events-category-header">
+              <span className="category-badge">🎉 In-Person</span>
+              <h3>Social Events Across the US</h3>
+            </div>
+            <div className="events-grid">
+              <div className="event-card">
+                <div className="event-image-placeholder">🍷</div>
+                <div className="event-details">
+                  <h3>Wine & Dine Mixers</h3>
+                  <p>Elegant evening events at upscale venues with fine wine, gourmet appetizers, and meaningful conversations.</p>
+                  <span className="event-location">📍 San Francisco, LA, NYC</span>
+                </div>
+              </div>
+              <div className="event-card">
+                <div className="event-image-placeholder">🎨</div>
+                <div className="event-details">
+                  <h3>Activity-Based Meetups</h3>
+                  <p>Cooking classes, art workshops, hiking groups — bond over shared interests while getting to know potential partners.</p>
+                  <span className="event-location">📍 Multiple cities</span>
+                </div>
+              </div>
+              <div className="event-card">
+                <div className="event-image-placeholder">🎭</div>
+                <div className="event-details">
+                  <h3>Cultural Celebrations</h3>
+                  <p>Festival gatherings, holiday parties, and cultural events. Celebrate traditions with like-minded individuals.</p>
+                  <span className="event-location">📍 Nationwide</span>
+                </div>
               </div>
             </div>
-            
-            <div className="event-card">
-              <div className="event-image-placeholder">🎨</div>
-              <div className="event-details">
-                <h3>Activity-Based Meetups</h3>
-                <p>Cooking classes, art workshops, hiking groups, and more. Bond over shared interests while getting to know potential partners.</p>
-                <span className="event-location">📍 Multiple cities</span>
-              </div>
-            </div>
-            
-            <div className="event-card">
-              <div className="event-image-placeholder">🎭</div>
-              <div className="event-details">
-                <h3>Cultural Celebrations</h3>
-                <p>Festival gatherings, holiday parties, and cultural events. Celebrate traditions together and meet like-minded individuals.</p>
-                <span className="event-location">📍 Nationwide</span>
-              </div>
-            </div>
-            
-            <div className="event-card">
-              <div className="event-image-placeholder">🏖️</div>
-              <div className="event-details">
-                <h3>Weekend Retreats</h3>
-                <p>Exclusive multi-day getaways for serious members. Workshops, activities, and ample time to form genuine connections.</p>
-                <span className="event-location">📍 Premium destinations</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="events-highlights">
-            <div className="highlight-stat">
-              <span className="stat-number">50+</span>
-              <span className="stat-text">Events hosted annually</span>
-            </div>
-            <div className="highlight-stat">
-              <span className="stat-number">12</span>
-              <span className="stat-text">Cities across the US</span>
-            </div>
-            <div className="highlight-stat">
-              <span className="stat-number">500+</span>
-              <span className="stat-text">Couples met at our events</span>
-            </div>
-          </div>
-          
-          <div className="events-cta">
-            <p>Join L3V3L to get exclusive invites to our events</p>
-            <button className="btn-get-started" onClick={() => navigate('/login')}>
-              Become a Member
-            </button>
           </div>
         </div>
-      </section>
 
-      {/* Pricing Section */}
-      <section className="pricing-section">
-        <div className="pricing-header-wrapper">
-          <span className="pricing-title-badge">Membership Plans</span>
-          <p className="section-subtitle">No need to choose — we offer our <strong>Premium Plus plan at no cost</strong>. Other matrimonial services charge premium fees; this platform is <strong>community-developed</strong>. Please consider making a generous contribution to support us. 💜</p>
+        <div className="events-highlights">
+          <div className="highlight-stat">
+            <span className="stat-number">50+</span>
+            <span className="stat-text">Events hosted annually</span>
+          </div>
+          <div className="highlight-stat">
+            <span className="stat-number">12</span>
+            <span className="stat-text">Cities across the US</span>
+          </div>
+          <div className="highlight-stat">
+            <span className="stat-number">500+</span>
+            <span className="stat-text">Couples met at our events</span>
+          </div>
         </div>
-        
-        <div className="pricing-grid">
-          <div className="pricing-card">
-            <div className="pricing-header">
-              <h3>Free</h3>
-              <div className="pricing-price">
-                <span className="price-amount">$0</span>
-                <span className="price-period">/month</span>
-              </div>
-            </div>
-            <ul className="pricing-features">
-              <li>✓ Create your profile</li>
-              <li>✓ Browse profiles</li>
-              <li>✓ View L3V3L compatibility scores</li>
-              <li>✓ Unlimited messaging</li>
-              <li>✓ See who viewed your profile</li>
-              <li>✓ Advanced search filters</li>
-              <li>✓ Profile boost (3x visibility)</li>
-              <li>✓ Dedicated matchmaker support</li>
-              <li>✓ Verified badge on profile</li>
-              <li>✓ Read receipts on messages</li>
-              <li>✓ Early access to new features</li>
-            </ul>
-            <button className="btn-pricing" onClick={() => navigate('/login')}>Get Started</button>
-          </div>
-          
-          <div className="pricing-card featured">
-            <div className="pricing-badge">Most Popular</div>
-            <div className="pricing-header">
-              <h3>Premium</h3>
-              <div className="pricing-price">
-                <span className="price-amount">$0</span>
-                <span className="price-period">/month</span>
-              </div>
-            </div>
-            <ul className="pricing-features">
-              <li>✓ Create your profile</li>
-              <li>✓ Browse profiles</li>
-              <li>✓ View L3V3L compatibility scores</li>
-              <li>✓ Unlimited messaging</li>
-              <li>✓ See who viewed your profile</li>
-              <li>✓ Advanced search filters</li>
-              <li>✓ Profile boost (3x visibility)</li>
-              <li>✓ Dedicated matchmaker support</li>
-              <li>✓ Verified badge on profile</li>
-              <li>✓ Read receipts on messages</li>
-              <li>✓ Early access to new features</li>
-            </ul>
-            <button className="btn-pricing featured" onClick={() => navigate('/login')}>Get Started</button>
-          </div>
-          
-          <div className="pricing-card">
-            <div className="pricing-header">
-              <h3>Premium Plus</h3>
-              <div className="pricing-price">
-                <span className="price-amount">$0</span>
-                <span className="price-period">/month</span>
-              </div>
-            </div>
-            <ul className="pricing-features">
-              <li>✓ Create your profile</li>
-              <li>✓ Browse profiles</li>
-              <li>✓ View L3V3L compatibility scores</li>
-              <li>✓ Unlimited messaging</li>
-              <li>✓ See who viewed your profile</li>
-              <li>✓ Advanced search filters</li>
-              <li>✓ Profile boost (3x visibility)</li>
-              <li>✓ Dedicated matchmaker support</li>
-              <li>✓ Verified badge on profile</li>
-              <li>✓ Read receipts on messages</li>
-              <li>✓ Early access to new features</li>
-            </ul>
-            <button className="btn-pricing" onClick={() => navigate('/login')}>Get Started</button>
-          </div>
+
+        <div className="events-cta">
+          <p>Join L3V3L to get exclusive invites to our events</p>
+          <button className="btn-get-started" onClick={() => navigate('/login')}>
+            Become a Member
+          </button>
         </div>
       </section>
 
