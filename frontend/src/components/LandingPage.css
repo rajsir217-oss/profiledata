@@ -745,31 +745,11 @@
   margin-bottom: 24px;
 }
 
-/* Virtual Meetups Section */
-.virtual-meetups-section {
+/* Events Unified Section */
+.events-unified-section {
   padding: 80px 24px;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  color: white;
-  position: relative;
-  overflow: hidden;
+  background: #f8f9fb;
   text-align: center;
-}
-
-.virtual-meetups-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-  opacity: 0.5;
-}
-
-.virtual-meetups-section .section-subtitle {
-  color: white;
-  position: relative;
-  z-index: 1;
 }
 
 .meetups-title-badge {
@@ -788,42 +768,36 @@
   width: fit-content;
 }
 
-.section-badge {
-  display: inline-block;
-  background: linear-gradient(135deg, #ec4899 0%, #a78bfa 100%);
-  color: white;
-  padding: 8px 20px;
-  border-radius: 50px;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  margin-bottom: 16px;
-  position: relative;
-  z-index: 1;
-}
-
-.meetups-content {
+.events-tabs {
   max-width: 1200px;
   margin: 0 auto;
-  position: relative;
-  z-index: 1;
 }
 
-.meetups-description {
-  text-align: center;
+.events-category {
   margin-bottom: 48px;
 }
 
-.meetups-intro {
-  font-size: 18px;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.9);
-  max-width: 800px;
-  margin: 0 auto;
+.events-category-header {
+  text-align: left;
+  margin-bottom: 24px;
+  padding-left: 8px;
 }
 
-.meetups-intro strong {
-  color: #a78bfa;
+.events-category-header h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-top: 8px;
+}
+
+.category-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 6px 18px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .meetups-grid {
@@ -837,19 +811,18 @@
 }
 
 .meetup-card {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
+  background: white;
   border-radius: 16px;
   padding: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #e5e7eb;
   transition: all 0.3s ease;
   text-align: left;
 }
 
 .meetup-card:hover {
   transform: translateY(-8px);
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(167, 139, 250, 0.5);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.15);
+  border-color: #a78bfa;
 }
 
 .meetup-icon {
@@ -861,20 +834,20 @@
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 12px;
-  color: white;
+  color: #1a1a1a;
 }
 
 .meetup-card p {
   font-size: 14px;
   line-height: 1.7;
-  color: rgba(255, 255, 255, 0.8);
+  color: #4a5568;
   margin-bottom: 16px;
 }
 
 .meetup-frequency {
   display: inline-block;
-  background: rgba(167, 139, 250, 0.2);
-  color: #a78bfa;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
   padding: 6px 14px;
   border-radius: 20px;
   font-size: 12px;
@@ -895,10 +868,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: #f0fdf4;
   padding: 12px 20px;
   border-radius: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #bbf7d0;
 }
 
 .meetups-benefits .benefit-icon {
@@ -907,53 +880,10 @@
 }
 
 .meetups-benefits span:last-child {
-  color: rgba(255, 255, 255, 0.9);
+  color: #374151;
   font-size: 14px;
 }
 
-/* Social Events Section */
-.social-events-section {
-  padding: 80px 24px;
-  background: white;
-  position: relative;
-  text-align: center;
-}
-
-.events-title-badge {
-  display: block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 16px 48px;
-  border-radius: 50px;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  margin: 0 auto 20px auto;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
-  width: fit-content;
-}
-
-.events-content {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.events-description {
-  text-align: center;
-  margin-bottom: 48px;
-}
-
-.events-intro {
-  font-size: 18px;
-  line-height: 1.8;
-  color: #4a5568;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.events-intro strong {
-  color: #6366f1;
-}
 
 .events-grid {
   display: grid;
@@ -1060,26 +990,6 @@
   margin-bottom: 20px;
 }
 
-/* Responsive for new sections */
-@media (max-width: 768px) {
-  .meetups-grid,
-  .events-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .meetups-benefits {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .events-highlights {
-    gap: 32px;
-  }
-  
-  .highlight-stat .stat-number {
-    font-size: 36px;
-  }
-}
 
 /* Pricing Section */
 .pricing-section {
@@ -1113,12 +1023,15 @@
   margin-top: 16px;
 }
 
-.pricing-grid {
-  max-width: 1100px;
+.pricing-single-card {
+  max-width: 500px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 32px;
+}
+
+.pricing-note {
+  font-size: 14px;
+  color: #888;
+  margin-top: 8px;
 }
 
 .pricing-card {
@@ -1638,8 +1551,9 @@
     font-size: 20px;
   }
 
-  .pricing-grid {
-    grid-template-columns: 1fr;
+  .pricing-single-card {
+    max-width: 100%;
+    padding: 0 16px;
   }
 
   .pricing-card.featured {
@@ -1672,9 +1586,9 @@
   background: rgba(0,0,0,0.55);
   display: grid;
   grid-template-columns: 1fr 360px;
-  gap: 40px;
-  align-items: center;
-  padding: 32px 48px !important;
+  gap: 36px;
+  align-items: flex-start;
+  padding: 16px 48px 48px !important;
   min-height: calc(100vh - 60px);
 }
 
