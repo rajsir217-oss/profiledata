@@ -31,14 +31,41 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+            position: relative;
+            background: #0f1029;
             color: white;
-            padding: 20px 25px;
+            padding: 30px 25px;
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 15px;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url('./images/wedding.png');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
+        .header::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(15, 15, 32, 0.35) 0%, rgba(58, 12, 65, 0.55) 100%);
+            z-index: 0;
+        }
+
+        .header .butterfly,
+        .header-text {
+            position: relative;
+            z-index: 1;
         }
 
         .header .butterfly {
@@ -46,6 +73,7 @@
             line-height: 1;
             flex-shrink: 0;
             animation: flutter 3s ease-in-out infinite;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));
         }
 
         @keyframes flutter {
@@ -58,16 +86,19 @@
         }
 
         .header h1 {
-            font-size: 2em;
+            font-size: 2.2em;
             font-weight: 800;
             margin-bottom: 4px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
         }
 
         .header h2 {
-            font-size: 1em;
-            font-weight: 300;
-            opacity: 0.9;
+            font-size: 1.05em;
+            font-weight: 400;
+            opacity: 0.95;
+            letter-spacing: 0.4px;
         }
 
         .tagline {
