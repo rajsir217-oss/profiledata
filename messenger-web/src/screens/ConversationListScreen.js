@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image, Linking } from 'react-native';
 import useMessengerStore from '@messenger/stores/messengerStore';
 import useAuthStore from '@messenger/stores/authStore';
@@ -27,6 +27,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [isLoading, setIsLoading] = useState(false);
   const [expandedSections, setExpandedSections] = useState({ groups: true, direct: true });
   const [messagesExpanded, setMessagesExpanded] = useState(true);
+  const mainAppWindowRef = useRef(null);
   const [selectedChat, setSelectedChat] = useState(null);
   const [portalGroup, setPortalGroup] = useState(null);
   // US Vedika group is hidden in messenger-web (Portal Members is the canonical
@@ -105,7 +106,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     });
   };
 
-  const openMainAppWithSso = async (redirectPath = '/dashboard') => {
+  const openMainAppWithSso = async (redirectPath = '/dashboard', existingWindow = null) => {
     const mainAppUrl = getMainAppUrl();
     const redirect = typeof redirectPath === 'string' && redirectPath.startsWith('/') ? redirectPath : '/dashboard';
     const fallbackUrl = `${mainAppUrl}/login?redirect=${encodeURIComponent(redirect)}`;
@@ -119,9 +120,19 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       if (code) params.set('sso_code', code);
       params.set('redirect', redirect);
       const url = `${mainAppUrl}/login?${params.toString()}`;
-      openExternalUrl(url);
+      if (existingWindow && !existingWindow.closed) {
+        existingWindow.location.href = url;
+        existingWindow.focus();
+      } else {
+        openExternalUrl(url, 'l3v3l_main_app');
+      }
     } catch (e) {
-      openExternalUrl(fallbackUrl);
+      if (existingWindow && !existingWindow.closed) {
+        existingWindow.location.href = fallbackUrl;
+        existingWindow.focus();
+      } else {
+        openExternalUrl(fallbackUrl, 'l3v3l_main_app');
+      }
     }
   };
 
@@ -685,6 +696,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     { id: 'portal_members', label: 'Portal Members', subLabel: 'All active members', icon: '🦋', count: activeMembersCount },
     { id: 'messages', label: 'My Messages', subLabel: 'Direct conversations', icon: '💬', count: myMessagesCount },
     { id: 'l3v3lagent', label: 'L3V3L Agent', subLabel: 'System messages & notifications', icon: '🤖', count: l3v3lAgentCount },
+    { id: 'main_app', label: 'Main App', subLabel: 'Open USVedika dashboard', icon: '🏠' },
   ];
 
   const handleMenuClick = (id) => {
@@ -703,6 +715,25 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     if (id === 'l3v3lagent') {
       loadL3V3LAgentConversation();
       setActiveTab('l3v3lagent');
+      return;
+    }
+    if (id === 'main_app') {
+      const ensureWindow = async () => {
+        if (mainAppWindowRef.current && !mainAppWindowRef.current.closed) {
+          try {
+            mainAppWindowRef.current.focus();
+          } catch (err) {
+            console.warn('Unable to focus main app window:', err?.message);
+          }
+          await openMainAppWithSso('/dashboard', mainAppWindowRef.current);
+        } else {
+          const mainAppUrl = getMainAppUrl();
+          mainAppWindowRef.current = window?.open?.(mainAppUrl, 'l3v3l_main_app', 'noopener,noreferrer');
+          await openMainAppWithSso('/dashboard', mainAppWindowRef.current);
+        }
+      };
+
+      ensureWindow();
       return;
     }
     // US Vedika handler removed (menu item hidden).
@@ -1195,12 +1226,6 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
               {`${onlineSet?.size || 0} online`}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.headerMainAppBtn}
-            onPress={() => openMainAppWithSso('/dashboard')}
-          >
-            <Text style={styles.headerMainAppText}>🏠 Main App</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Content Area */}
@@ -1284,19 +1309,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     opacity: 0.85,
     marginTop: 2,
-  },
-  headerMainAppBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    backgroundColor: '#0f3460',
-    borderWidth: 1,
-    borderColor: '#1a1a3e',
-  },
-  headerMainAppText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
   },
   headerTitleCenter: {
     textAlign: 'center',

@@ -25,6 +25,7 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
 
   // Get promo code from URL query parameter (e.g., /register?promo=TELUGU2025)
   const promoCodeFromUrl = searchParams.get('promo') || searchParams.get('promoCode') || null;
+  const defaultPromoCode = promoCodeFromUrl || 'USVEDIKA';
   // Helper function to calculate age from birth month and year
   const calculateAge = (birthMonth, birthYear) => {
     if (!birthMonth || !birthYear) return null;
@@ -92,7 +93,7 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
     passwordConfirm: "",  // For validation only, not sent to backend
     firstName: "",
     lastName: "",
-    promoCode: promoCodeFromUrl || "",  // Promo code from URL or manual entry
+    promoCode: isEditMode ? '' : defaultPromoCode,  // Promo code defaults (hidden in register mode)
     contactNumber: "",  // Backward compat: primary number (derived from contactNumbers[0])
     contactNumbers: [{ number: "", label: "primary", visible: true }],  // Multi-contact support
     contactEmail: "",
@@ -191,6 +192,17 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
     agreedToMarketing: false,
   });
 
+  useEffect(() => {
+    if (!isEditMode) {
+      setFormData((prev) => {
+        if (prev.promoCode === defaultPromoCode) {
+          return prev;
+        }
+        return { ...prev, promoCode: defaultPromoCode };
+      });
+    }
+  }, [defaultPromoCode, isEditMode]);
+
   // Invitation state
   const [invitationToken, setInvitationToken] = useState(null);
   const [invitedBy, setInvitedBy] = useState(null); // Username of member who sent invitation
@@ -273,13 +285,6 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
   useEffect(() => {
     setBioSampleIndex(0);
   }, [formData.gender]);
-
-  useEffect(() => {
-    if (isEditMode) {
-      document.title = 'REGISTER3_EDIT_ACTIVE';
-      window.__REGISTER3_ACTIVE = true;
-    }
-  }, [isEditMode]);
 
   // Hide topbar and remove body padding ONLY for registration (not edit mode)
   useEffect(() => {
@@ -1133,9 +1138,9 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
   const scrollToAndFocusField = (fieldName) => {
     // Map fields to their tabs
     const tabSections = {
-      'about-me': ['username', 'password', 'passwordConfirm', 'firstName', 'lastName', 'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches', 'countryOfOrigin', 'countryOfResidence', 'state', 'location', 'religion', 'languagesSpoken', 'caste', 'motherTongue', 'profileCreatedBy', 'relationshipStatus', 'lookingFor', 'interests', 'bio', 'aboutMe'],
+      'about-me': ['username', 'password', 'passwordConfirm', 'firstName', 'lastName', 'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches', 'countryOfOrigin', 'countryOfResidence', 'state', 'location', 'religion', 'languagesSpoken', 'caste', 'motherTongue', 'profileCreatedBy', 'relationshipStatus', 'lookingFor', 'interests', 'bio', 'aboutMe', 'partnerPreference'],
       'background': ['educationHistory', 'workExperience', 'linkedinUrl', 'familyBackground', 'familyType', 'familyValues', 'drinking', 'smoking', 'bodyType', 'hasChildren', 'wantsChildren', 'pets'],
-      'partner-preferences': ['partnerPreference', 'ageRangeYounger', 'ageRangeOlder', 'heightRangeMin', 'heightRangeMax', 'educationLevel', 'profession', 'languages', 'partnerReligion', 'partnerCaste', 'partnerLocation', 'eatingPreference', 'partnerFamilyType', 'familyValues']
+      'partner-preferences': ['ageRangeYounger', 'ageRangeOlder', 'heightRangeMin', 'heightRangeMax', 'educationLevel', 'profession', 'languages', 'partnerReligion', 'partnerCaste', 'partnerLocation', 'eatingPreference', 'partnerFamilyType', 'familyValues']
     };
     
     // Find which tab the field belongs to
@@ -1555,13 +1560,13 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
             'firstName', 'lastName', 'contactNumber', 'contactEmail', 
             'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches', 
             'countryOfOrigin', 'countryOfResidence', 'state', 'location', 
-            'religion', 'languagesSpoken', 'bio'
+            'religion', 'languagesSpoken', 'bio', 'partnerPreference'
           ]
         : [
             'username', 'password', 'passwordConfirm', 'firstName', 'lastName',
             'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender',
             'heightFeet', 'heightInches', 'countryOfOrigin', 'countryOfResidence',
-            'state', 'location', 'religion', 'languagesSpoken', 'bio',
+            'state', 'location', 'religion', 'languagesSpoken', 'bio', 'partnerPreference',
             'relationshipStatus', 'lookingFor', 'interests'
           ];
       
@@ -1589,11 +1594,7 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
       });
       
     } else if (tabId === 'partner-preferences') {
-      totalFields = 8;
-      
-      if (formData.partnerPreference && formData.partnerPreference.trim().length >= 10) {
-        filledFields++;
-      }
+      totalFields = 7;
       
       const criteria = formData.partnerCriteria || {};
       if (criteria.educationLevel && criteria.educationLevel.length > 0) filledFields++;
@@ -1622,6 +1623,11 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
         const error = validateField(field, formData[field]);
         if (error) errors[field] = error;
       });
+
+      const partnerPrefError = validateField('partnerPreference', formData.partnerPreference);
+      if (partnerPrefError) {
+        errors.partnerPreference = partnerPrefError;
+      }
       
       // Check username availability (only in register mode)
       // Uses public endpoint that doesn't require authentication
@@ -1666,9 +1672,6 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
       const error = validateField('aboutMe', formData.aboutMe);
       if (error) errors.aboutMe = error;
       
-    } else if (tabId === 'partner-preferences') {
-      const error = validateField('partnerPreference', formData.partnerPreference);
-      if (error) errors.partnerPreference = error;
     }
 
     return errors;
@@ -2137,6 +2140,8 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
         {/* <div className="card p-4 shadow" style={{ */}
           <div style={{
           position: 'relative',
+          border: isEditMode ? '1px solid var(--border-color)' : undefined,
+          boxShadow: isEditMode ? '0 2px 12px rgba(0, 0, 0, 0.05)' : undefined,
           ...(!isEditMode ? {
             // Glass effect only for registration
             background: 'rgba(255, 255, 255, 0.98)',
@@ -2269,6 +2274,10 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
         </div>
       )}
       <form onSubmit={handleSubmit} encType="multipart/form-data" className="register-container">
+
+        {!isEditMode && (
+          <input type="hidden" name="promoCode" value={formData.promoCode} readOnly />
+        )}
 
         {/* ========== SECTION 1: BASIC INFORMATION ========== */}
         <div className="register3-section">
@@ -2468,6 +2477,88 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
             touched={touchedFields.aboutMe}
             className={getFieldClass('aboutMe', formData.aboutMe)}
           />
+        </div>
+
+        {/* Partner Preference Narrative */}
+        <div className="mt-4 mb-4">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <h5 className="section-title mb-0" style={{ color: 'var(--primary-color)', fontWeight: 600 }}>💕 Partner Preference</h5>
+            <div className="d-flex align-items-center gap-2">
+              <small className="text-muted" style={{ fontSize: '10px' }}>Samples:</small>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => setPartnerPrefSampleIndex((prev) => (prev - 1 + partnerPrefSamples.length) % partnerPrefSamples.length)}
+                style={{
+                  width: '20px', height: '20px', padding: '0', fontSize: '11px', lineHeight: '1',
+                  borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
+                }}
+                title="Previous sample"
+              >
+                ‹
+              </button>
+              <span
+                className="badge"
+                style={{
+                  height: '20px', lineHeight: '20px', minWidth: '32px', padding: '0 6px',
+                  fontSize: '10px', borderRadius: '4px',
+                  background: 'var(--success-color, #28a745)', color: 'white'
+                }}
+              >
+                {partnerPrefSampleIndex + 1}/{partnerPrefSamples.length}
+              </span>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => setPartnerPrefSampleIndex((prev) => (prev + 1) % partnerPrefSamples.length)}
+                style={{
+                  width: '20px', height: '20px', padding: '0', fontSize: '11px', lineHeight: '1',
+                  borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
+                }}
+                title="Next sample"
+              >
+                ›
+              </button>
+            </div>
+          </div>
+          <div
+            className="card p-2 mb-2"
+            onClick={() => setFormData({ ...formData, partnerPreference: partnerPrefSamples[partnerPrefSampleIndex] })}
+            style={{
+              backgroundColor: '#f8f9fa',
+              border: '1px dashed #dee2e6',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#e3f2fd';
+              e.currentTarget.style.borderColor = '#2196f3';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#f8f9fa';
+              e.currentTarget.style.borderColor = '#dee2e6';
+            }}
+            title="Click to load this sample"
+          >
+            <small className="text-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+              <strong>Sample {partnerPrefSampleIndex + 1}:</strong> {partnerPrefSamples[partnerPrefSampleIndex].substring(0, 150)}... <span style={{ color: '#2196f3', fontWeight: 'bold' }}>↓ Click to use</span>
+            </small>
+          </div>
+          <textarea
+            className={`form-control ${getFieldClass('partnerPreference', formData.partnerPreference)} ${fieldErrors.partnerPreference && touchedFields.partnerPreference ? 'is-invalid' : ''}`}
+            name="partnerPreference"
+            value={formData.partnerPreference}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            rows={5}
+            placeholder="Click 'Use This Sample' above to load a sample description, then customize it to your liking..."
+            required
+          />
+          {fieldErrors.partnerPreference && touchedFields.partnerPreference && (
+            <div className="invalid-feedback d-block">{fieldErrors.partnerPreference}</div>
+          )}
         </div>
 
         {/* Profile Created By Field */}
@@ -3049,23 +3140,7 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
           </div>
             </>
           )}
-          {/* Promo Code - only show in register mode */}
-          {!isEditMode && (
-            <div className="col-md-4">
-              <label className="form-label">Promo Code <span className="text-muted">(Optional)</span></label>
-              <input
-                type="text"
-                className="form-control"
-                name="promoCode"
-                value={formData.promoCode}
-                onChange={handleChange}
-                placeholder="Enter promo code"
-              />
-              {promoCodeFromUrl && formData.promoCode === promoCodeFromUrl && (
-                <div className="valid-feedback d-block">✅ Promo code applied!</div>
-              )}
-            </div>
-          )}
+          {/* Promo Code hidden: default applied via hidden input */}
         </div>
 
         {/* Residential Information */}
@@ -3409,7 +3484,7 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
         <div className="register3-section register3-section-optional">
           <div className="register3-section-header" onClick={() => setShowOptional(!showOptional)} style={{ cursor: 'pointer' }}>
             <h4>{showOptional ? '▼' : '▶'} OPTIONAL DETAILS</h4>
-            <small className="text-muted">Partner preferences &amp; advanced matching (optional)</small>
+            <small className="text-muted">Advanced matching preferences (optional)</small>
           </div>
           {showOptional && (
                 <div className="tab-section">
@@ -3694,7 +3769,7 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
           padding: '20px'
         }}>
           <h5 className="mb-3" style={{ color: 'var(--primary-color)', fontWeight: '600' }}>💕 What You're Looking For</h5>
-          <p className="text-muted small mb-3">These preferences help us find better matches for you. All fields are optional.</p>
+          <p className="text-muted small mb-3">Fine-tune your advanced partner preferences. These fields are optional but improve match quality.</p>
 
         {/* Partner Matching Criteria Section */}
         <div className="alert alert-info info-tip-box mb-4">
@@ -3702,89 +3777,6 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
             <strong>💡 Tip:</strong> These preferences help us find better matches for you. All fields are optional but recommended for better match quality.
           </small>
         </div>
-
-        {/* Partner Preference with Sample Carousel */}
-        <div className="mb-3">
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <label className="form-label mb-0">Partner Preference</label>
-            <div className="d-flex align-items-center gap-2">
-              <small className="text-muted" style={{ fontSize: '10px' }}>Samples:</small>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => setPartnerPrefSampleIndex((prev) => (prev - 1 + partnerPrefSamples.length) % partnerPrefSamples.length)}
-                style={{ 
-                  width: '20px', height: '20px', padding: '0', fontSize: '11px', lineHeight: '1', 
-                  borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
-                }}
-                title="Previous sample"
-              >
-                ‹
-              </button>
-              <span 
-                className="badge" 
-                style={{ 
-                  height: '20px', lineHeight: '20px', minWidth: '32px', padding: '0 6px', 
-                  fontSize: '10px', borderRadius: '4px',
-                  background: 'var(--success-color, #28a745)', color: 'white'
-                }}
-              >
-                {partnerPrefSampleIndex + 1}/{partnerPrefSamples.length}
-              </span>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => setPartnerPrefSampleIndex((prev) => (prev + 1) % partnerPrefSamples.length)}
-                style={{ 
-                  width: '20px', height: '20px', padding: '0', fontSize: '11px', lineHeight: '1', 
-                  borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
-                }}
-                title="Next sample"
-              >
-                ›
-              </button>
-            </div>
-          </div>
-          <div 
-            className="card p-2 mb-2" 
-            onClick={() => setFormData({ ...formData, partnerPreference: partnerPrefSamples[partnerPrefSampleIndex] })}
-            style={{ 
-              backgroundColor: '#f8f9fa', 
-              border: '1px dashed #dee2e6',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#e3f2fd';
-              e.currentTarget.style.borderColor = '#2196f3';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#f8f9fa';
-              e.currentTarget.style.borderColor = '#dee2e6';
-            }}
-            title="Click to load this sample"
-          >
-            <small className="text-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-              <strong>Sample {partnerPrefSampleIndex + 1}:</strong> {partnerPrefSamples[partnerPrefSampleIndex].substring(0, 150)}... <span style={{ color: '#2196f3', fontWeight: 'bold' }}>↓ Click to use</span>
-            </small>
-          </div>
-          <textarea
-            className={`form-control ${getFieldClass('partnerPreference', formData.partnerPreference)} ${fieldErrors.partnerPreference && touchedFields.partnerPreference ? 'is-invalid' : ''}`}
-            name="partnerPreference"
-            value={formData.partnerPreference}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            rows={5}
-            placeholder="Click 'Use This Sample' above to load a sample description, then customize it to your liking..."
-            required
-          />
-          {fieldErrors.partnerPreference && touchedFields.partnerPreference && (
-            <div className="invalid-feedback d-block">{fieldErrors.partnerPreference}</div>
-          )}
-        </div>
-        
         {/* REMOVED: Legacy fields that confused user's info with partner preferences
             - castePreference: User's caste notes (not partner's desired caste)
             - eatingPreference: User's diet (not partner's desired diet) 

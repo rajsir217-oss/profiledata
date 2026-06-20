@@ -612,7 +612,7 @@ async def send_invitation_notifications(
     base_url = settings.app_url or settings.frontend_url or "https://l3v3lmatches.com"
     if 'localhost' in base_url and os.environ.get('K_SERVICE'):
         base_url = os.environ.get('APP_URL') or os.environ.get('FRONTEND_URL') or "https://l3v3lmatches.com"
-    invitation_link = f"{base_url}/register2?invitation={invitation.invitationToken}&email={quote(invitation.email)}"
+    invitation_link = f"{base_url}/register3?invitation={invitation.invitationToken}&email={quote(invitation.email)}"
     
     # Check if this is a resend (email was already sent before)
     is_email_resend = invitation.emailStatus in [InvitationStatus.SENT, InvitationStatus.DELIVERED, InvitationStatus.FAILED]
