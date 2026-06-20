@@ -27,7 +27,6 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [isLoading, setIsLoading] = useState(false);
   const [expandedSections, setExpandedSections] = useState({ groups: true, direct: true });
   const [messagesExpanded, setMessagesExpanded] = useState(true);
-  const mainAppWindowRef = useRef(null);
   const [selectedChat, setSelectedChat] = useState(null);
   const [portalGroup, setPortalGroup] = useState(null);
   // US Vedika group is hidden in messenger-web (Portal Members is the canonical
@@ -106,7 +105,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     });
   };
 
-  const openMainAppWithSso = async (redirectPath = '/dashboard', existingWindow = null) => {
+  const openMainAppWithSso = async (redirectPath = '/dashboard') => {
     const mainAppUrl = getMainAppUrl();
     const redirect = typeof redirectPath === 'string' && redirectPath.startsWith('/') ? redirectPath : '/dashboard';
     const fallbackUrl = `${mainAppUrl}/login?redirect=${encodeURIComponent(redirect)}`;
@@ -120,19 +119,9 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       if (code) params.set('sso_code', code);
       params.set('redirect', redirect);
       const url = `${mainAppUrl}/login?${params.toString()}`;
-      if (existingWindow && !existingWindow.closed) {
-        existingWindow.location.href = url;
-        existingWindow.focus();
-      } else {
-        openExternalUrl(url, 'l3v3l_main_app');
-      }
+      openExternalUrl(url, 'l3v3l_main_app');
     } catch (e) {
-      if (existingWindow && !existingWindow.closed) {
-        existingWindow.location.href = fallbackUrl;
-        existingWindow.focus();
-      } else {
-        openExternalUrl(fallbackUrl, 'l3v3l_main_app');
-      }
+      openExternalUrl(fallbackUrl, 'l3v3l_main_app');
     }
   };
 
@@ -718,22 +707,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       return;
     }
     if (id === 'main_app') {
-      const ensureWindow = async () => {
-        if (mainAppWindowRef.current && !mainAppWindowRef.current.closed) {
-          try {
-            mainAppWindowRef.current.focus();
-          } catch (err) {
-            console.warn('Unable to focus main app window:', err?.message);
-          }
-          await openMainAppWithSso('/dashboard', mainAppWindowRef.current);
-        } else {
-          const mainAppUrl = getMainAppUrl();
-          mainAppWindowRef.current = window?.open?.(mainAppUrl, 'l3v3l_main_app', 'noopener,noreferrer');
-          await openMainAppWithSso('/dashboard', mainAppWindowRef.current);
-        }
-      };
-
-      ensureWindow();
+      openMainAppWithSso('/dashboard');
       return;
     }
     // US Vedika handler removed (menu item hidden).

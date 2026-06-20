@@ -1,6 +1,8 @@
 import { Browser } from '@capacitor/browser';
 import { isNativePlatform } from '../services/biometricAuth';
 
+const namedWindows = {};
+
 /**
  * Open an external URL.
  * Uses Capacitor Browser plugin in native apps, window.open in web.
@@ -17,7 +19,31 @@ export const openExternalUrl = async (url, target = '_blank') => {
       console.error('Browser.open failed:', err);
     }
   } else if (typeof window !== 'undefined' && window.open) {
-    const features = 'noopener,noreferrer';
-    window.open(url, target, features);
+    // Reuse an already-open named tab when possible. We must NOT touch
+    // `location.href` directly (the main app is cross-origin from
+    // messenger-web, so that throws a SecurityError). Instead we let the
+    // browser navigate the named target for us — calling window.open with
+    // the same name reuses that tab natively, even cross-origin.
+    //
+    // Also avoid the 'noopener' feature: it forces a brand-new browsing
+    // context on every call (returns null), which caused a fresh tab to
+    // spawn on each click.
+    if (target && target !== '_blank' && namedWindows[target] && !namedWindows[target].closed) {
+      const existing = window.open(url, target);
+      if (existing) {
+        namedWindows[target] = existing;
+        try {
+          existing.focus();
+        } catch (_) {
+          // Focus may be blocked cross-origin — safe to ignore.
+        }
+        return;
+      }
+    }
+
+    const win = window.open(url, target);
+    if (win && target && target !== '_blank') {
+      namedWindows[target] = win;
+    }
   }
 };
