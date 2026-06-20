@@ -118,7 +118,7 @@ templates = [
             <h1>Account Suspended</h1>
         </div>
         <div class="content">
-            <p>Hi {username},</p>
+            <p>Hi {firstname},</p>
             
             <p>Your account has been temporarily suspended.</p>
             
@@ -182,7 +182,7 @@ templates = [
             <h1>Account Banned</h1>
         </div>
         <div class="content">
-            <p>Hi {username},</p>
+            <p>Hi {firstname},</p>
             
             <p>Your account has been permanently banned from USVedika.</p>
             
@@ -197,7 +197,7 @@ templates = [
             <ul>
                 <li>Your account has been permanently closed</li>
                 <li>You can no longer access USVedika</li>
-                <li>Your profile and data have been removed</li>
+                <li>Your profile is hidden from all users</li>
                 <li>You cannot create a new account</li>
             </ul>
             
@@ -247,7 +247,7 @@ templates = [
             <h1>Account Paused</h1>
         </div>
         <div class="content">
-            <p>Hi {username},</p>
+            <p>Hi {firstname},</p>
             
             <p>Your account has been paused by an administrator.</p>
             
@@ -273,6 +273,74 @@ templates = [
             <center>
                 <a href="{app_url}/contact" class="button">Contact Support</a>
             </center>
+            
+            <p>Best regards,<br>The USVedika Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2025 USVedika. All rights reserved.</p>
+            <p><a href="{app_url}/help">Help Center</a> | <a href="{app_url}/contact">Contact Us</a></p>
+        </div>
+    </div>
+</body>
+</html>
+        """,
+        "priority": "high",
+        "enabled": True
+    },
+    {
+        "trigger": "status_reactivated",
+        "channel": "email",
+        "category": "account",
+        "subject": "✅ Your Account Has Been Reactivated!",
+        "body": """
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .success-icon { font-size: 64px; margin: 20px 0; }
+        .button { display: inline-block; background: #10b981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .feature-list { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .feature-item { padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="success-icon">✅</div>
+            <h1>Account Reactivated!</h1>
+            <p>Welcome back to USVedika</p>
+        </div>
+        <div class="content">
+            <p>Hi {firstname},</p>
+            
+            <p><strong>Good news!</strong> Your account has been reactivated and you now have full access to all features again.</p>
+            
+            <p style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px; margin: 15px 0; border-radius: 4px;">
+                <strong>Username:</strong> {username}<br>
+                <strong>Status:</strong> Active
+            </p>
+            
+            <p>{message}</p>
+            
+            <div class="feature-list">
+                <h3>What You Can Do Now:</h3>
+                <div class="feature-item">✨ Browse compatible matches</div>
+                <div class="feature-item">💬 Send messages to your matches</div>
+                <div class="feature-item">❤️ Add profiles to your favorites</div>
+                <div class="feature-item">🔍 Use advanced search filters</div>
+                <div class="feature-item">📧 Receive match notifications</div>
+            </div>
+            
+            <center>
+                <a href="{app_url}/dashboard" class="button">Go to Dashboard</a>
+            </center>
+            
+            <p>If you have any questions, feel free to reach out to our support team.</p>
             
             <p>Best regards,<br>The USVedika Team</p>
         </div>
