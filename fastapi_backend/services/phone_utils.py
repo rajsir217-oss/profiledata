@@ -5,8 +5,16 @@ def normalize_phone_for_sms(phone: str) -> str:
     """Normalize a phone string into a 10-digit US number when possible."""
     digits = "".join(filter(str.isdigit, str(phone or "")))
 
+    if not digits:
+        return ""
+
+    # Strip US country code prefix if present
     if len(digits) == 11 and digits.startswith("1"):
-        return digits[1:]
+        digits = digits[1:]
+
+    # SimpleTexting only supports US/Canada 10-digit numbers
+    if len(digits) != 10:
+        return ""
 
     return digits
 
