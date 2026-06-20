@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 600" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#140f2d" />
+      <stop offset="50%" stop-color="#2a144a" />
+      <stop offset="100%" stop-color="#401a5d" />
+    </linearGradient>
+    <radialGradient id="glow1" cx="0.25" cy="0.2" r="0.45">
+      <stop offset="0%" stop-color="#f6d365" stop-opacity="0.85" />
+      <stop offset="60%" stop-color="#f6d365" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#f6d365" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.8" cy="0.35" r="0.5">
+      <stop offset="0%" stop-color="#fda085" stop-opacity="0.6" />
+      <stop offset="80%" stop-color="#fda085" stop-opacity="0" />
+    </radialGradient>
+    <pattern id="floral" width="200" height="200" patternUnits="userSpaceOnUse" patternTransform="rotate(4)">
+      <path d="M100 10c15 30 45 55 80 60-30 10-55 35-60 65-10-30-35-55-65-60 30-10 55-35 60-65z" fill="rgba(255,255,255,0.05)" />
+      <circle cx="40" cy="160" r="18" fill="rgba(255,255,255,0.05)" />
+      <path d="M10 40c25 5 40 25 45 45 5-25 25-40 45-45-25-5-40-25-45-45-5 25-25 40-45 45z" fill="rgba(255,255,255,0.04)" />
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="600" fill="url(#bgGradient)" />
+  <rect width="1600" height="600" fill="url(#floral)" />
+  <rect width="1600" height="600" fill="url(#glow1)" />
+  <rect width="1600" height="600" fill="url(#glow2)" />
+
+  <path d="M0 420c120-40 240-60 380-20s360 80 520 40 280-160 420-170c80-5 160 15 280 70v260H0z" fill="#ffffff" opacity="0.05" />
+  <path d="M0 360c160-50 280-40 440 10s340 50 480-10 220-180 360-190c120-10 210 60 320 110v320H0z" fill="#fbc2eb" opacity="0.08" />
+</svg>
