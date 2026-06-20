@@ -127,11 +127,31 @@ class SimpleTextingService:
                     }
                 else:
                     error_msg = response.text
-                    logger.error(f"❌ SimpleTexting API error: {response.status_code} - {error_msg}")
+                    error_details = None
+                    try:
+                        error_json = response.json()
+                        if isinstance(error_json, dict):
+                            error_details = (
+                                error_json.get("message")
+                                or error_json.get("error")
+                                or error_json.get("detail")
+                            )
+                            if not error_details:
+                                error_details = str(error_json)
+                    except ValueError:
+                        # Response was not JSON
+                        error_details = None
+
+                    logger.error(
+                        "❌ SimpleTexting API error: %s - %s",
+                        response.status_code,
+                        error_details or error_msg,
+                    )
                     return {
                         "success": False,
                         "error": f"SimpleTexting API error: {response.status_code}",
-                        "details": error_msg
+                        "details": error_details or error_msg,
+                        "status_code": response.status_code,
                     }
         
         except httpx.TimeoutException:
@@ -216,10 +236,31 @@ class SimpleTextingService:
                         "provider": "simpletexting"
                     }
                 else:
-                    logger.error(f"❌ SimpleTexting API error: {response.status_code}")
+                    error_msg = response.text
+                    error_details = None
+                    try:
+                        error_json = response.json()
+                        if isinstance(error_json, dict):
+                            error_details = (
+                                error_json.get("message")
+                                or error_json.get("error")
+                                or error_json.get("detail")
+                            )
+                            if not error_details:
+                                error_details = str(error_json)
+                    except ValueError:
+                        error_details = None
+
+                    logger.error(
+                        "❌ SimpleTexting API error: %s - %s",
+                        response.status_code,
+                        error_details or error_msg,
+                    )
                     return {
                         "success": False,
-                        "error": f"SimpleTexting API error: {response.status_code}"
+                        "error": f"SimpleTexting API error: {response.status_code}",
+                        "details": error_details or error_msg,
+                        "status_code": response.status_code,
                     }
         
         except Exception as e:

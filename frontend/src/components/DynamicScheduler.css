@@ -411,17 +411,22 @@
 /* Action Buttons */
 .job-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .btn-icon {
   background: none;
   border: 1px solid var(--border-color);
-  border-radius: 50px !important;
-  padding: 0.5rem;
-  font-size: 1rem;
+  border-radius: 999px !important;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  padding: 0;
 }
 
 .btn-icon:hover {
@@ -654,13 +659,14 @@
     padding: 0.3rem 0.6rem;
   }
 
-  .job-actions {
+    .job-actions {
     gap: 0.25rem;
   }
 
   .btn-icon {
-    padding: 0.4rem;
-    font-size: 0.9rem;
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
   }
 
   .pagination {
