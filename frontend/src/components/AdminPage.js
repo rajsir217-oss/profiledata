@@ -202,7 +202,8 @@ const AdminPage = () => {
       
       // Update user status via API
       await adminApi.patch(`/api/admin/users/${selectedUserForStatus.username}/status`, {
-        status: selectedStatus
+        status: selectedStatus,
+        reason: statusChangeReason || undefined
       });
       
       setSuccessMsg(`✅ Status updated to "${selectedStatus}" for ${selectedUserForStatus.username}`);
