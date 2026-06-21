@@ -5,6 +5,7 @@ Redis-based caching for notification preferences and templates
 
 import json
 import logging
+import os
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 import redis.asyncio as redis
@@ -21,16 +22,22 @@ class NotificationCacheService:
         self.default_ttl = 3600  # 1 hour default TTL
         
     async def connect(self):
-        """Initialize Redis connection"""
+        """Initialize Redis connection with bounded pool"""
         try:
+            max_conn = int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
             self.redis_client = redis.from_url(
                 self.redis_url,
                 encoding="utf-8",
-                decode_responses=True
+                decode_responses=True,
+                max_connections=max_conn,
+                socket_connect_timeout=5,
+                socket_keepalive=True,
             )
-            # Test connection
             await self.redis_client.ping()
-            logger.info("✅ Notification cache service connected to Redis")
+            logger.info(
+                f"✅ Notification cache service connected to Redis "
+                f"(pool max_connections={max_conn})"
+            )
             return True
         except Exception as e:
             logger.warning(f"⚠️ Failed to connect to Redis: {e}")
@@ -38,7 +45,7 @@ class NotificationCacheService:
             return False
     
     async def disconnect(self):
-        """Close Redis connection"""
+        """Close Redis connection pool"""
         if self.redis_client:
             await self.redis_client.close()
             logger.info("📦 Notification cache service disconnected from Redis")

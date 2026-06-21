@@ -13,7 +13,6 @@ from bson import ObjectId
 from database import get_database
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from crypto_utils import get_encryptor
-from services.notification_service import NotificationService
 import re
 
 router = APIRouter(prefix="/api/users/account", tags=["account-deletion"])
@@ -377,10 +376,22 @@ async def get_user_profile_views(username: str, db) -> list:
     return views
 
 
+def _resolve_user_email(user: dict) -> Optional[str]:
+    """Resolve a user's email, decrypting PII-encrypted values when needed."""
+    to_email = user.get("email") or user.get("contactEmail")
+    if not to_email:
+        return None
+    if isinstance(to_email, str) and to_email.startswith("gAAAAA"):
+        try:
+            to_email = get_encryptor().decrypt(to_email)
+        except Exception as e:
+            logger.error(f"Failed to decrypt email for {user.get('username')}: {e}")
+            return None
+    return to_email
+
+
 async def send_deletion_confirmation_email(user: dict, scheduled_date: datetime, data_export_url: Optional[str], db):
     """Send deletion confirmation email"""
-    notification_service = NotificationService(db)
-    
     first_name = user.get("firstName", user.get("username"))
     
     # Build data export section separately to avoid f-string backslash issues
@@ -411,20 +422,26 @@ async def send_deletion_confirmation_email(user: dict, scheduled_date: datetime,
     The L3V3L Team
     """
     
-    await notification_service.queue_notification(
-        username=user.get("username"),
-        notification_type="account_deletion_confirmation",
-        channel="email",
-        title="Account Deletion Requested - You Have 30 Days",
-        message=message,
-        metadata={"scheduled_date": scheduled_date.isoformat()}
-    )
+    to_email = _resolve_user_email(user)
+    if not to_email:
+        logger.warning(f"Cannot send deletion confirmation email - no email for {user.get('username')}")
+        return
+    
+    try:
+        from services.email_sender import send_custom_email
+        await send_custom_email(
+            to_email=to_email,
+            to_name=first_name,
+            subject="Account Deletion Requested - You Have 30 Days",
+            message=message
+        )
+    except Exception as e:
+        # Email failure must not break the deletion request itself.
+        logger.error(f"Failed to send deletion confirmation email to {to_email}: {e}")
 
 
 async def send_reactivation_email(user: dict, db):
     """Send reactivation confirmation email"""
-    notification_service = NotificationService(db)
-    
     first_name = user.get("firstName", user.get("username"))
     
     message = f"""
@@ -443,10 +460,18 @@ async def send_reactivation_email(user: dict, db):
     The L3V3L Team
     """
     
-    await notification_service.queue_notification(
-        username=user.get("username"),
-        notification_type="account_reactivation",
-        channel="email",
-        title="Welcome Back - Account Reactivated",
-        message=message
-    )
+    to_email = _resolve_user_email(user)
+    if not to_email:
+        logger.warning(f"Cannot send reactivation email - no email for {user.get('username')}")
+        return
+    
+    try:
+        from services.email_sender import send_custom_email
+        await send_custom_email(
+            to_email=to_email,
+            to_name=first_name,
+            subject="Welcome Back - Account Reactivated",
+            message=message
+        )
+    except Exception as e:
+        logger.error(f"Failed to send reactivation email to {to_email}: {e}")
