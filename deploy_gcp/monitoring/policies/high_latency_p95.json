@@ -1,0 +1,34 @@
+{
+  "displayName": "Backend - High request latency (p95)",
+  "documentation": {
+    "content": "The 95th-percentile request latency exceeded 2000 ms for 5 minutes. This can indicate slow database queries (e.g., un-indexed user search), Redis contention, or downstream API slowness. Review the slowest endpoints in the Cloud Run metrics and the search query indexes.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "p95 latency > 2000ms (5m)",
+      "conditionThreshold": {
+        "filter": "resource.type = \"cloud_run_revision\" AND resource.label.\"service_name\" = \"matrimonial-backend\" AND metric.type = \"run.googleapis.com/request_latencies\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_PERCENTILE_95",
+            "crossSeriesReducer": "REDUCE_MAX"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 2000,
+        "duration": "300s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "1800s"
+  },
+  "notificationChannels": ["__NOTIFICATION_CHANNEL__"],
+  "enabled": true
+}

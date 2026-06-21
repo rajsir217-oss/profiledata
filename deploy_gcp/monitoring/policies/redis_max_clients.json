@@ -1,0 +1,34 @@
+{
+  "displayName": "Backend - Redis max clients reached",
+  "documentation": {
+    "content": "The backend hit the Redis 'max number of clients reached' limit. This indicates a connection leak or that REDIS_MAX_CONNECTIONS/SSE_MAX_CONNECTIONS x instance count exceeds the Redis tier's maxclients. Check pool sizing in fastapi_backend (websocket_manager.py, redis_manager.py, sse_manager.py, notification_cache.py) and consider lowering max-instances or upgrading the Redis tier.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "redis_max_clients count > 0 (5m)",
+      "conditionThreshold": {
+        "filter": "resource.type = \"cloud_run_revision\" AND metric.type = \"logging.googleapis.com/user/redis_max_clients\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "1800s"
+  },
+  "notificationChannels": ["__NOTIFICATION_CHANNEL__"],
+  "enabled": true
+}
