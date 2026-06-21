@@ -205,12 +205,13 @@ ROLE_LIMITS = {
         "search_results_max": 100
     },
     "free_user": {
-        "favorites_max": 1,
-        "shortlist_max": 1,
-        "messages_per_day": 1,
-        "profile_views_per_day": 1,
-        "pii_requests_per_month": 1,
-        "search_results_max": 1
+        # Temporarily unlocked to match premium limits. Restore tighter caps when ready.
+        "favorites_max": None,
+        "shortlist_max": None,
+        "messages_per_day": None,
+        "profile_views_per_day": None,
+        "pii_requests_per_month": 10,
+        "search_results_max": 100
     }
 }
 
