@@ -1,0 +1,34 @@
+{
+  "displayName": "Backend - Error log spike",
+  "documentation": {
+    "content": "The backend is emitting an elevated rate of ERROR-severity logs (more than 50 in a 5-minute window). Inspect recent logs:\n\n```\ngcloud logging read 'resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"matrimonial-backend\" AND severity>=ERROR' --project=matrimonial-staging --limit=50\n```",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "backend_errors > 50 (5m)",
+      "conditionThreshold": {
+        "filter": "resource.type = \"cloud_run_revision\" AND metric.type = \"logging.googleapis.com/user/backend_errors\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 50,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "1800s"
+  },
+  "notificationChannels": ["__NOTIFICATION_CHANNEL__"],
+  "enabled": true
+}
