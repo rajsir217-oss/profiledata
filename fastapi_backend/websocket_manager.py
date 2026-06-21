@@ -51,7 +51,21 @@ if env == 'production' and redis_url:
         from socketio import AsyncRedisManager
         
         # Create Redis manager for session persistence across instances
-        manager = AsyncRedisManager(redis_url)
+        # Limit connection pool to avoid exhausting Redis maxclients when
+        # Cloud Run scales to many instances. Each instance gets at most
+        # MAX_REDIS_CONNECTIONS in its pool + 1 pubsub subscriber.
+        MAX_REDIS_CONNECTIONS = int(os.getenv('REDIS_MAX_CONNECTIONS', '5'))
+        manager = AsyncRedisManager(
+            redis_url,
+            redis_options={
+                'max_connections': MAX_REDIS_CONNECTIONS,
+                'socket_connect_timeout': 5,
+                'socket_keepalive': True,
+                'retry_on_timeout': True,
+                'health_check_interval': 30,
+            }
+        )
+        logger.info(f"   Redis pool max_connections={MAX_REDIS_CONNECTIONS}")
         
         sio = socketio.AsyncServer(
             async_mode='asgi',
@@ -240,8 +254,9 @@ async def messenger_typing(sid, data):
     from_username = user_sessions[sid]
 
     try:
-        from main import db
+        from database import get_database
         from bson import ObjectId
+        db = get_database()
         conv = await db.messenger_conversations.find_one({"_id": ObjectId(conversation_id)})
         if not conv:
             return
@@ -265,8 +280,9 @@ async def messenger_join_conversation(sid, data):
         return
     username = user_sessions[sid]
     try:
-        from main import db
+        from database import get_database
         from bson import ObjectId
+        db = get_database()
         conv = await db.messenger_conversations.find_one(
             {"_id": ObjectId(conversation_id), "participants.username": username},
             {"_id": 1},
@@ -299,7 +315,8 @@ async def messenger_mark_delivered(sid, data):
     username = user_sessions[sid]
     try:
         from services.messenger_service import update_message_status
-        from main import db
+        from database import get_database
+        db = get_database()
         await update_message_status(db, message_ids, "delivered", username)
         # Notify senders
         await _notify_status_change(db, message_ids, "delivered", username)
@@ -316,7 +333,8 @@ async def messenger_mark_read(sid, data):
     username = user_sessions[sid]
     try:
         from services.messenger_service import update_message_status
-        from main import db
+        from database import get_database
+        db = get_database()
         await update_message_status(db, message_ids, "read", username)
         # Notify senders
         await _notify_status_change(db, message_ids, "read", username)
@@ -347,7 +365,8 @@ async def _notify_status_change(db, message_ids, status, reader_username):
 @sio.event
 async def get_online_users(sid, data):
     """Get list of online users with profile info"""
-    from main import db
+    from database import get_database
+    db = get_database()
     
     usernames = list(online_users.keys())
     user_list = []

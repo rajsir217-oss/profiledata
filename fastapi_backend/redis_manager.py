@@ -14,13 +14,15 @@ logger = logging.getLogger(__name__)
 class RedisManager:
     """Manages Redis connections and operations for real-time features"""
     
-    def __init__(self, host='localhost', port=6379, db=0, password=None):
+    def __init__(self, host='localhost', port=6379, db=0, password=None, max_connections=10):
         self.host = host
         self.port = port
         self.db = db
         self.password = password
+        self.max_connections = max_connections
         self.redis_client: Optional[redis.Redis] = None
         self.pubsub = None
+        self._pool: Optional[redis.ConnectionPool] = None
         
         # Key prefixes
         self.ONLINE_PREFIX = "online:"
@@ -34,20 +36,25 @@ class RedisManager:
         self.TYPING_TTL = 5    # 5 seconds
         
     def connect(self):
-        """Establish connection to Redis"""
+        """Establish connection to Redis with bounded connection pool"""
         try:
-            self.redis_client = redis.Redis(
+            self._pool = redis.ConnectionPool(
                 host=self.host,
                 port=self.port,
                 db=self.db,
                 password=self.password,
                 decode_responses=True,
+                max_connections=self.max_connections,
                 socket_connect_timeout=5,
-                socket_keepalive=True
+                socket_keepalive=True,
             )
+            self.redis_client = redis.Redis(connection_pool=self._pool)
             # Test connection
             self.redis_client.ping()
-            logger.info(f"✅ Connected to Redis at {self.host}:{self.port}")
+            logger.info(
+                f"✅ Connected to Redis at {self.host}:{self.port} "
+                f"(pool max_connections={self.max_connections})"
+            )
             return True
         except redis.ConnectionError as e:
             logger.error(f"❌ Failed to connect to Redis: {e}")
@@ -57,10 +64,26 @@ class RedisManager:
             return False
     
     def disconnect(self):
-        """Close Redis connection"""
+        """Close Redis connection pool"""
+        if self.pubsub:
+            try:
+                self.pubsub.close()
+            except Exception:
+                pass
+            self.pubsub = None
         if self.redis_client:
-            self.redis_client.close()
-            logger.info("🔌 Redis connection closed")
+            try:
+                self.redis_client.close()
+            except Exception:
+                pass
+            self.redis_client = None
+        if self._pool:
+            try:
+                self._pool.disconnect()
+            except Exception:
+                pass
+            self._pool = None
+        logger.info("🔌 Redis connection pool closed")
     
     # ===== ONLINE/OFFLINE STATUS =====
     
@@ -448,10 +471,12 @@ redis_host = parsed.hostname or 'localhost'
 redis_port = parsed.port or 6379
 redis_password = parsed.password
 
+redis_max_conn = int(os.getenv('REDIS_MAX_CONNECTIONS', '10'))
 redis_manager = RedisManager(
     host=redis_host,
     port=redis_port,
-    password=redis_password
+    password=redis_password,
+    max_connections=redis_max_conn
 )
 
 

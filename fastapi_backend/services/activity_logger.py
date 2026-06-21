@@ -28,12 +28,16 @@ class ActivityLogger:
         """Initialize the activity logger and create indexes"""
         try:
             # Check if TTL index exists with wrong config and drop it
+            TARGET_TTL = 10368000  # 120 days
             existing_indexes = await self.collection.index_information()
             if "timestamp_1" in existing_indexes:
                 index_info = existing_indexes["timestamp_1"]
-                # If it doesn't have expireAfterSeconds, drop it
-                if "expireAfterSeconds" not in index_info:
-                    logger.warning("⚠️ Dropping old timestamp index without TTL")
+                current_ttl = index_info.get("expireAfterSeconds")
+                # Drop if it doesn't have expireAfterSeconds OR if the TTL duration differs
+                if current_ttl is None or current_ttl != TARGET_TTL:
+                    logger.warning(
+                        f"⚠️ Dropping timestamp_1 index (current TTL={current_ttl}, expected={TARGET_TTL})"
+                    )
                     await self.collection.drop_index("timestamp_1")
             
             # Create indexes for performance
@@ -212,7 +216,12 @@ class ActivityLogger:
             {"$limit": 10}
         ]
         top_actions_cursor = self.collection.aggregate(pipeline)
-        top_actions = {doc["_id"]: doc["count"] async for doc in top_actions_cursor}
+        # Coerce null/None action_type keys (legacy logs without action_type) to
+        # "unknown" so the Dict[str, int] ActivityStats model never fails validation.
+        top_actions = {
+            (doc["_id"] if doc["_id"] is not None else "unknown"): doc["count"]
+            async for doc in top_actions_cursor
+        }
         
         # Most active users
         pipeline = [
