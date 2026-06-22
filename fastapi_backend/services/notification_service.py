@@ -48,19 +48,26 @@ class NotificationService:
     # ============================================
     
     async def get_preferences(self, username: str) -> Optional[NotificationPreferences]:
-        """Get user notification preferences"""
+        """Get user notification preferences."""
         # Try cache first if available
         if self.cache_service:
             cached_prefs = await self.cache_service.get_user_preferences(username, self.db)
             if cached_prefs:
-                return NotificationPreferences(**cached_prefs)
+                cached_dict = (
+                    cached_prefs.dict()
+                    if isinstance(cached_prefs, NotificationPreferences)
+                    else dict(cached_prefs)
+                )
+                normalized_cached = await self._ensure_compliance_channels(username, cached_dict)
+                return NotificationPreferences(**normalized_cached)
         
         # Fallback to database
-        prefs = await self.preferences_collection.find_one({"username": username})
-        if not prefs:
+        prefs_doc = await self.preferences_collection.find_one({"username": username})
+        if not prefs_doc:
             # Return default preferences
             return await self.create_default_preferences(username)
-        return NotificationPreferences(**prefs)
+        normalized_prefs = await self._ensure_compliance_channels(username, prefs_doc)
+        return NotificationPreferences(**normalized_prefs)
     
     async def create_default_preferences(self, username: str) -> NotificationPreferences:
         """Create default preferences for new user - Daily Digest is DEFAULT for all users"""
@@ -139,6 +146,53 @@ class NotificationService:
         
         await self.preferences_collection.insert_one(default_prefs.dict())
         return default_prefs
+
+    async def _ensure_compliance_channels(self, username: str, prefs_doc: Dict[str, Any]) -> Dict[str, Any]:
+        """Guarantee compliance triggers always deliver via email."""
+        channels = prefs_doc.get("channels") or {}
+
+        # Normalize keys to string values for easier comparison
+        normalized_channels: Dict[str, List[str]] = {}
+        for key, value in channels.items():
+            if isinstance(key, NotificationTrigger):
+                key_str = key.value
+            else:
+                key_str = str(key)
+
+            if isinstance(value, list):
+                values_list = value
+            else:
+                values_list = [value]
+
+            normalized_channels[key_str] = [
+                item.value if isinstance(item, NotificationChannel) else str(item)
+                for item in values_list
+                if item is not None
+            ]
+
+        needs_update = False
+        for trigger in COMPLIANCE_ENFORCEMENT_TRIGGERS:
+            trigger_key = trigger.value
+            existing = normalized_channels.get(trigger_key, [])
+            desired = [NotificationChannel.EMAIL.value]
+
+            if existing != desired:
+                normalized_channels[trigger_key] = desired
+                needs_update = True
+
+        if needs_update:
+            updated_at = datetime.utcnow()
+            prefs_doc["channels"] = normalized_channels
+            prefs_doc["updatedAt"] = updated_at
+            await self.preferences_collection.update_one(
+                {"username": username},
+                {"$set": {"channels": normalized_channels, "updatedAt": updated_at}},
+                upsert=True,
+            )
+        else:
+            prefs_doc["channels"] = normalized_channels
+
+        return prefs_doc
     
     async def update_preferences(
         self,
@@ -934,21 +988,32 @@ class NotificationService:
             allowed_channels = channels
             if not force_send:
                 prefs = await self.get_preferences(username)
-                user_channels = prefs.channels.get(trigger_enum.value if hasattr(trigger_enum, 'value') else trigger, [])
-                # Convert user preference channels to strings for comparison
-                user_channel_strs = [ch.value if hasattr(ch, 'value') else str(ch) for ch in user_channels]
-                allowed_channels = [ch for ch in channels if ch in user_channel_strs]
-                
-                if not allowed_channels:
-                    if trigger_enum in COMPLIANCE_ENFORCEMENT_TRIGGERS:
-                        allowed_channels = channels
-                    else:
-                        logger.debug(f"User {username} has no enabled channels for {trigger} (requested: {channels}, allowed: {user_channel_strs})")
+                compliance_override = trigger_enum in COMPLIANCE_ENFORCEMENT_TRIGGERS
+                user_pref_entry = prefs.channels.get(
+                    trigger_enum,
+                    prefs.channels.get(getattr(trigger_enum, "value", trigger), []),
+                )
+                user_channel_strs = [
+                    ch.value if isinstance(ch, NotificationChannel) else str(ch)
+                    for ch in user_pref_entry
+                ]
+
+                if not compliance_override:
+                    allowed_channels = [ch for ch in channels if ch in user_channel_strs]
+
+                    if not allowed_channels:
+                        logger.debug(
+                            f"User {username} has no enabled channels for {trigger} "
+                            f"(requested: {channels}, allowed: {user_channel_strs})"
+                        )
                         return None
 
-                if len(allowed_channels) < len(channels):
-                    skipped = [ch for ch in channels if ch not in user_channel_strs]
-                    logger.debug(f"Filtered out channels {skipped} for {username}/{trigger} (user prefs: {user_channel_strs})")
+                    if len(allowed_channels) < len(channels):
+                        skipped = [ch for ch in channels if ch not in user_channel_strs]
+                        logger.debug(
+                            f"Filtered out channels {skipped} for {username}/{trigger} "
+                            f"(user prefs: {user_channel_strs})"
+                        )
 
             
             # Create SEPARATE queue entries per channel to allow independent processing
@@ -971,6 +1036,13 @@ class NotificationService:
                     
                     # Enqueue (force_send since we already checked preferences above)
                     last_result = await self.enqueue_notification(queue_data, force_send=force_send)
+                    if last_result and channel_enum == NotificationChannel.EMAIL:
+                        logger.info(
+                            "on added to email event queue for notification: %s/%s (queue_id=%s)",
+                            username,
+                            trigger_enum.value if hasattr(trigger_enum, "value") else str(trigger_enum),
+                            getattr(last_result, "id", None),
+                        )
                 except Exception as channel_error:
                     logger.warning(f"⚠️ Failed to queue {channel} notification for {username}/{trigger}: {channel_error}")
                     # Continue with other channels
