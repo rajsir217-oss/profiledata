@@ -361,15 +361,40 @@ class MissingProfilePhotosJob(JobTemplate):
             "$expr": {"$eq": [0, meaningful_image_count_expr]}
         }
 
+        def _phone_entries_from_obj_array(field_name: str) -> Dict[str, Any]:
+            """For fields that store arrays of {number: ..., label: ...} objects,
+            map each element to its .number string (falls back to the element itself
+            if it is already a plain string)."""
+            field_ref = f"${field_name}"
+            return {
+                "$cond": [
+                    {"$isArray": field_ref},
+                    {
+                        "$map": {
+                            "input": field_ref,
+                            "as": "entry",
+                            "in": {
+                                "$cond": [
+                                    {"$eq": [{"$type": "$$entry"}, "object"]},
+                                    "$$entry.number",
+                                    "$$entry",
+                                ]
+                            },
+                        }
+                    },
+                    [],
+                ]
+            }
+
         phone_entries_expr = {
             "$concatArrays": [
                 _field_to_array_expr("phone"),
                 _field_to_array_expr("phones"),
-                _field_to_array_expr("phoneNumbers"),
+                _phone_entries_from_obj_array("phoneNumbers"),
                 _field_to_array_expr("contactPhone"),
-                _field_to_array_expr("contactPhones"),
+                _phone_entries_from_obj_array("contactPhones"),
                 _field_to_array_expr("contactNumber"),
-                _field_to_array_expr("contactNumbers"),
+                _phone_entries_from_obj_array("contactNumbers"),
                 _field_to_array_expr("primaryPhone"),
             ]
         }
