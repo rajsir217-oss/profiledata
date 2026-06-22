@@ -54,6 +54,19 @@ def _has_profile_photos(user: Dict[str, Any]) -> bool:
     return False
 
 
+def _coerce_datetime(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            if value.endswith("Z"):
+                value = value[:-1] + "+00:00"
+            return datetime.fromisoformat(value)
+        except Exception:
+            return None
+    return None
+
+
 def _is_valid_us_number(digits: str) -> bool:
     """Validate a 10-digit US number against NANP rules and reject bogus patterns.
 
@@ -299,7 +312,46 @@ class MissingProfilePhotosJob(JobTemplate):
                     "input": image_entries_expr,
                     "as": "img",
                     "cond": {
-                        "$gt": [{"$strLenCP": _as_trimmed_string("$$img")}, 0]
+                        "$or": [
+                            {"$gt": [{"$strLenCP": _as_trimmed_string("$$img")}, 0]},
+                            {
+                                "$and": [
+                                    {"$eq": [{"$type": "$$img"}, "object"]},
+                                    {
+                                        "$gt": [
+                                            {
+                                                "$size": {
+                                                    "$filter": {
+                                                        "input": {
+                                                            "$objectToArray": {
+                                                                "$cond": [
+                                                                    {"$eq": [{"$type": "$$img"}, "object"]},
+                                                                    "$$img",
+                                                                    {"$convert": {
+                                                                        "input": "$$img",
+                                                                        "to": "object",
+                                                                        "onNull": {},
+                                                                        "onError": {},
+                                                                    }},
+                                                                ]
+                                                            }
+                                                        },
+                                                        "as": "imgField",
+                                                        "cond": {
+                                                            "$gt": [
+                                                                {"$strLenCP": _as_trimmed_string("$$imgField.v")},
+                                                                0,
+                                                            ]
+                                                        },
+                                                    }
+                                                }
+                                            },
+                                            0,
+                                        ]
+                                    },
+                                ]
+                            },
+                        ]
                     },
                 }
             }
@@ -328,17 +380,7 @@ class MissingProfilePhotosJob(JobTemplate):
                     "input": phone_entries_expr,
                     "as": "value",
                     "cond": {
-                        "$regexMatch": {
-                            "input": {
-                                "$convert": {
-                                    "input": "$$value",
-                                    "to": "string",
-                                    "onNull": "",
-                                    "onError": "",
-                                }
-                            },
-                            "regex": "\\\\d{7,}",
-                        }
+                        "$gt": [{"$strLenCP": _as_trimmed_string("$$value")}, 0]
                     },
                 }
             }
@@ -394,6 +436,11 @@ class MissingProfilePhotosJob(JobTemplate):
 
         warning_candidates_checked = 0
         suspend_candidates_checked = 0
+        warning_skipped_no_username = 0
+        warning_skipped_no_issue = 0
+        warning_skipped_pending_notification = 0
+        warning_skipped_recent_delivery = 0
+        warning_skip_detail_logs = 0
         photo_issue_warnings = 0
         phone_issue_warnings = 0
         photo_issue_suspensions = 0
@@ -474,6 +521,7 @@ class MissingProfilePhotosJob(JobTemplate):
                 )
 
             # ── Phase 1: Send warnings (account ≥ warning_days old, no prior warning) ──
+            context.log("info", f"[Phase 1] Scanning for users with missing photos or invalid phones (account age ≥ {warning_days}d, no prior warning)…")
             warn_query = {
                 "$and": [
                     {"accountStatus": "active"},
@@ -487,6 +535,8 @@ class MissingProfilePhotosJob(JobTemplate):
                     },
                 ]
             }
+            warn_count = await db.users.count_documents(warn_query)
+            context.log("info", f"[Phase 1] Warning candidates eligible this run: {warn_count}")
             warn_cursor = db.users.find(warn_query).sort("createdAt", 1).limit(batch_size * 10)
 
             async for user in warn_cursor:
@@ -494,12 +544,72 @@ class MissingProfilePhotosJob(JobTemplate):
 
                 username = user.get("username")
                 if not username:
+                    warning_skipped_no_username += 1
                     continue
 
                 photo_missing, phone_issue, phone_details, summary = analyse_user_compliance(user)
 
                 if not (photo_missing or phone_issue):
+                    warning_skipped_no_issue += 1
+                    if warning_skip_detail_logs < 10 or username == "testuser123":
+                        image_sources = {
+                            "images": user.get("images"),
+                            "publicImages": user.get("publicImages"),
+                            "profilePhotos": user.get("profilePhotos"),
+                        }
+                        phone_sources = {
+                            "phone": user.get("phone"),
+                            "contactPhone": user.get("contactPhone"),
+                            "contactNumber": user.get("contactNumber"),
+                            "contactNumbers": user.get("contactNumbers"),
+                        }
+                        def _clip(value: Any) -> Any:
+                            text = repr(value)
+                            return text[:180] + "…" if len(text) > 180 else text
+
+                        image_snapshot = {k: _clip(v) for k, v in image_sources.items() if v}
+                        phone_snapshot = {k: _clip(v) for k, v in phone_sources.items() if v}
+                        image_count = len(user.get("images") or []) + len(user.get("publicImages") or []) + len(user.get("profilePhotos") or [])
+                        context.log(
+                            "DEBUG",
+                            (
+                                "Skip warning — %s appears compliant (photo_missing=%s, phone_issue=%s, "
+                                "raw_phone=%s, normalized=%s, image_count=%s, image_snapshot=%s, phone_snapshot=%s)"
+                            ) % (
+                                username,
+                                photo_missing,
+                                phone_issue,
+                                phone_details.get("raw_phone"),
+                                phone_details.get("normalized_phone"),
+                                image_count,
+                                image_snapshot,
+                                phone_snapshot,
+                            ),
+                        )
+                        warning_skip_detail_logs += 1
                     continue
+
+                existing_warning_at = _coerce_datetime(user.get("missingPhotoWarningSentAt"))
+
+                if not dry_run and existing_warning_at:
+                    active_notification = await notification_service.queue_collection.find_one({
+                        "username": username,
+                        "trigger": "missing_photo_warning",
+                        "status": {"$in": ["pending", "scheduled", "processing"]},
+                    })
+                    if active_notification:
+                        warning_skipped_pending_notification += 1
+                        continue
+
+                    recent_threshold = datetime.utcnow() - timedelta(days=1)
+                    recent_delivery = await notification_service.log_collection.find_one({
+                        "username": username,
+                        "trigger": "missing_photo_warning",
+                        "createdAt": {"$gte": recent_threshold},
+                    })
+                    if recent_delivery and existing_warning_at >= recent_threshold:
+                        warning_skipped_recent_delivery += 1
+                        continue
 
                 try:
                     first_name = user.get("firstName", username)
@@ -523,13 +633,21 @@ class MissingProfilePhotosJob(JobTemplate):
                     }
 
                     if not dry_run:
-                        await notification_service.queue_notification(
+                        context.log("info", f"[Phase 1] Queuing warning email for {username} ({issue_description if not issue_parts else ', '.join(issue_parts)})")
+                        queue_result = await notification_service.queue_notification(
                             username=username,
                             trigger="missing_photo_warning",
                             channels=["email"],
                             template_data=template_data,
                             priority="medium",
+                            force_send=True,
                         )
+
+                        if not queue_result:
+                            raise RuntimeError(
+                                "Notification queue did not accept missing_photo_warning; unexpected None response"
+                            )
+                        context.log("info", f"[Phase 1] ✓ Warning email queued for {username}")
 
                         await db.users.update_one(
                             {"username": username},
@@ -592,8 +710,19 @@ class MissingProfilePhotosJob(JobTemplate):
             backlog_warn = max(0, total_warn - warnings_sent)
             if backlog_warn:
                 context.log("info", f"Warning backlog estimate: {backlog_warn} user(s) waiting (rerun job to continue)")
+            if warning_skipped_no_username or warning_skipped_no_issue or warning_skipped_pending_notification or warning_skipped_recent_delivery:
+                context.log(
+                    "DEBUG",
+                    (
+                        "Warning skips — no username: "
+                        f"{warning_skipped_no_username}, no remaining issue: {warning_skipped_no_issue}, "
+                        f"pending notifications: {warning_skipped_pending_notification}, "
+                        f"recent deliveries: {warning_skipped_recent_delivery}"
+                    ),
+                )
 
             # ── Phase 2: Suspend (warning sent ≥ grace_days ago, still no photos) ──
+            context.log("info", f"[Phase 2] Scanning for users to suspend (warning sent ≥ {grace_days}d ago, still non-compliant)…")
             suspend_query = {
                 "$and": [
                     {"accountStatus": "active"},
@@ -613,6 +742,8 @@ class MissingProfilePhotosJob(JobTemplate):
                     },
                 ]
             }
+            suspend_count = await db.users.count_documents(suspend_query)
+            context.log("info", f"[Phase 2] Suspension candidates eligible this run: {suspend_count}")
             suspend_cursor = db.users.find(suspend_query).sort("missingPhotoWarningSentAt", 1).limit(batch_size * 10)
 
             async for user in suspend_cursor:
@@ -699,12 +830,15 @@ class MissingProfilePhotosJob(JobTemplate):
                                 "updated_by": updated_by,
                             }
 
+                        context.log("info", f"[Phase 2] Updating {username} → accountStatus=suspended (reason: {reason})")
                         await db.users.update_one(
                             {"username": username},
                             {"$set": status_update},
                         )
+                        context.log("info", f"[Phase 2] ✓ {username} account suspended")
 
                         # Send suspension email
+                        context.log("info", f"[Phase 2] Queuing suspension email for {username}")
                         await notification_service.queue_notification(
                             username=username,
                             trigger="missing_photo_suspended",
@@ -712,6 +846,7 @@ class MissingProfilePhotosJob(JobTemplate):
                             template_data=template_data,
                             priority="high",
                         )
+                        context.log("info", f"[Phase 2] ✓ Suspension email queued for {username}")
 
                     suspensions += 1
                     if photo_missing:
@@ -788,6 +923,10 @@ class MissingProfilePhotosJob(JobTemplate):
                     "active_non_compliant_photo_only": active_non_compliant_photo_only,
                     "active_non_compliant_phone_only": active_non_compliant_phone_only,
                     "active_non_compliant_both": active_non_compliant_both,
+                    "warning_skip_no_username": warning_skipped_no_username,
+                    "warning_skip_no_issue": warning_skipped_no_issue,
+                    "warning_skip_pending_notification": warning_skipped_pending_notification,
+                    "warning_skip_recent_delivery": warning_skipped_recent_delivery,
                 },
                 records_processed=warning_candidates_checked + suspend_candidates_checked,
                 records_affected=total,
