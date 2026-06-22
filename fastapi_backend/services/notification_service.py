@@ -548,6 +548,11 @@ class NotificationService:
         # Handle conditional blocks {% if condition %}...{% endif %}
         result = self._process_conditionals(result, variables)
         
+        # Strip any remaining unresolved placeholders (e.g. {match.profileId} with no match data)
+        import re
+        result = re.sub(r'\{\{[\w. ]+\}\}', '', result)  # {{var}} or {{var.nested}}
+        result = re.sub(r'\{[\w.]+\}', '', result)        # {var} or {var.nested}
+        
         return result
     
     def _process_for_loops(self, template: str, variables: Dict[str, Any]) -> str:
