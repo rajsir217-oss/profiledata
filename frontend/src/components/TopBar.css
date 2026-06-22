@@ -729,6 +729,11 @@
   filter: brightness(1.08);
 }
 
+.btn-messenger-app.is-open {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.6);
+}
+
 .btn-messenger-app:active {
   transform: scale(0.95);
 }
@@ -741,6 +746,83 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.messenger-menu-container {
+  position: relative;
+  z-index: 2100;
+}
+
+.messenger-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 220px;
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  backdrop-filter: blur(10px);
+}
+
+.messenger-menu-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 18px;
+  width: 16px;
+  height: 16px;
+  background: var(--card-background);
+  border-left: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
+  transform: rotate(45deg);
+}
+
+.messenger-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: transparent;
+  color: var(--text-color);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.messenger-menu-item:hover,
+.messenger-menu-item:focus {
+  background: var(--hover-background);
+  transform: translateX(4px);
+  text-decoration: none;
+}
+
+.messenger-menu-item-icon {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  font-size: 0.9rem;
+}
+
+.messenger-menu-item-label {
+  flex: 1;
+  text-align: left;
+}
+
+.messenger-menu-item:last-child .messenger-menu-item-icon {
+  background: linear-gradient(135deg, var(--info-color) 0%, var(--primary-color) 100%);
 }
 
 .btn-messages:hover {

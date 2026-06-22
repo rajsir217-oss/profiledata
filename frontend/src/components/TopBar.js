@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api, { createApiInstance } from '../api';
 import socketService from '../services/socketService';
@@ -44,6 +44,8 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const [savedSearchesForMenuLoadedAt, setSavedSearchesForMenuLoadedAt] = useState(null);
   const [nearMeRadiusMiles, setNearMeRadiusMiles] = useState(50);
   const showNearMeNewBadge = Date.now() < new Date(NEAR_ME_NEW_BADGE_EXPIRES_AT).getTime();
+  const [showMessengerMenu, setShowMessengerMenu] = useState(false);
+  const messengerMenuRef = useRef(null);
 
   const clampNearMeRadius = (value) => {
     const parsed = Number(value);
@@ -365,6 +367,20 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSearchMenu]);
 
+  useEffect(() => {
+    const handleClickOutsideMessenger = (e) => {
+      if (messengerMenuRef.current && !messengerMenuRef.current.contains(e.target)) {
+        setShowMessengerMenu(false);
+      }
+    };
+
+    if (showMessengerMenu) {
+      document.addEventListener('mousedown', handleClickOutsideMessenger);
+    }
+
+    return () => document.removeEventListener('mousedown', handleClickOutsideMessenger);
+  }, [showMessengerMenu]);
+
   // Load saved searches for the search menu when it opens
   useEffect(() => {
     if (!showSearchMenu || !currentUser) return;
@@ -501,6 +517,56 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
 
     return () => clearInterval(interval);
   }, [currentUser]);
+
+  const launchMessengerApp = useCallback(() => {
+    try {
+      const token = localStorage.getItem('token');
+      const username = localStorage.getItem('username');
+      const baseUrl = getMessengerUrl();
+
+      try {
+        logActivity(ActivityType.MESSENGER_OPENED, {
+          source: 'topbar',
+          target_url: baseUrl,
+          has_sso_token: !!token,
+        });
+      } catch (_) {
+        // logging failures should not block launcher
+      }
+
+      const params = new URLSearchParams();
+      if (token) params.set('token', token);
+      if (username) params.set('u', username);
+      const url = params.toString() ? `${baseUrl}/?${params.toString()}` : baseUrl;
+
+      const width = 420;
+      const height = 820;
+      const left = Math.max(0, (window.screen.availWidth - width) - 40);
+      const top = Math.max(0, (window.screen.availHeight - height) / 2);
+      const features = [
+        `width=${width}`,
+        `height=${height}`,
+        `left=${left}`,
+        `top=${top}`,
+        'menubar=no',
+        'toolbar=no',
+        'location=no',
+        'status=no',
+        'resizable=yes',
+        'scrollbars=yes',
+        'noopener=no',
+      ].join(',');
+
+      const popup = window.open(url, 'l3v3lMessenger', features);
+      if (popup) {
+        popup.focus();
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    } finally {
+      setShowMessengerMenu(false);
+    }
+  }, [ActivityType, logActivity]);
 
   // Auto-show urgency modal once per login session (or when urgency escalates)
   const prevUrgencyRef = useRef(null);
@@ -750,60 +816,42 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
           )}
           
           {/* Messenger App Launcher - opens standalone messenger in mobile-sized popup window with SSO */}
-          <button
-            className="btn-messenger-app"
-            onClick={() => {
-              const token = localStorage.getItem('token');
-              const username = localStorage.getItem('username');
-              const baseUrl = getMessengerUrl();
-              // Track that the user opened the messenger from the main app.
-              // Fire-and-forget; failures must not block the launcher.
-              try {
-                logActivity(ActivityType.MESSENGER_OPENED, {
-                  source: 'topbar',
-                  target_url: baseUrl,
-                  has_sso_token: !!token,
-                });
-              } catch (_) { /* noop */ }
-              // Pass token + username via URL so messenger can auto-login.
-              // Token is consumed and removed from URL on the messenger side.
-              const params = new URLSearchParams();
-              if (token) params.set('token', token);
-              if (username) params.set('u', username);
-              const url = params.toString() ? `${baseUrl}/?${params.toString()}` : baseUrl;
-
-              // Mobile-app-sized popup window (iPhone-ish dimensions).
-              // Named target 'l3v3lMessenger' ensures repeat clicks focus the existing window.
-              const width = 420;
-              const height = 820;
-              const left = Math.max(0, (window.screen.availWidth - width) - 40);
-              const top = Math.max(0, (window.screen.availHeight - height) / 2);
-              const features = [
-                `width=${width}`,
-                `height=${height}`,
-                `left=${left}`,
-                `top=${top}`,
-                'menubar=no',
-                'toolbar=no',
-                'location=no',
-                'status=no',
-                'resizable=yes',
-                'scrollbars=yes',
-                'noopener=no', // we want named-window focus behavior
-              ].join(',');
-
-              const popup = window.open(url, 'l3v3lMessenger', features);
-              if (popup) {
-                popup.focus();
-              } else {
-                // Popup blocked — fallback to new tab
-                window.open(url, '_blank', 'noopener,noreferrer');
-              }
-            }}
-            title="Open Messenger"
-          >
-            <span className="messenger-launcher-icon" aria-hidden="true">💬</span>
-          </button>
+          <div className="messenger-menu-container" ref={messengerMenuRef}>
+            <button
+              className={`btn-messenger-app ${showMessengerMenu ? 'is-open' : ''}`}
+              onClick={() => setShowMessengerMenu(prev => !prev)}
+              title="Messenger options"
+              aria-haspopup="menu"
+              aria-expanded={showMessengerMenu}
+              type="button"
+            >
+              <span className="messenger-launcher-icon" aria-hidden="true">💬</span>
+            </button>
+            {showMessengerMenu && (
+              <div className="messenger-menu-dropdown" role="menu" aria-label="Messenger actions">
+                <button
+                  type="button"
+                  className="messenger-menu-item"
+                  onClick={launchMessengerApp}
+                  role="menuitem"
+                >
+                  <span className="messenger-menu-item-icon" aria-hidden="true">🚀</span>
+                  <span className="messenger-menu-item-label">Open Messenger App</span>
+                </button>
+                <a
+                  className="messenger-menu-item"
+                  href="https://play.google.com/store/apps/details?id=com.l3v3lmessenger"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  role="menuitem"
+                  onClick={() => setShowMessengerMenu(false)}
+                >
+                  <span className="messenger-menu-item-icon" aria-hidden="true">📱</span>
+                  <span className="messenger-menu-item-label">Download Android App</span>
+                </a>
+              </div>
+            )}
+          </div>
 
           {/*
             Topbar messages dropdown intentionally disabled.
