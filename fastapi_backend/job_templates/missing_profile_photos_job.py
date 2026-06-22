@@ -309,7 +309,14 @@ class MissingProfilePhotosJob(JobTemplate):
                     "as": "value",
                     "cond": {
                         "$regexMatch": {
-                            "input": {"$toString": "$$value"},
+                            "input": {
+                                "$convert": {
+                                    "input": "$$value",
+                                    "to": "string",
+                                    "onNull": "",
+                                    "onError": "",
+                                }
+                            },
                             "regex": "\\\\d{7,}",
                         }
                     },
