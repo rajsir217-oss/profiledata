@@ -534,6 +534,35 @@ class MissingProfilePhotosJob(JobTemplate):
                     f" both: {active_non_compliant_both})",
                 )
 
+                # ── Diagnostic: why are non-compliant users not getting warned? ──
+                non_compliant_base = {
+                    "$and": [
+                        {"accountStatus": "active"},
+                        {"$or": [no_photo_filter, phone_missing_filter]},
+                    ]
+                }
+                too_new_count = await db.users.count_documents({
+                    "$and": [
+                        non_compliant_base,
+                        {"$nor": [created_at_warning_filter]},
+                    ]
+                })
+                already_warned_count = await db.users.count_documents({
+                    "$and": [
+                        non_compliant_base,
+                        created_at_warning_filter,
+                        {"missingPhotoWarningSentAt": {"$exists": True, "$ne": None}},
+                    ]
+                })
+                eligible_not_yet_warned = active_non_compliant_total - too_new_count - already_warned_count
+                context.log(
+                    "info",
+                    f"[Diagnostic] Non-compliant breakdown:"
+                    f" {too_new_count} account(s) too new (< {warning_days}d),"
+                    f" {already_warned_count} already warned (awaiting grace period or suspension),"
+                    f" {eligible_not_yet_warned} eligible for warning this run",
+                )
+
                 # Emit logs in small batches to avoid oversized log lines
                 log_chunk_size = 10
                 for i in range(0, len(non_compliant_entries), log_chunk_size):
@@ -544,6 +573,43 @@ class MissingProfilePhotosJob(JobTemplate):
                     "info",
                     "No active profiles currently missing photos or a valid phone number.",
                 )
+
+            # ── Pre-Phase 1: Clear stale warning timestamps (set by prior buggy runs without sending email) ──
+            context.log("info", "[Pre-Phase 1] Checking for stale warning timestamps (timestamp set but no notification log entry)…")
+            stale_warning_count = 0
+            stale_cursor = db.users.find({
+                "$and": [
+                    {"accountStatus": "active"},
+                    {"missingPhotoWarningSentAt": {"$exists": True, "$ne": None}},
+                    {"$or": [no_photo_filter, phone_missing_filter]},
+                ]
+            })
+            async for stale_user in stale_cursor:
+                stale_username = stale_user.get("username")
+                if not stale_username:
+                    continue
+                log_entry = await db.notification_log.find_one({
+                    "username": stale_username,
+                    "trigger": "missing_photo_warning",
+                })
+                if not log_entry:
+                    if not dry_run:
+                        await db.users.update_one(
+                            {"username": stale_username},
+                            {
+                                "$unset": {"missingPhotoWarningSentAt": ""},
+                                "$set": {"updated_at": datetime.utcnow()},
+                            },
+                        )
+                    stale_warning_count += 1
+                    context.log(
+                        "info",
+                        f"[Pre-Phase 1] {'[DRY RUN] ' if dry_run else ''}Cleared stale warning timestamp for {stale_username} — no notification log found, will re-warn",
+                    )
+            context.log(
+                "info",
+                f"[Pre-Phase 1] {'[DRY RUN] ' if dry_run else ''}{stale_warning_count} stale warning timestamp(s) cleared",
+            )
 
             # ── Phase 1: Send warnings (account ≥ warning_days old, no prior warning) ──
             context.log("info", f"[Phase 1] Scanning for users with missing photos or invalid phones (account age ≥ {warning_days}d, no prior warning)…")
