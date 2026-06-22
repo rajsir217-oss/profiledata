@@ -11,6 +11,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 
 from config import settings
+from services.registration_interest_helpers import mark_interest_activated
 
 logger = logging.getLogger(__name__)
 
@@ -310,6 +311,24 @@ class SMSVerificationService:
                 )
                 
                 logger.info(f"✅ Phone verified for {username} - account status updated to pending_admin_approval")
+
+                # Update matching registration interest, if any
+                try:
+                    email_value = user.get("contactEmail") or user.get("email")
+                    email_value = _decrypt_contact_info(email_value) if email_value else None
+                    if email_value:
+                        await mark_interest_activated(
+                            self.db,
+                            email_value,
+                            username,
+                            source="sms_verification",
+                        )
+                except Exception as interest_err:
+                    logger.warning(
+                        "Failed to mark registration interest activated for %s via SMS: %s",
+                        username,
+                        interest_err,
+                    )
                 
                 return {
                     "success": True,

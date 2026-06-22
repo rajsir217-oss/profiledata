@@ -11,7 +11,8 @@ const STATUS_CONFIG = {
   idme_sent: { label: 'ID.me Sent', color: 'var(--info-color, #3b82f6)', icon: '🛡️' },
   idme_verified: { label: 'ID.me Verified', color: 'var(--success-color, #10b981)', icon: '🛡️' },
   idme_failed: { label: 'ID.me Failed', color: 'var(--danger-color, #ef4444)', icon: '❌' },
-  invited: { label: 'Invited', color: 'var(--success-color, #10b981)', icon: '📧' },
+  invited: { label: 'Invited', color: 'var(--primary-color, #2563eb)', icon: '📧' },
+  activated: { label: 'Activated', color: 'var(--success-emphasis, #0ea5e9)', icon: '�' },
   rejected: { label: 'Rejected', color: 'var(--danger-color, #ef4444)', icon: '🚫' },
   archived: { label: 'Archived', color: 'var(--text-muted, #6b7280)', icon: '📦' }
 };
@@ -216,7 +217,7 @@ const AdminRegistrationInterests = () => {
       );
     }
 
-    if (s === 'invited' || (!interest.archived && hasExistingInvitation)) {
+    if (s === 'invited' || s === 'activated' || (!interest.archived && hasExistingInvitation)) {
       actions.push(
         <button key="archive" className="ari-action-btn ari-btn-secondary ari-btn-sm" onClick={() => handleArchive(id)} disabled={isLoading}>
           📦 Archive
@@ -255,7 +256,7 @@ const AdminRegistrationInterests = () => {
     }
 
     // Add send details button for all non-archived interests
-    if (!interest.archived && s !== 'invited') {
+    if (!interest.archived && !['invited', 'activated'].includes(s)) {
       actions.push(
         <button key="send-details" className="ari-action-btn ari-btn-secondary ari-btn-sm" onClick={() => setShowDetailsModal(id)} disabled={isLoading}>
           📧 Request Details
@@ -263,7 +264,7 @@ const AdminRegistrationInterests = () => {
       );
     }
 
-    // invited = terminal, no actions
+    // invited / activated = terminal, no additional actions
     return actions;
   };
 

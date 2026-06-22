@@ -470,7 +470,8 @@ async def _auto_send_invitation(interest: dict, db, verified_by: str = "system")
 
 VALID_STATUSES = [
     "pending_review", "reference_validated", "idme_sent",
-    "idme_verified", "idme_failed", "invited", "rejected"
+    "idme_verified", "idme_failed", "invited", "rejected",
+    "activated",
 ]
 
 
