@@ -301,8 +301,8 @@
 /* Online Count — same style as search/messages buttons */
 .btn-online-count {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 12px;
   border: none;
   background: rgba(255, 255, 255, 0.2);
@@ -418,8 +418,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   padding: 0;
 }
 
@@ -699,8 +699,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   padding: 0;
 }
 
@@ -717,8 +717,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
@@ -1368,8 +1368,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   padding: 0;
 }
 
@@ -1513,8 +1513,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   padding: 0;
 }
 
@@ -2119,8 +2119,8 @@
 }
 
 .btn-user-avatar {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 12px;
   border: none;
   background: rgba(255, 255, 255, 0.2);
