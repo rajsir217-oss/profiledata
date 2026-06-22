@@ -9,6 +9,8 @@ from datetime import datetime
 from database import get_database
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from auth.authorization import require_admin
+from crypto_utils import get_encryptor
+from services.registration_interest_helpers import mark_interest_activated
 import logging
 
 logger = logging.getLogger(__name__)
@@ -66,6 +68,11 @@ async def update_verification(
     try:
         admin_username = current_user.get('username')
         
+        # Fetch user for reference (needed for PII access)
+        user_doc = await db.users.find_one({'username': update.username})
+        if not user_doc:
+            raise HTTPException(status_code=404, detail="User not found")
+
         # Build update fields based on verification type
         update_fields = {}
         
@@ -103,13 +110,32 @@ async def update_verification(
             raise HTTPException(status_code=400, detail="Invalid verification type")
         
         # Update user
-        result = await db.users.update_one(
+        await db.users.update_one(
             {'username': update.username},
             {'$set': update_fields}
         )
-        
-        if result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="User not found")
+
+        # If admin verified email, mark any related registration interest as activated
+        if update.verificationType == "email" and update.verified:
+            email_value = user_doc.get("contactEmail") or user_doc.get("email")
+            if email_value and isinstance(email_value, str) and email_value.startswith('gAAAAA'):
+                try:
+                    encryptor = get_encryptor()
+                    email_value = encryptor.decrypt(email_value)
+                except Exception as decrypt_err:
+                    logger.warning(
+                        "Failed to decrypt contact email for %s during admin verification: %s",
+                        update.username,
+                        decrypt_err,
+                    )
+                    email_value = None
+            if email_value:
+                await mark_interest_activated(
+                    db,
+                    email_value,
+                    update.username,
+                    source="admin_verification",
+                )
         
         logger.info(f"Admin {admin_username} updated {update.verificationType} verification for {update.username} to {update.verified}")
         

@@ -12,6 +12,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from urllib.parse import quote, unquote
 from config import settings
 from crypto_utils import get_encryptor
+from services.registration_interest_helpers import mark_interest_activated
 import logging
 
 logger = logging.getLogger(__name__)
@@ -371,7 +372,25 @@ class EmailVerificationService:
             )
             
             logger.info(f"✅ User '{username}' email verified successfully")
-            
+
+            # Update matching registration interest, if any
+            try:
+                raw_email = user.get("contactEmail") or user.get("email")
+                decrypted_email = _decrypt_contact_info(raw_email) if raw_email else None
+                if decrypted_email:
+                    await mark_interest_activated(
+                        self.db,
+                        decrypted_email,
+                        username,
+                        source="email_verification",
+                    )
+            except Exception as interest_err:
+                logger.warning(
+                    "Failed to mark registration interest activated for %s: %s",
+                    username,
+                    interest_err,
+                )
+
             # Notify admin about new user pending approval
             await self._notify_admin_new_user(username)
             
