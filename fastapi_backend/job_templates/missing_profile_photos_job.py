@@ -224,6 +224,20 @@ class MissingProfilePhotosJob(JobTemplate):
 
         updated_by = context.job_name or context.triggered_by or "missing_profile_photos_job"
 
+        def _as_trimmed_string(value_ref: Any) -> Dict[str, Any]:
+            return {
+                "$trim": {
+                    "input": {
+                        "$convert": {
+                            "input": value_ref,
+                            "to": "string",
+                            "onNull": "",
+                            "onError": "",
+                        }
+                    }
+                }
+            }
+
         def _field_to_array_expr(field_name: str) -> Dict[str, Any]:
             """Mongo expression that returns the field as an array of non-empty raw values."""
             field_ref = f"${field_name}"
@@ -238,13 +252,7 @@ class MissingProfilePhotosJob(JobTemplate):
                                     {"$ne": [field_ref, None]},
                                     {
                                         "$gt": [
-                                            {
-                                                "$strLenCP": {
-                                                    "$trim": {
-                                                        "input": {"$toString": field_ref},
-                                                    }
-                                                }
-                                            },
+                                            {"$strLenCP": _as_trimmed_string(field_ref)},
                                             0,
                                         ]
                                     },
@@ -271,16 +279,7 @@ class MissingProfilePhotosJob(JobTemplate):
                     "input": image_entries_expr,
                     "as": "img",
                     "cond": {
-                        "$gt": [
-                            {
-                                "$strLenCP": {
-                                    "$trim": {
-                                        "input": {"$toString": "$$img"},
-                                    }
-                                }
-                            },
-                            0,
-                        ]
+                        "$gt": [{"$strLenCP": _as_trimmed_string("$$img")}, 0]
                     },
                 }
             }
