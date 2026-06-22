@@ -27,6 +27,7 @@ const AdminPage = () => {
   const [phoneSearch, setPhoneSearch] = useState(''); // Dedicated phone search
   const [genderFilter, setGenderFilter] = useState(''); // Gender filter
   const [statusFilter, setStatusFilter] = useState('pending_admin_approval'); // Default to Pending Admin Approval
+  const [updatedWithinFilter, setUpdatedWithinFilter] = useState(''); // Last updated window
   const [sortField, setSortField] = useState('username');
   const [sortOrder, setSortOrder] = useState('asc');
   const [displayCount, setDisplayCount] = useState(20);
@@ -135,6 +136,10 @@ const AdminPage = () => {
         params.append('phone_search', filters.phoneSearch);
       }
 
+      if (filters.updatedWithin) {
+        params.append('updated_within', filters.updatedWithin);
+      }
+
       // Fetch users with server-side filtering
       const response = await adminApi.get(`/api/admin/users?${params.toString()}`);
       setUsers(response.data.users || []);
@@ -168,7 +173,8 @@ const AdminPage = () => {
       gender: genderFilter,
       search: searchTerm,
       emailSearch: emailSearch,
-      phoneSearch: phoneSearch
+      phoneSearch: phoneSearch,
+      updatedWithin: updatedWithinFilter,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, genderFilter, loadUsers]);
@@ -180,7 +186,8 @@ const AdminPage = () => {
       gender: genderFilter,
       search: searchTerm.trim(),
       emailSearch: emailSearch.trim(),
-      phoneSearch: phoneSearch.trim()
+      phoneSearch: phoneSearch.trim(),
+      updatedWithin: updatedWithinFilter,
     });
   };
 
@@ -217,7 +224,9 @@ const AdminPage = () => {
         status: statusFilter,
         gender: genderFilter,
         search: searchTerm,
-        emailSearch: emailSearch
+        emailSearch: emailSearch,
+        phoneSearch: phoneSearch,
+        updatedWithin: updatedWithinFilter,
       });
       
       // Auto-hide success message
@@ -286,6 +295,40 @@ const AdminPage = () => {
   };
 
   // Calculate computed fields for a user
+  const getLatestUpdatedAt = useCallback((user) => {
+    if (!user) return null;
+    return user.updatedAt || user.updated_at || user.status?.updated_at || null;
+  }, []);
+
+  const formatRelativeTime = useCallback((value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+
+    const diffMs = Date.now() - date.getTime();
+    if (diffMs < 0) {
+      return date.toLocaleDateString();
+    }
+
+    const diffMinutes = Math.floor(diffMs / 60000);
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes} min${diffMinutes === 1 ? '' : 's'} ago`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} hr${diffHours === 1 ? '' : 's'} ago`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+
+    const diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths < 12) return `${diffMonths} mo${diffMonths === 1 ? '' : 's'} ago`;
+
+    const diffYears = Math.floor(diffDays / 365);
+    return `${diffYears} yr${diffYears === 1 ? '' : 's'} ago`;
+  }, []);
+
   const calculateComputedFields = (user) => {
     const now = new Date();
     
@@ -311,7 +354,8 @@ const AdminPage = () => {
     return {
       ...user,
       computedAge: age,
-      computedDaysActive: daysActive
+      computedDaysActive: daysActive,
+      latestUpdatedAt: getLatestUpdatedAt(user)
     };
   };
 
@@ -323,9 +367,14 @@ const AdminPage = () => {
     sorted.sort((a, b) => {
       let aVal = a[sortField] || '';
       let bVal = b[sortField] || '';
-      
-      if (typeof aVal === 'string') aVal = aVal.toLowerCase();
-      if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+
+      if (sortField === 'latestUpdatedAt') {
+        aVal = new Date(aVal || 0).getTime();
+        bVal = new Date(bVal || 0).getTime();
+      } else if (typeof aVal === 'string' && typeof bVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = bVal.toLowerCase();
+      }
 
       if (sortOrder === 'asc') {
         return aVal > bVal ? 1 : -1;
@@ -347,7 +396,7 @@ const AdminPage = () => {
   // Reset display count when search/filter changes
   useEffect(() => {
     setDisplayCount(recordsPerPage);
-  }, [searchTerm, genderFilter, statusFilter, sortField, sortOrder]);
+  }, [searchTerm, genderFilter, statusFilter, updatedWithinFilter, sortField, sortOrder]);
 
   // ESC key handler to close modals
   useEffect(() => {
@@ -487,6 +536,20 @@ const AdminPage = () => {
             <option value="banned">Banned</option>
           </select>
           
+          <select
+            className="form-select admin-filter-select"
+            value={updatedWithinFilter}
+            onChange={(e) => setUpdatedWithinFilter(e.target.value)}
+          >
+            <option value="">Updated Anytime</option>
+            <option value="24h">Updated in 24 hours</option>
+            <option value="48h">Updated in 48 hours</option>
+            <option value="7d">Updated in 7 days</option>
+            <option value="30d">Updated in 30 days</option>
+            <option value="60d">Updated in 60 days</option>
+            <option value="90d">Updated in 90 days</option>
+          </select>
+          
           <button
             className="admin-search-btn"
             onClick={handleSearch}
@@ -542,6 +605,9 @@ const AdminPage = () => {
               <th onClick={() => handleSort('adminApprovedBy')} style={{ cursor: 'pointer' }}>
                 APPRV BY {sortField === 'adminApprovedBy' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
+              <th onClick={() => handleSort('latestUpdatedAt')} style={{ cursor: 'pointer' }}>
+                UPDATED {sortField === 'latestUpdatedAt' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th onClick={() => handleSort('accountStatus')} style={{ cursor: 'pointer' }}>
                 STATUS {sortField === 'accountStatus' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
@@ -550,7 +616,7 @@ const AdminPage = () => {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="15" className="text-center text-muted py-4">
+                <td colSpan="16" className="text-center text-muted py-4">
                   No users found
                 </td>
               </tr>
@@ -651,6 +717,20 @@ const AdminPage = () => {
                       <span style={{ fontSize: '12px' }}>{user.adminApprovedBy}</span>
                     ) : (
                       <span style={{ color: '#999', fontStyle: 'italic', fontSize: '12px' }}>—</span>
+                    )}
+                  </td>
+                  <td>
+                    {user.latestUpdatedAt ? (
+                      <div className="admin-updated-cell">
+                        <span className="admin-updated-relative">
+                          {formatRelativeTime(user.latestUpdatedAt) || new Date(user.latestUpdatedAt).toLocaleDateString()}
+                        </span>
+                        <span className="admin-updated-absolute">
+                          {new Date(user.latestUpdatedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="admin-updated-none">—</span>
                     )}
                   </td>
                   <td>

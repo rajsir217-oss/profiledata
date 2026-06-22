@@ -18,6 +18,7 @@ const UserManagement = () => {
   const [roleFilter, setRoleFilter] = useState(''); // Show all roles by default
   const [promoCodeFilter, setPromoCodeFilter] = useState(''); // Promo code filter
   const [contributionPopupFilter, setContributionPopupFilter] = useState(''); // Contribution popup filter
+  const [updatedWithinFilter, setUpdatedWithinFilter] = useState(''); // Last updated filter
   const [phoneSearch, setPhoneSearch] = useState(''); // Phone number search
   const [debouncedPhoneSearch, setDebouncedPhoneSearch] = useState(''); // Debounced phone search
   const [page, setPage] = useState(1);
@@ -45,6 +46,40 @@ const UserManagement = () => {
 
   const currentUser = localStorage.getItem('username');
   const userRole = localStorage.getItem('userRole'); // Get user role
+
+  const getLatestUpdatedAt = useCallback((user) => {
+    if (!user) return null;
+    return user.updatedAt || user.updated_at || user.status?.updated_at || null;
+  }, []);
+
+  const formatRelativeTime = useCallback((value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+
+    const diffMs = Date.now() - date.getTime();
+    if (diffMs < 0) {
+      return date.toLocaleDateString();
+    }
+
+    const diffMinutes = Math.floor(diffMs / 60000);
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes} min${diffMinutes === 1 ? '' : 's'} ago`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} hr${diffHours === 1 ? '' : 's'} ago`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+
+    const diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths < 12) return `${diffMonths} mo${diffMonths === 1 ? '' : 's'} ago`;
+
+    const diffYears = Math.floor(diffDays / 365);
+    return `${diffYears} yr${diffYears === 1 ? '' : 's'} ago`;
+  }, []);
 
   const loadImageValidationStatus = useCallback(async (userList) => {
     const statusMap = {};
@@ -80,6 +115,7 @@ const UserManagement = () => {
       if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
       if (promoCodeFilter) params.append('promo_code', promoCodeFilter);
       if (contributionPopupFilter) params.append('contribution_popup', contributionPopupFilter);
+      if (updatedWithinFilter) params.append('updated_within', updatedWithinFilter);
       if (debouncedPhoneSearch) params.append('phone_search', debouncedPhoneSearch);
 
       console.log('🔍 UserManagement API call:', `/api/admin/users?${params.toString()}`);
@@ -133,7 +169,7 @@ const UserManagement = () => {
       setLoadingMore(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, roleFilter, promoCodeFilter, contributionPopupFilter, searchTerm, debouncedPhoneSearch, navigate, loadImageValidationStatus]);
+  }, [statusFilter, roleFilter, promoCodeFilter, contributionPopupFilter, updatedWithinFilter, searchTerm, debouncedPhoneSearch, navigate, loadImageValidationStatus]);
 
   // Keep ref updated with latest loadUsers
   useEffect(() => {
@@ -173,7 +209,7 @@ const UserManagement = () => {
       loadUsers(1, false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userRole, statusFilter, roleFilter, promoCodeFilter, contributionPopupFilter, debouncedSearchTerm, debouncedPhoneSearch]);
+  }, [userRole, statusFilter, roleFilter, promoCodeFilter, contributionPopupFilter, updatedWithinFilter, debouncedSearchTerm, debouncedPhoneSearch]);
 
   // Ref for tracking if we can load more (debounce)
   // eslint-disable-next-line no-unused-vars
@@ -455,6 +491,9 @@ const UserManagement = () => {
     if (sortField === 'created_at') {
       aValue = new Date(aValue || 0);
       bValue = new Date(bValue || 0);
+    } else if (sortField === 'updated_at') {
+      aValue = new Date(getLatestUpdatedAt(a) || 0);
+      bValue = new Date(getLatestUpdatedAt(b) || 0);
     }
 
     // Ensure values are defined before string operations
@@ -787,6 +826,20 @@ const UserManagement = () => {
           <option value="disabled">Disabled by Admin</option>
         </select>
 
+        <select
+          value={updatedWithinFilter}
+          onChange={(e) => setUpdatedWithinFilter(e.target.value)}
+          className="filter-select"
+        >
+          <option value="">Updated Anytime</option>
+          <option value="24h">Updated in 24 hours</option>
+          <option value="48h">Updated in 48 hours</option>
+          <option value="7d">Updated in 7 days</option>
+          <option value="30d">Updated in 30 days</option>
+          <option value="60d">Updated in 60 days</option>
+          <option value="90d">Updated in 90 days</option>
+        </select>
+
         <input
           type="text"
           placeholder="📞 Phone number..."
@@ -897,6 +950,12 @@ const UserManagement = () => {
               <th title="Contribution Popup Status">
                 💳
               </th>
+              <th onClick={() => handleSort('updated_at')}>
+                Updated
+                {sortField === 'updated_at' && (
+                  <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
+                )}
+              </th>
               <th onClick={() => handleSort('created_at')}>
                 Created
                 {sortField === 'created_at' && (
@@ -911,6 +970,8 @@ const UserManagement = () => {
               const contributionDisabled = contributionToggleOverrides[user.username] !== undefined 
                 ? contributionToggleOverrides[user.username] 
                 : !!user.contributionPopupDisabledByAdmin;
+              const lastUpdatedValue = getLatestUpdatedAt(user);
+              const formattedRelativeUpdated = formatRelativeTime(lastUpdatedValue);
               return (
               <tr key={`${user.username}-${contributionDisabled}`} className={selectedUsers.includes(user.username) ? 'selected-row' : ''}>
                 <td className="td-checkbox">

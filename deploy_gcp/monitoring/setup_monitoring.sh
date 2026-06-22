@@ -3,7 +3,8 @@
 # Cloud Monitoring setup for matrimonial-backend
 # Creates (idempotently):
 #   1. An email notification channel
-#   2. Log-based metrics (redis_max_clients, backend_errors)
+#   2. Log-based metrics (redis_max_clients, backend_errors,
+#      api_request_latency [distribution, excludes streaming endpoints])
 #   3. Alert policies (Redis max clients, error spike, 5xx, p95 latency)
 #
 # Real-time alerting only (no weekly narrative report).
@@ -32,6 +33,7 @@ PROJECT_ID="${PROJECT_ID:-matrimonial-staging}"
 BACKEND_SERVICE="${BACKEND_SERVICE:-matrimonial-backend}"
 ALERT_EMAIL="${ALERT_EMAIL:-rajl3v3l@gmail.com}"
 POLICY_DIR="$SCRIPT_DIR/policies"
+METRIC_DIR="$SCRIPT_DIR/metrics"
 
 echo "============================================="
 echo "Cloud Monitoring setup"
@@ -94,6 +96,35 @@ create_log_metric "redis_max_clients" \
 create_log_metric "backend_errors" \
   "Count of ERROR-severity logs from the backend" \
   "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"$BACKEND_SERVICE\" AND severity>=ERROR"
+
+# Distribution metric (created from a config file) for true API p95 latency,
+# excluding long-lived streaming endpoints. Counter metrics use the helper
+# above; distribution metrics need a full LogMetric config via --config-from-file.
+create_log_metric_from_file() {
+  local file="$1"
+  local name
+  name="$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['name'])" "$file")"
+
+  # Substitute the backend service name into a temp config file.
+  local tmp
+  tmp="$(mktemp)"
+  sed "s|__BACKEND_SERVICE__|$BACKEND_SERVICE|g" "$file" > "$tmp"
+
+  if gcloud logging metrics describe "$name" --project="$PROJECT_ID" >/dev/null 2>&1; then
+    echo "    Metric '$name' already exists - updating from config"
+    gcloud logging metrics update "$name" \
+      --project="$PROJECT_ID" \
+      --config-from-file="$tmp" >/dev/null
+  else
+    gcloud logging metrics create "$name" \
+      --project="$PROJECT_ID" \
+      --config-from-file="$tmp" >/dev/null
+    echo "    Created metric '$name'"
+  fi
+  rm -f "$tmp"
+}
+
+create_log_metric_from_file "$METRIC_DIR/api_request_latency.json"
 
 echo "    (New log-based metrics need a few minutes before data appears.)"
 

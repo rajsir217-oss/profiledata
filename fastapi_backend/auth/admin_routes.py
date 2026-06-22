@@ -5,8 +5,8 @@ Admin Management Endpoints - User, Role, and Permission Management
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
+from typing import List, Optional, Dict
+from datetime import datetime, timedelta
 from bson import ObjectId
 import sys
 import os
@@ -84,6 +84,9 @@ ADMIN_USER_LIST_PROJECTION = {
     "contributionPopupDisabledByAdmin": 1,
     "adminApprovedAt": 1,
     "adminApprovedBy": 1,
+    "updated_at": 1,
+    "updatedAt": 1,
+    "status.updated_at": 1,
 }
 
 @router.get("/users", dependencies=[Depends(require_moderator_or_admin)])
@@ -99,6 +102,10 @@ async def get_all_users(
     phone_search: Optional[str] = Query(None, description="Search by phone number (searches decrypted contactNumber)"),
     promo_code: Optional[str] = Query(None, description="Filter by promo code (has_promo/no_promo)"),
     contribution_popup: Optional[str] = Query(None, description="Filter by contribution popup status (enabled/disabled)"),
+    updated_within: Optional[str] = Query(
+        None,
+        description="Filter by users updated within a relative window (e.g., 24h, 7d, 30d, 90d)",
+    ),
     db = Depends(get_database)
 ):
     """
@@ -168,6 +175,38 @@ async def get_all_users(
                     query["$and"].append(popup_filter)
                 else:
                     query["$and"] = [popup_filter]
+
+        # Updated-within filter (relative windows like 24h, 7d, 30d, 90d)
+        if updated_within:
+            window_map = {
+                "24h": timedelta(hours=24),
+                "48h": timedelta(hours=48),
+                "7d": timedelta(days=7),
+                "30d": timedelta(days=30),
+                "60d": timedelta(days=60),
+                "90d": timedelta(days=90),
+            }
+
+            window_delta = window_map.get(updated_within.lower())
+            if not window_delta:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid updated_within value. Use one of: 24h, 48h, 7d, 30d, 60d, 90d",
+                )
+
+            cutoff = datetime.utcnow() - window_delta
+            updated_filter = {
+                "$or": [
+                    {"updated_at": {"$gte": cutoff}},
+                    {"updatedAt": {"$gte": cutoff}},
+                    {"status.updated_at": {"$gte": cutoff}},
+                ]
+            }
+
+            if "$and" in query:
+                query["$and"].append(updated_filter)
+            else:
+                query["$and"] = [updated_filter]
         
         if gender:
             # Gender field can be 'sex', 'gender', or 'Sex' - use $or for compatibility
@@ -622,6 +661,7 @@ async def update_user_status(
         
         # Prepare update data
         now = datetime.utcnow()
+        unset_fields: Dict[str, str] = {}
         
         # Check if status field is a string or object
         # If it's a string (e.g. "inactive"), we must replace the whole field, not use dot notation
@@ -654,12 +694,21 @@ async def update_user_status(
             update_data["adminApprovalStatus"] = "approved"
             update_data["adminApprovedBy"] = current_user.get("username")
             update_data["adminApprovedAt"] = now.isoformat()
-            # Reset noPhotoLoginCount so user isn't immediately blocked again on login
+            # Reset missing-photo enforcement markers so user isn't immediately blocked again on login
             update_data["noPhotoLoginCount"] = 0
-            logger.info(f"✅ Setting adminApprovalStatus='approved' + resetting noPhotoLoginCount for user '{username}' (activated by {current_user.get('username')})")
+            unset_fields.update({
+                "deactivationReason": "",
+                "missingPhotoWarningSentAt": "",
+                "missingPhotoSuspendedAt": "",
+            })
+            logger.info(
+                "✅ Setting adminApprovalStatus='approved' + clearing missing-photo markers for user '%s' (activated by %s)",
+                username,
+                current_user.get("username"),
+            )
         
         # Update accountStatus (unified field)
-        logger.info(f"🔧 Updating status for '{username}': {update_data}")
+        logger.info(f"🔧 Updating status for '{username}': set={update_data}, unset={unset_fields}")
         
         # Check if status is already the same
         current_account_status = user.get('accountStatus')
@@ -675,7 +724,7 @@ async def update_user_status(
         # Status already matches if accountStatus equals the desired value
         statuses_already_match = (current_account_status == new_account_status)
         
-        if statuses_already_match:
+        if statuses_already_match and not unset_fields and "noPhotoLoginCount" not in update_data:
             logger.info(f"✅ Status for '{username}' is already set to desired values - no update needed")
             # Still log audit event for consistency
             await db.audit_logs.insert_one({
@@ -704,9 +753,13 @@ async def update_user_status(
             }
         
         # Proceed with update if statuses are different
+        update_payload = {"$set": update_data}
+        if unset_fields:
+            update_payload["$unset"] = unset_fields
+
         result = await db.users.update_one(
             {"username": username},
-            {"$set": update_data}
+            update_payload
         )
         
         logger.info(f"📊 Update result: matched={result.matched_count}, modified={result.modified_count}")

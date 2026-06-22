@@ -432,6 +432,29 @@ class EmailNotifierTemplate(JobTemplate):
                     "subject": "⏸️ Your Account Has Been Paused",
                     "body": f"<p><strong>Username:</strong> {notification.username}</p><p>Your account has been paused by an administrator. Your profile is hidden from searches. Please contact support for more information.</p>"
                 },
+                "missing_photo_warning": {
+                    "subject": "📸 Action Required: Upload a Profile Picture",
+                    "body": (
+                        f"<p>Hello {template_data.get('recipient_firstName', notification.username)},</p>"
+                        f"<p>Our records show that your profile <strong>does not have any pictures</strong>. "
+                        f"Profiles with photos receive significantly more attention and matches.</p>"
+                        f"<p><strong>Please upload at least one profile picture within "
+                        f"{template_data.get('graceDays', 7)} days</strong>, otherwise your account "
+                        f"will be suspended.</p>"
+                        f"<p><a href=\"{template_data.get('profile_url', 'https://l3v3lmatches.com/profile/edit')}\">"
+                        f"Click here to upload your photos now</a></p>"
+                    ),
+                },
+                "missing_photo_suspended": {
+                    "subject": "⚠️ Your Account Has Been Suspended — Missing Profile Pictures",
+                    "body": (
+                        f"<p>Hello {template_data.get('recipient_firstName', notification.username)},</p>"
+                        f"<p>Your account has been <strong>suspended</strong> because you did not upload "
+                        f"a profile picture within the required timeframe.</p>"
+                        f"<p>To reactivate your account, please contact support. Once reactivated, "
+                        f"make sure to upload at least one profile picture to avoid future suspension.</p>"
+                    ),
+                },
                 "pending_pii_request": {
                     "subject": f"🔒 {requester_name} requested your contact information",
                     "body": self._build_pii_request_fallback_body(template_data, notification, requester_name)

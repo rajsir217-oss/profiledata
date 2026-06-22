@@ -244,6 +244,20 @@ ALL_TEMPLATES = [
         "Complete Profile", "profile"
     ),
     create_template(
+        "missing_photo_warning", "onboarding",
+        "📸 Action Required: Upload a Profile Picture",
+        "#ef4444", "medium",
+        "Your profile has no pictures. Please upload at least one within {graceDays} days, otherwise your account will be suspended.",
+        "Upload Photos", "profile"
+    ),
+    create_template(
+        "missing_photo_suspended", "account",
+        "⚠️ Your Account Has Been Suspended — Missing Profile Pictures",
+        "#dc2626", "high",
+        "Your account has been suspended because you did not upload a profile picture within the required timeframe. Please contact support to reactivate.",
+        "Contact Support", "contact"
+    ),
+    create_template(
         "new_users_matching", "digest",
         "📬 {matches_count} new people match your preferences",
         "#667eea", "low",

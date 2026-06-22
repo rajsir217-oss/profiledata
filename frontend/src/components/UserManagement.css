@@ -276,13 +276,46 @@
 
 .users-table th:nth-child(7),
 .users-table td:nth-child(7) {
-  min-width: 100px; /* CREATED column */
+  min-width: 140px; /* PROMO column */
 }
 
 .users-table th:nth-child(8),
 .users-table td:nth-child(8) {
-  min-width: 120px; /* ACTIONS column */
+  min-width: 110px; /* CONTRIBUTION column */
   text-align: center;
+}
+
+.users-table th:nth-child(9),
+.users-table td:nth-child(9) {
+  min-width: 140px; /* UPDATED column */
+}
+
+.users-table th:nth-child(10),
+.users-table td:nth-child(10) {
+  min-width: 120px; /* CREATED column */
+}
+
+.updated-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  font-size: 0.85rem;
+}
+
+.updated-relative {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.updated-absolute {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.updated-none {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
 }
 
 /* Badges */
