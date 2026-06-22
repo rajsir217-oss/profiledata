@@ -88,6 +88,9 @@ class NotificationService:
                 
                 # Polls
                 NotificationTrigger.POLL_REMINDER: [NotificationChannel.EMAIL],
+                # Profile compliance
+                NotificationTrigger.MISSING_PHOTO_WARNING: [NotificationChannel.EMAIL],
+                NotificationTrigger.MISSING_PHOTO_SUSPENDED: [NotificationChannel.EMAIL],
             },
             frequency={
                 "instant": [NotificationTrigger.SUSPICIOUS_LOGIN],  # Only security alerts are instant
@@ -756,6 +759,8 @@ class NotificationService:
             NotificationTrigger.PII_GRANTED,
             NotificationTrigger.NEW_MESSAGE,
             NotificationTrigger.MONTHLY_DIGEST,
+            NotificationTrigger.MISSING_PHOTO_WARNING,
+            NotificationTrigger.MISSING_PHOTO_SUSPENDED,
         ]
         
         # Handle both enum keys and string keys (MongoDB stores as strings due to use_enum_values=True)
@@ -932,6 +937,13 @@ class NotificationService:
                 if len(allowed_channels) < len(channels):
                     skipped = [ch for ch in channels if ch not in user_channel_strs]
                     logger.debug(f"Filtered out channels {skipped} for {username}/{trigger} (user prefs: {user_channel_strs})")
+
+                if not allowed_channels and trigger_enum in {
+                    NotificationTrigger.MISSING_PHOTO_WARNING,
+                    NotificationTrigger.MISSING_PHOTO_SUSPENDED,
+                }:
+                    allowed_channels = channels
+
             
             # Create SEPARATE queue entries per channel to allow independent processing
             # This prevents the race condition where one job claims the notification

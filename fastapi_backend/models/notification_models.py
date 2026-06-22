@@ -62,6 +62,8 @@ class NotificationTrigger(str, Enum):
     SAVED_SEARCH_MATCHES = "saved_search_matches"
     PROFILE_INCOMPLETE = "profile_incomplete"
     UPLOAD_PHOTOS = "upload_photos"
+    MISSING_PHOTO_WARNING = "missing_photo_warning"
+    MISSING_PHOTO_SUSPENDED = "missing_photo_suspended"
     
     # Digest emails
     DAILY_DIGEST = "daily_digest"
