@@ -54,6 +54,26 @@ def _has_profile_photos(user: Dict[str, Any]) -> bool:
     return False
 
 
+def _is_valid_us_number(digits: str) -> bool:
+    """Validate a 10-digit US number against NANP rules and reject bogus patterns.
+
+    Rejects examples like 1111111111, 0000000000, 1234567890, and numbers
+    whose area code or exchange code start with 0 or 1.
+    """
+    if not digits or len(digits) != 10 or not digits.isdigit():
+        return False
+
+    # Reject all-same-digit numbers (e.g. 1111111111, 0000000000)
+    if len(set(digits)) == 1:
+        return False
+
+    # NANP: area code (NXX) and exchange code (NXX) must start with 2-9
+    if digits[0] in "01" or digits[3] in "01":
+        return False
+
+    return True
+
+
 def _analyse_phone_issue(user: Dict[str, Any]) -> Dict[str, Any]:
     """Inspect a user's phone information and return validation details."""
     raw_phone = extract_phone(user)
@@ -61,7 +81,7 @@ def _analyse_phone_issue(user: Dict[str, Any]) -> Dict[str, Any]:
 
     if not raw_phone:
         issue_reason = "missing"
-    elif not normalized_phone:
+    elif not normalized_phone or not _is_valid_us_number(normalized_phone):
         issue_reason = "invalid"
     else:
         issue_reason = None
@@ -402,7 +422,6 @@ class MissingProfilePhotosJob(JobTemplate):
                         "$or": [
                             no_photo_filter,
                             phone_missing_filter,
-                            {"phoneVerified": {"$ne": True}},
                         ]
                     },
                 ]
@@ -444,9 +463,9 @@ class MissingProfilePhotosJob(JobTemplate):
                 )
 
                 # Emit logs in small batches to avoid oversized log lines
-                batch_size = 10
-                for i in range(0, len(non_compliant_entries), batch_size):
-                    batch = non_compliant_entries[i:i + batch_size]
+                log_chunk_size = 10
+                for i in range(0, len(non_compliant_entries), log_chunk_size):
+                    batch = non_compliant_entries[i:i + log_chunk_size]
                     context.log("info", " • " + "; ".join(batch))
             else:
                 context.log(
@@ -464,7 +483,6 @@ class MissingProfilePhotosJob(JobTemplate):
                         "$or": [
                             no_photo_filter,
                             phone_missing_filter,
-                            {"phoneVerified": {"$ne": True}},
                         ]
                     },
                 ]
@@ -567,7 +585,6 @@ class MissingProfilePhotosJob(JobTemplate):
                         "$or": [
                             no_photo_filter,
                             phone_missing_filter,
-                            {"phoneVerified": {"$ne": True}},
                         ]
                     },
                 ]
@@ -586,7 +603,6 @@ class MissingProfilePhotosJob(JobTemplate):
                         "$or": [
                             no_photo_filter,
                             phone_missing_filter,
-                            {"phoneVerified": {"$ne": True}},
                         ]
                     },
                     {
@@ -739,7 +755,6 @@ class MissingProfilePhotosJob(JobTemplate):
                         "$or": [
                             no_photo_filter,
                             phone_missing_filter,
-                            {"phoneVerified": {"$ne": True}},
                         ]
                     },
                 ]
