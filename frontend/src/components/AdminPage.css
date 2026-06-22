@@ -325,6 +325,28 @@
   color: var(--primary-color);
 }
 
+.admin-updated-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.admin-updated-relative {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.admin-updated-absolute {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.admin-updated-none {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
 /* Action Buttons */
 .admin-table .btn-group {
   display: flex;

@@ -1,0 +1,19 @@
+{
+  "name": "api_request_latency",
+  "description": "Distribution of Cloud Run request latency (seconds) for matrimonial-backend, EXCLUDING long-lived streaming endpoints (/socket.io, /messages/stream). Use this for true API p95 latency instead of run.googleapis.com/request_latencies, which counts streaming connection lifetime as latency.",
+  "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"__BACKEND_SERVICE__\" AND log_id(\"run.googleapis.com/requests\") AND httpRequest.requestUrl !~ \"/socket.io\" AND httpRequest.requestUrl !~ \"/messages/stream\"",
+  "valueExtractor": "REGEXP_EXTRACT(httpRequest.latency, \"([0-9.eE+-]+)s\")",
+  "metricDescriptor": {
+    "metricKind": "DELTA",
+    "valueType": "DISTRIBUTION",
+    "unit": "s",
+    "displayName": "API request latency (excl. streaming)"
+  },
+  "bucketOptions": {
+    "exponentialBuckets": {
+      "numFiniteBuckets": 64,
+      "growthFactor": 1.4,
+      "scale": 0.01
+    }
+  }
+}

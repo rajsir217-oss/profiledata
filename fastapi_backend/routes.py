@@ -1835,7 +1835,14 @@ async def login_user(login_data: LoginRequest, request: Request, db = Depends(ge
             logger.info(f"📸 User '{login_data.username}' was reactivated by admin - resetting noPhotoLoginCount")
             await db.users.update_one(
                 get_username_query(login_data.username),
-                {"$set": {"noPhotoLoginCount": 0}, "$unset": {"deactivationReason": ""}}
+                {
+                    "$set": {"noPhotoLoginCount": 0},
+                    "$unset": {
+                        "deactivationReason": "",
+                        "missingPhotoWarningSentAt": "",
+                        "missingPhotoSuspendedAt": "",
+                    },
+                }
             )
             user["noPhotoLoginCount"] = 0
             current_count = 1  # Start fresh count
@@ -1864,11 +1871,22 @@ async def login_user(login_data: LoginRequest, request: Request, db = Depends(ge
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Your profile has been deactivated because you haven't uploaded a photo after {NO_PHOTO_LOGIN_LIMIT} logins. Please contact support to reactivate."
             )
-    elif has_photos and user.get("noPhotoLoginCount", 0) > 0:
-        # Reset counter when user has photos
+    elif has_photos and (
+        user.get("noPhotoLoginCount", 0) > 0
+        or user.get("missingPhotoWarningSentAt")
+        or user.get("missingPhotoSuspendedAt")
+    ):
+        # Reset counter and missing-photo markers when user has photos
         await db.users.update_one(
             get_username_query(login_data.username),
-            {"$set": {"noPhotoLoginCount": 0}, "$unset": {"deactivationReason": ""}}
+            {
+                "$set": {"noPhotoLoginCount": 0},
+                "$unset": {
+                    "deactivationReason": "",
+                    "missingPhotoWarningSentAt": "",
+                    "missingPhotoSuspendedAt": "",
+                },
+            }
         )
         user["noPhotoLoginCount"] = 0
     
@@ -3096,9 +3114,16 @@ async def update_user_profile(
         logger.info(f"📸 Images field in update_data: {existing_images}")
         
         # Reset no-photo login counter if user now has photos
-        if len(existing_images) > 0 and user.get("noPhotoLoginCount", 0) > 0:
+        if len(existing_images) > 0 and (
+            user.get("noPhotoLoginCount", 0) > 0
+            or user.get("missingPhotoWarningSentAt")
+            or user.get("missingPhotoSuspendedAt")
+        ):
             update_data["noPhotoLoginCount"] = 0
-            logger.info(f"📸 Reset noPhotoLoginCount for {username} - user uploaded photos")
+            update_data["deactivationReason"] = None
+            update_data["missingPhotoWarningSentAt"] = None
+            update_data["missingPhotoSuspendedAt"] = None
+            logger.info(f"📸 Reset missing-photo markers for {username} - user uploaded photos")
 
         try:
             from urllib.parse import urlparse

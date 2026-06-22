@@ -86,7 +86,28 @@ async def ensure_indexes():
     # 13. messages - for daily snapshot counting
     logger.info("Setting up messages indexes...")
     await db.messages.create_index([("createdAt", 1)], background=True)
-    
+
+    # 14. users - indexes to support missing-photo enforcement job
+    logger.info("Setting up users indexes for missing-photo enforcement...")
+    await db.users.create_index(
+        [
+            ("accountStatus", 1),
+            ("createdAt", 1),
+            ("missingPhotoWarningSentAt", 1),
+            ("missingPhotoSuspendedAt", 1),
+        ],
+        name="missing_photo_enforcement",
+        background=True,
+    )
+    await db.users.create_index(
+        [
+            ("accountStatus", 1),
+            ("missingPhotoWarningSentAt", 1),
+        ],
+        name="missing_photo_warning_lookup",
+        background=True,
+    )
+
     logger.info("✅ All performance indexes ensured!")
     await close_mongo_connection()
 
