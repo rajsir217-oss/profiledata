@@ -548,10 +548,12 @@ class NotificationService:
         # Handle conditional blocks {% if condition %}...{% endif %}
         result = self._process_conditionals(result, variables)
         
-        # Strip any remaining unresolved placeholders (e.g. {match.profileId} with no match data)
+        # Strip unresolved dotted-path placeholders (e.g. {match.profileId}) that indicate
+        # a structural mismatch between template and data. Single-word vars like {graceDays}
+        # are left intact so missing data is visible rather than silently dropped.
         import re
-        result = re.sub(r'\{\{[\w. ]+\}\}', '', result)  # {{var}} or {{var.nested}}
-        result = re.sub(r'\{[\w.]+\}', '', result)        # {var} or {var.nested}
+        result = re.sub(r'\{\{\w+\.\w+\}\}', '', result)  # {{key.nested}}
+        result = re.sub(r'\{\w+\.\w+\}', '', result)       # {key.nested}
         
         return result
     
