@@ -931,18 +931,18 @@ class NotificationService:
                 allowed_channels = [ch for ch in channels if ch in user_channel_strs]
                 
                 if not allowed_channels:
-                    logger.debug(f"User {username} has no enabled channels for {trigger} (requested: {channels}, allowed: {user_channel_strs})")
-                    return None
-                
+                    if trigger_enum in {
+                        NotificationTrigger.MISSING_PHOTO_WARNING,
+                        NotificationTrigger.MISSING_PHOTO_SUSPENDED,
+                    }:
+                        allowed_channels = channels
+                    else:
+                        logger.debug(f"User {username} has no enabled channels for {trigger} (requested: {channels}, allowed: {user_channel_strs})")
+                        return None
+
                 if len(allowed_channels) < len(channels):
                     skipped = [ch for ch in channels if ch not in user_channel_strs]
                     logger.debug(f"Filtered out channels {skipped} for {username}/{trigger} (user prefs: {user_channel_strs})")
-
-                if not allowed_channels and trigger_enum in {
-                    NotificationTrigger.MISSING_PHOTO_WARNING,
-                    NotificationTrigger.MISSING_PHOTO_SUSPENDED,
-                }:
-                    allowed_channels = channels
 
             
             # Create SEPARATE queue entries per channel to allow independent processing
