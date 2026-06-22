@@ -26,6 +26,12 @@ from models.notification_models import (
 )
 
 
+COMPLIANCE_ENFORCEMENT_TRIGGERS = {
+    NotificationTrigger.MISSING_PHOTO_WARNING,
+    NotificationTrigger.MISSING_PHOTO_SUSPENDED,
+}
+
+
 class NotificationService:
     """Service for managing notifications"""
     
@@ -186,14 +192,17 @@ class NotificationService:
         prefs = await self.get_preferences(create_data.username)
         
         if not force_send:
+            compliance_override = create_data.trigger in COMPLIANCE_ENFORCEMENT_TRIGGERS
+
             # Check if user has enabled this trigger/channel combination
-            user_channels = prefs.channels.get(create_data.trigger.value, [])
-            if not any(channel in user_channels for channel in create_data.channels):
-                logger.debug(f"User {create_data.username} has disabled {create_data.trigger.value} notifications")
-                raise HTTPException(
-                    status_code=403,
-                    detail=f"User has disabled {create_data.trigger.value} notifications"
-                )
+            if not compliance_override:
+                user_channels = prefs.channels.get(create_data.trigger.value, [])
+                if not any(channel in user_channels for channel in create_data.channels):
+                    logger.debug(f"User {create_data.username} has disabled {create_data.trigger.value} notifications")
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"User has disabled {create_data.trigger.value} notifications"
+                    )
         
             # Check rate limits using QueueManager (skip for force_send)
             for channel in create_data.channels:
@@ -931,10 +940,7 @@ class NotificationService:
                 allowed_channels = [ch for ch in channels if ch in user_channel_strs]
                 
                 if not allowed_channels:
-                    if trigger_enum in {
-                        NotificationTrigger.MISSING_PHOTO_WARNING,
-                        NotificationTrigger.MISSING_PHOTO_SUSPENDED,
-                    }:
+                    if trigger_enum in COMPLIANCE_ENFORCEMENT_TRIGGERS:
                         allowed_channels = channels
                     else:
                         logger.debug(f"User {username} has no enabled channels for {trigger} (requested: {channels}, allowed: {user_channel_strs})")
