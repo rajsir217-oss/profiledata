@@ -245,16 +245,16 @@ ALL_TEMPLATES = [
     ),
     create_template(
         "missing_photo_warning", "onboarding",
-        "📸 Action Required: Upload a Profile Picture",
+        "⚠️ Action Required: Update Your Photo & Phone",
         "#ef4444", "medium",
-        "Your profile has no pictures. Please upload at least one within {graceDays} days, otherwise your account will be suspended.",
-        "Upload Photos", "profile"
+        "Your profile is missing required info. Upload a photo and add a valid phone number within {graceDays} days or your account will be suspended.",
+        "Update Profile", "profile"
     ),
     create_template(
         "missing_photo_suspended", "account",
-        "⚠️ Your Account Has Been Suspended — Missing Profile Pictures",
+        "⚠️ Account Suspended — Photo & Phone Required",
         "#dc2626", "high",
-        "Your account has been suspended because you did not upload a profile picture within the required timeframe. Please contact support to reactivate.",
+        "Your account was suspended because the profile photo and/or phone number requirements were not met. Update your details and contact support to reactivate.",
         "Contact Support", "contact"
     ),
     create_template(
