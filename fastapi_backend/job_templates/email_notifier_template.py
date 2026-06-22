@@ -433,27 +433,12 @@ class EmailNotifierTemplate(JobTemplate):
                     "body": f"<p><strong>Username:</strong> {notification.username}</p><p>Your account has been paused by an administrator. Your profile is hidden from searches. Please contact support for more information.</p>"
                 },
                 "missing_photo_warning": {
-                    "subject": "📸 Action Required: Upload a Profile Picture",
-                    "body": (
-                        f"<p>Hello {template_data.get('recipient_firstName', notification.username)},</p>"
-                        f"<p>Our records show that your profile <strong>does not have any pictures</strong>. "
-                        f"Profiles with photos receive significantly more attention and matches.</p>"
-                        f"<p><strong>Please upload at least one profile picture within "
-                        f"{template_data.get('graceDays', 7)} days</strong>, otherwise your account "
-                        f"will be suspended.</p>"
-                        f"<p><a href=\"{template_data.get('profile_url', 'https://l3v3lmatches.com/profile/edit')}\">"
-                        f"Click here to upload your photos now</a></p>"
-                    ),
+                    "subject": self._build_profile_compliance_subject(template_data, stage="warning"),
+                    "body": self._build_profile_compliance_warning_body(template_data, notification),
                 },
                 "missing_photo_suspended": {
-                    "subject": "⚠️ Your Account Has Been Suspended — Missing Profile Pictures",
-                    "body": (
-                        f"<p>Hello {template_data.get('recipient_firstName', notification.username)},</p>"
-                        f"<p>Your account has been <strong>suspended</strong> because you did not upload "
-                        f"a profile picture within the required timeframe.</p>"
-                        f"<p>To reactivate your account, please contact support. Once reactivated, "
-                        f"make sure to upload at least one profile picture to avoid future suspension.</p>"
-                    ),
+                    "subject": self._build_profile_compliance_subject(template_data, stage="suspended"),
+                    "body": self._build_profile_compliance_suspended_body(template_data, notification),
                 },
                 "pending_pii_request": {
                     "subject": f"🔒 {requester_name} requested your contact information",
@@ -539,6 +524,93 @@ class EmailNotifierTemplate(JobTemplate):
         
         return subject, body
     
+    def _build_profile_compliance_subject(self, template_data: dict, stage: str) -> str:
+        """Construct a subject line for photo/phone compliance notifications."""
+        if not isinstance(template_data, dict):
+            template_data = {}
+
+        photo_issue = bool(template_data.get("photo_issue"))
+        phone_issue = bool(template_data.get("phone_issue"))
+
+        if stage == "warning":
+            if photo_issue and phone_issue:
+                return "⚠️ Action Required: Update Your Photo & Phone"
+            if photo_issue:
+                return "📸 Action Required: Upload a Profile Picture"
+            if phone_issue:
+                return "☎️ Action Required: Update Your Phone Number"
+            return "⚠️ Action Required: Update Your Profile Details"
+
+        # Suspension stage
+        if photo_issue and phone_issue:
+            return "⚠️ Account Suspended — Photo & Phone Missing"
+        if photo_issue:
+            return "⚠️ Account Suspended — Missing Profile Picture"
+        if phone_issue:
+            return "⚠️ Account Suspended — Invalid Phone Number"
+        return "⚠️ Account Suspended — Profile Compliance"
+
+    def _build_profile_compliance_list_html(self, template_data: dict) -> str:
+        """List out unresolved compliance items as HTML bullet list."""
+        if not isinstance(template_data, dict):
+            template_data = {}
+
+        issues = []
+        if template_data.get("photo_issue"):
+            issues.append("<li>Upload at least one profile photo</li>")
+
+        if template_data.get("phone_issue"):
+            description = template_data.get("phone_issue_description") or "Provide a valid 10-digit phone number"
+            issues.append(f"<li>{description}</li>")
+
+        if not issues:
+            issues.append("<li>Review your profile details to ensure everything is complete.</li>")
+
+        return f"<ul>{''.join(issues)}</ul>"
+
+    def _build_profile_compliance_warning_body(self, template_data: dict, notification) -> str:
+        """Fallback body for profile compliance warning emails."""
+        if not isinstance(template_data, dict):
+            template_data = {}
+
+        first_name = template_data.get("recipient_firstName", notification.username)
+        grace_days = template_data.get("graceDays", 7)
+        profile_url = template_data.get("profile_url", "https://l3v3lmatches.com/profile/edit")
+        summary = template_data.get("compliance_issue_summary")
+        summary_sentence = (
+            f"Your profile is missing a valid <strong>{summary}</strong>."
+            if summary else "Your profile is missing required information."
+        )
+        issues_html = self._build_profile_compliance_list_html(template_data)
+        days_label = "day" if grace_days == 1 else "days"
+
+        return (
+            f"<p>Hello {first_name},</p>"
+            f"<p>{summary_sentence} To keep your account active, please resolve the following within "
+            f"<strong>{grace_days} {days_label}</strong>:</p>"
+            f"{issues_html}"
+            f"<p><a href=\"{profile_url}\">Update your profile now</a></p>"
+            "<p>If these updates aren't completed in time, your account will be automatically suspended.</p>"
+        )
+
+    def _build_profile_compliance_suspended_body(self, template_data: dict, notification) -> str:
+        """Fallback body for profile compliance suspension emails."""
+        if not isinstance(template_data, dict):
+            template_data = {}
+
+        first_name = template_data.get("recipient_firstName", notification.username)
+        profile_url = template_data.get("profile_url", "https://l3v3lmatches.com/profile/edit")
+        support_url = template_data.get("app", {}).get("contactUrl", "https://l3v3lmatches.com/contact")
+        issues_html = self._build_profile_compliance_list_html(template_data)
+
+        return (
+            f"<p>Hello {first_name},</p>"
+            "<p>Your account has been <strong>suspended</strong> because these requirements remain unresolved:</p>"
+            f"{issues_html}"
+            f"<p>Once you've updated your profile, please <a href=\"{support_url}\">contact support</a> so we can review and reactivate your account.</p>"
+            f"<p><a href=\"{profile_url}\">Update your profile</a></p>"
+        )
+
     def _build_saved_search_fallback_body(self, template_data: dict) -> str:
         """Build a rich HTML body for saved search matches when no template exists"""
         from config import settings
