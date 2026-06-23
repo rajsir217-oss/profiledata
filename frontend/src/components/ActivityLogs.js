@@ -86,7 +86,8 @@ const ActivityLogs = () => {
       console.log(`🔍 Loading chart data for ${days} days...`);
       
       const response = await fetch(getBackendApiUrl(`/api/activity-logs/chart-data?days=${days}`), {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
       });
       
       console.log(`📊 Chart API response status: ${response.status}`);
@@ -205,7 +206,6 @@ const ActivityLogs = () => {
   
   useEffect(() => {
     loadActionTypes();
-    loadChartData(chartDays);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
