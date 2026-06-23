@@ -411,6 +411,7 @@ const ActivityLogs = () => {
                 onChange={(e) => setChartDays(parseInt(e.target.value))}
                 className="chart-days-select"
               >
+                <option value={1}>Today</option>
                 <option value={7}>Last 7 days</option>
                 <option value={14}>Last 14 days</option>
                 <option value={30}>Last 30 days</option>
@@ -472,7 +473,7 @@ const ActivityLogs = () => {
                         <span className="bar-value">{total}</span>
                       </div>
                       <span className="bar-label">
-                        {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
                   );
