@@ -374,7 +374,11 @@ async def get_activity_chart_data(
         
         # Calculate date range
         end_date = datetime.utcnow()
-        start_date = end_date - timedelta(days=days)
+        if days == 1:
+            # "Today" = since UTC midnight, not last 24 hours
+            start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        else:
+            start_date = end_date - timedelta(days=days)
         
         logger.info(f"📅 Date range: {start_date} to {end_date}")
         
