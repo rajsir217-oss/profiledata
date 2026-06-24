@@ -123,7 +123,7 @@ class SessionManager {
    */
   checkSessionExpiredOnInit() {
     // Define public pages where session expiration should be silent (no overlay)
-    const publicPaths = ['/', '/home', '/login', '/register', '/forgot-password', '/reset-password', '/pricing'];
+    const publicPaths = ['/', '/home', '/login', '/register', '/register2', '/register3', '/register-interest', '/forgot-password', '/reset-password', '/verify-email', '/verify-email-sent', '/pricing', '/terms', '/privacy', '/refund', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
     const currentPath = window.location.pathname;
     const isPublicPage = publicPaths.some(path => currentPath === path || currentPath.startsWith(path + '/'));
     
@@ -686,12 +686,22 @@ class SessionManager {
     sessionStorage.setItem('hasLoggedOut', 'true');
 
     // Check if we're on a public page — if so, skip the overlay and redirect immediately
-    const publicPaths = ['/', '/home', '/login', '/register', '/register2', '/forgot-password', '/reset-password', '/verify-email', '/verify-email-sent', '/pricing', '/terms', '/privacy', '/refund', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
+    const publicPaths = ['/', '/home', '/login', '/register', '/register2', '/register3', '/register-interest', '/forgot-password', '/reset-password', '/verify-email', '/verify-email-sent', '/pricing', '/terms', '/privacy', '/refund', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
     const currentPath = window.location.pathname;
     const isPublicPage = publicPaths.some(path => currentPath === path || currentPath.startsWith(path + '/'));
 
-    if (isPublicPage) {
-      // On public pages, just redirect without showing overlay
+    // Registration pages: stale tokens should be silently cleared — never redirect invitees to login
+    const registrationPaths = ['/register', '/register2', '/register3', '/register-interest'];
+    const isRegistrationPage = registrationPaths.some(path => currentPath === path || currentPath.startsWith(path + '/'));
+
+    if (isRegistrationPage) {
+      // Silently drop stale token — user is a new invitee, keep them on the registration page
+      logger.debug('On registration page, silently clearing stale session without redirect');
+      this.isLoggingOut = false;
+      sessionStorage.removeItem('hasLoggedOut');
+      return; // Do NOT redirect to /login
+    } else if (isPublicPage) {
+      // On other public pages, just redirect without showing overlay
       logger.debug('On public page, skipping session expired overlay');
       this.isLoggingOut = false;
       sessionStorage.removeItem('hasLoggedOut');
