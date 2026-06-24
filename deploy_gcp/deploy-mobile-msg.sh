@@ -75,7 +75,8 @@ cleanup_old_apks() {
   
   # List APKs sorted by modification time (newest first), skip first 3, delete the rest
   ls -t "$apk_dir"/${apk_prefix}-*.apk 2>/dev/null | tail -n +4 | while read -r old_apk; do
-    if [[ -f "$old_apk" ]]; then
+    # Safety guard: only delete files that are actually .apk files inside the expected dir
+    if [[ -f "$old_apk" && "$old_apk" == *.apk && "$old_apk" == "$apk_dir"/* ]]; then
       echo "   Removing: $(basename "$old_apk")"
       rm -f "$old_apk"
     fi
