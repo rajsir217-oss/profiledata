@@ -200,10 +200,15 @@ function AppContent() {
 
   // Initialize theme and session manager on app load
   useEffect(() => {
+    // Never run auth-related logic on registration/invitation pages —
+    // invitees are new users who may have a stale token from a previous visit
+    const registrationPaths = ['/register', '/register2', '/register3', '/register-interest'];
+    const onRegistrationPage = registrationPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p + '/'));
+
     const loadTheme = async () => {
       const token = localStorage.getItem('token');
       
-      if (token) {
+      if (token && !onRegistrationPage) {
         // User is logged in, load theme from API (not localStorage!)
         try {
           const prefs = await getUserPreferences();
@@ -219,16 +224,16 @@ function AppContent() {
           applyTheme('light-blue');
         }
       } else {
-        // Not logged in, use default
+        // Not logged in or on registration page, use default
         applyTheme('light-blue');
       }
     };
     
     loadTheme();
     
-    // Initialize session manager if user is already logged in
+    // Initialize session manager if user is already logged in (skip on registration pages)
     const token = localStorage.getItem('token');
-    if (token) {
+    if (token && !onRegistrationPage) {
       // Initialize even without refreshToken - inactivity check still works
       sessionManager.init();
       logger.info('Session manager initialized on app load');
