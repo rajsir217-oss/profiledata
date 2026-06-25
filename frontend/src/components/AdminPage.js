@@ -624,37 +624,37 @@ const AdminPage = () => {
               currentRecords.map((user) => (
                 <tr key={user.username}>
                   <td className="text-center">
-                    <div className="btn-group" role="group">
+                    <div className="admin-action-btns">
                       <button
-                        className="btn btn-sm btn-outline-primary"
+                        className="btn-micro btn-micro-primary"
                         onClick={() => window.open(`/profile/${user.username}`, '_blank')}
                         title="View Profile"
                       >
                         👁️
                       </button>
                       <button
-                        className="btn btn-sm btn-outline-info"
+                        className="btn-micro btn-micro-info"
                         onClick={() => setSelectedUserForMeta(user.username)}
                         title="Meta Fields"
                       >
                         🎖️
                       </button>
                       <button
-                        className="btn btn-sm btn-outline-warning"
+                        className="btn-micro btn-micro-warning"
                         onClick={() => handleEditStatus(user)}
                         title="Edit Status"
                       >
                         ✏️
                       </button>
                       <button
-                        className="btn btn-sm btn-outline-danger"
+                        className="btn-micro btn-micro-danger"
                         onClick={() => handleDeleteClick(user)}
                         title="Delete Profile"
                       >
                         🗑️
                       </button>
                       <button
-                        className="btn btn-sm btn-outline-secondary"
+                        className="btn-micro btn-micro-secondary"
                         onClick={() => handleImpersonate(user)}
                         title={`Impersonate ${user.username}`}
                       >

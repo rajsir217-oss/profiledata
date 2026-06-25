@@ -13,7 +13,7 @@ echo ""
 
 # Check if backend is running
 echo "🔍 Checking backend..."
-if ! curl -s http://localhost:8000/docs >/dev/null 2>&1; then
+if ! curl -s --connect-timeout 2 --max-time 3 http://localhost:8000/docs >/dev/null 2>&1; then
     echo "⚠️  Backend not detected on http://localhost:8000"
     echo "   Start backend first: ./bstart.sh"
     echo ""
