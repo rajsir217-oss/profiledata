@@ -119,9 +119,9 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       if (code) params.set('sso_code', code);
       params.set('redirect', redirect);
       const url = `${mainAppUrl}/login?${params.toString()}`;
-      openExternalUrl(url, 'l3v3l_main_app', true);
+      openExternalUrl(url, 'l3v3l_main_app');
     } catch (e) {
-      openExternalUrl(fallbackUrl, 'l3v3l_main_app', true);
+      openExternalUrl(fallbackUrl, 'l3v3l_main_app');
     }
   };
 

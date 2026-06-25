@@ -243,3 +243,57 @@ javascript modules 16.6 KiB
   ./node_modules/@capawesome/capacitor-app-update/dist/esm/definitions.js 2.4 KiB [built] [code generated]
   ./node_modules/@capawesome/capacitor-app-update/dist/esm/web.js 615 bytes [built] [code generated]
 webpack 5.106.2 compiled successfully in 121 ms
+assets by status 21 KiB [cached] 5 assets
+assets by status 6.74 MiB [emitted]
+  asset bundle.js 6.71 MiB [emitted] (name: main)
+  asset main.01ec1a701c0b3be8a31f.hot-update.js 27.4 KiB [emitted] [immutable] [hmr] (name: main)
+  asset main.01ec1a701c0b3be8a31f.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.74 MiB = bundle.js 6.71 MiB main.01ec1a701c0b3be8a31f.hot-update.js 27.4 KiB
+cached modules 2.3 MiB [cached] 260 modules
+runtime modules 30.3 KiB 15 modules
+javascript modules 6.89 KiB
+  ../messenger/src/config/api.js 3.23 KiB [built] [code generated]
+  ./src/config/apiConfig.js 3.66 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 157 ms
+assets by status 21 KiB [cached] 5 assets
+assets by status 6.74 MiB [emitted]
+  asset bundle.js 6.71 MiB [emitted] (name: main)
+  asset main.6bbbc9014dc06b0eede3.hot-update.js 29 KiB [emitted] [immutable] [hmr] (name: main)
+  asset main.6bbbc9014dc06b0eede3.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.74 MiB = bundle.js 6.71 MiB main.6bbbc9014dc06b0eede3.hot-update.js 29 KiB
+cached modules 2.3 MiB [cached] 260 modules
+runtime modules 30.3 KiB 15 modules
+javascript modules 6.73 KiB
+  ../messenger/src/config/api.js 3.16 KiB [built] [code generated]
+  ./src/config/apiConfig.js 3.57 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 94 ms
+assets by status 21 KiB [cached] 5 assets
+assets by status 6.73 MiB [emitted]
+  asset bundle.js 6.71 MiB [emitted] (name: main)
+  asset main.0d1e0741a1ca5b279735.hot-update.js 21.2 KiB [emitted] [immutable] [hmr] (name: main)
+  asset main.0d1e0741a1ca5b279735.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.73 MiB = bundle.js 6.71 MiB main.0d1e0741a1ca5b279735.hot-update.js 21.2 KiB
+cached modules 2.3 MiB [cached] 261 modules
+runtime modules 30.3 KiB 15 modules
+./src/utils/openExternalUrl.js 6.55 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 209 ms
+assets by status 21 KiB [cached] 5 assets
+assets by status 6.73 MiB [emitted]
+  asset bundle.js 6.71 MiB [emitted] (name: main)
+  asset main.abbb26edabfeccee5835.hot-update.js 20.4 KiB [emitted] [immutable] [hmr] (name: main)
+  asset main.abbb26edabfeccee5835.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.73 MiB = bundle.js 6.71 MiB main.abbb26edabfeccee5835.hot-update.js 20.4 KiB
+cached modules 2.3 MiB [cached] 261 modules
+runtime modules 30.3 KiB 15 modules
+./src/utils/openExternalUrl.js 6.26 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 176 ms
+assets by status 21 KiB [cached] 5 assets
+assets by status 7.04 MiB [emitted]
+  asset bundle.js 6.71 MiB [emitted] (name: main)
+  asset main.757b26e4eb64b7bb6d12.hot-update.js 339 KiB [emitted] [immutable] [hmr] (name: main)
+  asset main.757b26e4eb64b7bb6d12.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 7.04 MiB = bundle.js 6.71 MiB main.757b26e4eb64b7bb6d12.hot-update.js 339 KiB
+cached modules 2.21 MiB [cached] 261 modules
+runtime modules 30.3 KiB 15 modules
+./src/screens/ConversationListScreen.js 98.8 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 475 ms

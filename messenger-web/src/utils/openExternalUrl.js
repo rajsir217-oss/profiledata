@@ -15,15 +15,9 @@ export const openExternalUrl = async (url, target = '_blank', forceExternal = fa
 
   if (isNativePlatform()) {
     try {
-      if (forceExternal) {
-        // Force external browser on Android by using window.open with _blank
-        // This triggers the system's default browser instead of in-app browser
-        if (typeof window !== 'undefined' && window.open) {
-          window.open(url, '_blank', 'noopener,noreferrer');
-        }
-      } else {
-        await Browser.open({ url });
-      }
+      // Always use Capacitor Browser plugin for native platforms
+      // The forceExternal parameter is ignored since window.open doesn't work reliably in Capacitor
+      await Browser.open({ url });
     } catch (err) {
       console.error('Browser.open failed:', err);
     }
