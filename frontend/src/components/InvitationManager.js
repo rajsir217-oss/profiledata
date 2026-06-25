@@ -1042,14 +1042,15 @@ const InvitationManager = () => {
                     </span>
                   </td>
                   <td>{getStatusBadge(invitation.emailStatus, invitation.emailResendCount)}</td>
-                  <td>
+                  <td style={{ textAlign: 'center' }}>
                     {invitation.emailStatus !== 'accepted' && (
                       <button
-                        className="btn-action btn-email"
+                        className="btn-micro btn-micro-primary"
                         onClick={() => handleResend(invitation.id, 'email')}
                         disabled={invitation.archived}
+                        title={invitation.emailStatus === 'pending' ? 'Send Email' : 'Resend Email'}
                       >
-                        {invitation.emailStatus === 'pending' ? 'Send' : 'Resend'}
+                        {invitation.emailStatus === 'pending' ? '📤' : '🔁'}
                       </button>
                     )}
                   </td>
@@ -1060,19 +1061,21 @@ const InvitationManager = () => {
                   <td>
                     {invitation.phone && invitation.smsStatus !== 'accepted' && (
                       <button
-                        className="btn-action btn-sms"
+                        className="btn-micro btn-micro-secondary"
                         onClick={() => handleResend(invitation.id, 'sms')}
                         disabled={invitation.archived}
+                        title={invitation.smsStatus === 'pending' ? 'Send SMS' : 'Resend SMS'}
+                        style={{ borderColor: 'var(--success-color, #00b894)', color: 'var(--success-color, #00b894)' }}
                       >
-                        {invitation.smsStatus === 'pending' ? 'Send' : 'Resend'}
+                        {invitation.smsStatus === 'pending' ? '💬' : '🔁'}
                       </button>
                     )}
                   </td>
                   <td>{formatLastSent(invitation.lastEmailSentAt, invitation.emailSentAt)}</td>
                   <td>
-                    <div className="action-buttons">
+                    <div className="admin-action-btns">
                       <button
-                        className="btn-icon"
+                        className="btn-micro btn-micro-warning"
                         onClick={() => handleEdit(invitation)}
                         title="Edit"
                       >
@@ -1080,7 +1083,7 @@ const InvitationManager = () => {
                       </button>
                       {!invitation.archived && (
                         <button
-                          className="btn-icon btn-archive"
+                          className="btn-micro btn-micro-secondary"
                           onClick={() => handleArchive(invitation.id)}
                           title="Archive"
                         >
@@ -1091,6 +1094,7 @@ const InvitationManager = () => {
                         onDelete={() => handleDelete(invitation.id)}
                         itemName="invitation"
                         size="small"
+                        className="btn-micro-delete"
                       />
                     </div>
                   </td>

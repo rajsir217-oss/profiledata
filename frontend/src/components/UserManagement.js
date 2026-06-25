@@ -987,190 +987,121 @@ const UserManagement = () => {
                   <div className="action-dropdown-container">
                     <button
                       ref={(el) => (dropdownRefs.current[user.username] = el)}
-                      className="btn-actions-menu"
+                      className="btn-micro btn-micro-secondary"
+                      title="Actions"
                       onClick={(e) => {
-                        console.log('🔽 Kebab clicked for:', user.username, 'current openDropdown:', openDropdown);
                         if (openDropdown === user.username) {
                           setOpenDropdown(null);
                         } else {
                           const rect = e.currentTarget.getBoundingClientRect();
-                          const newPosition = {
+                          setDropdownPosition({
                             top: rect.bottom + window.scrollY,
                             left: rect.left + window.scrollX
-                          };
-                          console.log('🔽 Setting dropdown position:', newPosition);
-                          setDropdownPosition(newPosition);
+                          });
                           setOpenDropdown(user.username);
                         }
                       }}
                     >
                       ⋮
                     </button>
-                    
                     {openDropdown === user.username && (() => {
-                      // Get fresh user data from users array to avoid stale closure
                       const freshUser = users.find(u => u.username === user.username) || user;
-                      // Get effective contribution state (override takes precedence)
-                      const isContributionDisabled = contributionToggleOverrides[freshUser.username] !== undefined 
-                        ? contributionToggleOverrides[freshUser.username] 
+                      const isContributionDisabled = contributionToggleOverrides[freshUser.username] !== undefined
+                        ? contributionToggleOverrides[freshUser.username]
                         : !!freshUser.contributionPopupDisabledByAdmin;
-                      console.log('🔽 Dropdown rendering for:', freshUser.username, 'position:', dropdownPosition);
-                      // Use React Portal to render dropdown outside table container to avoid clipping
+                      const validation = imageValidationStatus[freshUser.username];
+                      const hasImages = freshUser.images && freshUser.images.length > 0;
+                      const needsReview = validation?.needs_review || false;
+                      const isValidating = validatingImages[freshUser.username] || false;
                       return ReactDOM.createPortal(
-                      <div 
-                        className="actions-dropdown-menu"
-                        style={{
-                          position: 'fixed',
-                          top: `${dropdownPosition.top}px`,
-                          left: `${dropdownPosition.left}px`,
-                          zIndex: 99999
-                        }}
-                      >
-                        <button
-                          className="dropdown-item"
-                          onClick={() => {
-                            window.open(`/profile/${freshUser.username}`, '_blank');
-                            setOpenDropdown(null);
-                          }}
+                        <div
+                          className="actions-dropdown-menu"
+                          style={{ position: 'fixed', top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px`, zIndex: 99999 }}
                         >
-                          <span className="dropdown-icon">👤</span>
-                          View Profile
-                        </button>
-                        
-                        <button
-                          className="dropdown-item"
-                          onClick={() => {
-                            openRoleModal(freshUser);
-                            setOpenDropdown(null);
-                          }}
-                          disabled={freshUser.username === currentUser}
-                        >
-                          <span className="dropdown-icon">👥</span>
-                          Assign Role
-                        </button>
-                        
-                        {(() => {
-                          const validation = imageValidationStatus[freshUser.username];
-                          const hasImages = freshUser.images && freshUser.images.length > 0;
-                          const needsReview = validation?.needs_review || false;
-                          const isValidating = validatingImages[freshUser.username] || false;
-                          
-                          if (hasImages) {
-                            return (
-                              <button
-                                className={`dropdown-item ${needsReview ? 'dropdown-item-warning' : 'dropdown-item-success'}`}
-                                onClick={() => {
-                                  handleValidateImages(freshUser.username);
-                                  setOpenDropdown(null);
-                                }}
-                                disabled={isValidating}
-                              >
-                                <span className="dropdown-icon">
-                                  {isValidating ? '🔄' : needsReview ? '⚠️' : validation ? '✓' : '🔍'}
-                                </span>
-                                {isValidating ? 'Validating...' : needsReview ? 'Review Images' : validation ? 'Images Verified' : 'Validate Images'}
-                              </button>
-                            );
-                          }
-                          return null;
-                        })()}
-                        
-                        <div className="dropdown-divider"></div>
-                        
-                        <button
-                          className="dropdown-item dropdown-item-success"
-                          onClick={() => {
-                            openActionModal(freshUser, 'activate');
-                            setOpenDropdown(null);
-                          }}
-                          disabled={freshUser.accountStatus === 'active' || freshUser.username === currentUser}
-                        >
-                          <span className="dropdown-icon">✅</span>
-                          Activate
-                        </button>
-                        
-                        <button
-                          className="dropdown-item dropdown-item-warning"
-                          onClick={() => {
-                            openActionModal(freshUser, 'suspend');
-                            setOpenDropdown(null);
-                          }}
-                          disabled={freshUser.username === currentUser}
-                        >
-                          <span className="dropdown-icon">⏸️</span>
-                          Suspend
-                        </button>
-                        
-                        <button
-                          className="dropdown-item dropdown-item-danger"
-                          onClick={() => {
-                            openActionModal(freshUser, 'ban');
-                            setOpenDropdown(null);
-                          }}
-                          disabled={freshUser.username === currentUser}
-                        >
-                          <span className="dropdown-icon">🚫</span>
-                          Ban
-                        </button>
-                        
-                        <div className="dropdown-divider"></div>
-                        
-                        <button
-                          className="dropdown-item"
-                          onClick={() => {
-                            openCleanupModal(freshUser);
-                            setOpenDropdown(null);
-                          }}
-                        >
-                          <span className="dropdown-icon">🗑️</span>
-                          Configure Cleanup
-                        </button>
-                        
-                        <button
-                          className="dropdown-item"
-                          onClick={async () => {
-                            // Update override BEFORE closing dropdown for immediate feedback
-                            const currentState = contributionToggleOverrides[freshUser.username] !== undefined 
-                              ? contributionToggleOverrides[freshUser.username] 
-                              : freshUser.contributionPopupDisabledByAdmin === true;
-                            console.log(`🔄 Toggle contribution for ${freshUser.username}: currentState=${currentState}, newState=${!currentState}`);
-                            setContributionToggleOverrides(prev => {
-                              const newOverrides = {
-                                ...prev,
-                                [freshUser.username]: !currentState
-                              };
-                              console.log('🔄 New overrides:', newOverrides);
-                              return newOverrides;
-                            });
-                            setOpenDropdown(null);
-                            
-                            // Then make API call
-                            try {
-                              await adminApi.put(`/api/contributions/admin/user/${freshUser.username}/contribution-popup`, {
-                                disabled: !currentState
-                              });
-                              const statusText = !currentState ? 'disabled' : 'enabled';
-                              setSuccessMessage(`✅ Contribution popup ${statusText} for ${freshUser.username}`);
-                              setTimeout(() => setSuccessMessage(''), 3000);
-                            } catch (err) {
-                              console.error('Error toggling contribution popup:', err);
-                              setError('Failed to toggle contribution popup: ' + (err.response?.data?.detail || err.message));
-                              // Revert on error
-                              setContributionToggleOverrides(prev => {
-                                const newOverrides = { ...prev };
-                                delete newOverrides[freshUser.username];
-                                return newOverrides;
-                              });
-                            }
-                          }}
-                          disabled={freshUser.username === currentUser}
-                        >
-                          <span className="dropdown-icon">{isContributionDisabled ? '💵' : '💰'}</span>
-                          {isContributionDisabled ? 'Enable Contribution Popup' : 'Disable Contribution Popup'}
-                        </button>
-                      </div>,
-                      document.body
-                    )})()}
+                          <button
+                            className="dropdown-item"
+                            onClick={() => { window.open(`/profile/${freshUser.username}`, '_blank'); setOpenDropdown(null); }}
+                          >
+                            <span className="dropdown-icon">👤</span>
+                            View Profile
+                          </button>
+                          <button
+                            className="dropdown-item"
+                            onClick={() => { openRoleModal(freshUser); setOpenDropdown(null); }}
+                            disabled={freshUser.username === currentUser}
+                          >
+                            <span className="dropdown-icon">👥</span>
+                            Assign Role
+                          </button>
+                          {hasImages && (
+                            <button
+                              className={`dropdown-item ${needsReview ? 'dropdown-item-warning' : 'dropdown-item-success'}`}
+                              onClick={() => { handleValidateImages(freshUser.username); setOpenDropdown(null); }}
+                              disabled={isValidating}
+                            >
+                              <span className="dropdown-icon">{isValidating ? '🔄' : needsReview ? '⚠️' : validation ? '✓' : '🔍'}</span>
+                              {isValidating ? 'Validating...' : needsReview ? 'Review Images' : validation ? 'Images Verified' : 'Validate Images'}
+                            </button>
+                          )}
+                          <div className="dropdown-divider"></div>
+                          <button
+                            className="dropdown-item dropdown-item-success"
+                            onClick={() => { openActionModal(freshUser, 'activate'); setOpenDropdown(null); }}
+                            disabled={freshUser.accountStatus === 'active' || freshUser.username === currentUser}
+                          >
+                            <span className="dropdown-icon">✅</span>
+                            Activate
+                          </button>
+                          <button
+                            className="dropdown-item dropdown-item-warning"
+                            onClick={() => { openActionModal(freshUser, 'suspend'); setOpenDropdown(null); }}
+                            disabled={freshUser.username === currentUser}
+                          >
+                            <span className="dropdown-icon">⏸️</span>
+                            Suspend
+                          </button>
+                          <button
+                            className="dropdown-item dropdown-item-danger"
+                            onClick={() => { openActionModal(freshUser, 'ban'); setOpenDropdown(null); }}
+                            disabled={freshUser.username === currentUser}
+                          >
+                            <span className="dropdown-icon">�</span>
+                            Ban
+                          </button>
+                          <div className="dropdown-divider"></div>
+                          <button
+                            className="dropdown-item"
+                            onClick={() => { openCleanupModal(freshUser); setOpenDropdown(null); }}
+                          >
+                            <span className="dropdown-icon">🗑️</span>
+                            Configure Cleanup
+                          </button>
+                          <button
+                            className="dropdown-item"
+                            disabled={freshUser.username === currentUser}
+                            onClick={async () => {
+                              const currentState = contributionToggleOverrides[freshUser.username] !== undefined
+                                ? contributionToggleOverrides[freshUser.username]
+                                : freshUser.contributionPopupDisabledByAdmin === true;
+                              setContributionToggleOverrides(prev => ({ ...prev, [freshUser.username]: !currentState }));
+                              setOpenDropdown(null);
+                              try {
+                                await adminApi.put(`/api/contributions/admin/user/${freshUser.username}/contribution-popup`, { disabled: !currentState });
+                                setSuccessMessage(`✅ Contribution popup ${!currentState ? 'disabled' : 'enabled'} for ${freshUser.username}`);
+                                setTimeout(() => setSuccessMessage(''), 3000);
+                              } catch (err) {
+                                setError('Failed to toggle contribution popup: ' + (err.response?.data?.detail || err.message));
+                                setContributionToggleOverrides(prev => { const n = { ...prev }; delete n[freshUser.username]; return n; });
+                              }
+                            }}
+                          >
+                            <span className="dropdown-icon">{isContributionDisabled ? '💵' : '💰'}</span>
+                            {isContributionDisabled ? 'Enable Contribution Popup' : 'Disable Contribution Popup'}
+                          </button>
+                        </div>,
+                        document.body
+                      );
+                    })()}
                   </div>
                 </td>
                 <td>
