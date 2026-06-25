@@ -45,7 +45,7 @@ const AdminRegistrationInterests = () => {
   const [notesText, setNotesText] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(null);
-  const [detailsMessage, setDetailsMessage] = useState('We would like to request additional information regarding your registration interest. Please provide your referred details so that we can process your request as soon as possible. If you have any questions, please contact admins. Thanks.');
+  const [detailsMessage, setDetailsMessage] = useState('Thank you for your interest in registering your profile with www.l3v3lmatches.com. To proceed, we need a bit more information.\nPlease share the details of the person who referred you, so we can process your request promptly.\nIf you have any questions, feel free to contact the admins at +1 (nnn)‑nnn‑nnnn via text or WhatsApp. Thanks');
   const [detailsChannel, setDetailsChannel] = useState('email');
 
   const adminApi = createApiInstance(getBackendUrl());
@@ -102,6 +102,33 @@ const AdminRegistrationInterests = () => {
         toastService.error(detail);
       }
       logger.error(`Action ${action} failed:`, detail);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [id]: null }));
+    }
+  };
+
+  const handleValidateAndInvite = async (id) => {
+    setActionLoading(prev => ({ ...prev, [id]: 'validate-and-invite' }));
+    try {
+      // First validate the reference
+      await adminApi.put(`/api/registration-interest/${id}/validate`);
+      toastService.success('Reference validated');
+      
+      // Then send the invitation
+      await adminApi.put(`/api/registration-interest/${id}/send-invitation`);
+      toastService.success('Invitation sent');
+      
+      await fetchInterests();
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Action failed';
+      const status = err.response?.status;
+      if (status === 409) {
+        toastService.warning(detail);
+        await fetchInterests();
+      } else {
+        toastService.error(detail);
+      }
+      logger.error('Validate and invite failed:', detail);
     } finally {
       setActionLoading(prev => ({ ...prev, [id]: null }));
     }
@@ -172,13 +199,16 @@ const AdminRegistrationInterests = () => {
 
     if (s === 'pending_review') {
       actions.push(
-        <button key="validate" className="ari-action-btn ari-btn-validate" onClick={() => handleAction(id, 'validate')} disabled={isLoading}>
+        <button key="validate-invite" className="ari-action-btn ari-btn-invite" onClick={() => handleValidateAndInvite(id)} disabled={isLoading}>
+          {loadingAction === 'validate-and-invite' ? 'Processing...' : `${EMOJI.validate} ${EMOJI.email} Validate & Send Invite`}
+        </button>,
+        <button key="validate" className="ari-action-btn ari-btn-validate ari-btn-sm" onClick={() => handleAction(id, 'validate')} disabled={isLoading}>
           {loadingAction === 'validate' ? 'Validating...' : `${EMOJI.validate} Validate Reference`}
         </button>,
-        <button key="idme" className="ari-action-btn ari-btn-idme" onClick={() => handleAction(id, 'send-idme')} disabled={isLoading}>
+        <button key="idme" className="ari-action-btn ari-btn-idme ari-btn-sm" onClick={() => handleAction(id, 'send-idme')} disabled={isLoading}>
           {loadingAction === 'send-idme' ? 'Sending...' : `${EMOJI.shield} Send ID.me`}
         </button>,
-        <button key="reject" className="ari-action-btn ari-btn-reject" onClick={() => setShowRejectModal(id)} disabled={isLoading}>
+        <button key="reject" className="ari-action-btn ari-btn-reject ari-btn-sm" onClick={() => setShowRejectModal(id)} disabled={isLoading}>
           {`${EMOJI.reject} Reject`}
         </button>
       );
