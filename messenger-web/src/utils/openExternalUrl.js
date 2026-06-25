@@ -8,13 +8,22 @@ const namedWindows = {};
  * Uses Capacitor Browser plugin in native apps, window.open in web.
  * @param {string} url
  * @param {string} [target='_blank']
+ * @param {boolean} [forceExternal=false] - Force external browser on Android
  */
-export const openExternalUrl = async (url, target = '_blank') => {
+export const openExternalUrl = async (url, target = '_blank', forceExternal = false) => {
   if (!url) return;
 
   if (isNativePlatform()) {
     try {
-      await Browser.open({ url });
+      if (forceExternal) {
+        // Force external browser on Android by using window.open with _blank
+        // This triggers the system's default browser instead of in-app browser
+        if (typeof window !== 'undefined' && window.open) {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
+      } else {
+        await Browser.open({ url });
+      }
     } catch (err) {
       console.error('Browser.open failed:', err);
     }

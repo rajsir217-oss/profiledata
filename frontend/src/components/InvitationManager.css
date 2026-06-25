@@ -234,8 +234,34 @@
   10%, 90% { opacity: 1; }
 }
 
+/* Horizontal scroll wrapper for the wide invitations table */
+.invitation-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.invitation-table-scroll::-webkit-scrollbar {
+  height: 12px;
+}
+
+.invitation-table-scroll::-webkit-scrollbar-track {
+  background: var(--bg-secondary, rgba(0, 0, 0, 0.04));
+  border-radius: 6px;
+}
+
+.invitation-table-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 6px;
+}
+
+.invitation-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
 .invitation-table {
   width: 100%;
+  min-width: 1200px;
   border-collapse: collapse;
 }
 

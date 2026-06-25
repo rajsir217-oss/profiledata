@@ -961,6 +961,7 @@ const InvitationManager = () => {
           </div>
         </div>
 
+        <div className="invitation-table-scroll">
         <table className="invitation-table">
           <thead>
             <tr>
@@ -1098,6 +1099,7 @@ const InvitationManager = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* View More Pagination - without outer container */}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "885095197155",
+    "project_id": "l3v3lmatchmsgs",
+    "storage_bucket": "l3v3lmatchmsgs.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:885095197155:android:d3f40cea79a1cfc67b18d6",
+        "android_client_info": {
+          "package_name": "com.l3v3lmessenger"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAD0U8wK-ry0CYvfyFOTbmAD9KBT03kB3g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

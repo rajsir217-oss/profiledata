@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
+import { AppUpdate } from '@capawesome/capacitor-app-update';
 
 import useAuthStore from '@messenger/stores/authStore';
 import messengerSocket from '@messenger/services/socketService';
 import { setTokenGetter } from '@messenger/utils/imageHelper';
+import { initializePushNotifications } from './src/services/pushNotificationService';
 
 // Wire imageHelper to the auth store so protected /api/users/media/ URLs
 // receive the current JWT as ?token=...
@@ -13,6 +15,32 @@ import LoginScreen from './src/screens/LoginScreen';
 import ConversationListScreen from './src/screens/ConversationListScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import NewChatScreen from './src/screens/NewChatScreen';
+
+/**
+ * Check for app updates on Android
+ * Automatically prompts user to update if a new version is available
+ */
+const checkForUpdates = async () => {
+  try {
+    const result = await AppUpdate.getAppUpdateInfo();
+    
+    if (result.updateAvailability === 2) { // UPDATE_AVAILABLE
+      console.log('[AppUpdate] Update available:', result.availableVersion);
+      
+      if (result.immediateUpdateAllowed) {
+        // Perform immediate update (blocks user until complete)
+        await AppUpdate.performImmediateUpdate();
+      } else if (result.flexibleUpdateAllowed) {
+        // Flexible update (download in background)
+        await AppUpdate.startFlexibleUpdate();
+      }
+    } else {
+      console.log('[AppUpdate] App is up to date');
+    }
+  } catch (error) {
+    console.error('[AppUpdate] Failed to check for updates:', error);
+  }
+};
 
 export default function App() {
   const { token, restore } = useAuthStore();
@@ -38,11 +66,17 @@ export default function App() {
       }
     };
     bootstrap();
+
+    // Check for app updates on Android
+    if (Platform.OS === 'android') {
+      checkForUpdates();
+    }
   }, []);
 
   useEffect(() => {
     if (token) {
       messengerSocket.connect();
+      initializePushNotifications();
     } else {
       messengerSocket.disconnect();
     }
