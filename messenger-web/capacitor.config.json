@@ -6,9 +6,8 @@
     "allowMixedContent": true
   },
   "server": {
-    "androidScheme": "http",
-    "cleartext": true,
-    "url": "http://10.0.2.2:3030"
+    "androidScheme": "https",
+    "hostname": "l3v3lmatches.com"
   },
   "plugins": {
     "PushNotifications": {
