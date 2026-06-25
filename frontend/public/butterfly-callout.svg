@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 224" width="240" height="224" role="img" aria-label="Blue morpho butterfly message callout">
+  <!-- Callout bubble: rounded rectangle with a bottom-left pointer tail -->
+  <path d="M54,26 H186 A16,16 0 0 1 202,42 V154 A16,16 0 0 1 186,170 H84 L54,196 L68,170 H54 A16,16 0 0 1 38,154 V42 A16,16 0 0 1 54,26 Z"
+        fill="#0E1116" stroke="#22A7F0" stroke-width="4" stroke-linejoin="round"/>
+
+  <!-- Butterfly emoji (renders exactly like the reference on platforms with the emoji font) -->
+  <text x="120" y="100" font-size="120" text-anchor="middle" dominant-baseline="central">🦋</text>
+</svg>

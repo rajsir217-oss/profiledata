@@ -246,7 +246,7 @@ ensure_android_paths() {
 }
 
 ensure_capacitor_android_launcher_icons() {
-  local src_png="$REPO_ROOT/frontend/public/logo512.png"
+  local src_png="$MSG_WEB_DIR/resources/messenger-icon-source-1024.png"
   local res_dir="$MSG_WEB_DIR/android/app/src/main/res"
   local backup_root="$MSG_WEB_DIR/android/app/src/main/res_toberemoved"
 
