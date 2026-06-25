@@ -6,7 +6,20 @@
     "allowMixedContent": true
   },
   "server": {
-    "androidScheme": "https",
-    "hostname": "l3v3lmatches.com"
+    "androidScheme": "http",
+    "cleartext": true,
+    "url": "http://10.0.2.2:3030"
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    },
+    "AppUpdate": {
+      "automaticallyCheckUpdates": true
+    }
   }
 }
