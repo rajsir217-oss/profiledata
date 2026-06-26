@@ -289,6 +289,34 @@ async def pay_and_respond(
             f"user={current_user.get('username')} poll={poll_id} error={e}"
         )
 
+    # Record to contributions/payments collection so it appears in Contribution Management
+    try:
+        username = current_user["username"]
+        payment_record = {
+            "username": username,
+            "amount": response_data.payment_amount,
+            "paymentType": "poll_rsvp",
+            "paymentProvider": response_data.payment_method,
+            "status": "completed",
+            "pollId": poll_id,
+            "pollTitle": poll.get("title", ""),
+            "paypalOrderId": response_data.payment_id if response_data.payment_method == "paypal" else None,
+            "paypalCaptureId": response_data.payment_id if response_data.payment_method == "paypal" else None,
+            "description": f"Event RSVP - {poll.get('title', poll_id)} - ${response_data.payment_amount:.2f}",
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow(),
+        }
+        await db.payments.insert_one(payment_record)
+        logger.info(
+            f"[pay-and-respond] 💝 Poll RSVP payment logged for {username}: "
+            f"${response_data.payment_amount:.2f} poll={poll_id}"
+        )
+    except Exception as e:
+        logger.error(
+            f"[pay-and-respond] Failed to record payment to contributions "
+            f"user={current_user.get('username')} poll={poll_id} error={e}"
+        )
+
     return result
 
 
