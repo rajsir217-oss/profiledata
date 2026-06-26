@@ -271,10 +271,10 @@
 }
 
 .invitation-table th {
-  padding: 16px 12px;
+  padding: 10px 8px;
   text-align: left;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -310,8 +310,8 @@
 }
 
 .invitation-table td {
-  padding: 12px;
-  font-size: 14px;
+  padding: 8px 8px;
+  font-size: 11px;
   color: var(--text-color);
 }
 
@@ -340,45 +340,53 @@
 .invited-by-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
+  gap: 3px;
+  padding: 2px 6px;
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 600;
   background: var(--surface-color, #f8f9fa);
   color: var(--text-color);
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--border-color);
   white-space: nowrap;
+}
+
+/* Status - plain colored text, no pill */
+.btn-action {
+  display: inline !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  white-space: nowrap;
+  border: none !important;
+  background: none !important;
+  box-shadow: none !important;
+  cursor: default;
 }
 
 /* Status Badge Colors (use btn-action as base class for alignment) */
 .status-pending {
-  background: var(--warning-light, #ffeaa7);
-  color: var(--warning-dark, #d63031);
+  color: var(--warning-dark, #d97706);
 }
 
 .status-sent {
-  background: var(--info-light, #74b9ff);
   color: var(--info-color, #0984e3);
 }
 
 .status-delivered {
-  background: var(--success-light, #55efc4);
   color: var(--success-color, #00b894);
 }
 
 .status-failed {
-  background: var(--danger-light, #fab1a0);
   color: var(--danger-color, #d63031);
 }
 
 .status-accepted {
-  background: var(--success-color, #00b894);
-  color: white;
+  color: var(--success-color, #00b894);
 }
 
 .status-expired {
-  background: var(--surface-color, #dfe6e9);
   color: var(--text-muted, #636e72);
 }
 
