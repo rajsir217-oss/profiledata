@@ -91,8 +91,53 @@ class ProcessRecurringContributionsJob(JobTemplate):
                 details={"error": "Neither PayPal nor Clover configured"}
             )
         
-        # Find all contributions due for payment
+        # --- Roster log: all recurring contributors by status ---
         now = datetime.utcnow()
+        all_cursor = context.db.recurring_contributions.find(
+            {},
+            {"username": 1, "amount": 1, "next_payment_date": 1, "payment_method": 1, "recurring_days": 1, "status": 1, "clover_customer_id": 1}
+        ).sort("status", 1)
+        all_records = await all_cursor.to_list(length=500)
+        
+        all_active = [r for r in all_records if r.get("status") == "active"]
+        pending_card = [r for r in all_records if r.get("status") == "pending_card"]
+        other = [r for r in all_records if r.get("status") not in ("active", "pending_card")]
+        
+        context.log("info", f"Recurring contributors total: {len(all_records)} | active: {len(all_active)} | pending_card: {len(pending_card)} | other: {len(other)}")
+        
+        if all_active:
+            context.log("info", f"✅ Active (will auto-charge):")
+            for c in all_active:
+                next_dt = c.get("next_payment_date")
+                next_str = next_dt.strftime("%Y-%m-%d") if next_dt else "N/A"
+                provider = c.get("payment_method", "paypal").upper()
+                days = c.get("recurring_days", 30)
+                status_flag = "⏰ DUE" if next_dt and next_dt <= now else "🔜 upcoming"
+                context.log("info",
+                    f"  {status_flag} | {c['username']} | ${c['amount']:.2f}/mo "
+                    f"(every {days}d via {provider}) | next: {next_str}"
+                )
+        
+        if pending_card:
+            context.log("warning", f"⚠️ pending_card ({len(pending_card)}) — no stored card, cannot auto-charge:")
+            for c in pending_card:
+                next_dt = c.get("next_payment_date")
+                next_str = next_dt.strftime("%Y-%m-%d") if next_dt else "N/A"
+                provider = c.get("payment_method", "unknown").upper()
+                context.log("warning",
+                    f"  ❌ {c['username']} | ${c['amount']:.2f}/mo via {provider} | next: {next_str} | ACTION REQUIRED: re-register card"
+                )
+        
+        if other:
+            context.log("info", f"Other statuses ({len(other)}):")
+            for c in other:
+                context.log("info", f"  {c.get('status','?')} | {c['username']} | ${c.get('amount', 0):.2f}/mo")
+        
+        if not all_records:
+            context.log("info", "No recurring contribution records found in database")
+        # --- End roster log ---
+        
+        # Find all contributions due for payment
         due_filter = {
             "status": "active",
             "next_payment_date": {"$lte": now},
@@ -106,7 +151,15 @@ class ProcessRecurringContributionsJob(JobTemplate):
             return JobResult(
                 status="success",
                 message="No contributions due for payment",
-                details={"processed": 0, "charged": 0, "failed": 0}
+                records_processed=0,
+                details={
+                    "processed": 0,
+                    "charged": 0,
+                    "failed": 0,
+                    "active_subscribers": len(all_active),
+                    "pending_card": len(pending_card),
+                    "total_enrolled": len(all_records)
+                }
             )
         
         # Process in batches
