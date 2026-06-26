@@ -30,20 +30,14 @@
             overflow: hidden;
         }
 
-        .header {
+        .hero-section {
             position: relative;
             background: #0f1029;
-            color: white;
-            padding: 30px 25px;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
             overflow: hidden;
+            color: white;
         }
 
-        .header::before {
+        .hero-section::before {
             content: "";
             position: absolute;
             inset: 0;
@@ -52,14 +46,50 @@
             background-position: center;
             opacity: 0.85;
             pointer-events: none;
+            z-index: 0;
         }
 
-        .header::after {
+        .hero-section::after {
             content: "";
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, rgba(15, 15, 32, 0.35) 0%, rgba(58, 12, 65, 0.55) 100%);
+            background: linear-gradient(
+                to bottom,
+                rgba(10, 10, 30, 0.55) 0%,
+                rgba(30, 10, 50, 0.45) 60%,
+                rgba(10, 10, 30, 0.82) 100%
+            );
             z-index: 0;
+        }
+
+        .header {
+            position: relative;
+            z-index: 1;
+            color: white;
+            padding: 200px 30px 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header > div {
+            background: transparent;
+            padding: 8px 20px;
+            max-width: 540px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .header > div p {
+            color: rgba(255,255,255,0.94);
+            font-size: 0.75em;
+            line-height: 1.45;
+            margin: 0 0 5px 0;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+        }
+
+        .header > div p:last-child {
+            margin-bottom: 0;
         }
 
         .header .butterfly,
@@ -102,13 +132,16 @@
         }
 
         .tagline {
-            background: #1a1a2e;
-            color: #e94560;
-            padding: 8px;
+            position: relative;
+            z-index: 1;
+            background: rgba(15, 10, 35, 0.88);
+            color: #f06292;
+            padding: 10px 16px;
             text-align: center;
-            font-size: 0.9em;
-            font-weight: 600;
-            letter-spacing: 1.5px;
+            font-size: 0.85em;
+            font-weight: 700;
+            letter-spacing: 2px;
+            border-top: 1px solid rgba(255,255,255,0.08);
         }
 
         .content {
@@ -116,18 +149,40 @@
         }
 
         .intro {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border-left: 3px solid #667eea;
+            position: relative;
+            z-index: 1;
+            background: transparent;
+            padding: 8px 30px 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .intro .butterfly {
+            font-size: 2.4em;
+            line-height: 1;
+            flex-shrink: 0;
+            animation: flutter 3s ease-in-out infinite;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));
+        }
+
+        .intro h1 {
+            font-size: 2.6em;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-shadow: 0 4px 14px rgba(0,0,0,0.5);
+            margin: 0;
+            color: white;
         }
 
         .intro p {
-            color: #333;
-            line-height: 1.45;
-            font-size: 0.82em;
-            margin: 0;
+            color: rgba(255,255,255,0.92);
+            line-height: 1.6;
+            font-size: 0.85em;
+            margin: 0 0 8px 0;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
         }
 
         .features-grid {
@@ -411,24 +466,29 @@
 </head>
 <body>
     <div class="flyer">
+      <div class="hero-section">
         <div class="header">
-            <div class="butterfly">🦋</div>
-            <div class="header-text">
-                <h1>L3V3L Matches</h1>
-                <h2>Your Trusted Matrimonial Platform</h2>
-            </div>
         </div>
 
-        <div class="tagline">
-            ✨ FIND YOUR PERFECT MATCH WITH CONFIDENCE ✨
+
+                <div class="intro">
+                <div class="butterfly">🦋</div>
+                <div class="header-text">
+                <h2>L3V3L Matches</h2>
+
+                </div>
+
         </div>
+  <div class="tagline">
+            ✨ FIND YOUR PERFECT MATCH WITH CONFIDENCE ✨
+      <p style="font-size: 0.75em; line-height: 1.45; margin: 6px 0 0 0; color: rgba(255,255,255,0.94); text-shadow: 0 1px 3px rgba(0,0,0,0.7);">
+                    "A premium matrimonial platform for <b>
+                        <span style="background: rgba(255,255,255,0.18); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); color: #fff;">Indian&#8209;origin U.S. Citizens and Green Card holders</span></b>
+                         AI&#8209;powered matching across 50+ compatibility factors. Verified profiles. Zero fees. Unlimited access to all premium features."
+                </p></div>
+      </div>
 
         <div class="content">
-            <div class="intro">
-                <p>
-                    <strong>L3V3L Matches</strong> is a premium matrimonial platform for <b><span style="background-color: #e0ffff; padding: 2px 6px; border-radius: 3px;">Indian-origin US citizens and Green Card holders</span></b> seeking meaningful, long-term relationships leading to marriage. Our AI analyzes <strong>50+ compatibility factors</strong> — values, lifestyle, and relationship potential. Every profile is verified.
-                </p>
-            </div>
             <div class="features-grid">
                 <div class="feature-card">
                     <h3><span class="emoji">🔍</span> Smart Search</h3>
