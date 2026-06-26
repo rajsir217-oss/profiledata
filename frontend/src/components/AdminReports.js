@@ -19,6 +19,10 @@ const AdminReports = () => {
   const [summary, setSummary] = useState(null);
   const [yearFilter, setYearFilter] = useState('all');
   const [availableYears, setAvailableYears] = useState([]);
+  const [showLocationTable, setShowLocationTable] = useState(false);
+  const [expandedStates, setExpandedStates] = useState({});
+  const [locationSortField, setLocationSortField] = useState('count');
+  const [locationSortDir, setLocationSortDir] = useState('desc');
 
   // Check admin access
   useEffect(() => {
@@ -111,6 +115,105 @@ const AdminReports = () => {
   const openProfile = (username) => {
     window.open(`/profile/${username}`, '_blank');
   };
+
+  // ---- Location table helpers ----
+  const CITY_STATE = {
+    'San Francisco': 'CA', 'Los Angeles': 'CA', 'San Diego': 'CA', 'San Jose': 'CA',
+    'Sacramento': 'CA', 'Fremont': 'CA', 'Sunnyvale': 'CA', 'Irvine': 'CA', 'Oakland': 'CA',
+    'Fresno': 'CA', 'Long Beach': 'CA', 'Bakersfield': 'CA', 'Anaheim': 'CA', 'Riverside': 'CA',
+    'Santa Ana': 'CA', 'Stockton': 'CA', 'Chula Vista': 'CA', 'Hayward': 'CA', 'Santa Clara': 'CA',
+    'New York City': 'NY', 'New York': 'NY', 'Brooklyn': 'NY', 'Queens': 'NY', 'Buffalo': 'NY',
+    'Rochester': 'NY', 'Albany': 'NY', 'Yonkers': 'NY', 'Bronx': 'NY', 'Staten Island': 'NY', 'Manhattan': 'NY',
+    'Atlanta': 'GA', 'Augusta': 'GA', 'Savannah': 'GA', 'Athens': 'GA', 'Marietta': 'GA',
+    'Dallas': 'TX', 'Houston': 'TX', 'Austin': 'TX', 'San Antonio': 'TX', 'Fort Worth': 'TX',
+    'El Paso': 'TX', 'Arlington': 'TX', 'Corpus Christi': 'TX', 'Plano': 'TX', 'Irving': 'TX',
+    'Garland': 'TX', 'Lubbock': 'TX', 'Frisco': 'TX', 'McKinney': 'TX', 'Carrollton': 'TX',
+    'Chicago': 'IL', 'Aurora': 'IL', 'Naperville': 'IL', 'Joliet': 'IL', 'Rockford': 'IL', 'Schaumburg': 'IL',
+    'Seattle': 'WA', 'Spokane': 'WA', 'Tacoma': 'WA', 'Bellevue': 'WA', 'Redmond': 'WA', 'Kirkland': 'WA',
+    'Boston': 'MA', 'Worcester': 'MA', 'Cambridge': 'MA', 'Lowell': 'MA', 'Quincy': 'MA',
+    'Phoenix': 'AZ', 'Tucson': 'AZ', 'Mesa': 'AZ', 'Chandler': 'AZ', 'Scottsdale': 'AZ', 'Glendale': 'AZ', 'Gilbert': 'AZ', 'Tempe': 'AZ',
+    'Philadelphia': 'PA', 'Pittsburgh': 'PA', 'Allentown': 'PA', 'Erie': 'PA',
+    'Denver': 'CO', 'Colorado Springs': 'CO', 'Fort Collins': 'CO', 'Boulder': 'CO',
+    'Miami': 'FL', 'Jacksonville': 'FL', 'Tampa': 'FL', 'Orlando': 'FL', 'St. Petersburg': 'FL',
+    'Hialeah': 'FL', 'Fort Lauderdale': 'FL', 'Tallahassee': 'FL',
+    'Detroit': 'MI', 'Grand Rapids': 'MI', 'Warren': 'MI', 'Sterling Heights': 'MI', 'Ann Arbor': 'MI', 'Dearborn': 'MI',
+    'Minneapolis': 'MN', 'St. Paul': 'MN', 'Rochester': 'MN',
+    'Portland': 'OR', 'Eugene': 'OR', 'Salem': 'OR', 'Beaverton': 'OR',
+    'Las Vegas': 'NV', 'Henderson': 'NV', 'Reno': 'NV',
+    'Nashville': 'TN', 'Memphis': 'TN', 'Knoxville': 'TN', 'Chattanooga': 'TN',
+    'Charlotte': 'NC', 'Raleigh': 'NC', 'Greensboro': 'NC', 'Durham': 'NC',
+    'Baltimore': 'MD', 'Rockville': 'MD', 'Gaithersburg': 'MD', 'Silver Spring': 'MD',
+    'Washington': 'DC', 'Washington DC': 'DC', 'Washington D.C.': 'DC',
+    'Louisville': 'KY', 'Lexington': 'KY',
+    'Indianapolis': 'IN', 'Fort Wayne': 'IN', 'Carmel': 'IN',
+    'Milwaukee': 'WI', 'Madison': 'WI',
+    'Albuquerque': 'NM', 'Santa Fe': 'NM',
+    'Omaha': 'NE', 'Lincoln': 'NE',
+    'Tulsa': 'OK', 'Oklahoma City': 'OK',
+    'Kansas City': 'MO', 'St. Louis': 'MO',
+    'Richmond': 'VA', 'Virginia Beach': 'VA', 'Norfolk': 'VA', 'Chesapeake': 'VA', 'Arlington': 'VA',
+    'Salt Lake City': 'UT', 'Provo': 'UT', 'West Valley City': 'UT',
+    'Cleveland': 'OH', 'Columbus': 'OH', 'Cincinnati': 'OH', 'Akron': 'OH', 'Toledo': 'OH',
+    'New Orleans': 'LA', 'Baton Rouge': 'LA', 'Shreveport': 'LA',
+    'Hartford': 'CT', 'New Haven': 'CT', 'Bridgeport': 'CT', 'Stamford': 'CT',
+    'Newark': 'NJ', 'Jersey City': 'NJ', 'Paterson': 'NJ', 'Edison': 'NJ', 'Parsippany': 'NJ',
+    'Birmingham': 'AL', 'Montgomery': 'AL', 'Huntsville': 'AL',
+    'Honolulu': 'HI',
+  };
+
+  const extractState = (location) => {
+    if (!location) return '??';
+    const match = location.match(/,\s*([A-Z]{2})$/);
+    if (match) return match[1];
+    const commaIdx = location.lastIndexOf(',');
+    if (commaIdx > -1) {
+      const after = location.slice(commaIdx + 1).trim();
+      if (after.length === 2 && after === after.toUpperCase()) return after;
+    }
+    return CITY_STATE[location.trim()] || '??';
+  };
+
+  const groupByState = (locationData) => {
+    const stateMap = {};
+    locationData.forEach(item => {
+      const state = extractState(item.location);
+      if (!stateMap[state]) {
+        stateMap[state] = { state, count: 0, maleCount: 0, femaleCount: 0, cities: [] };
+      }
+      stateMap[state].count += item.count;
+      stateMap[state].maleCount += (item.maleCount || 0);
+      stateMap[state].femaleCount += (item.femaleCount || 0);
+      stateMap[state].cities.push(item);
+    });
+    return Object.values(stateMap).sort((a, b) => b.count - a.count);
+  };
+
+  const toggleStateRow = (state) => {
+    setExpandedStates(prev => ({ ...prev, [state]: !prev[state] }));
+  };
+
+  const handleGenderClick = (item, gender) => {
+    const filteredUsers = (item.users || []).filter(u => (u.gender || '').toLowerCase() === gender);
+    setSelectedItem({ ...item, users: filteredUsers, count: filteredUsers.length, _genderFilter: gender });
+    setShowModal(true);
+  };
+
+  const handleTableSort = (field) => {
+    if (locationSortField === field) {
+      setLocationSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setLocationSortField(field);
+      setLocationSortDir('desc');
+    }
+  };
+
+  const sortedLocationData = [...(reportData?.data || [])].sort((a, b) => {
+    const mul = locationSortDir === 'asc' ? 1 : -1;
+    if (locationSortField === 'location') return mul * (a.location || '').localeCompare(b.location || '');
+    if (locationSortField === 'maleCount') return mul * ((a.maleCount || 0) - (b.maleCount || 0));
+    if (locationSortField === 'femaleCount') return mul * ((a.femaleCount || 0) - (b.femaleCount || 0));
+    return mul * ((a.count || 0) - (b.count || 0));
+  });
 
   // Get chart data first
   const data = reportData?.data || [];
@@ -541,6 +644,121 @@ const AdminReports = () => {
                 <p className="chart-hint">
                   💡 Click on any bar to see the list of members in that category
                 </p>
+
+                {/* Location Data Table */}
+                {reportType === 'by-location' && (
+                  <div className="location-table-section">
+                    <button
+                      className={`table-toggle-btn${showLocationTable ? ' active' : ''}`}
+                      onClick={() => setShowLocationTable(v => !v)}
+                    >
+                      📋 {showLocationTable ? 'Hide Table' : 'Show Data Table'}
+                    </button>
+
+                    {showLocationTable && (
+                      <div className="location-table-wrapper">
+                        <table className="location-data-table">
+                          <thead>
+                            <tr>
+                              <th className="sortable-th" onClick={() => handleTableSort('state')}>
+                                State {locationSortField === 'state' ? (locationSortDir === 'asc' ? '↑' : '↓') : <span className="sort-hint">↕</span>}
+                              </th>
+                              <th className="sortable-th" onClick={() => handleTableSort('location')}>
+                                Location {locationSortField === 'location' ? (locationSortDir === 'asc' ? '↑' : '↓') : <span className="sort-hint">↕</span>}
+                              </th>
+                              <th className="sortable-th" onClick={() => handleTableSort('maleCount')}>
+                                Male {locationSortField === 'maleCount' ? (locationSortDir === 'asc' ? '↑' : '↓') : <span className="sort-hint">↕</span>}
+                              </th>
+                              <th className="sortable-th" onClick={() => handleTableSort('femaleCount')}>
+                                Female {locationSortField === 'femaleCount' ? (locationSortDir === 'asc' ? '↑' : '↓') : <span className="sort-hint">↕</span>}
+                              </th>
+                              <th className="sortable-th" onClick={() => handleTableSort('count')}>
+                                Total {locationSortField === 'count' ? (locationSortDir === 'asc' ? '↑' : '↓') : <span className="sort-hint">↕</span>}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {groupByState(sortedLocationData).map(stateGroup => (
+                              <React.Fragment key={stateGroup.state}>
+                                <tr className="state-row" onClick={() => toggleStateRow(stateGroup.state)}>
+                                  <td>
+                                    <span className="expand-icon">{expandedStates[stateGroup.state] ? '−' : '+'}</span>
+                                    <strong>{stateGroup.state}</strong>
+                                  </td>
+                                  <td className="state-city-count">
+                                    {stateGroup.cities.length} {stateGroup.cities.length === 1 ? 'city' : 'cities'}
+                                  </td>
+                                  <td>
+                                    {stateGroup.maleCount > 0 ? (
+                                      <button
+                                        className="count-link male-count"
+                                        onClick={e => { e.stopPropagation(); handleGenderClick({ location: stateGroup.state, users: stateGroup.cities.flatMap(c => c.users || []) }, 'male'); }}
+                                      >
+                                        +{stateGroup.maleCount}
+                                      </button>
+                                    ) : <span className="count-zero">0</span>}
+                                  </td>
+                                  <td>
+                                    {stateGroup.femaleCount > 0 ? (
+                                      <button
+                                        className="count-link female-count"
+                                        onClick={e => { e.stopPropagation(); handleGenderClick({ location: stateGroup.state, users: stateGroup.cities.flatMap(c => c.users || []) }, 'female'); }}
+                                      >
+                                        +{stateGroup.femaleCount}
+                                      </button>
+                                    ) : <span className="count-zero">0</span>}
+                                  </td>
+                                  <td>
+                                    <button
+                                      className="count-link total-count"
+                                      onClick={e => { e.stopPropagation(); handleDataPointClick({ location: stateGroup.state, users: stateGroup.cities.flatMap(c => c.users || []), count: stateGroup.count, maleCount: stateGroup.maleCount, femaleCount: stateGroup.femaleCount }); }}
+                                    >
+                                      {stateGroup.count}
+                                    </button>
+                                  </td>
+                                </tr>
+                                {expandedStates[stateGroup.state] && stateGroup.cities.map(cityItem => (
+                                  <tr key={cityItem.location} className="city-row">
+                                    <td></td>
+                                    <td className="city-name">↳ {cityItem.location}</td>
+                                    <td>
+                                      {(cityItem.maleCount || 0) > 0 ? (
+                                        <button
+                                          className="count-link male-count"
+                                          onClick={() => handleGenderClick(cityItem, 'male')}
+                                        >
+                                          +{cityItem.maleCount}
+                                        </button>
+                                      ) : <span className="count-zero">0</span>}
+                                    </td>
+                                    <td>
+                                      {(cityItem.femaleCount || 0) > 0 ? (
+                                        <button
+                                          className="count-link female-count"
+                                          onClick={() => handleGenderClick(cityItem, 'female')}
+                                        >
+                                          +{cityItem.femaleCount}
+                                        </button>
+                                      ) : <span className="count-zero">0</span>}
+                                    </td>
+                                    <td>
+                                      <button
+                                        className="count-link total-count"
+                                        onClick={() => handleDataPointClick(cityItem)}
+                                      >
+                                        {cityItem.count}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </React.Fragment>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
@@ -791,7 +1009,7 @@ const AdminReports = () => {
             <div className="modal-header">
               <h3>
                 {reportType === 'gender-by-age' && `👥 Members ${selectedItem.ageRange || `Age ${selectedItem.ageGroup}`}`}
-                {reportType === 'by-location' && `📍 Members in ${selectedItem.location}`}
+                {reportType === 'by-location' && `📍 Members in ${selectedItem.location}${selectedItem._genderFilter ? ` — ${selectedItem._genderFilter.charAt(0).toUpperCase() + selectedItem._genderFilter.slice(1)} only` : ''}`}
                 {reportType === 'by-profession' && `💼 Members in ${selectedItem.profession}`}
                 {reportType === 'member-acquisition' && `📈 Members Joined ${selectedItem.periodLabel}`}
                 <span className="user-count">({selectedItem.count} members)</span>
