@@ -979,9 +979,6 @@ const InvitationManager = () => {
               <th className="sortable" onClick={() => handleSort('email')}>
                 Email {sortColumn === 'email' && (sortDirection === 'asc' ? '▲' : '▼')}
               </th>
-              <th className="sortable" onClick={() => handleSort('comments')}>
-                Comments {sortColumn === 'comments' && (sortDirection === 'asc' ? '▲' : '▼')}
-              </th>
               <th className="sortable" onClick={() => handleSort('emailSubject')}>
                 Email Subject {sortColumn === 'emailSubject' && (sortDirection === 'asc' ? '▲' : '▼')}
               </th>
@@ -1008,7 +1005,7 @@ const InvitationManager = () => {
           <tbody>
             {filteredInvitations.length === 0 ? (
               <tr>
-                <td colSpan="13" style={{ textAlign: 'center', padding: '40px' }}>
+                <td colSpan="12" style={{ textAlign: 'center', padding: '40px' }}>
                   No invitations found. Create your first invitation!
                 </td>
               </tr>
@@ -1028,12 +1025,7 @@ const InvitationManager = () => {
                   <td>
                     <a href={`mailto:${invitation.email}`}>{invitation.email}</a>
                   </td>
-                  <td>
-                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                      {invitation.comments || '-'}
-                    </span>
-                  </td>
-                  <td style={{ maxWidth: '200px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <td style={{ maxWidth: '200px', fontSize: '11px', color: 'var(--text-secondary)' }}>
                     {invitation.emailSubject || 'Default subject'}
                   </td>
                   <td>
