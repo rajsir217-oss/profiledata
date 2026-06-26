@@ -168,7 +168,9 @@ function AppContent() {
       const token = localStorage.getItem('token');
       
       // Check if user should be logged in but has no token
-      const isProtectedRoute = !hideNavigation && !location.pathname.startsWith('/terms') && 
+      const registrationPaths = ['/register', '/register2', '/register3', '/register-interest'];
+      const isRegistrationPage = registrationPaths.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+      const isProtectedRoute = !hideNavigation && !isRegistrationPage && !location.pathname.startsWith('/terms') && 
                                !location.pathname.startsWith('/privacy') && 
                                !location.pathname.startsWith('/community-guidelines') &&
                                !location.pathname.startsWith('/cookie-policy') &&
