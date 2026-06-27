@@ -1707,9 +1707,13 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     const loadInvitationData = async () => {
       if (!isEditMode) {
         // Check if registration is open or invitation-only
+        // NOTE: Use plain fetch (no auth token) — invitees may have a stale token
+        // in localStorage which would trigger a 401 logout via the api interceptor
         try {
-          const response = await api.get('/registration-status');
-          const { registrationOpen: isOpen } = response.data;
+          const backendUrl = getBackendUrl();
+          const regStatusRes = await fetch(`${backendUrl}/api/users/registration-status`);
+          const regStatusData = await regStatusRes.json();
+          const { registrationOpen: isOpen } = regStatusData;
           setRegistrationOpen(isOpen);
           
           // If registration is closed and no invitation token, gate will show

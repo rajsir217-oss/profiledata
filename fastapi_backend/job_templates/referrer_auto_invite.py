@@ -194,7 +194,7 @@ class ReferrerAutoInviteTemplate(JobTemplate):
         base_url = settings.app_url or settings.frontend_url or "https://l3v3lmatches.com"
         if 'localhost' in base_url and os.environ.get('K_SERVICE'):
             base_url = os.environ.get('APP_URL') or os.environ.get('FRONTEND_URL') or "https://l3v3lmatches.com"
-        invitation_link = f"{base_url}/register2?invitation={new_invitation.invitationToken}&email={quote(interest['email'])}&promo={promo_code}"
+        invitation_link = f"{base_url}/register3?invitation={new_invitation.invitationToken}&email={quote(interest['email'])}&promo={promo_code}"
 
         try:
             await send_invitation_email(

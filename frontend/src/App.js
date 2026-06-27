@@ -182,6 +182,14 @@ function AppContent() {
         sessionManager.logout('protected_route_no_token');
         return;
       }
+
+      // Never fetch user profile on registration pages — invitees may have a stale
+      // token from a previous visit. Calling getUserProfile with a stale token causes
+      // a 401 → sessionManager.logout() → clears localStorage → redirect chain.
+      if (isRegistrationPage) {
+        setCurrentUser(null);
+        return;
+      }
       
       if (username && token) {
         try {
@@ -256,11 +264,14 @@ function AppContent() {
 
   // Initialize push notifications when user is logged in
   useEffect(() => {
+    const registrationPaths = ['/register', '/register2', '/register3', '/register-interest'];
+    const onRegistrationPage = registrationPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p + '/'));
+
     const initializePushNotifications = async () => {
       const token = localStorage.getItem('token');
       console.log('[App.js] initializePushNotifications called, hasToken:', !!token);
       
-      if (token) {
+      if (token && !onRegistrationPage) {
         // User is logged in, request notification permission
         try {
           console.log('[App.js] Calling requestNotificationPermission...');
@@ -310,9 +321,11 @@ function AppContent() {
 
   // Initialize unified Socket.IO service (handles messages, online status, and unread counts)
   useEffect(() => {
+    const registrationPaths = ['/register', '/register2', '/register3', '/register-interest'];
+    const onRegistrationPage = registrationPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p + '/'));
     const username = localStorage.getItem('username');
     
-    if (username) {
+    if (username && !onRegistrationPage) {
       // Starting Socket.IO service
       
       // Connect to WebSocket (handles everything: messages, status, unread counts)
