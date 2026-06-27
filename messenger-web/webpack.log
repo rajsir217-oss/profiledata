@@ -345,3 +345,27 @@ javascript modules 6.73 KiB
   ../messenger/src/config/api.js 3.16 KiB [built] [code generated]
   ./src/config/apiConfig.js 3.57 KiB [built] [code generated]
 webpack 5.106.2 compiled successfully in 105 ms
+assets by status 21 KiB [cached] 5 assets
+assets by status 6.74 MiB [emitted]
+  asset bundle.js 6.71 MiB [emitted] (name: main)
+  asset main.9b1c1cf2a5b71daf4d3a.hot-update.js 27.4 KiB [emitted] [immutable] [hmr] (name: main)
+  asset main.9b1c1cf2a5b71daf4d3a.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.74 MiB = bundle.js 6.71 MiB main.9b1c1cf2a5b71daf4d3a.hot-update.js 27.4 KiB
+cached modules 2.3 MiB [cached] 260 modules
+runtime modules 30.3 KiB 15 modules
+javascript modules 6.89 KiB
+  ../messenger/src/config/api.js 3.23 KiB [built] [code generated]
+  ./src/config/apiConfig.js 3.66 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 124 ms
+assets by status 21 KiB [cached] 5 assets
+assets by status 6.74 MiB [emitted]
+  asset bundle.js 6.71 MiB [emitted] (name: main)
+  asset main.08501937f86116fb6d26.hot-update.js 29 KiB [emitted] [immutable] [hmr] (name: main)
+  asset main.08501937f86116fb6d26.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 6.74 MiB = bundle.js 6.71 MiB main.08501937f86116fb6d26.hot-update.js 29 KiB
+cached modules 2.3 MiB [cached] 260 modules
+runtime modules 30.3 KiB 15 modules
+javascript modules 6.73 KiB
+  ../messenger/src/config/api.js 3.16 KiB [built] [code generated]
+  ./src/config/apiConfig.js 3.57 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 159 ms
