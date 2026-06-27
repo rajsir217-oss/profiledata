@@ -432,7 +432,7 @@ async def _auto_send_invitation(interest: dict, db, verified_by: str = "system")
     base_url = settings.app_url or settings.frontend_url or "https://l3v3lmatches.com"
     if 'localhost' in base_url and os.environ.get('K_SERVICE'):
         base_url = os.environ.get('APP_URL') or os.environ.get('FRONTEND_URL') or "https://l3v3lmatches.com"
-    invitation_link = f"{base_url}/register2?invitation={new_invitation.invitationToken}&email={quote(interest['email'])}&promo=PUBLIC"
+    invitation_link = f"{base_url}/register3?invitation={new_invitation.invitationToken}&email={quote(interest['email'])}&promo=PUBLIC"
 
     try:
         await send_invitation_email(
@@ -881,7 +881,7 @@ async def send_invitation_from_interest(
     base_url = settings.app_url or settings.frontend_url or "https://l3v3lmatches.com"
     if 'localhost' in base_url and os.environ.get('K_SERVICE'):
         base_url = os.environ.get('APP_URL') or os.environ.get('FRONTEND_URL') or "https://l3v3lmatches.com"
-    invitation_link = f"{base_url}/register2?invitation={new_invitation.invitationToken}&email={quote(interest['email'])}&promo=PUBLIC"
+    invitation_link = f"{base_url}/register3?invitation={new_invitation.invitationToken}&email={quote(interest['email'])}&promo=PUBLIC"
 
     try:
         await send_invitation_email(

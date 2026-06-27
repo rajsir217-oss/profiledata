@@ -1377,7 +1377,7 @@ async def send_message(
 
                         if invitation_token:
                             register_url = (
-                                f"{_settings.frontend_url}/register2"
+                                f"{_settings.frontend_url}/register3"
                                 f"?invitation={invitation_token}"
                                 f"&email={_quote(email)}"
                                 f"&promo=PUBLIC"
@@ -1446,7 +1446,7 @@ async def send_message(
                     if (
                         include_invitation
                         and register_url
-                        and "/register2?invitation=" in register_url
+                        and "/register3?invitation=" in register_url
                     ):
                         await send_invitation_email(
                             to_email=email,
