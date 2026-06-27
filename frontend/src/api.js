@@ -1,4 +1,4 @@
-// frontend/src/api.js
+// frontend/src/api.js — build: 2026-06-27
 import axios from "axios";
 import { getApiUrl, getBackendUrl } from './config/apiConfig';
 // eslint-disable-next-line no-unused-vars

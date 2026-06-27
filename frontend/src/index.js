@@ -46,7 +46,7 @@ window.addEventListener('unhandledrejection', (event) => {
 }, true);
 
 // CRITICAL: Check for token on protected routes BEFORE React mounts
-const publicPaths = ['/', '/login', '/register', '/register2', '/register-interest', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help', '/logo-showcase', '/tooltip-demo'];
+const publicPaths = ['/', '/login', '/register', '/register2', '/register3', '/register-interest', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help', '/logo-showcase', '/tooltip-demo', '/messenger/public-reply'];
 const currentPath = window.location.pathname;
 const isPublicPath = publicPaths.some(path => currentPath === path || currentPath.startsWith(path + '/'));
 const token = localStorage.getItem('token');

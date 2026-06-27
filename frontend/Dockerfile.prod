@@ -17,6 +17,9 @@ COPY package*.json ./
 # Install dependencies (--legacy-peer-deps for React 19 compatibility)
 RUN npm ci --legacy-peer-deps
 
+# Cache bust arg — forces rebuild of source layers on every deploy
+ARG CACHEBUST=1
+
 # Copy source code
 COPY . .
 

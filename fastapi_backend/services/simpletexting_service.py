@@ -128,9 +128,11 @@ class SimpleTextingService:
                 else:
                     error_msg = response.text
                     error_details = None
+                    error_code = None
                     try:
                         error_json = response.json()
                         if isinstance(error_json, dict):
+                            error_code = error_json.get("errorCode")
                             error_details = (
                                 error_json.get("message")
                                 or error_json.get("error")
@@ -142,14 +144,27 @@ class SimpleTextingService:
                         # Response was not JSON
                         error_details = None
 
-                    logger.error(
-                        "❌ SimpleTexting API error: %s - %s",
-                        response.status_code,
-                        error_details or error_msg,
-                    )
+                    # TEST_SEND_LIMIT_EXCEEDED means the account is in trial/test mode and
+                    # has hit its daily cap - messages are NOT delivered. Surface clearly.
+                    if error_code == "TEST_SEND_LIMIT_EXCEEDED":
+                        logger.error(
+                            "❌ SimpleTexting TEST MODE limit reached - SMS NOT delivered! "
+                            "Account is in trial/test mode (daily limit: 100). "
+                            "Upgrade the SimpleTexting account to a paid plan to send real messages. "
+                            "Details: %s",
+                            error_details,
+                        )
+                    else:
+                        logger.error(
+                            "❌ SimpleTexting API error: %s (errorCode=%s) - %s",
+                            response.status_code,
+                            error_code,
+                            error_details or error_msg,
+                        )
                     return {
                         "success": False,
                         "error": f"SimpleTexting API error: {response.status_code}",
+                        "error_code": error_code,
                         "details": error_details or error_msg,
                         "status_code": response.status_code,
                     }
