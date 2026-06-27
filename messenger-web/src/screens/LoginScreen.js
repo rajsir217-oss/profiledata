@@ -75,7 +75,7 @@ const LoginScreen = () => {
     error: storeError
   } = useAuthStore();
   const displayError = toDisplayErrorText(error || storeError);
-  const [loginMethod, setLoginMethod] = useState('phone');
+  const [loginMethod, setLoginMethod] = useState('username');
 
   const [biometricSupported, setBiometricSupported] = useState(false);
   const [biometricSaved, setBiometricSaved] = useState(false);

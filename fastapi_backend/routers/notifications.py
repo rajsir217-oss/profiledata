@@ -1434,6 +1434,138 @@ async def save_user_notification_prefs(
     return {"success": True}
 
 
+@router.get("/simpletexting-stats")
+async def get_simpletexting_stats(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get real SMS delivery stats directly from SimpleTexting API.
+    Captures ALL sends including OTP/MFA codes that bypass the internal notification queue.
+    Admin only.
+    """
+    import httpx
+    from config import settings
+
+    user_role = current_user.get("role") or current_user.get("role_name", "free_user")
+    username = current_user.get("username", "")
+    is_admin = (user_role == "admin" or username == "admin")
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    api_token = settings.simpletexting_api_token
+    account_phone = settings.simpletexting_account_phone
+
+    if not api_token or not account_phone:
+        raise HTTPException(status_code=503, detail="SimpleTexting not configured")
+
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
+    base_url = "https://api-app2.simpletexting.com/v2"
+
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=7)
+    month_start = today_start.replace(day=1)
+
+    def fmt(dt: datetime) -> str:
+        return dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+    async def fetch_count(start: datetime, end: datetime) -> dict:
+        """Fetch total SENT message count for a date range (uses limit=1 to get only total)."""
+        params = {
+            "accountPhone": account_phone,
+            "startDate": fmt(start),
+            "endDate": fmt(end),
+            "type": "SENT",
+            "limit": 1,
+            "page": 1
+        }
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f"{base_url}/api/messages", headers=headers, params=params)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return {
+                        "count": data.get("total", data.get("count", 0)),
+                        "error": None
+                    }
+                else:
+                    err = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else resp.text
+                    return {"count": 0, "error": str(err)}
+        except Exception as e:
+            return {"count": 0, "error": str(e)}
+
+    # Fetch all three ranges in parallel
+    import asyncio
+    today_result, week_result, month_result = await asyncio.gather(
+        fetch_count(today_start, now),
+        fetch_count(week_start, now),
+        fetch_count(month_start, now),
+    )
+
+    # Get account/plan info from account-phones endpoint
+    plan_info = {"creditsUsed": None, "creditsLimit": None, "planName": None, "error": None}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                f"{base_url}/api/account-phones",
+                headers=headers,
+                params={"accountPhone": account_phone}
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                phones = data.get("phones") or data.get("data") or []
+                if isinstance(phones, list) and phones:
+                    phone_data = phones[0]
+                else:
+                    phone_data = data if isinstance(data, dict) else {}
+                plan_info["creditsUsed"] = phone_data.get("creditsUsed") or phone_data.get("credits_used")
+                plan_info["creditsLimit"] = phone_data.get("creditsLimit") or phone_data.get("credits_limit") or 500
+                plan_info["planName"] = phone_data.get("plan") or phone_data.get("planName")
+            else:
+                plan_info["error"] = f"HTTP {resp.status_code}"
+    except Exception as e:
+        plan_info["error"] = str(e)
+
+    # Also pull internal log counts for comparison
+    internal_today = await db.notification_log.count_documents({
+        "channel": "sms",
+        "sentAt": {"$gte": today_start}
+    })
+    internal_month = await db.notification_log.count_documents({
+        "channel": "sms",
+        "sentAt": {"$gte": month_start}
+    })
+
+    return {
+        "success": True,
+        "source": "simpletexting_api",
+        "asOf": now.isoformat() + "Z",
+        "realtime": {
+            "today": today_result["count"],
+            "todayError": today_result["error"],
+            "week": week_result["count"],
+            "weekError": week_result["error"],
+            "month": month_result["count"],
+            "monthError": month_result["error"],
+        },
+        "plan": plan_info,
+        "internal": {
+            "today": internal_today,
+            "month": internal_month,
+            "note": "Internal log only tracks queue notifications. OTP/MFA codes are not logged here."
+        },
+        "gap": {
+            "today": today_result["count"] - internal_today,
+            "month": month_result["count"] - internal_month,
+            "note": "Gap = OTP/MFA + other direct sends not tracked in internal log"
+        }
+    }
+
+
 @router.post("/track-login")
 async def track_login_telemetry(
     platform: str = "web",

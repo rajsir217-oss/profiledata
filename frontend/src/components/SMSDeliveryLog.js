@@ -17,6 +17,11 @@ const SMSDeliveryLog = () => {
   const [stats, setStats] = useState({ today: 0, week: 0, month: 0 });
   const PAGE_SIZE = 20;
   
+  // SimpleTexting live stats state
+  const [stStats, setStStats] = useState(null);
+  const [stLoading, setStLoading] = useState(false);
+  const [stError, setStError] = useState(null);
+
   // SMS Usage Chart state
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [availableYears, setAvailableYears] = useState([new Date().getFullYear()]);
@@ -100,10 +105,31 @@ const SMSDeliveryLog = () => {
     }
   }, []);
 
+  const loadStStats = useCallback(async () => {
+    setStLoading(true);
+    setStError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${getBackendUrl()}/api/notifications/simpletexting-stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setStStats(response.data);
+      } else {
+        setStError('Failed to load SimpleTexting stats');
+      }
+    } catch (err) {
+      setStError(err.response?.data?.detail || 'Could not reach SimpleTexting API');
+    } finally {
+      setStLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadLogs();
     loadChartData(selectedYear);
-  }, [loadLogs, loadChartData, selectedYear]);
+    loadStStats();
+  }, [loadLogs, loadChartData, loadStStats, selectedYear]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
@@ -184,7 +210,55 @@ const SMSDeliveryLog = () => {
         <p>Track sent SMS messages with delivery status</p>
       </div>
 
-      {/* SMS Stats */}
+      {/* SimpleTexting Live Stats Panel */}
+      <div className="st-live-panel">
+        <div className="st-live-header">
+          <span className="st-live-title">📡 SimpleTexting Live</span>
+          <span className="st-live-subtitle">All SMS including OTP/MFA — pulled directly from SimpleTexting API</span>
+          <button className="st-refresh-btn" onClick={loadStStats} disabled={stLoading} title="Refresh live stats">
+            {stLoading ? '⏳' : '🔄'}
+          </button>
+        </div>
+
+        {stError ? (
+          <div className="st-error">⚠️ {stError}</div>
+        ) : stLoading ? (
+          <div className="st-loading">Loading live stats...</div>
+        ) : stStats ? (
+          <>
+            <div className="st-stats-row">
+              <div className="st-stat">
+                <span className="st-val">{stStats.realtime.today ?? '—'}</span>
+                <span className="st-lbl">Today (actual)</span>
+              </div>
+              <div className="st-stat">
+                <span className="st-val">{stStats.realtime.week ?? '—'}</span>
+                <span className="st-lbl">This Week</span>
+              </div>
+              <div className="st-stat">
+                <span className="st-val">{stStats.realtime.month ?? '—'}</span>
+                <span className="st-lbl">This Month</span>
+              </div>
+              {stStats.plan?.creditsUsed != null && (
+                <div className={`st-stat ${stStats.plan.creditsUsed > (stStats.plan.creditsLimit || 500) ? 'st-over' : ''}`}>
+                  <span className="st-val">{stStats.plan.creditsUsed}<span className="st-limit">/{stStats.plan.creditsLimit || 500}</span></span>
+                  <span className="st-lbl">Credits Used</span>
+                </div>
+              )}
+            </div>
+            {(stStats.gap?.today > 0 || stStats.gap?.month > 0) && (
+              <div className="st-gap-note">
+                ℹ️ <strong>{stStats.gap.today}</strong> today / <strong>{stStats.gap.month}</strong> this month are OTP/MFA codes not in the internal log below
+              </div>
+            )}
+            <div className="st-as-of">As of {new Date(stStats.asOf).toLocaleTimeString()}</div>
+          </>
+        ) : (
+          <div className="st-loading">No data</div>
+        )}
+      </div>
+
+      {/* Internal Log Stats */}
       <div className="sms-stats">
         <div className="stat-item">
           <span className="stat-value">{stats.today}</span>
@@ -197,6 +271,10 @@ const SMSDeliveryLog = () => {
         <div className="stat-item">
           <span className="stat-value">{stats.month}</span>
           <span className="stat-label">This Month</span>
+        </div>
+        <div className="stat-item stat-muted">
+          <span className="stat-value" style={{fontSize: '0.85rem', color: 'var(--text-muted)'}}>Queue only</span>
+          <span className="stat-label">Internal Log</span>
         </div>
       </div>
 

@@ -281,6 +281,23 @@ class NotificationService:
             prefs.quietHours
         )
         
+        # SMS duplicate detection - prevent duplicate SMS within 2 minutes
+        if NotificationChannel.SMS in create_data.channels:
+            two_minutes_ago = datetime.utcnow() - timedelta(minutes=2)
+            duplicate_check = await self.queue_collection.find_one({
+                "username": create_data.username,
+                "trigger": create_data.trigger.value if hasattr(create_data.trigger, 'value') else create_data.trigger,
+                "channels": NotificationChannel.SMS.value if hasattr(NotificationChannel.SMS, 'value') else "sms",
+                "status": {"$in": ["pending", "processing", "sent"]},
+                "createdAt": {"$gte": two_minutes_ago}
+            })
+            if duplicate_check:
+                logger.info(f"Skipping duplicate SMS for {create_data.username}/{create_data.trigger.value} (already queued/sent within 2 minutes)")
+                raise HTTPException(
+                    status_code=409,
+                    detail="Duplicate SMS notification already queued or sent within 2 minutes"
+                )
+        
         # Create queue item
         # Exclude fields we're going to override to avoid duplicate keyword argument error
         create_dict = create_data.dict(exclude={'scheduledFor', 'status'})

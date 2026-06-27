@@ -63,8 +63,9 @@ class SMSNotifierTemplate(JobTemplate):
     def get_default_params(self) -> Dict[str, Any]:
         """Get default parameters"""
         return {
-            "batchSize": 50,
+            "batchSize": 10,
             "costLimit": 100.00,
+            "maxDailyMessages": 50,
             "priorityOnly": True,
             "verifiedUsersOnly": True,
             "testMode": False,
@@ -107,6 +108,14 @@ class SMSNotifierTemplate(JobTemplate):
                 "description": "Send all SMS to test phone",
                 "default": False
             },
+            "maxDailyMessages": {
+                "type": "integer",
+                "label": "Max Daily Messages",
+                "description": "Hard cap on SMS sent per day by this job (reserves capacity for OTP/MFA)",
+                "default": 50,
+                "min": 1,
+                "max": 500
+            },
             "testPhone": {
                 "type": "string",
                 "label": "Test Phone",
@@ -137,7 +146,19 @@ class SMSNotifierTemplate(JobTemplate):
                     duration_seconds=(datetime.utcnow() - start_time).total_seconds()
                 )
             
-            context.log("info", f"Daily SMS cost: ${daily_cost:.2f} / ${params.get('costLimit')})")
+            # Check daily message count limit (reserves capacity for OTP/MFA codes)
+            max_daily = params.get("maxDailyMessages", 50)
+            daily_sent = await self._get_daily_message_count(service)
+            if daily_sent >= max_daily:
+                context.log("info", f"Daily message cap reached ({daily_sent}/{max_daily}) - reserving remaining capacity for OTP/MFA")
+                return JobResult(
+                    status="success",
+                    message=f"Daily message cap reached ({daily_sent}/{max_daily})",
+                    details={"dailySent": daily_sent, "maxDailyMessages": max_daily},
+                    duration_seconds=(datetime.utcnow() - start_time).total_seconds()
+                )
+            
+            context.log("info", f"Daily SMS: {daily_sent}/{max_daily} sent, cost ${daily_cost:.2f}")
             
             # Reset any stuck PROCESSING notifications (from crashed jobs)
             stuck_count = await service.reset_stuck_processing(timeout_minutes=10)
@@ -166,6 +187,9 @@ class SMSNotifierTemplate(JobTemplate):
             for notification in filtered:
                 if daily_cost + total_cost + self.SMS_COST_PER_MESSAGE > params.get("costLimit", 100.0):
                     context.log("warning", "Cost limit reached, stopping")
+                    break
+                if daily_sent + sent_count >= max_daily:
+                    context.log("info", f"Daily message cap reached mid-batch ({daily_sent + sent_count}/{max_daily}), stopping")
                     break
                 
                 try:
@@ -442,6 +466,24 @@ class SMSNotifierTemplate(JobTemplate):
         
         if not result.get("success"):
             raise Exception(result.get("error", "Failed to send SMS"))
+    
+    async def _get_daily_message_count(self, service) -> int:
+        """Get count of SMS sent today by this job (from notification log)"""
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        pipeline = [
+            {
+                "$match": {
+                    "channel": NotificationChannel.SMS,
+                    "createdAt": {"$gte": today_start}
+                }
+            },
+            {"$count": "total"}
+        ]
+        
+        cursor = service.log_collection.aggregate(pipeline)
+        result = await cursor.to_list(1)
+        return result[0]["total"] if result else 0
     
     async def _get_daily_cost(self, service) -> float:
         """Get today's SMS cost"""

@@ -22,6 +22,124 @@
   font-size: 0.9rem;
 }
 
+/* SimpleTexting Live Stats Panel */
+.sms-delivery-log .st-live-panel {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: var(--radius-md);
+}
+
+.sms-delivery-log .st-live-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.sms-delivery-log .st-live-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--primary-color);
+}
+
+.sms-delivery-log .st-live-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.sms-delivery-log .st-refresh-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: background 0.15s;
+}
+
+.sms-delivery-log .st-refresh-btn:hover:not(:disabled) {
+  background: var(--hover-background);
+}
+
+.sms-delivery-log .st-stats-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sms-delivery-log .st-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--card-background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  min-width: 80px;
+}
+
+.sms-delivery-log .st-stat.st-over {
+  border-color: var(--danger-color);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.sms-delivery-log .st-val {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.sms-delivery-log .st-stat.st-over .st-val {
+  color: var(--danger-color);
+}
+
+.sms-delivery-log .st-limit {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.sms-delivery-log .st-lbl {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-top: 2px;
+}
+
+.sms-delivery-log .st-gap-note {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  background: var(--hover-background);
+  border-radius: var(--radius-sm);
+}
+
+.sms-delivery-log .st-as-of {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.sms-delivery-log .st-error {
+  color: var(--danger-color);
+  font-size: 0.85rem;
+  padding: 6px 0;
+}
+
+.sms-delivery-log .st-loading {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 6px 0;
+}
+
 /* SMS Stats */
 .sms-delivery-log .sms-stats {
   display: flex;
