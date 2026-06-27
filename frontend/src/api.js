@@ -45,6 +45,20 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const url = error.config?.url || 'unknown';
       const token = localStorage.getItem('token');
+
+      // Never trigger logout on registration pages — invitees may have a stale
+      // token from a previous session. Silently ignore the 401.
+      const registrationPaths = ['/register', '/register2', '/register3', '/register-interest'];
+      const currentPath = window.location.pathname;
+      const isRegistrationPage = registrationPaths.some(
+        p => currentPath === p || currentPath.startsWith(p + '/')
+      );
+      if (isRegistrationPage) {
+        logger.debug('401 on registration page — silently ignoring, stale token cleared');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        return Promise.reject(error);
+      }
       
       // Only show session expired if user WAS logged in (had a token)
       // Don't show it on first app launch when user was never logged in
