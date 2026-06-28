@@ -37,6 +37,16 @@ from middleware.rate_limiter import limiter, RATE_LIMITS
 router = APIRouter(prefix="/api/users", tags=["users"])
 logger = logging.getLogger(__name__)
 
+# Simple test endpoint to verify SimpleTexting API config (no auth)
+@router.get("/simpletexting-test")
+async def simpletexting_test():
+    """Test SimpleTexting API configuration"""
+    return {
+        "success": True,
+        "token_configured": bool(settings.simpletexting_api_token),
+        "phone_configured": bool(settings.simpletexting_account_phone)
+    }
+
 # Helper function for case-insensitive username lookup
 def get_username_query(username: str):
     """Create a case-insensitive MongoDB query for username"""

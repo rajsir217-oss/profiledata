@@ -106,6 +106,13 @@ const SMSDeliveryLog = () => {
   }, []);
 
   const loadStStats = useCallback(async () => {
+    // Check if user is admin (same pattern as Sidebar.js)
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+      setStError('Admin access required');
+      return;
+    }
+
     setStLoading(true);
     setStError(null);
     try {
