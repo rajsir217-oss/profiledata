@@ -151,11 +151,20 @@ function AuthGuard({ children }) {
 
 // App Content Component (inside Router to use useLocation)
 function AppContent() {
+  const getInitialSidebarPinned = () => {
+    try {
+      return localStorage.getItem('sidebarPinned') === 'true';
+    } catch (error) {
+      logger.warn('Failed to read sidebar pin state from localStorage:', error);
+      return false;
+    }
+  };
+
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
-  const [isSidebarPinned, setIsSidebarPinned] = useState(false);
+  const [isSidebarPinned, setIsSidebarPinned] = useState(getInitialSidebarPinned);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => !getInitialSidebarPinned());
   const location = useLocation();
   
   // Routes where sidebar and topbar should be hidden
@@ -262,6 +271,19 @@ function AppContent() {
     };
   }, []);
 
+  // Persist sidebar pin preference and ensure pinned sidebar remains open
+  useEffect(() => {
+    try {
+      localStorage.setItem('sidebarPinned', isSidebarPinned.toString());
+    } catch (error) {
+      logger.warn('Failed to save sidebar pin state to localStorage:', error);
+    }
+
+    if (isSidebarPinned) {
+      setIsSidebarCollapsed(false);
+    }
+  }, [isSidebarPinned]);
+
   // Initialize push notifications when user is logged in
   useEffect(() => {
     const registrationPaths = ['/register', '/register2', '/register3', '/register-interest'];
@@ -365,6 +387,10 @@ function AppContent() {
   const handleSidebarToggle = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
+
+  const handleSidebarPinChange = (nextPinned) => {
+    setIsSidebarPinned(nextPinned);
+  };
   
   return (
     <div className="app-wrapper">
@@ -373,7 +399,7 @@ function AppContent() {
           isCollapsed={isSidebarCollapsed}
           onToggle={handleSidebarToggle}
           isPinned={isSidebarPinned}
-          onPinChange={setIsSidebarPinned}
+          onPinChange={handleSidebarPinChange}
         />
       )}
       <div className={`app-layout ${!isSidebarCollapsed && !hideNavigation ? (isSidebarPinned ? 'sidebar-pinned' : 'sidebar-open') : ''} ${hideNavigation ? 'no-navigation' : ''}`}>
