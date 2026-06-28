@@ -121,8 +121,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     if (path === '/unified-reports') return { icon: '📊', title: 'Reports & Analytics', subtitle: 'View all system reports and analytics in one place' };
     if (path === '/marketing-pricing') return { icon: '🎯', title: 'Marketing & Pricing', subtitle: 'Manage promo codes, pricing, and lead generation' };
     if (path === '/admin-utilities') return { icon: '🔧', title: 'Utilities', subtitle: 'Admin tools and system utilities' };
-    if (path === '/admin-hub') return { icon: '🧭', title: 'Admin Hub', subtitle: 'Contributions, reports, utilities, marketing, and blog in one place' };
-    if (path === '/test-suite') return { icon: '🧪', title: 'Test Suite', subtitle: 'Test dashboard and notification tools' };
+    if (path === '/admin-hub') return { icon: '🧭', title: 'Admin Hub', subtitle: 'Contributions, reports, utilities, marketing, blog, and tests in one place' };
     if (path === '/automation') return { icon: '🤖', title: 'Automation', subtitle: 'Scheduler and notification management' };
     if (path === '/member-roles') return { icon: '👥', title: 'Member Roles', subtitle: 'User and role management' };
     if (path === '/support') return { icon: '📧', title: 'Support', subtitle: 'Contact and support management' };

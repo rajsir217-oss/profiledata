@@ -70,6 +70,7 @@ import ProfileCompletionChecker from './components/ProfileCompletionChecker';
 import BrandBanner from './components/BrandBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
 import AnnouncementManagement from './components/AnnouncementManagement';
+import BlogManagement from './components/BlogManagement';
 import BlogList from './components/BlogList';
 import BlogView from './components/BlogView';
 import PollManagement from './components/PollManagement';
@@ -78,7 +79,6 @@ import AdminReports from './components/AdminReports';
 import UnifiedReports from './components/UnifiedReports';
 import MarketingPricing from './components/MarketingPricing';
 import AdminUtilities from './components/AdminUtilities';
-import TestSuite from './components/TestSuite';
 import Automation from './components/Automation';
 import MemberRoles from './components/MemberRoles';
 import Support from './components/Support';
@@ -147,6 +147,17 @@ function AuthGuard({ children }) {
   }
   
   return children;
+}
+
+function LegacyTestSuiteRedirect() {
+  const location = useLocation();
+  const incomingParams = new URLSearchParams(location.search);
+  const tab = incomingParams.get('tab');
+  const nextParams = new URLSearchParams({ section: 'test-suite' });
+  if (tab) {
+    nextParams.set('tab', tab);
+  }
+  return <Navigate to={`/admin-hub?${nextParams.toString()}`} replace />;
 }
 
 // App Content Component (inside Router to use useLocation)
@@ -495,10 +506,10 @@ function AppContent() {
               {/* Backward compatibility - redirect old member roles routes to unified page */}
               <Route path="/user-management" element={<Navigate to="/member-roles?tab=users" replace />} />
               <Route path="/role-management" element={<Navigate to="/member-roles?tab=roles" replace />} />
-              {/* Test Suite unified page */}
-              <Route path="/test-suite" element={<ProtectedRoute><TestSuite /></ProtectedRoute>} />
+              {/* Test Suite moved into Admin Hub */}
+              <Route path="/test-suite" element={<ProtectedRoute><LegacyTestSuiteRedirect /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old test routes to unified page */}
-              <Route path="/test-dashboard" element={<Navigate to="/test-suite?tab=test-dashboard" replace />} />
+              <Route path="/test-dashboard" element={<Navigate to="/admin-hub?section=test-suite&tab=test-dashboard" replace />} />
               {/* Automation unified page */}
               <Route path="/automation" element={<ProtectedRoute><Automation /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old automation routes to unified page */}
@@ -507,13 +518,13 @@ function AppContent() {
               <Route path="/admin-utilities" element={<ProtectedRoute><AdminUtilities /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/admin-backups" element={<Navigate to="/admin-utilities?tab=backups" replace />} />
-              <Route path="/notification-tester" element={<Navigate to="/test-suite?tab=notification-tester" replace />} />
+              <Route path="/notification-tester" element={<Navigate to="/admin-hub?section=test-suite&tab=notification-tester" replace />} />
               <Route path="/notification-management" element={<Navigate to="/automation?tab=notifications" replace />} />
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/admin/notification-config" element={<Navigate to="/admin-utilities?tab=notification-config" replace />} />
               <Route path="/email-templates" element={<Navigate to="/admin-utilities?tab=email-templates" replace />} />
               <Route path="/announcement-management" element={<ProtectedRoute><AnnouncementManagement /></ProtectedRoute>} />
-              <Route path="/blog-management" element={<Navigate to="/admin-hub?section=blog" replace />} />
+              <Route path="/blog-management" element={<ProtectedRoute><BlogManagement /></ProtectedRoute>} />
               {/* Unified Reports Page */}
               <Route path="/unified-reports" element={<ProtectedRoute><UnifiedReports /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old report routes to unified page */}
