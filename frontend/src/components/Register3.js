@@ -3298,15 +3298,17 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
                   <h3 className="section-title">📷 Profile Photos</h3>
                   
                   {/* Profile Images - Unified PhotoVisibilityManager */}
-                  <PhotoVisibilityManager
-                    existingImages={existingImages}
-                    setExistingImages={setExistingImages}
-                    newImages={newImages}
-                    setNewImages={setNewImages}
-                    onError={(msg) => setErrorMsg(msg)}
-                    username={editUsername || formData.username || localStorage.getItem('username')}
-                    isEditMode={isEditMode}
-                  />
+                  <div className="register3-photo-actions-micro">
+                    <PhotoVisibilityManager
+                      existingImages={existingImages}
+                      setExistingImages={setExistingImages}
+                      newImages={newImages}
+                      setNewImages={setNewImages}
+                      onError={(msg) => setErrorMsg(msg)}
+                      username={editUsername || formData.username || localStorage.getItem('username')}
+                      isEditMode={isEditMode}
+                    />
+                  </div>
 
                 </div>
                 <div className="tab-section">
