@@ -7285,6 +7285,11 @@ async def get_favorites(
             },
             DASHBOARD_USER_PROJECTION
         ).to_list(100)
+
+        # Batch fetch shortlist status for all users
+        shortlists_cursor = db.shortlists.find({"userUsername": username})
+        shortlists = await shortlists_cursor.to_list(1000)
+        shortlisted_usernames = {short["shortlistedUsername"] for short in shortlists}
         
         # Create lookup dict for O(1) access
         user_dict = {}
@@ -7329,6 +7334,7 @@ async def get_favorites(
             
             user = _enrich_user_with_image_visibility(user)
             user["addedToFavoritesAt"] = fav["createdAt"]
+            user["isShortlisted"] = user["username"] in shortlisted_usernames
             favorite_users.append(user)
 
         logger.info(f"✅ Found {len(favorite_users)} favorites for {username} (batch query)")
@@ -7457,8 +7463,18 @@ async def get_shortlist(
     logger.info(f"📋 Getting shortlist for {username}")
 
     try:
+        # Fetch shortlist and deduplicate by shortlistedUsername
         shortlist_cursor = db.shortlists.find({"userUsername": username}).sort("displayOrder", 1)
-        shortlist = await shortlist_cursor.to_list(100)
+        shortlist_raw = await shortlist_cursor.to_list(100)
+
+        # Deduplicate by keeping first occurrence of each shortlistedUsername
+        seen_usernames = set()
+        shortlist = []
+        for item in shortlist_raw:
+            username_key = item.get("shortlistedUsername")
+            if username_key and username_key not in seen_usernames:
+                seen_usernames.add(username_key)
+                shortlist.append(item)
 
         # Get profile picture visibility setting
         profile_pic_always_visible = await _get_profile_picture_always_visible(db)
@@ -7473,6 +7489,11 @@ async def get_shortlist(
             },
             DASHBOARD_USER_PROJECTION
         ).to_list(100)
+
+        # Batch fetch favorite status for all users
+        favorites_cursor = db.favorites.find({"userUsername": username})
+        favorites = await favorites_cursor.to_list(1000)
+        favorited_usernames = {fav["favoriteUsername"] for fav in favorites}
         
         # Create lookup dict for O(1) access
         user_dict = {}
@@ -7518,6 +7539,7 @@ async def get_shortlist(
             user = _enrich_user_with_image_visibility(user)
             user["notes"] = item.get("notes")
             user["addedToShortlistAt"] = item["createdAt"]
+            user["isFavorited"] = user["username"] in favorited_usernames
             shortlisted_users.append(user)
 
         logger.info(f"✅ Found {len(shortlisted_users)} shortlisted users for {username} (batch query)")
@@ -10393,8 +10415,16 @@ async def toggle_sms_optin(
 # to ensure it matches BEFORE /messages/{username} generic route
 
 @router.delete("/shortlist/{target_username}")
-async def remove_from_shortlist(target_username: str, username: str = Query(...), db = Depends(get_database)):
+async def remove_from_shortlist(
+    target_username: str,
+    username: str = Query(None),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Remove user from shortlist"""
+    # Use authenticated user's username for security (ignore query parameter)
+    username = current_user["username"]
+
     logger.info(f"🗑️ Removing {target_username} from shortlist for {username}")
 
     # Check if target user exists

@@ -734,9 +734,11 @@ const SearchResultCard = ({
                 user={user}
                 isFavorited={isFavorited}
                 isShortlisted={isShortlisted}
+                context={context}
                 onViewProfile={kebabHandlers.onViewProfile}
                 onToggleFavorite={kebabHandlers.onToggleFavorite}
                 onToggleShortlist={kebabHandlers.onToggleShortlist}
+                onRemove={onRemove}
                 onMessage={kebabHandlers.onMessage}
                 onBlock={kebabHandlers.onBlock}
                 onRequestPII={kebabHandlers.onRequestPII}
@@ -813,6 +815,45 @@ const SearchResultCard = ({
 
           {/* Action buttons */}
           <div className="card-photo-actions">
+            {currentUsername !== user.username && onToggleFavorite && context !== 'my-favorites' && (
+              <button
+                className="card-photo-action-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFavorite(user);
+                }}
+                title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
+              >
+                {isFavorited ? '⭐' : '☆'}
+              </button>
+            )}
+
+            {currentUsername !== user.username && onToggleShortlist && context !== 'my-shortlists' && context !== 'my-favorites' && (
+              <button
+                className={`card-photo-action-btn ${isShortlisted ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleShortlist(user);
+                }}
+                title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
+              >
+                {isShortlisted ? '📋' : '📌'}
+              </button>
+            )}
+
+            {(context === 'my-shortlists' || context === 'my-favorites') && showRemoveButton && onRemove && (
+              <button
+                className="card-photo-action-btn remove-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(user);
+                }}
+                title={removeButtonLabel || 'Remove'}
+              >
+                {removeButtonIcon || '🗑️'}
+              </button>
+            )}
+
             {!hasImageAccess && currentUsername !== user.username && (
               !isImageRequestPending ? (
                 <button
@@ -832,30 +873,18 @@ const SearchResultCard = ({
               )
             )}
 
-            {currentUsername !== user.username && (onToggleFavorite || onFavorite) && (
+            {currentUsername !== user.username && onMessage && (
               <button
-                className={`card-photo-action-btn ${isFavorited ? 'active' : ''}`}
+                className="card-photo-action-btn"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (onToggleFavorite) onToggleFavorite(user);
-                  else if (onFavorite) onFavorite(user);
+                  if (onMessage) onMessage(user);
                 }}
-                title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
+                title="Send Message"
               >
-                {isFavorited ? '⭐' : '☆'}
+                💬
               </button>
             )}
-
-            <button
-              className="card-photo-action-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onMessage) onMessage(user);
-              }}
-              title="Send Message"
-            >
-              💬
-            </button>
           </div>
         </div>
       </div>

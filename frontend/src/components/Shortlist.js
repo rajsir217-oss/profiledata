@@ -194,16 +194,57 @@ const Shortlist = () => {
   };
 
   const removeFromShortlist = async (user) => {
+    console.log('removeFromShortlist called for:', user.username);
     try {
       const username = localStorage.getItem('username');
+      console.log('Calling API delete for:', user.username, 'by user:', username);
       await api.delete(`/shortlist/${user.username}?username=${encodeURIComponent(username)}`);
+      console.log('API delete successful');
       setShortlist(shortlist.filter(item => item.username !== user.username));
       setStatusMessage('✅ Removed from shortlist!');
       setTimeout(() => setStatusMessage(''), 3000);
     } catch (err) {
+      console.error('Error removing from shortlist:', err);
       logger.error('Error removing from shortlist:', err);
       setError('Failed to remove from shortlist');
       setStatusMessage('❌ Failed to remove from shortlist');
+      setTimeout(() => setStatusMessage(''), 3000);
+    }
+  };
+
+  const toggleFavorite = async (user) => {
+    console.log('toggleFavorite called for:', user.username, 'isFavorited:', user.isFavorited);
+    try {
+      const username = localStorage.getItem('username');
+      console.log('Current user:', username);
+      // Check if already favorited by checking the user object
+      const isFav = user.isFavorited || false;
+      console.log('Is favorited:', isFav);
+
+      if (isFav) {
+        // Remove from favorites
+        console.log('Removing from favorites...');
+        await api.delete(`/favorites/${user.username}?username=${encodeURIComponent(username)}`);
+        setStatusMessage('⭐ Removed from favorites!');
+        // Update local state
+        setShortlist(prev => prev.map(item =>
+          item.username === user.username ? { ...item, isFavorited: false } : item
+        ));
+      } else {
+        // Add to favorites
+        console.log('Adding to favorites...');
+        await api.post(`/favorites/${user.username}?username=${encodeURIComponent(username)}`);
+        setStatusMessage('⭐ Added to favorites!');
+        // Update local state
+        setShortlist(prev => prev.map(item =>
+          item.username === user.username ? { ...item, isFavorited: true } : item
+        ));
+      }
+      setTimeout(() => setStatusMessage(''), 3000);
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+      logger.error('Error toggling favorite:', err);
+      setStatusMessage('❌ Failed to toggle favorite');
       setTimeout(() => setStatusMessage(''), 3000);
     }
   };
@@ -272,17 +313,21 @@ const Shortlist = () => {
               <SearchResultCard
                 key={user.username}
                 user={user}
+                context="my-shortlists"
                 currentUsername={localStorage.getItem('username')}
                 onRemove={removeFromShortlist}
+                onToggleShortlist={removeFromShortlist}
+                onToggleFavorite={toggleFavorite}
                 onMessage={handleMessage}
                 onPIIRequest={handlePIIRequest}
                 isShortlisted={true}
+                isFavorited={user.isFavorited || false}
                 hasPiiAccess={hasPiiAccess(user.username)}
                 hasImageAccess={hasImageAccess(user.username)}
                 isPiiRequestPending={isPiiRequestPending(user.username)}
                 isImageRequestPending={isImageRequestPending(user.username)}
                 piiRequestStatus={getPIIRequestStatus(user.username)}
-                showFavoriteButton={false}
+                showFavoriteButton={true}
                 showShortlistButton={false}
                 showExcludeButton={false}
                 showRemoveButton={true}

@@ -13,9 +13,11 @@ const SimpleKebabMenu = ({
   isFavorited,
   isShortlisted,
   isBlocked = false,  // When true, disable most actions
+  context = 'default',
   onViewProfile,
   onToggleFavorite,
   onToggleShortlist,
+  onRemove,  // For remove from shortlist/favorites/exclusions
   onMessage,
   onBlock,
   onRequestPII,
@@ -99,32 +101,49 @@ const SimpleKebabMenu = ({
       </button>
       
       {/* Favorite - disabled when blocked */}
-      <button 
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (!isBlocked) handleItemClick(onToggleFavorite, 'Toggle Favorite');
-        }}
-        disabled={isBlocked}
-        className={isBlocked ? 'menu-item-disabled' : ''}
-        title={isBlocked ? 'Remove from exclusions first' : ''}
-      >
-        {isFavorited ? ACTION_ICONS.UNFAVORITE : ACTION_ICONS.FAVORITE} {isFavorited ? 'Unfavorite' : 'Favorite'}
-      </button>
+      {onToggleFavorite && context !== 'my-favorites' && (
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!isBlocked) handleItemClick(onToggleFavorite, 'Toggle Favorite');
+          }}
+          disabled={isBlocked}
+          className={isBlocked ? 'menu-item-disabled' : ''}
+          title={isBlocked ? 'Remove from exclusions first' : ''}
+        >
+          {isFavorited ? ACTION_ICONS.UNFAVORITE : ACTION_ICONS.FAVORITE} {isFavorited ? 'Unfavorite' : 'Favorite'}
+        </button>
+      )}
       
       {/* Shortlist - disabled when blocked */}
-      <button 
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (!isBlocked) handleItemClick(onToggleShortlist, 'Toggle Shortlist');
-        }}
-        disabled={isBlocked}
-        className={isBlocked ? 'menu-item-disabled' : ''}
-        title={isBlocked ? 'Remove from exclusions first' : ''}
-      >
-        {isShortlisted ? ACTION_ICONS.REMOVE_SHORTLIST : ACTION_ICONS.SHORTLIST} {isShortlisted ? 'Remove Shortlist' : 'Add Shortlist'}
-      </button>
+      {onToggleShortlist && context !== 'my-shortlists' && (
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!isBlocked) handleItemClick(onToggleShortlist, 'Toggle Shortlist');
+          }}
+          disabled={isBlocked}
+          className={isBlocked ? 'menu-item-disabled' : ''}
+          title={isBlocked ? 'Remove from exclusions first' : ''}
+        >
+          {isShortlisted ? ACTION_ICONS.REMOVE_SHORTLIST : ACTION_ICONS.SHORTLIST} {isShortlisted ? 'Remove Shortlist' : 'Add Shortlist'}
+        </button>
+      )}
+      
+      {/* Remove - for shortlist/favorites/exclusions pages */}
+      {onRemove && (
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleItemClick(onRemove, 'Remove');
+          }}
+        >
+          {ACTION_ICONS.REMOVE_SHORTLIST} Remove
+        </button>
+      )}
       
       {/* Message - disabled when blocked */}
       {onMessage && (
