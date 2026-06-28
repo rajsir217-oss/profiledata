@@ -155,9 +155,8 @@ async def get_notification_queue(
     # Build query based on user role
     query = {}
     
-    # Check if user is admin (support both 'role' and 'role_name' fields)
-    user_role = current_user.get("role") or current_user.get("role_name", "free_user")
-    is_admin = (user_role == "admin" or current_user["username"] == "admin")
+    # Check if user is admin
+    is_admin = current_user.get("role_name") == "admin"
     
     # Non-admins only see their own notifications
     if not is_admin:
@@ -227,7 +226,7 @@ async def cancel_notification(
         raise HTTPException(status_code=400, detail="Invalid notification ID format")
     
     # Build query - admin can delete any notification, users can only delete their own
-    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    is_admin = current_user.get("role_name") == "admin"
     base_query = {"_id": obj_id}
     if not is_admin:
         base_query["username"] = current_user["username"]
@@ -279,9 +278,8 @@ async def get_notification_analytics(
     service: NotificationService = Depends(get_notification_service)
 ):
     """Get notification analytics (admin sees global, users see their own)"""
-    # Check if user is admin (support both 'role' and 'role_name' fields)
-    user_role = current_user.get("role") or current_user.get("role_name", "free_user")
-    is_admin = (user_role == "admin" or current_user["username"] == "admin")
+    # Check if user is admin
+    is_admin = current_user.get("role_name") == "admin"
     
     end_date = datetime.utcnow()
     start_date = end_date - timedelta(days=days)
@@ -338,11 +336,7 @@ async def get_sms_by_month(
     logger = logging.getLogger(__name__)
     
     # Admin check
-    user_role = current_user.get("role") or current_user.get("role_name", "free_user")
-    username = current_user.get("username", "")
-    is_admin = (user_role == "admin")
-    
-    if not is_admin:
+    if current_user.get("role_name") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Default to current year
@@ -473,10 +467,9 @@ async def get_notification_logs(
     service: NotificationService = Depends(get_notification_service)
 ):
     """Get notification logs (sent notifications history)"""
-    # Check if user is admin (support both 'role' and 'role_name' fields)
-    user_role = current_user.get("role") or current_user.get("role_name", "free_user")
+    # Check if user is admin
+    is_admin = current_user.get("role_name") == "admin"
     username = current_user.get("username", "")
-    is_admin = (user_role == "admin")
     
     # Build query based on role
     query = {} if is_admin else {"username": username}
@@ -488,7 +481,7 @@ async def get_notification_logs(
     # Debug logging
     import logging
     logger = logging.getLogger(__name__)
-    logger.info(f"📋 Fetching notification logs - user: {username}, role: {user_role}, is_admin: {is_admin}, channel: {channel}, query: {query}")
+    logger.info(f"📋 Fetching notification logs - user: {username}, is_admin: {is_admin}, channel: {channel}, query: {query}")
     
     logs = await service.db["notification_log"].find(
         query
@@ -520,7 +513,7 @@ async def delete_notification_log(
             raise HTTPException(status_code=400, detail="Invalid log ID")
         
         # Admin can delete any log, users can only delete their own
-        is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+        is_admin = current_user.get("role_name") == "admin"
         query = {"_id": obj_id}
         if not is_admin:
             query["username"] = current_user["username"]
@@ -854,11 +847,7 @@ async def get_scheduled_notifications(
     db = Depends(get_database)
 ):
     """Get all scheduled notifications (admin only)"""
-    # Check if user is admin
-    user_role = current_user.get("role", "free_user")
-    is_admin = (user_role == "admin" or current_user["username"] == "admin")
-    
-    if not is_admin:
+    if current_user.get("role_name") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -893,11 +882,7 @@ async def create_scheduled_notification(
     db = Depends(get_database)
 ):
     """Create a new scheduled notification (admin only)"""
-    # Check if user is admin
-    user_role = current_user.get("role", "free_user")
-    is_admin = (user_role == "admin" or current_user["username"] == "admin")
-    
-    if not is_admin:
+    if current_user.get("role_name") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -951,11 +936,7 @@ async def update_scheduled_notification(
     db = Depends(get_database)
 ):
     """Update a scheduled notification (admin only)"""
-    # Check if user is admin
-    user_role = current_user.get("role", "free_user")
-    is_admin = (user_role == "admin" or current_user["username"] == "admin")
-    
-    if not is_admin:
+    if current_user.get("role_name") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -989,11 +970,7 @@ async def delete_scheduled_notification(
     db = Depends(get_database)
 ):
     """Delete a scheduled notification (admin only)"""
-    # Check if user is admin
-    user_role = current_user.get("role", "free_user")
-    is_admin = (user_role == "admin" or current_user["username"] == "admin")
-    
-    if not is_admin:
+    if current_user.get("role_name") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -1447,10 +1424,7 @@ async def get_simpletexting_stats(
     import httpx
     from config import settings
 
-    user_role = current_user.get("role") or current_user.get("role_name", "free_user")
-    username = current_user.get("username", "")
-    is_admin = (user_role == "admin")
-    if not is_admin:
+    if current_user.get("role_name") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
 
     api_token = settings.simpletexting_api_token
