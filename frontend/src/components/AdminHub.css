@@ -12,6 +12,24 @@
   margin-bottom: 16px;
 }
 
+.admin-hub-controls-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-hub-controls-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-hub-controls-right {
+  flex: 0 0 340px;
+  max-width: 340px;
+  width: 100%;
+}
+
 .admin-hub-label {
   display: block;
   margin-bottom: 8px;
@@ -24,7 +42,7 @@
 
 .admin-hub-select {
   width: 100%;
-  max-width: 340px;
+  max-width: none;
   background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -49,6 +67,161 @@
   background: var(--card-background);
 }
 
+/* Compact typography for Contribution Management inside Admin Hub */
+.admin-hub .contribution-management .page-header h1 {
+  font-size: 21px;
+}
+
+.admin-hub .contribution-management .page-header p,
+.admin-hub .contribution-management .add-payment-btn,
+.admin-hub .contribution-management .filter-label,
+.admin-hub .contribution-management .filter-select,
+.admin-hub .contribution-management .filter-tab,
+.admin-hub .contribution-management .contributions-table td,
+.admin-hub .contribution-management .name-cell,
+.admin-hub .contribution-management .page-info,
+.admin-hub .contribution-management .bulk-count,
+.admin-hub .contribution-management .recipient-info p,
+.admin-hub .contribution-management .message-preview h4,
+.admin-hub .contribution-management .email-preview p {
+  font-size: 10px;
+}
+
+.admin-hub .contribution-management .main-tab,
+.admin-hub .contribution-management .contributions-table th,
+.admin-hub .contribution-management .date-cell,
+.admin-hub .contribution-management .reminder-modal-message,
+.admin-hub .contribution-management .custom-reminder-textarea {
+  font-size: 9px;
+}
+
+.admin-hub .contribution-management .stat-value,
+.admin-hub .contribution-management .empty-state h3,
+.admin-hub .contribution-management .reminder-modal-header h3 {
+  font-size: 15px;
+}
+
+.admin-hub .contribution-management .stat-label,
+.admin-hub .contribution-management .session-id-cell .session-id,
+.admin-hub .contribution-management .status-badge,
+.admin-hub .contribution-management .frequency-badge,
+.admin-hub .contribution-management .thank-you-status,
+.admin-hub .contribution-management .thank-you-btn,
+.admin-hub .contribution-management .action-badge,
+.admin-hub .contribution-management .reminder-btn,
+.admin-hub .contribution-management .bulk-reminder-btn,
+.admin-hub .contribution-management .bulk-reminder-warning,
+.admin-hub .contribution-management .reminder-actions button {
+  font-size: 9px;
+}
+
+.admin-hub .contribution-management .amount-cell .amount {
+  font-size: 12px;
+}
+
+.admin-hub .contribution-management .stat-icon {
+  font-size: 17px;
+}
+
+.admin-hub .contribution-management .empty-icon {
+  font-size: 45px;
+}
+
+.admin-hub .contribution-management .page-header > div:last-child {
+  align-items: center;
+  gap: 6px !important;
+}
+
+.admin-hub .contribution-management .main-tab,
+.admin-hub .contribution-management .add-payment-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-direction: row !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+  width: fit-content !important;
+  max-width: max-content !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 6px 10px !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  line-height: 1.1 !important;
+  border-radius: 7px !important;
+}
+
+.admin-hub .contribution-management .add-payment-btn {
+  flex: 0 0 auto !important;
+  align-self: center !important;
+}
+
+.admin-hub .contribution-management .main-tab .tab-icon,
+.admin-hub .contribution-management .main-tab .tab-label,
+.admin-hub .contribution-management .add-payment-btn .btn-icon,
+.admin-hub .contribution-management .add-payment-btn .btn-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+}
+
+.admin-hub .contribution-management .main-tab .tab-label,
+.admin-hub .contribution-management .add-payment-btn .btn-label {
+  margin-left: 0 !important;
+}
+
+.admin-hub .contribution-management .add-payment-btn .btn-label {
+  font-size: 11px !important;
+}
+
+.admin-hub .contribution-management .filter-tab {
+  width: fit-content;
+  max-width: max-content;
+  min-width: 0;
+  padding: 5px 10px;
+  line-height: 1.1;
+  border-radius: 7px;
+}
+
+.admin-hub .contribution-management .clear-filter-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 4px 8px;
+}
+
+.admin-hub .contribution-management .thank-you-btn {
+  padding: 4px 10px;
+}
+
+.admin-hub .contribution-management .load-more-button {
+  min-width: 170px;
+  padding: 9px 20px;
+}
+
+.admin-hub .contribution-management .pagination button {
+  padding: 7px 14px;
+}
+
+.admin-hub .contribution-management .bulk-reminder-btn {
+  padding: 6px 12px;
+}
+
+.admin-hub .contribution-management .reminder-btn {
+  padding: 3px 6px;
+}
+
+.admin-hub .contribution-management .btn-secondary,
+.admin-hub .contribution-management .btn-primary {
+  padding: 6px 12px;
+}
+
+.admin-hub .contribution-management .btn-close-modal {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
 @media (max-width: 768px) {
   .admin-hub {
     padding: 12px;
@@ -57,6 +230,17 @@
   .admin-hub-controls {
     padding: 12px;
     margin-bottom: 12px;
+  }
+
+  .admin-hub-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .admin-hub-controls-right {
+    flex: 1 1 auto;
+    max-width: 100%;
   }
 
   .admin-hub-select {

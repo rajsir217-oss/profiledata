@@ -5,6 +5,7 @@ import UnifiedReports from './UnifiedReports';
 import AdminUtilities from './AdminUtilities';
 import MarketingPricing from './MarketingPricing';
 import BlogManagement from './BlogManagement';
+import TestSuite from './TestSuite';
 import './AdminHub.css';
 
 const SECTION_CONFIG = {
@@ -33,10 +34,14 @@ const SECTION_CONFIG = {
     subtitle: 'Create and manage blog posts',
     component: BlogManagement,
   },
+  'test-suite': {
+    label: 'Test Suite',
+    subtitle: 'Test dashboard and notification tools',
+    component: TestSuite,
+  },
 };
 
-const ADMIN_SECTIONS = ['contributions', 'reports', 'utilities', 'marketing', 'blog'];
-const MODERATOR_SECTIONS = ['blog'];
+const ADMIN_SECTIONS = ['contributions', 'reports', 'utilities', 'marketing', 'blog', 'test-suite'];
 
 const AdminHub = () => {
   const navigate = useNavigate();
@@ -47,14 +52,13 @@ const AdminHub = () => {
   const userRole = localStorage.getItem('userRole');
   const availableSections = useMemo(() => {
     if (userRole === 'admin') return ADMIN_SECTIONS;
-    if (userRole === 'moderator') return MODERATOR_SECTIONS;
     return [];
   }, [userRole]);
   const defaultSection = availableSections[0] || 'contributions';
   const section = availableSections.includes(sectionParam) ? sectionParam : defaultSection;
 
   React.useEffect(() => {
-    if (userRole !== 'admin' && userRole !== 'moderator') {
+    if (userRole !== 'admin') {
       navigate('/dashboard');
       return;
     }
@@ -74,18 +78,25 @@ const AdminHub = () => {
   return (
     <div className="admin-hub">
       <div className="admin-hub-controls">
-        <label htmlFor="admin-hub-section" className="admin-hub-label">Workspace</label>
-        <select
-          id="admin-hub-section"
-          className="admin-hub-select"
-          value={section}
-          onChange={handleSectionChange}
-        >
-          {availableSections.map((sectionId) => (
-            <option key={sectionId} value={sectionId}>{SECTION_CONFIG[sectionId].label}</option>
-          ))}
-        </select>
-        <p className="admin-hub-subtitle">{SECTION_CONFIG[section].subtitle}</p>
+        <div className="admin-hub-controls-row">
+          <div className="admin-hub-controls-left">
+            <label htmlFor="admin-hub-section" className="admin-hub-label">Workspace</label>
+            <p className="admin-hub-subtitle">{SECTION_CONFIG[section].subtitle}</p>
+          </div>
+
+          <div className="admin-hub-controls-right">
+            <select
+              id="admin-hub-section"
+              className="admin-hub-select"
+              value={section}
+              onChange={handleSectionChange}
+            >
+              {availableSections.map((sectionId) => (
+                <option key={sectionId} value={sectionId}>{SECTION_CONFIG[sectionId].label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       <div className="admin-hub-content">
@@ -95,6 +106,8 @@ const AdminHub = () => {
           <ActiveComponent routeBase="/admin-hub" baseParams={{ section: 'utilities' }} />
         ) : section === 'marketing' ? (
           <ActiveComponent routeBase="/admin-hub" baseParams={{ section: 'marketing' }} />
+        ) : section === 'test-suite' ? (
+          <ActiveComponent routeBase="/admin-hub" baseParams={{ section: 'test-suite' }} />
         ) : (
           <ActiveComponent />
         )}

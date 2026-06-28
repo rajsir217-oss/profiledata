@@ -4,7 +4,7 @@ import { TestDashboard } from '../test-dashboard';
 import NotificationTester from './NotificationTester';
 import './TestSuite.css';
 
-const TestSuite = () => {
+const TestSuite = ({ routeBase = '/test-suite', baseParams = {} }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('test-dashboard');
@@ -29,7 +29,14 @@ const TestSuite = () => {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    navigate(`/test-suite?tab=${tab}`, { replace: true });
+    const params = new URLSearchParams();
+    Object.entries(baseParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.set(key, String(value));
+      }
+    });
+    params.set('tab', tab);
+    navigate(`${routeBase}?${params.toString()}`, { replace: true });
   };
 
   const tabs = [

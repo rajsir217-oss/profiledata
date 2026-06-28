@@ -303,7 +303,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       items.push({
         icon: '🧭',
         label: 'Admin Hub',
-        subLabel: 'Contributions, reports, utilities, marketing & blog',
+        subLabel: 'Contributions, reports, utilities, marketing, blog & tests',
         action: () => navigate('/admin-hub?section=contributions')
       });
       // === CONFIGURATION ===
@@ -317,15 +317,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         disabled: false // Always enabled - paused users need to access settings to unpause
       });
       
-      // === TESTING & SUPPORT ===
-      items.push({ isHeader: true, label: 'TESTING & SUPPORT' });
-
-      items.push({
-        icon: '🧪',
-        label: 'Test Suite',
-        subLabel: 'Test dashboard & notifications',
-        action: () => navigate('/test-suite')
-      });
     }
 
     // Add Moderator section for moderator user
@@ -352,7 +343,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         icon: '📝',
         label: 'Blog Management',
         subLabel: 'Create & manage blog posts',
-        action: () => navigate('/admin-hub?section=blog')
+        action: () => navigate('/blog-management')
       });
 
       items.push({ isHeader: true, label: 'GROWTH' });

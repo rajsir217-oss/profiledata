@@ -39,7 +39,7 @@
 }
 
 .add-payment-btn {
-  padding: 10px 20px;
+  padding: 6px 8px;
   border: none;
   border-radius: 10px;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
@@ -68,7 +68,7 @@
 
 .add-payment-btn .btn-label {
   display: inline-block;
-  margin-left: 6px;
+  margin-left: 10px;
 }
 
 /* Mobile (≤600px): collapse header action buttons to icon-only squares.
