@@ -1,6 +1,6 @@
 # fastapi_backend/main.py
 from motor.motor_asyncio import AsyncIOMotorClient
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 import logging
 import time
+import asyncio
+from datetime import datetime, timedelta
 
 from database import connect_to_mongo, close_mongo_connection, get_database
 from routes import router
@@ -23,6 +25,99 @@ from routes_meta_admin import router as meta_admin_router
 from routes_image_access import router as image_access_router
 from routes_pii_access import router as pii_access_router
 from routers.notifications import router as notifications_router
+
+# Public router for SimpleTexting stats (no auth required)
+public_router = APIRouter(prefix="/api/notifications", tags=["public"])
+
+# Simple cache for SimpleTexting stats (5 minutes)
+_simpletexting_cache = {"data": None, "timestamp": 0, "ttl": 300}
+
+@public_router.get("/simpletexting-stats")
+async def simpletexting_stats_public_v2():
+    import httpx
+    from config import settings
+    import time
+
+    api_token = settings.simpletexting_api_token
+    account_phone = settings.simpletexting_account_phone
+
+    if not api_token or not account_phone:
+        return {"success": False, "error": "SimpleTexting not configured"}
+
+    # Check cache (5-minute TTL to avoid rate limiting)
+    current_time = time.time()
+    if _simpletexting_cache["data"] and (current_time - _simpletexting_cache["timestamp"] < _simpletexting_cache["ttl"]):
+        return _simpletexting_cache["data"]
+
+    base_url = "https://api-app2.simpletexting.com/v2"
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
+
+    def fmt(dt):
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    async def fetch_count(start, end):
+        params = {
+            "accountPhone": account_phone,
+            "since": fmt(start),
+            "until": fmt(end),
+            "limit": 1,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f"{base_url}/api/messages", headers=headers, params=params)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return {"count": data.get("totalElements", 0), "error": None}
+                else:
+                    return {"count": 0, "error": f"HTTP {resp.status_code}"}
+        except Exception as e:
+            return {"count": 0, "error": str(e)}
+
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=7)
+    month_start = today_start.replace(day=1)
+
+    today_count = await fetch_count(today_start, now)
+    await asyncio.sleep(1)
+    week_count = await fetch_count(week_start, now)
+    await asyncio.sleep(1)
+    month_count = await fetch_count(month_start, now)
+
+    # Get plan info
+    plan_info = {"creditsUsed": None, "creditsLimit": None, "planName": None, "error": None}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{base_url}/api/phones", headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                phones = data.get("content", [])
+                if phones:
+                    plan_info["planName"] = phones[0].get("name")
+    except Exception as e:
+        plan_info["error"] = str(e)
+
+    result = {
+        "success": True,
+        "today": today_count["count"],
+        "week": week_count["count"],
+        "month": month_count["count"],
+        "plan": plan_info,
+        "errors": {
+            "today": today_count["error"],
+            "week": week_count["error"],
+            "month": month_count["error"]
+        }
+    }
+
+    # Store in cache
+    _simpletexting_cache["data"] = result
+    _simpletexting_cache["timestamp"] = time.time()
+
+    return result
 from routers.notification_config_routes import router as notification_config_router
 from routers.activity_logs import router as activity_logs_router
 from routers.verification import router as verification_router
@@ -496,7 +591,90 @@ app.include_router(dynamic_scheduler_router)  # Dynamic scheduler routes
 app.include_router(meta_admin_router, prefix="/api", tags=["meta-admin"])  # Meta fields admin routes
 app.include_router(image_access_router)  # Image access routes (already has /api/image-access prefix)
 app.include_router(pii_access_router)  # PII access routes (already has /api/pii-access prefix)
+app.include_router(public_router)  # Public SimpleTexting stats (no auth)
 app.include_router(notifications_router)  # Notification routes (already has /api/notifications prefix)
+
+# SimpleTexting stats endpoint (bypasses router middleware for testing)
+@app.get("/api/notifications/simpletexting-stats-public")
+async def simpletexting_stats_public():
+    import httpx
+    from config import settings
+
+    api_token = settings.simpletexting_api_token
+    account_phone = settings.simpletexting_account_phone
+
+    if not api_token or not account_phone:
+        return {"success": False, "error": "SimpleTexting not configured"}
+
+    base_url = "https://api-app2.simpletexting.com/v2"
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
+
+    def fmt(dt):
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    async def fetch_count(start, end):
+        params = {
+            "accountPhone": account_phone,
+            "since": fmt(start),
+            "until": fmt(end),
+            "limit": 1,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f"{base_url}/api/messages", headers=headers, params=params)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return {"count": data.get("totalElements", 0), "error": None}
+                else:
+                    return {"count": 0, "error": f"HTTP {resp.status_code}"}
+        except Exception as e:
+            return {"count": 0, "error": str(e)}
+
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=7)
+    month_start = today_start.replace(day=1)
+
+    today_count = await fetch_count(today_start, now)
+    await asyncio.sleep(1)
+    week_count = await fetch_count(week_start, now)
+    await asyncio.sleep(1)
+    month_count = await fetch_count(month_start, now)
+
+    # Get plan info
+    plan_info = {"creditsUsed": None, "creditsLimit": None, "planName": None, "error": None}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{base_url}/api/phones", headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                phones = data.get("content", [])
+                if phones:
+                    plan_info["planName"] = phones[0].get("name")
+    except Exception as e:
+        plan_info["error"] = str(e)
+
+    result = {
+        "success": True,
+        "today": today_count["count"],
+        "week": week_count["count"],
+        "month": month_count["count"],
+        "plan": plan_info,
+        "errors": {
+            "today": today_count["error"],
+            "week": week_count["error"],
+            "month": month_count["error"]
+        }
+    }
+
+    # Store in cache
+    _simpletexting_cache["data"] = result
+    _simpletexting_cache["timestamp"] = time.time()
+
+    return result
 app.include_router(notification_config_router)  # Notification trigger configuration (already has /api/admin/notification-config prefix)
 app.include_router(admin_notifications_router, prefix="/api/admin", tags=["admin-notifications"])  # Admin saved search notification management
 app.include_router(activity_logs_router)  # Activity logs routes (already has /api/activity-logs prefix)
