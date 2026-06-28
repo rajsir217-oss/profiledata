@@ -273,13 +273,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         action: () => navigate('/announcement-management')
       });
 
-      items.push({
-        icon: '📝',
-        label: 'Blog Management',
-        subLabel: 'Create & manage blog posts',
-        action: () => navigate('/blog-management')
-      });
-
       // === UTILITIES ===
       // items.push({ isHeader: true, label: 'UTILITIES' });
 
@@ -308,33 +301,10 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       });
       
       items.push({
-        icon: '🎯',
-        label: 'Memberships',
-        subLabel: 'Promos, pricing & leads',
-        action: () => navigate('/marketing-pricing')
-      });
-      
-      items.push({
-        icon: '💝',
-        label: 'Contributions',
-        subLabel: 'View all contributions',
-        action: () => navigate('/contribution-management')
-      });
-      
-      // === ANALYTICS & REPORTS ===
-      items.push({ isHeader: true, label: 'ANALYTICS & REPORTS' });
-
-      items.push({
-        icon: '📊',
-        label: 'Reports',
-        subLabel: 'All reports & analytics',
-        action: () => navigate('/unified-reports')
-      });
-            items.push({
-        icon: '🔧',
-        label: 'Utilities',
-        subLabel: 'Admin tools & utilities',
-        action: () => navigate('/admin-utilities')
+        icon: '🧭',
+        label: 'Admin Hub',
+        subLabel: 'Contributions, reports, utilities, marketing & blog',
+        action: () => navigate('/admin-hub?section=contributions')
       });
       // === CONFIGURATION ===
       // items.push({ isHeader: true, label: 'CONFIGURATION' });
@@ -382,7 +352,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         icon: '📝',
         label: 'Blog Management',
         subLabel: 'Create & manage blog posts',
-        action: () => navigate('/blog-management')
+        action: () => navigate('/admin-hub?section=blog')
       });
 
       items.push({ isHeader: true, label: 'GROWTH' });

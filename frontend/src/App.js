@@ -70,7 +70,6 @@ import ProfileCompletionChecker from './components/ProfileCompletionChecker';
 import BrandBanner from './components/BrandBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
 import AnnouncementManagement from './components/AnnouncementManagement';
-import BlogManagement from './components/BlogManagement';
 import BlogList from './components/BlogList';
 import BlogView from './components/BlogView';
 import PollManagement from './components/PollManagement';
@@ -83,6 +82,7 @@ import TestSuite from './components/TestSuite';
 import Automation from './components/Automation';
 import MemberRoles from './components/MemberRoles';
 import Support from './components/Support';
+import AdminHub from './components/AdminHub';
 import ContributionManagement from './components/ContributionManagement';
 import AdminRecurringContributions from './components/AdminRecurringContributions';
 import PayPalRecurringSetup from './components/PayPalRecurringSetup';
@@ -468,6 +468,7 @@ function AppContent() {
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
               {/* Support unified page */}
               <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+              <Route path="/admin-hub" element={<ProtectedRoute><AdminHub /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old support routes to unified page */}
               <Route path="/contact" element={<Navigate to="/support?tab=contact-us" replace />} />
               <Route path="/admin/contact" element={<Navigate to="/support?tab=admin-contact" replace />} />
@@ -512,7 +513,7 @@ function AppContent() {
               <Route path="/admin/notification-config" element={<Navigate to="/admin-utilities?tab=notification-config" replace />} />
               <Route path="/email-templates" element={<Navigate to="/admin-utilities?tab=email-templates" replace />} />
               <Route path="/announcement-management" element={<ProtectedRoute><AnnouncementManagement /></ProtectedRoute>} />
-              <Route path="/blog-management" element={<ProtectedRoute><BlogManagement /></ProtectedRoute>} />
+              <Route path="/blog-management" element={<Navigate to="/admin-hub?section=blog" replace />} />
               {/* Unified Reports Page */}
               <Route path="/unified-reports" element={<ProtectedRoute><UnifiedReports /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old report routes to unified page */}
