@@ -1585,7 +1585,7 @@ const InvitationManager = () => {
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                     {bulkCreateResults.sent > 0 && (
-                      <div style={{ textAlign: 'center', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--success-light)' }}>
+                      <div style={{ textAlign: 'left', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--success-light)' }}>
                         <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--success-color)' }}>{bulkCreateResults.sent}</div>
                         <div style={{ fontSize: '12px', color: 'var(--success-color)' }}>Sent</div>
                       </div>
@@ -1615,6 +1615,14 @@ const InvitationManager = () => {
                       </div>
                     )}
                   </div>
+
+                  {bulkCreateResults.sent > 0 && (
+                    <div style={{ marginBottom: '16px', padding: '12px', borderRadius: 'var(--radius-md)', background: 'var(--info-light)', border: '1px solid var(--info-color)' }}>
+                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-color)' }}>
+                        Please check junk, spam and all email folders -- search from:l3v3lmatches.com OR search for word "l3v3l", just in case. Thanks!
+                      </p>
+                    </div>
+                  )}
 
                   {/* Per-email detail list */}
                   {bulkCreateResults.details && bulkCreateResults.details.length > 0 && (
