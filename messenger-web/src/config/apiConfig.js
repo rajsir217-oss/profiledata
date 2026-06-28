@@ -10,7 +10,7 @@
  * - Production (messenger.l3v3lmatches.com): https://api.l3v3lmatches.com
  */
 export const getBackendUrl = () => {
-  const raw = process.env.MESSENGER_BACKEND_URL || 'https://api.l3v3lmatches.com';
+  const raw = process.env.MESSENGER_BACKEND_URL;
   const cleaned = String(raw || '').replace(/\/+$/, '');
   if (cleaned) return cleaned;
 
@@ -51,7 +51,7 @@ export const getFrontendUrl = () => {
 };
 
 export const getTurnstileSiteKey = () => {
-  const raw = process.env.MESSENGER_TURNSTILE_SITE_KEY || '0x4AAAAAACAeADZnXAaS1tep';
+  const raw = process.env.MESSENGER_TURNSTILE_SITE_KEY;
   const cleaned = String(raw || '').trim();
   if (cleaned) return cleaned;
   try {
@@ -72,7 +72,7 @@ export const getTurnstileSiteKey = () => {
  * @returns {string} Main app URL
  */
 export const getMainAppUrl = () => {
-  const raw = process.env.MESSENGER_MAIN_APP_URL || 'https://l3v3lmatches.com';
+  const raw = process.env.MESSENGER_MAIN_APP_URL;
   const cleaned = String(raw || '').replace(/\/+$/, '');
   if (cleaned) return cleaned;
 
