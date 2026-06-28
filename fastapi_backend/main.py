@@ -33,7 +33,7 @@ public_router = APIRouter(prefix="/api/notifications", tags=["public"])
 _simpletexting_cache = {"data": None, "timestamp": 0, "ttl": 300}
 
 @public_router.get("/simpletexting-stats")
-async def simpletexting_stats_public_v2():
+async def simpletexting_stats_public_v2(request: Request):
     import httpx
     from config import settings
     import time
@@ -44,9 +44,11 @@ async def simpletexting_stats_public_v2():
     if not api_token or not account_phone:
         return {"success": False, "error": "SimpleTexting not configured"}
 
+    force_refresh = request.query_params.get("force_refresh", "").lower() in {"1", "true", "yes"}
+
     # Check cache (5-minute TTL to avoid rate limiting)
     current_time = time.time()
-    if _simpletexting_cache["data"] and (current_time - _simpletexting_cache["timestamp"] < _simpletexting_cache["ttl"]):
+    if (not force_refresh) and _simpletexting_cache["data"] and (current_time - _simpletexting_cache["timestamp"] < _simpletexting_cache["ttl"]):
         return _simpletexting_cache["data"]
 
     base_url = "https://api-app2.simpletexting.com/v2"

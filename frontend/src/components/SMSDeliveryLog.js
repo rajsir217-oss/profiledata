@@ -122,11 +122,9 @@ const SMSDeliveryLog = () => {
     setStLoading(true);
     setStError(null);
     try {
-      const endpoint = forceRefresh
-        ? '/api/notifications/simpletexting-stats-public'
-        : '/api/notifications/simpletexting-stats';
+      const endpoint = '/api/notifications/simpletexting-stats';
       const response = await axios.get(`${getBackendUrl()}${endpoint}`, forceRefresh ? {
-        params: { _t: Date.now() }
+        params: { _t: Date.now(), force_refresh: true }
       } : undefined);
       if (response.data.success) {
         // Transform backend response to match frontend expected structure
