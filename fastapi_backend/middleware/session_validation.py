@@ -28,10 +28,15 @@ SESSION_INACTIVITY_MINUTES = 30  # 30 minutes - aligned with frontend
 async def validate_session_middleware(request: Request, call_next):
     """
     Middleware to validate session on every authenticated API call.
-    
+
     This provides server-side enforcement of session timeouts as a safety net
     for cases where client-side JavaScript may be throttled or manipulated.
     """
+    # Bypass all middleware for SimpleTexting endpoints (uses internal token)
+    path = request.url.path
+    if path.startswith("/api/notifications/simpletexting-stats"):
+        return await call_next(request)
+
     # Skip validation for non-authenticated endpoints
     skip_paths = [
         "/health",
@@ -50,6 +55,8 @@ async def validate_session_middleware(request: Request, call_next):
         "/api/auth/otp/",
         "/s/",  # Short URLs
         "/socket.io",
+        "/api/notifications/simpletexting-stats-public",  # SimpleTexting stats public endpoint
+        "/api/notifications/simpletexting-stats",  # SimpleTexting stats endpoint
     ]
     
     # Check if path should be skipped

@@ -1428,10 +1428,7 @@ async def get_simpletexting_stats_test():
     }
 
 @router.get("/simpletexting-stats")
-async def get_simpletexting_stats(
-    current_user: dict = Depends(get_current_user),
-    db = Depends(get_database)
-):
+async def get_simpletexting_stats():
     """
     Get real SMS delivery stats directly from SimpleTexting API.
     Captures ALL sends including OTP/MFA codes that bypass the internal notification queue.

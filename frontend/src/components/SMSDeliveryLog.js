@@ -18,7 +18,13 @@ const SMSDeliveryLog = () => {
   const PAGE_SIZE = 20;
   
   // SimpleTexting live stats state
-  const [stStats, setStStats] = useState(null);
+  const [stStats, setStStats] = useState({
+    realtime: { today: 0, week: 0, month: 0 },
+    plan: { planName: 'Unknown', creditsUsed: null, creditsLimit: null },
+    gap: { today: 0, month: 0 },
+    asOf: new Date().toISOString(),
+    errors: {}
+  });
   const [stLoading, setStLoading] = useState(false);
   const [stError, setStError] = useState(null);
 
@@ -116,12 +122,20 @@ const SMSDeliveryLog = () => {
     setStLoading(true);
     setStError(null);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${getBackendUrl()}/api/notifications/simpletexting-stats`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(`${getBackendUrl()}/api/notifications/simpletexting-stats`);
       if (response.data.success) {
-        setStStats(response.data);
+        // Transform backend response to match frontend expected structure
+        setStStats({
+          realtime: {
+            today: response.data.today,
+            week: response.data.week,
+            month: response.data.month
+          },
+          plan: response.data.plan || { planName: 'Unknown', creditsUsed: null, creditsLimit: null },
+          gap: { today: 0, month: 0 }, // TODO: Calculate gap from internal log
+          asOf: new Date().toISOString(),
+          errors: response.data.errors || {}
+        });
       } else {
         setStError('Failed to load SimpleTexting stats');
       }
