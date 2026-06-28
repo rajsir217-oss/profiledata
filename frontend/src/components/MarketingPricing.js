@@ -6,7 +6,7 @@ import PromoCodeAccounting from './PromoCodeAccounting';
 import MembersList from './MembersList';
 import './MarketingPricing.css';
 
-const MarketingPricing = () => {
+const MarketingPricing = ({ routeBase = '/marketing-pricing', baseParams = {} }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('promo-codes');
@@ -33,7 +33,9 @@ const MarketingPricing = () => {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    navigate(`/marketing-pricing?tab=${tab}`, { replace: true });
+    const params = new URLSearchParams(baseParams);
+    params.set('tab', tab);
+    navigate(`${routeBase}?${params.toString()}`, { replace: true });
   };
 
   const tabs = [

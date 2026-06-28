@@ -7,7 +7,7 @@ import NotificationConfigManager from './NotificationConfigManager';
 import SavedSearchNotificationManager from './admin/SavedSearchNotificationManager';
 import './AdminUtilities.css';
 
-const AdminUtilities = () => {
+const AdminUtilities = ({ routeBase = '/admin-utilities', baseParams = {} }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('backups');
@@ -32,7 +32,9 @@ const AdminUtilities = () => {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    navigate(`/admin-utilities?tab=${tab}`, { replace: true });
+    const params = new URLSearchParams(baseParams);
+    params.set('tab', tab);
+    navigate(`${routeBase}?${params.toString()}`, { replace: true });
   };
 
   const tabs = [

@@ -8,7 +8,7 @@ import InactiveUsersReport from './InactiveUsersReport';
 import MessengerRealtimeHealth from './MessengerRealtimeHealth';
 import './UnifiedReports.css';
 
-const UnifiedReports = () => {
+const UnifiedReports = ({ routeBase = '/unified-reports', baseParams = {} }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('activity-logs');
@@ -38,8 +38,9 @@ const UnifiedReports = () => {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    // Update URL without page reload
-    navigate(`/unified-reports?tab=${tab}`, { replace: true });
+    const params = new URLSearchParams(baseParams);
+    params.set('tab', tab);
+    navigate(`${routeBase}?${params.toString()}`, { replace: true });
   };
 
   const tabs = [
