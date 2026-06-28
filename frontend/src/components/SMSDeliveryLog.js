@@ -111,7 +111,7 @@ const SMSDeliveryLog = () => {
     }
   }, []);
 
-  const loadStStats = useCallback(async () => {
+  const loadStStats = useCallback(async (forceRefresh = false) => {
     // Check if user is admin (same pattern as Sidebar.js)
     const userRole = localStorage.getItem('userRole');
     if (userRole !== 'admin') {
@@ -122,7 +122,12 @@ const SMSDeliveryLog = () => {
     setStLoading(true);
     setStError(null);
     try {
-      const response = await axios.get(`${getBackendUrl()}/api/notifications/simpletexting-stats`);
+      const endpoint = forceRefresh
+        ? '/api/notifications/simpletexting-stats-public'
+        : '/api/notifications/simpletexting-stats';
+      const response = await axios.get(`${getBackendUrl()}${endpoint}`, forceRefresh ? {
+        params: { _t: Date.now() }
+      } : undefined);
       if (response.data.success) {
         // Transform backend response to match frontend expected structure
         setStStats({
@@ -236,7 +241,7 @@ const SMSDeliveryLog = () => {
         <div className="st-live-header">
           <span className="st-live-title">📡 SimpleTexting Live</span>
           <span className="st-live-subtitle">All SMS including OTP/MFA — pulled directly from SimpleTexting API</span>
-          <button className="st-refresh-btn" onClick={loadStStats} disabled={stLoading} title="Refresh live stats">
+          <button className="st-refresh-btn" onClick={() => loadStStats(true)} disabled={stLoading} title="Refresh live stats">
             {stLoading ? '⏳' : '🔄'}
           </button>
         </div>
