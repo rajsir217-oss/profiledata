@@ -208,6 +208,34 @@ const Favorites = () => {
     }
   };
 
+  const toggleShortlist = async (user) => {
+    try {
+      const username = localStorage.getItem('username');
+      const isShort = user.isShortlisted || false;
+
+      if (isShort) {
+        // Remove from shortlist
+        await api.delete(`/shortlist/${user.username}?username=${encodeURIComponent(username)}`);
+        setStatusMessage('📋 Removed from shortlist!');
+        setFavorites(prev => prev.map(item =>
+          item.username === user.username ? { ...item, isShortlisted: false } : item
+        ));
+      } else {
+        // Add to shortlist
+        await api.post(`/shortlist/${user.username}?username=${encodeURIComponent(username)}`);
+        setStatusMessage('📋 Added to shortlist!');
+        setFavorites(prev => prev.map(item =>
+          item.username === user.username ? { ...item, isShortlisted: true } : item
+        ));
+      }
+      setTimeout(() => setStatusMessage(''), 3000);
+    } catch (err) {
+      logger.error('Error toggling shortlist:', err);
+      setStatusMessage('❌ Failed to toggle shortlist');
+      setTimeout(() => setStatusMessage(''), 3000);
+    }
+  };
+
   const handleMessage = async (user) => {
     // If user object doesn't have full profile data, fetch it
     if (!user.firstName && !user.location && user.username) {
@@ -272,18 +300,22 @@ const Favorites = () => {
               <SearchResultCard
                 key={user.username}
                 user={user}
+                context="my-favorites"
                 currentUsername={localStorage.getItem('username')}
                 onRemove={removeFromFavorites}
+                onToggleFavorite={removeFromFavorites}
+                onToggleShortlist={toggleShortlist}
                 onMessage={handleMessage}
                 onPIIRequest={handlePIIRequest}
                 isFavorited={true}
+                isShortlisted={user.isShortlisted || false}
                 hasPiiAccess={hasPiiAccess(user.username)}
                 hasImageAccess={hasImageAccess(user.username)}
                 isPiiRequestPending={isPiiRequestPending(user.username)}
                 isImageRequestPending={isImageRequestPending(user.username)}
                 piiRequestStatus={getPIIRequestStatus(user.username)}
                 showFavoriteButton={false}
-                showShortlistButton={false}
+                showShortlistButton={true}
                 showExcludeButton={false}
                 showRemoveButton={true}
                 removeButtonLabel="Remove from Favorites"
