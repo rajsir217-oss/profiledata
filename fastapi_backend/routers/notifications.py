@@ -227,7 +227,7 @@ async def cancel_notification(
         raise HTTPException(status_code=400, detail="Invalid notification ID format")
     
     # Build query - admin can delete any notification, users can only delete their own
-    is_admin = current_user.get("username") == "admin" or current_user.get("role") == "admin"
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
     base_query = {"_id": obj_id}
     if not is_admin:
         base_query["username"] = current_user["username"]
@@ -340,7 +340,7 @@ async def get_sms_by_month(
     # Admin check
     user_role = current_user.get("role") or current_user.get("role_name", "free_user")
     username = current_user.get("username", "")
-    is_admin = (user_role == "admin" or username == "admin")
+    is_admin = (user_role == "admin")
     
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -476,7 +476,7 @@ async def get_notification_logs(
     # Check if user is admin (support both 'role' and 'role_name' fields)
     user_role = current_user.get("role") or current_user.get("role_name", "free_user")
     username = current_user.get("username", "")
-    is_admin = (user_role == "admin" or username == "admin")
+    is_admin = (user_role == "admin")
     
     # Build query based on role
     query = {} if is_admin else {"username": username}
@@ -520,7 +520,7 @@ async def delete_notification_log(
             raise HTTPException(status_code=400, detail="Invalid log ID")
         
         # Admin can delete any log, users can only delete their own
-        is_admin = current_user.get("username") == "admin"
+        is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
         query = {"_id": obj_id}
         if not is_admin:
             query["username"] = current_user["username"]
@@ -1449,7 +1449,7 @@ async def get_simpletexting_stats(
 
     user_role = current_user.get("role") or current_user.get("role_name", "free_user")
     username = current_user.get("username", "")
-    is_admin = (user_role == "admin" or username == "admin")
+    is_admin = (user_role == "admin")
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
 
