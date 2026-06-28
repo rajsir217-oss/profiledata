@@ -156,7 +156,7 @@ async def get_notification_queue(
     query = {}
     
     # Check if user is admin
-    is_admin = current_user.get("role_name") == "admin"
+    is_admin = (current_user.get("role_name") or current_user.get("role")) == "admin"
     
     # Non-admins only see their own notifications
     if not is_admin:
@@ -226,7 +226,7 @@ async def cancel_notification(
         raise HTTPException(status_code=400, detail="Invalid notification ID format")
     
     # Build query - admin can delete any notification, users can only delete their own
-    is_admin = current_user.get("role_name") == "admin"
+    is_admin = (current_user.get("role_name") or current_user.get("role")) == "admin"
     base_query = {"_id": obj_id}
     if not is_admin:
         base_query["username"] = current_user["username"]
@@ -279,7 +279,7 @@ async def get_notification_analytics(
 ):
     """Get notification analytics (admin sees global, users see their own)"""
     # Check if user is admin
-    is_admin = current_user.get("role_name") == "admin"
+    is_admin = (current_user.get("role_name") or current_user.get("role")) == "admin"
     
     end_date = datetime.utcnow()
     start_date = end_date - timedelta(days=days)
@@ -336,7 +336,7 @@ async def get_sms_by_month(
     logger = logging.getLogger(__name__)
     
     # Admin check
-    if current_user.get("role_name") != "admin":
+    if (current_user.get("role_name") or current_user.get("role")) != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Default to current year
@@ -468,7 +468,7 @@ async def get_notification_logs(
 ):
     """Get notification logs (sent notifications history)"""
     # Check if user is admin
-    is_admin = current_user.get("role_name") == "admin"
+    is_admin = (current_user.get("role_name") or current_user.get("role")) == "admin"
     username = current_user.get("username", "")
     
     # Build query based on role
@@ -513,7 +513,7 @@ async def delete_notification_log(
             raise HTTPException(status_code=400, detail="Invalid log ID")
         
         # Admin can delete any log, users can only delete their own
-        is_admin = current_user.get("role_name") == "admin"
+        is_admin = (current_user.get("role_name") or current_user.get("role")) == "admin"
         query = {"_id": obj_id}
         if not is_admin:
             query["username"] = current_user["username"]
@@ -847,7 +847,7 @@ async def get_scheduled_notifications(
     db = Depends(get_database)
 ):
     """Get all scheduled notifications (admin only)"""
-    if current_user.get("role_name") != "admin":
+    if (current_user.get("role_name") or current_user.get("role")) != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -882,7 +882,7 @@ async def create_scheduled_notification(
     db = Depends(get_database)
 ):
     """Create a new scheduled notification (admin only)"""
-    if current_user.get("role_name") != "admin":
+    if (current_user.get("role_name") or current_user.get("role")) != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -936,7 +936,7 @@ async def update_scheduled_notification(
     db = Depends(get_database)
 ):
     """Update a scheduled notification (admin only)"""
-    if current_user.get("role_name") != "admin":
+    if (current_user.get("role_name") or current_user.get("role")) != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -970,7 +970,7 @@ async def delete_scheduled_notification(
     db = Depends(get_database)
 ):
     """Delete a scheduled notification (admin only)"""
-    if current_user.get("role_name") != "admin":
+    if (current_user.get("role_name") or current_user.get("role")) != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -1411,6 +1411,22 @@ async def save_user_notification_prefs(
     return {"success": True}
 
 
+@router.get("/simpletexting-stats-test")
+async def get_simpletexting_stats_test():
+    """
+    TEST ENDPOINT - No auth required to verify SimpleTexting API works.
+    """
+    import httpx
+    from config import settings
+
+    api_token = settings.simpletexting_api_token
+    account_phone = settings.simpletexting_account_phone
+
+    return {
+        "success": True,
+        "message": f"Token configured: {bool(api_token)}, Phone configured: {bool(account_phone)}"
+    }
+
 @router.get("/simpletexting-stats")
 async def get_simpletexting_stats(
     current_user: dict = Depends(get_current_user),
@@ -1419,13 +1435,9 @@ async def get_simpletexting_stats(
     """
     Get real SMS delivery stats directly from SimpleTexting API.
     Captures ALL sends including OTP/MFA codes that bypass the internal notification queue.
-    Admin only.
     """
     import httpx
     from config import settings
-
-    if current_user.get("role_name") != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
 
     api_token = settings.simpletexting_api_token
     account_phone = settings.simpletexting_account_phone
@@ -1445,17 +1457,15 @@ async def get_simpletexting_stats(
     month_start = today_start.replace(day=1)
 
     def fmt(dt: datetime) -> str:
-        return dt.strftime("%Y-%m-%dT%H:%M:%S")
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     async def fetch_count(start: datetime, end: datetime) -> dict:
-        """Fetch total SENT message count for a date range (uses limit=1 to get only total)."""
+        """Fetch total outbound SMS count for a date range using since/until params."""
         params = {
             "accountPhone": account_phone,
-            "startDate": fmt(start),
-            "endDate": fmt(end),
-            "type": "SENT",
+            "since": fmt(start),
+            "until": fmt(end),
             "limit": 1,
-            "page": 1
         }
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
@@ -1463,7 +1473,7 @@ async def get_simpletexting_stats(
                 if resp.status_code == 200:
                     data = resp.json()
                     return {
-                        "count": data.get("total", data.get("count", 0)),
+                        "count": data.get("totalElements", 0),
                         "error": None
                     }
                 else:
@@ -1480,25 +1490,16 @@ async def get_simpletexting_stats(
         fetch_count(month_start, now),
     )
 
-    # Get account/plan info from account-phones endpoint
+    # Get registered phone name from /api/phones
     plan_info = {"creditsUsed": None, "creditsLimit": None, "planName": None, "error": None}
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                f"{base_url}/api/account-phones",
-                headers=headers,
-                params={"accountPhone": account_phone}
-            )
+            resp = await client.get(f"{base_url}/api/phones", headers=headers)
             if resp.status_code == 200:
                 data = resp.json()
-                phones = data.get("phones") or data.get("data") or []
-                if isinstance(phones, list) and phones:
-                    phone_data = phones[0]
-                else:
-                    phone_data = data if isinstance(data, dict) else {}
-                plan_info["creditsUsed"] = phone_data.get("creditsUsed") or phone_data.get("credits_used")
-                plan_info["creditsLimit"] = phone_data.get("creditsLimit") or phone_data.get("credits_limit") or 500
-                plan_info["planName"] = phone_data.get("plan") or phone_data.get("planName")
+                phones = data.get("content", [])
+                if phones:
+                    plan_info["planName"] = phones[0].get("name")
             else:
                 plan_info["error"] = f"HTTP {resp.status_code}"
     except Exception as e:
