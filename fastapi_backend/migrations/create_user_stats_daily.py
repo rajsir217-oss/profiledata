@@ -10,23 +10,30 @@ from datetime import datetime
 
 async def up(db: AsyncIOMotorDatabase):
     """Create user_stats_daily collection with indexes"""
-    
+
     # 1. user_stats_daily collection
-    await db.create_collection("user_stats_daily")
-    
+    try:
+        await db.create_collection("user_stats_daily")
+        print("✅ Created user_stats_daily collection")
+    except Exception as e:
+        if "already exists" in str(e):
+            print("ℹ️ Collection user_stats_daily already exists, skipping creation")
+        else:
+            raise
+
     # Compound unique index: username + date (one snapshot per user per day)
     await db.user_stats_daily.create_index([("username", 1), ("date", 1)], unique=True)
-    
+
     # Index for username queries (fetch latest stats for a user)
     await db.user_stats_daily.create_index("username")
-    
+
     # Index for date queries (analytics)
     await db.user_stats_daily.create_index("date")
-    
+
     # TTL index: keep data for 90 days (optional - comment out if you want to keep all historical data)
     # await db.user_stats_daily.create_index("createdAt", expireAfterSeconds=90 * 86400)
-    
-    print("✅ Created user_stats_daily collection with indexes")
+
+    print("✅ user_stats_daily collection indexes verified")
 
 
 async def down(db: AsyncIOMotorDatabase):
