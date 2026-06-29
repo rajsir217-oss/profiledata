@@ -252,6 +252,7 @@ def initialize_templates():
     from .activity_logs_purge import ActivityLogsPurgeTemplate
     from .unpaid_reminder_email_template import UnpaidReminderEmailTemplate
     from .unpaid_reminder_sms_template import UnpaidReminderSMSTemplate
+    from .daily_user_stats_snapshot import UserStatsDailySnapshotTemplate
     
     registry = get_template_registry()
     
@@ -263,6 +264,7 @@ def initialize_templates():
     registry.register(ActivityLogsPurgeTemplate())
     registry.register(UnpaidReminderEmailTemplate())
     registry.register(UnpaidReminderSMSTemplate())
+    registry.register(UserStatsDailySnapshotTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
