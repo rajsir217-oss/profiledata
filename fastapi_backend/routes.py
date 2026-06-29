@@ -10327,13 +10327,13 @@ async def update_sms_optin_status(
     """
     try:
         logger.info(f"📱 Updating SMS opt-in for {username} to: {smsOptIn}")
-        
+
         # Check if user exists
         user = await db.users.find_one({"username": username})
         if not user:
             logger.warning(f"⚠️ User not found: {username}")
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Update SMS opt-in
         result = await db.users.update_one(
             {"username": username},
@@ -10344,23 +10344,114 @@ async def update_sms_optin_status(
                 }
             }
         )
-        
+
         if result.modified_count == 0:
             logger.warning(f"⚠️ No changes made for {username}")
-        
+
         logger.info(f"✅ SMS opt-in updated for {username}: {smsOptIn}")
-        
+
         return {
             "success": True,
             "username": username,
             "smsOptIn": smsOptIn,
             "message": f"SMS notifications {'enabled' if smsOptIn else 'disabled'} successfully"
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"❌ Error updating SMS opt-in: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== USER STATS DAILY SNAPSHOT =====
+
+@router.get("/{username}/stats")
+async def get_user_stats(
+    username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get user statistics from daily snapshot (days active, views, favorites, shortlists, messages)
+    Falls back to live calculation if no snapshot exists
+    """
+    try:
+        # Security: User can only view their own stats (unless admin)
+        requester_username = current_user.get("username")
+        is_admin = current_user.get("role") == "admin"
+
+        if requester_username != username and not is_admin:
+            logger.warning(f"⚠️ Unauthorized stats request: {requester_username} trying to view {username}")
+            raise HTTPException(status_code=403, detail="Not authorized to view this user's stats")
+
+        logger.info(f"📊 Getting stats for user: {username}")
+
+        # Try to get latest daily snapshot
+        from datetime import datetime, timedelta
+
+        today = datetime.utcnow()
+        date_str = today.strftime("%Y-%m-%d")
+
+        snapshot = await db.user_stats_daily.find_one(
+            {"username": username, "date": date_str}
+        )
+
+        logger.info(f"🔍 Snapshot lookup for {username} on {date_str}: found={snapshot is not None}")
+
+        if snapshot:
+            # Return snapshot data
+            stats = snapshot.get("stats", {})
+            logger.info(f"✅ Found daily snapshot for {username} ({date_str})")
+            return {
+                "success": True,
+                "username": username,
+                "date": date_str,
+                "source": "daily_snapshot",
+                "stats": {
+                    "daysActive": stats.get("daysActive", 0),
+                    "profileViews": stats.get("profileViews", 0),
+                    "favoritedBy": stats.get("favoritedBy", 0),
+                    "shortlistedBy": stats.get("shortlistedBy", 0),
+                    "uniqueConversations": stats.get("uniqueConversations", 0)
+                }
+            }
+        else:
+            # Fallback to live calculation
+            logger.info(f"⚠️ No snapshot found for {username}, calculating live stats")
+
+            # Get user for days active
+            user = await db.users.find_one({"username": username}, {"createdAt": 1})
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            created_at = user.get("createdAt")
+            days_active = (today - created_at).days if created_at else 0
+
+            # Live calculation for other stats
+            views_count = await db.profile_views.count_documents({"profileUsername": username})
+            fav_by_count = await db.favorites.count_documents({"favoriteUsername": username})
+            short_by_count = await db.shortlists.count_documents({"shortlistedUsername": username})
+            unique_conversations = len(await db.messages.distinct("to_username", {"from_username": username}))
+
+            return {
+                "success": True,
+                "username": username,
+                "date": date_str,
+                "source": "live_calculation",
+                "stats": {
+                    "daysActive": days_active,
+                    "profileViews": views_count,
+                    "favoritedBy": fav_by_count,
+                    "shortlistedBy": short_by_count,
+                    "uniqueConversations": unique_conversations
+                }
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting user stats: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

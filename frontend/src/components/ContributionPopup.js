@@ -48,7 +48,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     const username = localStorage.getItem('username');
     if (!token || !username) return;
 
-    const cacheKey = `contribution_member_stats_v2:${username}`;
+    const cacheKey = `contribution_member_stats_v3:${username}`;
     try {
       const cachedRaw = sessionStorage.getItem(cacheKey);
       if (cachedRaw) {
@@ -70,35 +70,22 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     setMemberStatsLoading(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [profileRes, viewsRes, favoritesRes, shortlistRes, conversationsRes] = await Promise.allSettled([
-        fetch(`${getBackendUrl()}/api/users/profile/${encodeURIComponent(username)}`, { headers }),
-        fetch(`${getBackendUrl()}/api/users/profile-views/${encodeURIComponent(username)}`, { headers }),
-        fetch(`${getBackendUrl()}/api/users/favorites/${encodeURIComponent(username)}`, { headers }),
-        fetch(`${getBackendUrl()}/api/users/shortlist/${encodeURIComponent(username)}`, { headers }),
-        fetch(`${getBackendUrl()}/api/users/messages/conversations?username=${encodeURIComponent(username)}`, { headers }),
-      ]);
+      const statsRes = await fetch(`${getBackendUrl()}/api/users/${encodeURIComponent(username)}/stats`, { headers });
 
-      const safeJson = async (res) => {
-        if (!res || !res.ok) return null;
-        try {
-          return await res.json();
-        } catch (err) {
-          return null;
-        }
-      };
+      if (!statsRes.ok) {
+        logger.warn('Failed to fetch user stats, using fallback');
+        throw new Error('Stats endpoint failed');
+      }
 
-      const profileData = await safeJson(profileRes.status === 'fulfilled' ? profileRes.value : null);
-      const viewsData = await safeJson(viewsRes.status === 'fulfilled' ? viewsRes.value : null);
-      const favoritesData = await safeJson(favoritesRes.status === 'fulfilled' ? favoritesRes.value : null);
-      const shortlistData = await safeJson(shortlistRes.status === 'fulfilled' ? shortlistRes.value : null);
-      const conversationsData = await safeJson(conversationsRes.status === 'fulfilled' ? conversationsRes.value : null);
+      const statsData = await statsRes.json();
+      const stats = statsData?.stats || {};
 
       const nextStats = {
-        daysActive: computeDaysActive(profileData?.createdAt),
-        profileViews: Number(viewsData?.totalViews ?? viewsData?.uniqueViewers ?? viewsData?.views?.length ?? viewsData?.viewers?.length ?? 0) || 0,
-        profileFavorites: Array.isArray(favoritesData?.favorites) ? favoritesData.favorites.length : 0,
-        profileShortlists: Array.isArray(shortlistData?.shortlist) ? shortlistData.shortlist.length : 0,
-        conversations: Array.isArray(conversationsData?.conversations) ? conversationsData.conversations.length : 0,
+        daysActive: stats.daysActive || 0,
+        profileViews: stats.profileViews || 0,
+        profileFavorites: stats.favoritedBy || 0,
+        profileShortlists: stats.shortlistedBy || 0,
+        conversations: stats.uniqueConversations || 0,
       };
 
       setMemberStats(nextStats);
@@ -114,7 +101,45 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         logger.debug('Contribution popup stats cache write failed', err);
       }
     } catch (err) {
-      logger.warn('Failed to load contribution member stats', err);
+      logger.warn('Failed to load contribution member stats, falling back to live calculation', err);
+      // Fallback to live calculation if snapshot endpoint fails
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
+        const [profileRes, viewsRes, favoritesRes, shortlistRes, conversationsRes] = await Promise.allSettled([
+          fetch(`${getBackendUrl()}/api/users/profile/${encodeURIComponent(username)}`, { headers }),
+          fetch(`${getBackendUrl()}/api/users/profile-views/${encodeURIComponent(username)}`, { headers }),
+          fetch(`${getBackendUrl()}/api/users/favorites/${encodeURIComponent(username)}`, { headers }),
+          fetch(`${getBackendUrl()}/api/users/shortlist/${encodeURIComponent(username)}`, { headers }),
+          fetch(`${getBackendUrl()}/api/users/messages/conversations?username=${encodeURIComponent(username)}`, { headers }),
+        ]);
+
+        const safeJson = async (res) => {
+          if (!res || !res.ok) return null;
+          try {
+            return await res.json();
+          } catch (err) {
+            return null;
+          }
+        };
+
+        const profileData = await safeJson(profileRes.status === 'fulfilled' ? profileRes.value : null);
+        const viewsData = await safeJson(viewsRes.status === 'fulfilled' ? viewsRes.value : null);
+        const favoritesData = await safeJson(favoritesRes.status === 'fulfilled' ? favoritesRes.value : null);
+        const shortlistData = await safeJson(shortlistRes.status === 'fulfilled' ? shortlistRes.value : null);
+        const conversationsData = await safeJson(conversationsRes.status === 'fulfilled' ? conversationsRes.value : null);
+
+        const fallbackStats = {
+          daysActive: computeDaysActive(profileData?.createdAt),
+          profileViews: Number(viewsData?.totalViews ?? viewsData?.uniqueViewers ?? viewsData?.views?.length ?? viewsData?.viewers?.length ?? 0) || 0,
+          profileFavorites: Array.isArray(favoritesData?.favorites) ? favoritesData.favorites.length : 0,
+          profileShortlists: Array.isArray(shortlistData?.shortlist) ? shortlistData.shortlist.length : 0,
+          conversations: Array.isArray(conversationsData?.conversations) ? conversationsData.conversations.length : 0,
+        };
+
+        setMemberStats(fallbackStats);
+      } catch (fallbackErr) {
+        logger.warn('Fallback stats calculation also failed', fallbackErr);
+      }
     } finally {
       setMemberStatsLoading(false);
     }
