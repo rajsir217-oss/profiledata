@@ -12,6 +12,13 @@
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Mobile: Hide PlatformActivityBar on mobile */
+@media (max-width: 768px) {
+  .pab-bar {
+    display: none;
+  }
+}
+
 /* Shift when sidebar is pinned open — match app-layout behavior */
 .sidebar-pinned .pab-bar {
   left: 280px;

@@ -69,6 +69,25 @@
   margin-right: auto;
 }
 
+/* Mobile: Adjust layout for bottom TopBar, InfoTicker at top (fixed), hidden footer */
+@media (max-width: 768px) {
+  .app-layout {
+    padding-top: 0 !important; /* InfoTicker is fixed at top, no padding needed */
+    padding-bottom: 70px; /* Space for bottom TopBar */
+    left: 0; /* Remove sidebar offset on mobile */
+  }
+
+  .app-layout.sidebar-open,
+  .app-layout.sidebar-pinned {
+    left: 0; /* No sidebar offset on mobile */
+  }
+
+  .main-content .container {
+    padding-top: 0 !important; /* No spacing after InfoTicker */
+    padding-bottom: 80px; /* Space for bottom TopBar */
+  }
+}
+
 /* Global Page Container - Consistent Width Across All Pages */
 .page-container {
   width: 80%;
@@ -152,7 +171,7 @@
 }
 
 /* Global Styles */
-body {
+html, body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

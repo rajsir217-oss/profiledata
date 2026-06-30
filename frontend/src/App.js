@@ -20,6 +20,7 @@ import SearchPage2 from './components/SearchPage2';
 import AdminPage from './components/AdminPage';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
+import InfoTicker from './components/InfoTicker';
 import Favorites from './components/Favorites';
 import Shortlist from './components/Shortlist';
 import Exclusions from './components/Exclusions';
@@ -406,7 +407,7 @@ function AppContent() {
   return (
     <div className="app-wrapper">
       {!hideNavigation && (
-        <Sidebar 
+        <Sidebar
           isCollapsed={isSidebarCollapsed}
           onToggle={handleSidebarToggle}
           isPinned={isSidebarPinned}
@@ -417,8 +418,8 @@ function AppContent() {
         {/* BrandBanner removed — branding merged into TopBar */}
         {!hideNavigation && <AnnouncementBanner />}
         {!hideNavigation && (
-          <TopBar 
-            onSidebarToggle={handleSidebarToggle} 
+          <TopBar
+            onSidebarToggle={handleSidebarToggle}
             isOpen={!isSidebarCollapsed}
             isPinned={isSidebarPinned}
           />

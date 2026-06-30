@@ -611,7 +611,8 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   }
 
   return (
-    <div className={`top-bar ${isOpen ? (isPinned ? 'sidebar-pinned' : 'sidebar-open') : ''}`}>
+    <>
+      <div className={`top-bar ${isOpen ? (isPinned ? 'sidebar-pinned' : 'sidebar-open') : ''}`}>
       {/* Violation Warning Banner */}
       {violations && violations.violationCount > 0 && (
         <div className={`violation-banner violation-${violations.warningLevel}`}>
@@ -949,10 +950,10 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
 
         {/* Topbar message modal disabled along with topbar messages dropdown. */}
       </div>
-      
-      {/* Info Ticker - Scrolling information bar */}
-      <InfoTicker />
-      
+
+      {/* InfoTicker - shown on desktop only, completely hidden on mobile */}
+      {!isMobile && <InfoTicker />}
+
       {/* Page Title Section - Horizontal bar below ticker */}
       {pageTitle && (
         <div className="page-title-section">
@@ -1006,7 +1007,8 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
