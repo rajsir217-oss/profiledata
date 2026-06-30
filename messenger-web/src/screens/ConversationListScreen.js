@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image, Linking } from 'react-native';
 import useMessengerStore from '@messenger/stores/messengerStore';
 import useAuthStore from '@messenger/stores/authStore';
@@ -25,6 +25,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [expandedSections, setExpandedSections] = useState({ groups: true, direct: true });
   const [selectedChat, setSelectedChat] = useState(null);
   const [portalGroup, setPortalGroup] = useState(null);
+  const [l3v3lAgentConv, setL3v3lAgentConv] = useState(null);
   // US Vedika group is hidden in messenger-web (Portal Members is the canonical
   // @{email}-invite group now). Backend endpoints remain live for analytics and
   // existing invitations. See routes /api/messenger/us-vedika/*.
@@ -209,6 +210,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     loadAllConversations();
     loadUserProfile();
     loadActiveMembersCount();
+    loadL3V3LAgentConv();
   }, []);
 
   // Default landing: auto-select Portal Members group as soon as it's loaded.
@@ -369,14 +371,16 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       // Find the l3v3lagent conversation for the current user
       const res = await api.get('/api/messenger/conversations');
       const conversations = res.data?.conversations || res.data || [];
-      const l3v3lagentConv = conversations.find(conv => {
+      let l3v3lagentConv = conversations.find(conv => {
         const participants = conv.participants || [];
         return participants.some(p => p.username === 'l3v3lagent');
       });
 
       if (l3v3lagentConv) {
+        const agentId = l3v3lagentConv._id || l3v3lagentConv.id;
+        setL3v3lAgentConv({ id: agentId, ...l3v3lagentConv });
         setSelectedChat({
-          id: l3v3lagentConv._id || l3v3lagentConv.id,
+          id: agentId,
           name: 'L3V3L Agent',
           isGroup: false,
           isBot: true,
@@ -390,8 +394,11 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           botName: 'L3V3L Agent',
         });
         if (createRes.data?.conversation) {
+          const created = createRes.data.conversation;
+          const agentId = created._id || created.id;
+          setL3v3lAgentConv({ id: agentId, ...created });
           setSelectedChat({
-            id: createRes.data.conversation._id || createRes.data.conversation.id,
+            id: agentId,
             name: 'L3V3L Agent',
             isGroup: false,
             isBot: true,
@@ -400,6 +407,25 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       }
     } catch (e) {
       console.error('Failed to load L3V3L Agent conversation:', e);
+    }
+  };
+
+  const loadL3V3LAgentConv = async () => {
+    try {
+      const api = useAuthStore.getState().getApi();
+      const res = await api.get('/api/messenger/conversations');
+      const conversations = res.data?.conversations || res.data || [];
+      const found = conversations.find(conv => {
+        const participants = conv.participants || [];
+        return participants.some(p => p.username === 'l3v3lagent');
+      });
+      if (found) {
+        setL3v3lAgentConv({ id: found._id || found.id, ...found });
+      } else {
+        setL3v3lAgentConv(null);
+      }
+    } catch (e) {
+      console.warn('Failed to load L3V3L Agent conv for list:', e.message);
     }
   };
 
@@ -595,12 +621,56 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     (c) => !isL3V3LAgentConversation(c) && hasConversationContent(c)
   );
 
+  // Unified list for the "ALL" view: regular convos + Portal Members + L3V3L Agent (system topic)
+  const allViewItems = useMemo(() => {
+    const items = [];
+    // Portal Members (special group topic)
+    if (portalGroup && (portalGroup.id || portalGroup._id)) {
+      items.push({
+        id: portalGroup.id || portalGroup._id,
+        type: 'group',
+        groupName: portalGroup.groupName || 'Portal Members',
+        participants: portalGroup.participants || [],
+        lastMessageAt: portalGroup.lastMessageAt,
+        lastMessagePreview: portalGroup.lastMessagePreview,
+        unreadCount: portalGroup.unreadCount || 0,
+      });
+    }
+    // L3V3L Agent (system bot topic)
+    if (l3v3lAgentConv && (l3v3lAgentConv.id || l3v3lAgentConv._id)) {
+      const aid = l3v3lAgentConv.id || l3v3lAgentConv._id;
+      items.push({
+        id: aid,
+        type: 'direct',
+        isSystemBot: true,
+        participants: l3v3lAgentConv.participants || [{ username: 'l3v3lagent' }],
+        lastMessageAt: l3v3lAgentConv.lastMessageAt,
+        lastMessagePreview: l3v3lAgentConv.lastMessagePreview || l3v3lAgentConv.lastMessage,
+        unreadCount: l3v3lAgentConv.unreadCount || 0,
+      });
+    }
+    // Add the rest, skipping dups of the special topics above
+    allConversations.forEach((c) => {
+      const cid = c.id || c._id;
+      const pId = portalGroup ? (portalGroup.id || portalGroup._id) : null;
+      const aId = l3v3lAgentConv ? (l3v3lAgentConv.id || l3v3lAgentConv._id) : null;
+      if (pId && cid === pId) return;
+      if (aId && cid === aId) return;
+      items.push(c);
+    });
+    return items;
+  }, [portalGroup, l3v3lAgentConv, allConversations]);
+
   // Helper: get display name for a conversation (L3V3L Messenger structure).
   // Returns `username` for direct chats so callers can do online-presence lookups.
   const getConvDisplay = (conv) => {
+    // L3V3L Agent (system bot topic)
+    if (conv.isSystemBot || (conv.participants || []).some(p => p.username === 'l3v3lagent')) {
+      return { name: 'L3V3L Agent', isGroup: false, username: 'l3v3lagent', icon: '🤖' };
+    }
     // Group chat
     if (conv.type === 'group' && conv.groupName) {
-      return { name: conv.groupName, isGroup: true, username: null };
+      return { name: conv.groupName, isGroup: true, username: null, icon: '🦋' };
     }
     // Legacy direct chat
     if (conv.type === 'direct_legacy') {
@@ -608,12 +678,13 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         name: conv.otherUsername || 'Unknown',
         isGroup: false,
         username: conv.otherUsername || null,
+        icon: null,
       };
     }
     // Direct chat - find other participant
     const other = conv.participants?.find(p => p.username !== user?.username);
     const name = other?.username || 'Unknown';
-    return { name, isGroup: false, username: other?.username || null };
+    return { name, isGroup: false, username: other?.username || null, icon: null };
   };
 
   // Helper: format timestamp
@@ -674,6 +745,74 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'all':
+        return (
+          <ScrollView style={styles.messagesContainer}>
+            <Text style={styles.contentTitle}>All Conversations</Text>
+
+            {isLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#e94560" />
+                <Text style={styles.loadingText}>Loading conversations...</Text>
+              </View>
+            )}
+
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity style={styles.retryBtn} onPress={loadAllConversations}>
+                  <Text style={styles.retryBtnText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {!isLoading && !error && allViewItems.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No conversations yet</Text>
+                <Text style={styles.emptySubText}>Start a new chat to begin messaging</Text>
+              </View>
+            )}
+
+            {!isLoading && (
+              <>
+                {allViewItems.map((conv, index) => {
+                  const display = getConvDisplay(conv);
+                  const key = conv._id || conv.id || index;
+                  const isLegacy = conv.type === 'direct_legacy';
+                  const avatarText = display.icon || (display.isGroup ? '🦋' : (display.name || '?').charAt(0).toUpperCase());
+                  return (
+                    <TouchableOpacity key={key} style={styles.conversationItem} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy, username: display.username, isSystemBot: !!conv.isSystemBot })}>
+                      <View style={styles.convAvatar}>
+                        <Text style={styles.convAvatarText}>{avatarText}</Text>
+                        {display.username && <OnlineDot online={isOnline(display.username)} />}
+                      </View>
+                      <View style={styles.convInfo}>
+                        <View style={styles.convHeader}>
+                          <Text style={styles.convName}>{display.name}</Text>
+                          <Text style={styles.convTime}>{formatTime(conv.lastMessageAt)}</Text>
+                        </View>
+                        <View style={styles.convHeader}>
+                          <Text style={styles.convMessage} numberOfLines={1}>
+                            {conv.lastMessagePreview || 'No messages yet'}
+                          </Text>
+                          {conv.type === 'group' && (
+                            <Text style={styles.memberCount}>{conv.participants?.length || 0} members</Text>
+                          )}
+                          {(conv.unreadCount || 0) > 0 && (
+                            <View style={styles.unreadBadge}>
+                              <Text style={styles.unreadText}>{conv.unreadCount}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </>
+            )}
+          </ScrollView>
+        );
+
       case 'messages':
         return (
           <ScrollView style={styles.messagesContainer}>
@@ -1030,8 +1169,15 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.topNavItem, styles.topNavAllButton]}
-          onPress={() => setActiveTab('messages')}
+          style={[styles.topNavItem, styles.topNavAllButton, activeTab === 'all' && styles.topNavItemActive]}
+          onPress={() => {
+            setDidAutoSelectPortal(true); // lock explicit user choice; do not let initial landing auto-select override
+            setSelectedChat(null);
+            setActiveTab('all');
+            // Ensure special topics (Portal + L3V3L Agent) are loaded for the unified ALL view
+            if (!portalGroup) loadPortalMembersGroup();
+            if (!l3v3lAgentConv) loadL3V3LAgentConv();
+          }}
           activeOpacity={0.7}
         >
           <Text style={styles.topNavAllText}>ALL</Text>
@@ -1042,7 +1188,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           onPress={onLogout}
           activeOpacity={0.7}
         >
-          <Text style={styles.topNavIcon}>🟥</Text>
+          <Text style={[styles.topNavIcon, styles.topNavExitIcon]}>🚪</Text>
         </TouchableOpacity>
       </View>
 
@@ -1140,7 +1286,7 @@ const styles = StyleSheet.create({
   topNavIcon: {
     width: 22,
     height: 22,
-    fontSize: 22,
+    fontSize: 20,
     lineHeight: 22,
     textAlign: 'center',
     textAlignVertical: 'center',
@@ -1149,8 +1295,6 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e94560',
   },
   topNavBadge: {
     position: 'absolute',
@@ -1180,6 +1324,9 @@ const styles = StyleSheet.create({
   },
   topNavExitButton: {
     marginLeft: 'auto',
+  },
+  topNavExitIcon: {
+    fontSize: 20,
   },
 
   // Content area
