@@ -1327,6 +1327,7 @@ const styles = StyleSheet.create({
   rightColumn: {
     flex: 1,
     flexDirection: 'column',
+    minHeight: 0,
     overflow: 'hidden',
   },
 
@@ -1401,6 +1402,8 @@ const styles = StyleSheet.create({
   // Content area
   content: {
     flex: 1,
+    minHeight: 0,
+    flexShrink: 1,
     backgroundColor: '#1a1a2e',
   },
   contentPlaceholder: {
@@ -1573,6 +1576,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderTopWidth: 1,
     borderTopColor: '#0f3460',
+    flexShrink: 0,
   },
   footerText: {
     fontSize: 12,
