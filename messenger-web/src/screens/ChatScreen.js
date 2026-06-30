@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+  const { onlineSet } = useOnlinePresence({ enabled: true });
+  const onlineCount = onlineSet?.size || 0;
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import useAuthStore from '@messenger/stores/authStore';
-import useMessengerStore from '@messenger/stores/messengerStore';
+import { useMessengerStore } from '../stores/messengerStore';
+import { useFavoritesStore } from '../stores/favoritesStore';
 import messengerSocket from '@messenger/services/socketService';
 import { API_BASE_URL } from '@messenger/config/api';
 import { getMainAppUrl } from '../config/apiConfig';
 import { openExternalUrl } from '../utils/openExternalUrl';
+import useOnlinePresence from '../hooks/useOnlinePresence';
 
 // Quick Messages catalog. Only "introduction" is shipped today; future
 // categories (interest, more-info, next-steps, follow-up, decline) will be
@@ -335,6 +339,8 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   // Quick Messages popup (⚡ button next to composer). Only "Introduction" is
   // wired up; the other categories are visible-but-disabled placeholders.
   const [showQuickMessages, setShowQuickMessages] = useState(false);
+  const { onlineSet } = useOnlinePresence({ enabled: true });
+  const onlineCount = onlineSet?.size || 0;
   const [sendingProfileCard, setSendingProfileCard] = useState(false);
   const [sending, setSending] = useState(false);
   const [armedDeleteId, setArmedDeleteId] = useState(null);
@@ -1071,25 +1077,27 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
 
       {/* Messages and Input container */}
       <View style={{ flex: 1 }}>
-        {/* Messages */}
-        {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#e94560" />
-          <Text style={styles.loadingText}>Loading messages...</Text>
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={loadMessages}>
-            <Text style={styles.retryBtnText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView
-          ref={scrollViewRef}
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.messagesContent}
-        >
+        <View style={styles.messagesWrapper}>
+          {/* Messages */}
+          {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#e94560" />
+            <Text style={styles.loadingText}>Loading messages...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={loadMessages}>
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.messagesContainer}
+            contentContainerStyle={styles.messagesContent}
+            keyboardShouldPersistTaps="handled"
+          >
           {!socketConnected && (
             <View style={styles.reconnectBanner}>
               <Text style={styles.reconnectBannerText}>
@@ -1250,84 +1258,88 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           )}
         </ScrollView>
       )}
+        </View>
 
-      {/* Input */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
-      {/* Inline send-error banner — shown when the most recent send failed.
-          Keeps the chat view intact and lets the user fix or retry without
-          losing what they typed. Tap "Dismiss" to clear; editing the input
-          also clears the banner so a fresh attempt feels clean. */}
-      {sendError && (
-        <View style={styles.sendErrorBanner}>
-          <Text style={styles.sendErrorText} numberOfLines={3}>{sendError}</Text>
-          <TouchableOpacity onPress={() => setSendError(null)} style={styles.sendErrorDismiss}>
-            <Text style={styles.sendErrorDismissText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {retentionStatus && (
-        <View style={styles.retentionInfoBanner}>
-          <Text style={styles.retentionInfoText} numberOfLines={3}>{retentionStatus}</Text>
-          <TouchableOpacity onPress={() => setRetentionStatus(null)} style={styles.retentionInfoDismiss}>
-            <Text style={styles.retentionInfoDismissText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {isL3v3lAgentTopic && !isAdminOrModerator && (
-        <View style={styles.composerLockBanner}>
-          <Text style={styles.composerLockBannerText}>
-            Read-only topic: only admin/moderator users can send messages in L3V3L Agent.
-          </Text>
-        </View>
-      )}
-      <View style={styles.inputContainer}>
-        {/* ⚡ Quick Messages — hidden for legacy 1:1 chats since they don't
-            support rich content types like profile_card. */}
-        {!isLegacy && isPortalMembersTopic && (
-          <TouchableOpacity
-            style={[styles.quickBtn, isMobile && styles.quickBtnMobile]}
-            onPress={() => setShowQuickMessages(true)}
-            disabled={sendingProfileCard}
-          >
-            {sendingProfileCard
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Text style={styles.quickBtnText}>⚡</Text>}
-          </TouchableOpacity>
-        )}
-        <TextInput
-          style={[styles.input, !canComposeInCurrentTopic && styles.inputDisabled]}
-          value={newMessage}
-          onChangeText={(t) => { setNewMessage(t); if (sendError) setSendError(null); }}
-          placeholder={canComposeInCurrentTopic ? 'Type a message...' : 'Read-only for your role in L3V3L Agent'}
-          placeholderTextColor="#888"
-          multiline
-          editable={canComposeInCurrentTopic && !sending}
-          onKeyPress={({ nativeEvent }) => {
-            if (nativeEvent.key === 'Enter' && (nativeEvent.ctrlKey || nativeEvent.metaKey)) {
-              sendMessage();
-            }
-          }}
-        />
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            isMobile && styles.sendButtonMobile,
-            (!newMessage.trim() || !canComposeInCurrentTopic) && styles.sendButtonDisabled,
-          ]}
-          onPress={sendMessage}
-          disabled={sending || !newMessage.trim() || !canComposeInCurrentTopic}
+        {/* Input + Footer */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          style={styles.composerWrapper}
         >
-          {sending ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.sendButtonText}>{isMobile ? '➤' : 'Send'}</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-      </KeyboardAvoidingView>
+          <View style={styles.composerSurface}>
+            {/* Inline send-error banner — shown when the most recent send failed. */}
+            {sendError && (
+              <View style={styles.sendErrorBanner}>
+                <Text style={styles.sendErrorText} numberOfLines={3}>{sendError}</Text>
+                <TouchableOpacity onPress={() => setSendError(null)} style={styles.sendErrorDismiss}>
+                  <Text style={styles.sendErrorDismissText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {retentionStatus && (
+              <View style={styles.retentionInfoBanner}>
+                <Text style={styles.retentionInfoText} numberOfLines={3}>{retentionStatus}</Text>
+                <TouchableOpacity onPress={() => setRetentionStatus(null)} style={styles.retentionInfoDismiss}>
+                  <Text style={styles.retentionInfoDismissText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {isL3v3lAgentTopic && !isAdminOrModerator && (
+              <View style={styles.composerLockBanner}>
+                <Text style={styles.composerLockBannerText}>
+                  Read-only topic: only admin/moderator users can send messages in L3V3L Agent.
+                </Text>
+              </View>
+            )}
+            <View style={styles.inputContainer}>
+              {/* ⚡ Quick Messages */}
+              {!isLegacy && isPortalMembersTopic && (
+                <TouchableOpacity
+                  style={[styles.quickBtn, isMobile && styles.quickBtnMobile]}
+                  onPress={() => setShowQuickMessages(true)}
+                  disabled={sendingProfileCard}
+                >
+                  {sendingProfileCard
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={styles.quickBtnText}>⚡</Text>}
+                </TouchableOpacity>
+              )}
+              <TextInput
+                style={[styles.input, !canComposeInCurrentTopic && styles.inputDisabled]}
+                value={newMessage}
+                onChangeText={(t) => { setNewMessage(t); if (sendError) setSendError(null); }}
+                placeholder={canComposeInCurrentTopic ? 'Type a message...' : 'Read-only for your role in L3V3L Agent'}
+                placeholderTextColor="#888"
+                multiline
+                editable={canComposeInCurrentTopic && !sending}
+                onKeyPress={({ nativeEvent }) => {
+                  if (nativeEvent.key === 'Enter' && (nativeEvent.ctrlKey || nativeEvent.metaKey)) {
+                    sendMessage();
+                  }
+                }}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  isMobile && styles.sendButtonMobile,
+                  (!newMessage.trim() || !canComposeInCurrentTopic) && styles.sendButtonDisabled,
+                ]}
+                onPress={sendMessage}
+                disabled={sending || !newMessage.trim() || !canComposeInCurrentTopic}
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.sendButtonText}>{isMobile ? '➤' : 'Send'}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+            <View style={styles.footerStrip}>
+              <Text style={styles.footerStripBrand}>🦋 L3V3L Matches Messenger</Text>
+              <Text style={styles.footerStripOnline}>{`${onlineCount} online`}</Text>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </View>
 
       {/* Quick Messages picker — opens from the ⚡ button. Only "Introduction"
@@ -1780,7 +1792,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-  messagesContainer: { },
+  messagesWrapper: {
+    flex: 1,
+  },
+  messagesContainer: { flex: 1 },
   messagesContent: { padding: 16, flexGrow: 1 },
   loadingContainer: {
     flex: 1,
@@ -2060,6 +2075,32 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
+  },
+  composerWrapper: {
+    width: '100%',
+  },
+  composerSurface: {
+    backgroundColor: '#16213e',
+    borderTopWidth: 1,
+    borderTopColor: '#0f3460',
+    paddingBottom: Platform.OS === 'ios' ? 16 : 8,
+  },
+  footerStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 6,
+  },
+  footerStripBrand: {
+    color: '#cbd5f5',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  footerStripOnline: {
+    color: '#22c55e',
+    fontSize: 12,
+    fontWeight: '600',
   },
   // Modal styles
   modalOverlay: {
