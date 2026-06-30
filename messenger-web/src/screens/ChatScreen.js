@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import useAuthStore from '@messenger/stores/authStore';
 import useMessengerStore from '@messenger/stores/messengerStore';
-import useOnlinePresence from '../hooks/useOnlinePresence';
 import messengerSocket from '@messenger/services/socketService';
 import { API_BASE_URL } from '@messenger/config/api';
 import { getMainAppUrl } from '../config/apiConfig';
@@ -336,8 +335,6 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   // Quick Messages popup (⚡ button next to composer). Only "Introduction" is
   // wired up; the other categories are visible-but-disabled placeholders.
   const [showQuickMessages, setShowQuickMessages] = useState(false);
-  const { onlineSet } = useOnlinePresence({ enabled: true });
-  const onlineCount = onlineSet?.size || 0;
   const [sendingProfileCard, setSendingProfileCard] = useState(false);
   const [sending, setSending] = useState(false);
   const [armedDeleteId, setArmedDeleteId] = useState(null);
@@ -1073,7 +1070,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
       </View>
 
       {/* Messages and Input container */}
-      <View style={{ flex: 1 }}>
+      <View style={styles.body}>
         <View style={styles.messagesWrapper}>
           {/* Messages */}
           {loading ? (
@@ -1288,53 +1285,47 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
                 </Text>
               </View>
             )}
-            <View style={styles.composerRow}>
-              <View style={styles.inputContainer}>
-                {!isLegacy && isPortalMembersTopic && (
-                  <TouchableOpacity
-                    style={[styles.quickBtn, isMobile && styles.quickBtnMobile]}
-                    onPress={() => setShowQuickMessages(true)}
-                    disabled={sendingProfileCard}
-                  >
-                    {sendingProfileCard
-                      ? <ActivityIndicator size="small" color="#fff" />
-                      : <Text style={styles.quickBtnText}>⚡</Text>}
-                  </TouchableOpacity>
-                )}
-                <TextInput
-                  style={[styles.input, !canComposeInCurrentTopic && styles.inputDisabled]}
-                  value={newMessage}
-                  onChangeText={(t) => { setNewMessage(t); if (sendError) setSendError(null); }}
-                  placeholder={canComposeInCurrentTopic ? 'Type a message...' : 'Read-only for your role in L3V3L Agent'}
-                  placeholderTextColor="#888"
-                  multiline
-                  editable={canComposeInCurrentTopic && !sending}
-                  onKeyPress={({ nativeEvent }) => {
-                    if (nativeEvent.key === 'Enter' && (nativeEvent.ctrlKey || nativeEvent.metaKey)) {
-                      sendMessage();
-                    }
-                  }}
-                />
+            <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
+              {!isLegacy && isPortalMembersTopic && (
                 <TouchableOpacity
-                  style={[
-                    styles.sendButton,
-                    isMobile && styles.sendButtonMobile,
-                    (!newMessage.trim() || !canComposeInCurrentTopic) && styles.sendButtonDisabled,
-                  ]}
-                  onPress={sendMessage}
-                  disabled={sending || !newMessage.trim() || !canComposeInCurrentTopic}
+                  style={[styles.quickBtn, isMobile && styles.quickBtnMobile]}
+                  onPress={() => setShowQuickMessages(true)}
+                  disabled={sendingProfileCard}
                 >
-                  {sending ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.sendButtonText}>{isMobile ? '➤' : 'Send'}</Text>
-                  )}
+                  {sendingProfileCard
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={styles.quickBtnText}>⚡</Text>}
                 </TouchableOpacity>
-              </View>
-              <View style={styles.footerStrip}>
-                <Text style={styles.footerStripBrand}>🦋 L3V3L Matches Messenger</Text>
-                <Text style={styles.footerStripOnline}>{`${onlineCount} online`}</Text>
-              </View>
+              )}
+              <TextInput
+                style={[styles.input, isMobile && styles.inputMobile, !canComposeInCurrentTopic && styles.inputDisabled]}
+                value={newMessage}
+                onChangeText={(t) => { setNewMessage(t); if (sendError) setSendError(null); }}
+                placeholder={canComposeInCurrentTopic ? 'Type a message...' : 'Read-only for your role in L3V3L Agent'}
+                placeholderTextColor="#888"
+                multiline
+                editable={canComposeInCurrentTopic && !sending}
+                onKeyPress={({ nativeEvent }) => {
+                  if (nativeEvent.key === 'Enter' && (nativeEvent.ctrlKey || nativeEvent.metaKey)) {
+                    sendMessage();
+                  }
+                }}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  isMobile && styles.sendButtonMobile,
+                  (!newMessage.trim() || !canComposeInCurrentTopic) && styles.sendButtonDisabled,
+                ]}
+                onPress={sendMessage}
+                disabled={sending || !newMessage.trim() || !canComposeInCurrentTopic}
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.sendButtonText}>{isMobile ? '➤' : 'Send'}</Text>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -1721,7 +1712,11 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  container: { flex: 1, minHeight: 0, backgroundColor: '#1a1a2e' },
+  body: {
+    flex: 1,
+    minHeight: 0,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1792,8 +1787,14 @@ const styles = StyleSheet.create({
   },
   messagesWrapper: {
     flex: 1,
+    minHeight: 0,
+    flexShrink: 1,
   },
-  messagesContainer: { flex: 1 },
+  messagesContainer: {
+    flex: 1,
+    minHeight: 0,
+    flexShrink: 1,
+  },
   messagesContent: { padding: 16, flexGrow: 1 },
   loadingContainer: {
     flex: 1,
@@ -2032,6 +2033,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#16213e',
     borderTopWidth: 1,
     borderTopColor: '#0f3460',
+    flexShrink: 0,
+  },
+  inputContainerMobile: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   input: {
     flex: 1,
@@ -2045,6 +2051,10 @@ const styles = StyleSheet.create({
     borderColor: '#0f3460',
     marginRight: 8,
     height: 44,
+  },
+  inputMobile: {
+    height: 38,
+    paddingVertical: 8,
   },
   inputDisabled: {
     opacity: 0.65,
@@ -2076,44 +2086,14 @@ const styles = StyleSheet.create({
   },
   composerWrapper: {
     width: '100%',
+    flexShrink: 0,
   },
   composerSurface: {
     backgroundColor: '#16213e',
     borderTopWidth: 1,
     borderTopColor: '#0f3460',
     paddingBottom: Platform.OS === 'ios' ? 16 : 8,
-  },
-  composerRow: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  '@media (max-width: 768px)': {
-    composerRow: {
-      flexDirection: 'column',
-      alignItems: 'stretch',
-    },
-    footerStrip: {
-      alignItems: 'flex-start',
-      paddingTop: 12,
-    },
-  },
-  footerStrip: {
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    paddingTop: 6,
-  },
-  footerStripBrand: {
-    color: '#cbd5f5',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  footerStripOnline: {
-    color: '#22c55e',
-    fontSize: 12,
-    fontWeight: '600',
+    flexShrink: 0,
   },
   // Modal styles
   modalOverlay: {
