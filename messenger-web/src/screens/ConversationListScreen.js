@@ -26,7 +26,8 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [selectedChat, setSelectedChat] = useState(null);
   const [portalGroup, setPortalGroup] = useState(null);
   const [l3v3lAgentConv, setL3v3lAgentConv] = useState(null);
-  // US Vedika group is hidden in messenger-web (Portal Members is the canonical
+  const [pendingOpenAllTopic, setPendingOpenAllTopic] = useState(null); // 'portal' | 'agent' | null
+  // US Vedika group is hidden in messenger-web (L3V3L Members is the canonical
   // @{email}-invite group now). Backend endpoints remain live for analytics and
   // existing invitations. See routes /api/messenger/us-vedika/*.
   const [userProfile, setUserProfile] = useState(null);
@@ -35,7 +36,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [blockedLoading, setBlockedLoading] = useState(false);
   const [blockedError, setBlockedError] = useState(null);
   const [unblockingUser, setUnblockingUser] = useState(null); // username currently being unblocked
-  // Active members count for Portal Members menu item badge
+  // Active members count for L3V3L Members menu item badge
   const [activeMembersCount, setActiveMembersCount] = useState(null);
   const [myMessagesCount, setMyMessagesCount] = useState(0);
   const [l3v3lAgentCount, setL3v3lAgentCount] = useState(0);
@@ -89,10 +90,12 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       const portalGroupResp = res.data?.conversation;
       if (!portalGroupResp) return;
       portalGroupResp.id = portalGroupResp.id || portalGroupResp._id;
-      console.log('✅ Portal Members group:', portalGroupResp?.id);
+      // Force canonical display name so any code using groupName shows the new label.
+      portalGroupResp.groupName = 'L3V3L Members';
+      console.log('✅ L3V3L Members group:', portalGroupResp?.id);
       setPortalGroup(portalGroupResp);
     } catch (e) {
-      console.warn('⚠️ Failed to load Portal Members group:', e.message);
+      console.warn('⚠️ Failed to load L3V3L Members group:', e.message);
     }
   };
 
@@ -213,26 +216,44 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     loadL3V3LAgentConv();
   }, []);
 
-  // Default landing: auto-select Portal Members group as soon as it's loaded.
+  // Default landing: auto-select L3V3L Members group as soon as it's loaded.
   // We only auto-select once (when nothing is selected yet) so navigating away
   // and back doesn't override the user's explicit choice.
+  // Also never override if the user explicitly chose the "ALL" (unified) view.
   const [didAutoSelectPortal, setDidAutoSelectPortal] = useState(false);
   useEffect(() => {
     if (didAutoSelectPortal) return;
     if (selectedChat) return;
     if (!portalGroup?.id) return;
+    // Do not auto-open a specific topic if the user is on the unified ALL list.
+    if (activeTab === 'all') return;
     setSelectedChat({
       id: portalGroup.id,
-      name: portalGroup.groupName || 'Portal Members',
+      name: 'L3V3L Members',
       isGroup: true,
       isLegacy: false,
     });
-    // Highlight the Portal Members entry in the top navigation.
+    // Highlight the L3V3L Members entry in the top navigation.
     setActiveTab('portal_members');
     setDidAutoSelectPortal(true);
-  }, [portalGroup, selectedChat, didAutoSelectPortal]);
+  }, [portalGroup, selectedChat, didAutoSelectPortal, activeTab]);
 
-  // Load active members count for Portal Members badge
+  // When user clicked a placeholder in ALL and the real data loads, open it
+  useEffect(() => {
+    if (!pendingOpenAllTopic) return;
+    if (pendingOpenAllTopic === 'portal' && portalGroup && (portalGroup.id || portalGroup._id)) {
+      const id = portalGroup.id || portalGroup._id;
+      setSelectedChat({ id, name: 'L3V3L Members', isGroup: true, isLegacy: false });
+      setPendingOpenAllTopic(null);
+    }
+    if (pendingOpenAllTopic === 'agent' && l3v3lAgentConv && (l3v3lAgentConv.id || l3v3lAgentConv._id)) {
+      const id = l3v3lAgentConv.id || l3v3lAgentConv._id;
+      setSelectedChat({ id, name: 'L3V3L Agent', isGroup: false, isSystemBot: true });
+      setPendingOpenAllTopic(null);
+    }
+  }, [pendingOpenAllTopic, portalGroup, l3v3lAgentConv]);
+
+  // Load active members count for L3V3L Members badge
   const loadActiveMembersCount = async () => {
     try {
       const api = useAuthStore.getState().getApi();
@@ -564,12 +585,15 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       // US Vedika fetch removed: group is hidden in messenger-web. Backend
       // still exposes /api/messenger/us-vedika/* for analytics + legacy data.
 
-      // Combine: exclude portal group (shown separately) AND any US Vedika
+      // Combine: exclude L3V3L Members group (shown separately) AND any US Vedika
       // public_group that might come through the messenger conversations list.
       const combinedMap = new Map();
       messengerConvs.forEach(c => {
-        // Skip Portal Members group (shown separately)
-        if (c.type === 'group' && c.groupName === 'Portal Members') return;
+        // Skip L3V3L Members group (shown separately)
+        if (c.type === 'group') {
+          const gn = String(c.groupName || '').trim().toLowerCase();
+          if (gn === 'portal members' || gn === 'l3v3l members') return;
+        }
         // Skip US Vedika — hidden in this app
         if (c.type === 'public_group' || c.groupName === 'US Vedika') return;
         combinedMap.set(c.id, c);
@@ -621,22 +645,34 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     (c) => !isL3V3LAgentConversation(c) && hasConversationContent(c)
   );
 
-  // Unified list for the "ALL" view: regular convos + Portal Members + L3V3L Agent (system topic)
+  // Unified list for the "ALL" view: regular convos + L3V3L Members + L3V3L Agent (system topic)
+  // Always surface the known topics (L3V3L Members + L3V3L Agent) like a typical messaging app "all chats" list.
   const allViewItems = useMemo(() => {
     const items = [];
-    // Portal Members (special group topic)
+    // L3V3L Members (special group topic)
     if (portalGroup && (portalGroup.id || portalGroup._id)) {
       items.push({
         id: portalGroup.id || portalGroup._id,
         type: 'group',
-        groupName: portalGroup.groupName || 'Portal Members',
+        groupName: 'L3V3L Members',
         participants: portalGroup.participants || [],
         lastMessageAt: portalGroup.lastMessageAt,
         lastMessagePreview: portalGroup.lastMessagePreview,
         unreadCount: portalGroup.unreadCount || 0,
+        __isPortal: true,
+      });
+    } else {
+      // If we don't have it yet, still show a placeholder row so "L3V3L Members" appears in ALL
+      items.push({
+        id: 'portal-members-placeholder',
+        type: 'group',
+        groupName: 'L3V3L Members',
+        __isPortal: true,
+        __placeholder: true,
       });
     }
-    // L3V3L Agent (system bot topic)
+
+    // L3V3L Agent (system bot topic) — always include so system topics are visible
     if (l3v3lAgentConv && (l3v3lAgentConv.id || l3v3lAgentConv._id)) {
       const aid = l3v3lAgentConv.id || l3v3lAgentConv._id;
       items.push({
@@ -647,8 +683,19 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         lastMessageAt: l3v3lAgentConv.lastMessageAt,
         lastMessagePreview: l3v3lAgentConv.lastMessagePreview || l3v3lAgentConv.lastMessage,
         unreadCount: l3v3lAgentConv.unreadCount || 0,
+        __isAgent: true,
+      });
+    } else {
+      // Placeholder so the system topic always shows in the unified ALL list
+      items.push({
+        id: 'l3v3l-agent-placeholder',
+        type: 'direct',
+        isSystemBot: true,
+        __isAgent: true,
+        __placeholder: true,
       });
     }
+
     // Add the rest, skipping dups of the special topics above
     allConversations.forEach((c) => {
       const cid = c.id || c._id;
@@ -656,6 +703,8 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       const aId = l3v3lAgentConv ? (l3v3lAgentConv.id || l3v3lAgentConv._id) : null;
       if (pId && cid === pId) return;
       if (aId && cid === aId) return;
+      // also skip placeholder ids if any slipped in
+      if (cid === 'portal-members-placeholder' || cid === 'l3v3l-agent-placeholder') return;
       items.push(c);
     });
     return items;
@@ -670,7 +719,10 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     }
     // Group chat
     if (conv.type === 'group' && conv.groupName) {
-      return { name: conv.groupName, isGroup: true, username: null, icon: '🦋' };
+      const gn = conv.groupName;
+      const gnl = String(gn).trim().toLowerCase();
+      const isPortal = gnl === 'portal members' || gnl === 'l3v3l members';
+      return { name: isPortal ? 'L3V3L Members' : gn, isGroup: true, username: null, icon: '🦋' };
     }
     // Legacy direct chat
     if (conv.type === 'direct_legacy') {
@@ -706,10 +758,10 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const profilePicUrl = getProfilePicUrl(userProfile);
 
   // Menu items - messenger specific
-  // US Vedika removed: Portal Members is now the canonical @{email}-invite group.
+  // L3V3L Members is the canonical @{email}-invite group.
   const menuItems = [
     { id: 'profile', label: displayName, subLabel: user?.username || 'Your profile', icon: '👤', isProfile: true },
-    { id: 'portal_members', label: 'Portal Members', subLabel: 'All active members', icon: '🦋', count: activeMembersCount },
+    { id: 'portal_members', label: 'L3V3L Members', subLabel: 'All active members', icon: '🦋', count: activeMembersCount },
     { id: 'messages', label: 'My Messages', subLabel: 'Direct conversations', icon: '💬', count: myMessagesCount },
     { id: 'l3v3lagent', label: 'L3V3L Agent', subLabel: 'System messages & notifications', icon: '🤖', count: l3v3lAgentCount },
     { id: 'main_app', label: 'Main App', subLabel: 'Open USVedika dashboard', icon: '🏠' },
@@ -720,7 +772,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       if (portalGroup) {
         setSelectedChat({
           id: portalGroup.id,
-          name: portalGroup.groupName,
+          name: 'L3V3L Members',
           isGroup: true,
           isLegacy: false,
         });
@@ -781,7 +833,25 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                   const isLegacy = conv.type === 'direct_legacy';
                   const avatarText = display.icon || (display.isGroup ? '🦋' : (display.name || '?').charAt(0).toUpperCase());
                   return (
-                    <TouchableOpacity key={key} style={styles.conversationItem} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy, username: display.username, isSystemBot: !!conv.isSystemBot })}>
+                    <TouchableOpacity key={key} style={styles.conversationItem} onPress={() => {
+                      // Handle placeholder rows for L3V3L Members / L3V3L Agent in the unified ALL list
+                      if (conv.__placeholder && conv.__isPortal) {
+                        setSelectedChat(null);
+                        setActiveTab('all');
+                        setPendingOpenAllTopic('portal');
+                        if (!portalGroup) loadPortalMembersGroup();
+                        return;
+                      }
+                      if (conv.__placeholder && conv.__isAgent) {
+                        setSelectedChat(null);
+                        setActiveTab('all');
+                        setPendingOpenAllTopic('agent');
+                        if (!l3v3lAgentConv) loadL3V3LAgentConv();
+                        return;
+                      }
+                      // Real row
+                      setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy, username: display.username, isSystemBot: !!conv.isSystemBot });
+                    }}>
                       <View style={styles.convAvatar}>
                         <Text style={styles.convAvatarText}>{avatarText}</Text>
                         {display.username && <OnlineDot online={isOnline(display.username)} />}
@@ -987,7 +1057,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                 { key: 'pendingMessages',       icon: '💬', label: 'Pending Messages',    sub: 'Conversations awaiting your reply' },
                 { key: 'tips',                  icon: '💡', label: 'Tips',                sub: 'Helpful tips to improve your profile' },
                 { key: 'pollExpiration',        icon: '📊', label: 'Poll Expirations',    sub: 'Polls expiring in the next 7 days' },
-                { key: 'profileCardWeeklyPost', icon: '📌', label: 'Post Profile Card',  sub: 'Share profile card to Portal Members weekly' },
+                { key: 'profileCardWeeklyPost', icon: '📌', label: 'Post Profile Card',  sub: 'Share profile card to L3V3L Members weekly' },
               ].map(({ key, icon, label, sub }) => (
                 <TouchableOpacity
                   key={key}
@@ -1214,7 +1284,6 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
               key={selectedChat.id}
               {...selectedChat}
               isOnline={isOnline}
-              onlineCount={onlineSet?.size || 0}
               onBack={() => setSelectedChat(null)}
               onOpenDirectChat={(uname) => {
                 // Open a legacy 1:1 chat with the tapped username. Mirrors the

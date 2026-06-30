@@ -11,7 +11,7 @@ L3V3L Matches Messenger is the official companion chat app for the L3V3L Matches
 
 **Key Features:**
 - **Instant Messaging** — Send and receive messages in real-time with other L3V3L Matches members
-- **Group Chats** — Join the Portal Members group to connect with the entire community
+- **Group Chats** — Join the L3V3L Members group to connect with the entire community
 - **Notifications** — Stay updated with message alerts, so you never miss a connection
 - **Secure & Private** — Built with end-to-end conversation privacy and profile-based authentication
 - **Cross-Platform** — Use the same account across web and mobile seamlessly
