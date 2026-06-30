@@ -1070,7 +1070,11 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
       </View>
 
       {/* Messages and Input container */}
-      <View style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        style={{ flex: 1 }}
+      >
         {/* Messages */}
         {loading ? (
         <View style={styles.loadingContainer}>
@@ -1252,83 +1256,78 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
       )}
 
       {/* Input */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
-        {/* Inline send-error banner — shown when the most recent send failed.
-            Keeps the chat view intact and lets the user fix or retry without
-            losing what they typed. Tap "Dismiss" to clear; editing the input
-            also clears the banner so a fresh attempt feels clean. */}
-        {sendError && (
-          <View style={styles.sendErrorBanner}>
-            <Text style={styles.sendErrorText} numberOfLines={3}>{sendError}</Text>
-            <TouchableOpacity onPress={() => setSendError(null)} style={styles.sendErrorDismiss}>
-              <Text style={styles.sendErrorDismissText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        {retentionStatus && (
-          <View style={styles.retentionInfoBanner}>
-            <Text style={styles.retentionInfoText} numberOfLines={3}>{retentionStatus}</Text>
-            <TouchableOpacity onPress={() => setRetentionStatus(null)} style={styles.retentionInfoDismiss}>
-              <Text style={styles.retentionInfoDismissText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        {isL3v3lAgentTopic && !isAdminOrModerator && (
-          <View style={styles.composerLockBanner}>
-            <Text style={styles.composerLockBannerText}>
-              Read-only topic: only admin/moderator users can send messages in L3V3L Agent.
-            </Text>
-          </View>
-        )}
-        <View style={styles.inputContainer}>
-          {/* ⚡ Quick Messages — hidden for legacy 1:1 chats since they don't
-              support rich content types like profile_card. */}
-          {!isLegacy && isPortalMembersTopic && (
-            <TouchableOpacity
-              style={[styles.quickBtn, isMobile && styles.quickBtnMobile]}
-              onPress={() => setShowQuickMessages(true)}
-              disabled={sendingProfileCard}
-            >
-              {sendingProfileCard
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Text style={styles.quickBtnText}>⚡</Text>}
-            </TouchableOpacity>
-          )}
-          <TextInput
-            style={[styles.input, !canComposeInCurrentTopic && styles.inputDisabled]}
-            value={newMessage}
-            onChangeText={(t) => { setNewMessage(t); if (sendError) setSendError(null); }}
-            placeholder={canComposeInCurrentTopic ? 'Type a message...' : 'Read-only for your role in L3V3L Agent'}
-            placeholderTextColor="#888"
-            multiline
-            editable={canComposeInCurrentTopic && !sending}
-            onKeyPress={({ nativeEvent }) => {
-              if (nativeEvent.key === 'Enter' && (nativeEvent.ctrlKey || nativeEvent.metaKey)) {
-                sendMessage();
-              }
-            }}
-          />
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              isMobile && styles.sendButtonMobile,
-              (!newMessage.trim() || !canComposeInCurrentTopic) && styles.sendButtonDisabled,
-            ]}
-            onPress={sendMessage}
-            disabled={sending || !newMessage.trim() || !canComposeInCurrentTopic}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.sendButtonText}>{isMobile ? '➤' : 'Send'}</Text>
-            )}
+      {/* Inline send-error banner — shown when the most recent send failed.
+          Keeps the chat view intact and lets the user fix or retry without
+          losing what they typed. Tap "Dismiss" to clear; editing the input
+          also clears the banner so a fresh attempt feels clean. */}
+      {sendError && (
+        <View style={styles.sendErrorBanner}>
+          <Text style={styles.sendErrorText} numberOfLines={3}>{sendError}</Text>
+          <TouchableOpacity onPress={() => setSendError(null)} style={styles.sendErrorDismiss}>
+            <Text style={styles.sendErrorDismissText}>✕</Text>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      )}
+      {retentionStatus && (
+        <View style={styles.retentionInfoBanner}>
+          <Text style={styles.retentionInfoText} numberOfLines={3}>{retentionStatus}</Text>
+          <TouchableOpacity onPress={() => setRetentionStatus(null)} style={styles.retentionInfoDismiss}>
+            <Text style={styles.retentionInfoDismissText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {isL3v3lAgentTopic && !isAdminOrModerator && (
+        <View style={styles.composerLockBanner}>
+          <Text style={styles.composerLockBannerText}>
+            Read-only topic: only admin/moderator users can send messages in L3V3L Agent.
+          </Text>
+        </View>
+      )}
+      <View style={styles.inputContainer}>
+        {/* ⚡ Quick Messages — hidden for legacy 1:1 chats since they don't
+            support rich content types like profile_card. */}
+        {!isLegacy && isPortalMembersTopic && (
+          <TouchableOpacity
+            style={[styles.quickBtn, isMobile && styles.quickBtnMobile]}
+            onPress={() => setShowQuickMessages(true)}
+            disabled={sendingProfileCard}
+          >
+            {sendingProfileCard
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Text style={styles.quickBtnText}>⚡</Text>}
+          </TouchableOpacity>
+        )}
+        <TextInput
+          style={[styles.input, !canComposeInCurrentTopic && styles.inputDisabled]}
+          value={newMessage}
+          onChangeText={(t) => { setNewMessage(t); if (sendError) setSendError(null); }}
+          placeholder={canComposeInCurrentTopic ? 'Type a message...' : 'Read-only for your role in L3V3L Agent'}
+          placeholderTextColor="#888"
+          multiline
+          editable={canComposeInCurrentTopic && !sending}
+          onKeyPress={({ nativeEvent }) => {
+            if (nativeEvent.key === 'Enter' && (nativeEvent.ctrlKey || nativeEvent.metaKey)) {
+              sendMessage();
+            }
+          }}
+        />
+        <TouchableOpacity
+          style={[
+            styles.sendButton,
+            isMobile && styles.sendButtonMobile,
+            (!newMessage.trim() || !canComposeInCurrentTopic) && styles.sendButtonDisabled,
+          ]}
+          onPress={sendMessage}
+          disabled={sending || !newMessage.trim() || !canComposeInCurrentTopic}
+        >
+          {sending ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.sendButtonText}>{isMobile ? '➤' : 'Send'}</Text>
+          )}
+        </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
 
       {/* Quick Messages picker — opens from the ⚡ button. Only "Introduction"
           is wired up to a real action (sends a profile_card). The others are
