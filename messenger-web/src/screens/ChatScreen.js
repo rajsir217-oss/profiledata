@@ -1254,79 +1254,76 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
       )}
         </View>
 
-        {/* Input + Footer */}
+        {/* Input */}
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-          style={styles.composerWrapper}
         >
-          <View style={styles.composerSurface}>
-            {/* Inline send-error banner */}
-            {sendError && (
-              <View style={styles.sendErrorBanner}>
-                <Text style={styles.sendErrorText} numberOfLines={3}>{sendError}</Text>
-                <TouchableOpacity onPress={() => setSendError(null)} style={styles.sendErrorDismiss}>
-                  <Text style={styles.sendErrorDismissText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            {retentionStatus && (
-              <View style={styles.retentionInfoBanner}>
-                <Text style={styles.retentionInfoText} numberOfLines={3}>{retentionStatus}</Text>
-                <TouchableOpacity onPress={() => setRetentionStatus(null)} style={styles.retentionInfoDismiss}>
-                  <Text style={styles.retentionInfoDismissText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            {isL3v3lAgentTopic && !isAdminOrModerator && (
-              <View style={styles.composerLockBanner}>
-                <Text style={styles.composerLockBannerText}>
-                  Read-only topic: only admin/moderator users can send messages in L3V3L Agent.
-                </Text>
-              </View>
-            )}
-            <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
-              {!isLegacy && isPortalMembersTopic && (
-                <TouchableOpacity
-                  style={[styles.quickBtn, isMobile && styles.quickBtnMobile]}
-                  onPress={() => setShowQuickMessages(true)}
-                  disabled={sendingProfileCard}
-                >
-                  {sendingProfileCard
-                    ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={styles.quickBtnText}>⚡</Text>}
-                </TouchableOpacity>
-              )}
-              <TextInput
-                style={[styles.input, isMobile && styles.inputMobile, !canComposeInCurrentTopic && styles.inputDisabled]}
-                value={newMessage}
-                onChangeText={(t) => { setNewMessage(t); if (sendError) setSendError(null); }}
-                placeholder={canComposeInCurrentTopic ? 'Type a message...' : 'Read-only for your role in L3V3L Agent'}
-                placeholderTextColor="#888"
-                multiline
-                editable={canComposeInCurrentTopic && !sending}
-                onKeyPress={({ nativeEvent }) => {
-                  if (nativeEvent.key === 'Enter' && (nativeEvent.ctrlKey || nativeEvent.metaKey)) {
-                    sendMessage();
-                  }
-                }}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  isMobile && styles.sendButtonMobile,
-                  (!newMessage.trim() || !canComposeInCurrentTopic) && styles.sendButtonDisabled,
-                ]}
-                onPress={sendMessage}
-                disabled={sending || !newMessage.trim() || !canComposeInCurrentTopic}
-              >
-                {sending ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.sendButtonText}>{isMobile ? '➤' : 'Send'}</Text>
-                )}
+          {/* Inline send-error banner */}
+          {sendError && (
+            <View style={styles.sendErrorBanner}>
+              <Text style={styles.sendErrorText} numberOfLines={3}>{sendError}</Text>
+              <TouchableOpacity onPress={() => setSendError(null)} style={styles.sendErrorDismiss}>
+                <Text style={styles.sendErrorDismissText}>✕</Text>
               </TouchableOpacity>
             </View>
+          )}
+          {retentionStatus && (
+            <View style={styles.retentionInfoBanner}>
+              <Text style={styles.retentionInfoText} numberOfLines={3}>{retentionStatus}</Text>
+              <TouchableOpacity onPress={() => setRetentionStatus(null)} style={styles.retentionInfoDismiss}>
+                <Text style={styles.retentionInfoDismissText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {isL3v3lAgentTopic && !isAdminOrModerator && (
+            <View style={styles.composerLockBanner}>
+              <Text style={styles.composerLockBannerText}>
+                Read-only topic: only admin/moderator users can send messages in L3V3L Agent.
+              </Text>
+            </View>
+          )}
+          <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
+            {!isLegacy && isPortalMembersTopic && (
+              <TouchableOpacity
+                style={[styles.quickBtn, isMobile && styles.quickBtnMobile]}
+                onPress={() => setShowQuickMessages(true)}
+                disabled={sendingProfileCard}
+              >
+                {sendingProfileCard
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={styles.quickBtnText}>⚡</Text>}
+              </TouchableOpacity>
+            )}
+            <TextInput
+              style={[styles.input, isMobile && styles.inputMobile, !canComposeInCurrentTopic && styles.inputDisabled]}
+              value={newMessage}
+              onChangeText={(t) => { setNewMessage(t); if (sendError) setSendError(null); }}
+              placeholder={canComposeInCurrentTopic ? 'Type a message...' : 'Read-only for your role in L3V3L Agent'}
+              placeholderTextColor="#888"
+              multiline
+              editable={canComposeInCurrentTopic && !sending}
+              onKeyPress={({ nativeEvent }) => {
+                if (nativeEvent.key === 'Enter' && (nativeEvent.ctrlKey || nativeEvent.metaKey)) {
+                  sendMessage();
+                }
+              }}
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                isMobile && styles.sendButtonMobile,
+                (!newMessage.trim() || !canComposeInCurrentTopic) && styles.sendButtonDisabled,
+              ]}
+              onPress={sendMessage}
+              disabled={sending || !newMessage.trim() || !canComposeInCurrentTopic}
+            >
+              {sending ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.sendButtonText}>{isMobile ? '➤' : 'Send'}</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -2083,17 +2080,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
-  },
-  composerWrapper: {
-    width: '100%',
-    flexShrink: 0,
-  },
-  composerSurface: {
-    backgroundColor: '#16213e',
-    borderTopWidth: 1,
-    borderTopColor: '#0f3460',
-    paddingBottom: Platform.OS === 'ios' ? 16 : 8,
-    flexShrink: 0,
   },
   // Modal styles
   modalOverlay: {
