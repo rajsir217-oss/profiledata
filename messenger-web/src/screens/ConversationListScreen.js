@@ -1318,7 +1318,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     height: '100dvh',
-    minHeight: '100vh',
+    minHeight: '100dvh',
     maxHeight: '100dvh',
     backgroundColor: '#1a1a2e',
     flexDirection: 'column',
