@@ -1070,11 +1070,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
       </View>
 
       {/* Messages and Input container */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-        style={{ flex: 1 }}
-      >
+      <View style={{ flex: 1 }}>
         {/* Messages */}
         {loading ? (
         <View style={styles.loadingContainer}>
@@ -1254,8 +1250,13 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           )}
         </ScrollView>
       )}
+      </View>
 
       {/* Input */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
       {/* Inline send-error banner — shown when the most recent send failed.
           Keeps the chat view intact and lets the user fix or retry without
           losing what they typed. Tap "Dismiss" to clear; editing the input
@@ -1779,7 +1780,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-  messagesContainer: { flex: 1 },
+  messagesContainer: { },
   messagesContent: { padding: 16, flexGrow: 1 },
   loadingContainer: {
     flex: 1,
