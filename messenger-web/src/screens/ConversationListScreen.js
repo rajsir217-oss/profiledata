@@ -11,7 +11,6 @@ import { openExternalUrl } from '../utils/openExternalUrl';
 
 // Messenger-web app version (shown in the About section of the profile panel)
 const APP_VERSION = '0.1.0';
-const SIDEBAR_PIN_STORAGE_KEY = 'messengerSidebarPinned';
 
 // Main matrimonial app URL — profile editing lives there, not in messenger-web.
 const getMainAppUrl = () => {
@@ -19,14 +18,11 @@ const getMainAppUrl = () => {
 };
 
 export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout }) {
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [sidebarPinned, setSidebarPinned] = useState(false);
   const [activeTab, setActiveTab] = useState('messages');
   const [error, setError] = useState(null);
   const [allConversations, setAllConversations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedSections, setExpandedSections] = useState({ groups: true, direct: true });
-  const [messagesExpanded, setMessagesExpanded] = useState(true);
   const [selectedChat, setSelectedChat] = useState(null);
   const [portalGroup, setPortalGroup] = useState(null);
   // US Vedika group is hidden in messenger-web (Portal Members is the canonical
@@ -64,46 +60,6 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   } = useMessengerStore();
 
   const { user } = useAuthStore();
-
-  useEffect(() => {
-    try {
-      const saved = window?.localStorage?.getItem(SIDEBAR_PIN_STORAGE_KEY);
-      const isPinned = saved === 'true';
-      setSidebarPinned(isPinned);
-      if (isPinned) {
-        setSidebarExpanded(true);
-      }
-    } catch (_) {
-      // Ignore storage access issues in restricted environments
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      window?.localStorage?.setItem(SIDEBAR_PIN_STORAGE_KEY, sidebarPinned ? 'true' : 'false');
-    } catch (_) {
-      // Ignore storage access issues in restricted environments
-    }
-  }, [sidebarPinned]);
-
-  const handleSidebarToggle = () => {
-    if (sidebarExpanded && sidebarPinned) {
-      setSidebarPinned(false);
-      setSidebarExpanded(false);
-      return;
-    }
-    setSidebarExpanded((prev) => !prev);
-  };
-
-  const handlePinToggle = () => {
-    setSidebarPinned((prev) => {
-      const next = !prev;
-      if (next) {
-        setSidebarExpanded(true);
-      }
-      return next;
-    });
-  };
 
   const openMainAppWithSso = async (redirectPath = '/dashboard') => {
     const mainAppUrl = getMainAppUrl();
@@ -269,7 +225,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
       isGroup: true,
       isLegacy: false,
     });
-    // Highlight the Portal Members entry in the left sidebar.
+    // Highlight the Portal Members entry in the top navigation.
     setActiveTab('portal_members');
     setDidAutoSelectPortal(true);
   }, [portalGroup, selectedChat, didAutoSelectPortal]);
@@ -1017,167 +973,80 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
   return (
     <View style={styles.container}>
-      {/* Sidebar - full height (top to bottom). The header, content, and
-          footer sit in a right-side column next to it. */}
-      <View style={[styles.sidebar, sidebarExpanded ? styles.sidebarExpanded : styles.sidebarCollapsed]}>
-          {/* Toggle header */}
-          <View style={[styles.sidebarHeaderRow, !sidebarExpanded && styles.sidebarHeaderRowCollapsed]}>
-            <TouchableOpacity
-              onPress={handleSidebarToggle}
-              style={[styles.sidebarToggleButton, !sidebarExpanded && styles.sidebarToggleButtonCollapsed]}
-            >
-              <Text style={styles.sidebarToggleText}>{sidebarExpanded ? '✕' : '☰'}</Text>
-              {sidebarExpanded && <Text style={styles.sidebarToggleLabel}>Close sidebar</Text>}
-            </TouchableOpacity>
-            {sidebarExpanded && (
-              <TouchableOpacity
-                onPress={handlePinToggle}
-                style={styles.sidebarPinButton}
-              >
-                <Text style={styles.sidebarPinIcon}>{sidebarPinned ? '📌' : '📍'}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+      {/* Top Navigation Bar */}
+      <View style={styles.topNavBar}>
+        <TouchableOpacity
+          style={styles.topNavItem}
+          onPress={() => handleMenuClick('main_app')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.topNavIcon}>🏠</Text>
+        </TouchableOpacity>
 
-          {/* Scrollable Menu */}
-          <ScrollView style={styles.sidebarScroll} contentContainerStyle={styles.sidebarScrollContent}>
-          {menuItems.map((item) => {
-            const isMessages = item.id === 'messages';
-            return (
-              <View key={item.id}>
-                <TouchableOpacity
-                  style={[
-                    styles.menuItem,
-                    activeTab === item.id && styles.menuItemActive,
-                    !sidebarExpanded && styles.menuItemCollapsed,
-                  ]}
-                  onPress={() => {
-                    if (isMessages && sidebarExpanded) {
-                      setMessagesExpanded(!messagesExpanded);
-                    }
-                    handleMenuClick(item.id);
-                  }}
-                >
-                  {item.isProfile && profilePicUrl ? (
-                    <Image
-                      source={{ uri: profilePicUrl }}
-                      style={[styles.menuProfilePic, !sidebarExpanded && styles.menuProfilePicCollapsed]}
-                    />
-                  ) : (
-                    <Text style={[styles.menuIcon, !sidebarExpanded && styles.menuIconCollapsed]}>{item.icon}</Text>
-                  )}
-                  {sidebarExpanded && (
-                    <View style={styles.menuTextContainer}>
-                      <View style={styles.menuLabelRow}>
-                        <Text style={[styles.menuLabel, activeTab === item.id && styles.menuLabelActive]}>
-                          {item.label}
-                        </Text>
-                        {item.count !== null && item.count !== undefined && (
-                          <View style={styles.menuCountBadge}>
-                            <Text style={styles.menuCountText}>{item.count}</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.menuSubLabel}>{item.subLabel}</Text>
-                    </View>
-                  )}
-                  {isMessages && sidebarExpanded && (
-                    <Text style={styles.sidebarChevron}>{messagesExpanded ? '▼' : '▶'}</Text>
-                  )}
-                </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.topNavItem}
+          onPress={() => handleMenuClick('profile')}
+          activeOpacity={0.7}
+        >
+          {profilePicUrl ? (
+            <Image source={{ uri: profilePicUrl }} style={styles.topNavProfilePic} />
+          ) : (
+            <Text style={styles.topNavIcon}>👤</Text>
+          )}
+        </TouchableOpacity>
 
-                {/* My Messages collapsible children */}
-                {isMessages && sidebarExpanded && messagesExpanded && (
-                  <View style={styles.subMenu}>
-                    {isLoading && (
-                      <Text style={styles.subMenuHint}>Loading...</Text>
-                    )}
-                    {!isLoading && myMessageConversations.length === 0 && (
-                      <Text style={styles.subMenuHint}>No conversations</Text>
-                    )}
-                    {!isLoading && myMessageConversations.map((conv, index) => {
-                      const display = getConvDisplay(conv);
-                      const key = conv._id || conv.id || index;
-                      const isLegacy = conv.type === 'direct_legacy';
-                      const p = conv.profile || {};
-                      const fullName = [p.firstName, p.lastName].filter(Boolean).join(' ');
-                      const metaParts = [
-                        p.age ? `${p.age}y` : null,
-                        p.height || null,
-                        p.profession || null,
-                        p.location || null,
-                      ].filter(Boolean);
-                      const metaLine = metaParts.join(' · ');
-                      const profilePicUrl = getProfilePicUrl(conv.profile);
-                      return (
-                        <TouchableOpacity
-                          key={key}
-                          style={styles.subMenuItem}
-                          onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy, profile: conv.profile, username: display.username })}
-                        >
-                          <View style={styles.subMenuIconWrap}>
-                            {!display.isGroup && profilePicUrl ? (
-                              <Image source={{ uri: profilePicUrl }} style={styles.subMenuProfilePic} />
-                            ) : (
-                              <Text style={styles.subMenuIcon}>{display.isGroup ? '🦋' : '👤'}</Text>
-                            )}
-                            {display.username && (
-                              <OnlineDot online={isOnline(display.username)} size={9} />
-                            )}
-                          </View>
-                          <View style={styles.subMenuTextWrap}>
-                            <Text style={styles.subMenuLabel} numberOfLines={1}>
-                              {fullName || display.name}
-                            </Text>
-                            {metaLine ? (
-                              <Text style={styles.subMenuMeta} numberOfLines={1}>{metaLine}</Text>
-                            ) : null}
-                          </View>
-                          {(conv.unreadCount || 0) > 0 && (
-                            <View style={styles.unreadBadgeSmall}>
-                              <Text style={styles.unreadTextSmall}>{conv.unreadCount}</Text>
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-          </ScrollView>
+        <TouchableOpacity
+          style={[styles.topNavItem, activeTab === 'portal_members' && styles.topNavItemActive]}
+          onPress={() => handleMenuClick('portal_members')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.topNavIcon}>🦋</Text>
+        </TouchableOpacity>
 
-          {/* Divider */}
-          {sidebarExpanded && <View style={styles.divider} />}
-
-          {/* Logout (fixed at bottom) */}
-          <TouchableOpacity
-            style={[styles.menuItem, !sidebarExpanded && styles.menuItemCollapsed]}
-            onPress={onLogout}
-          >
-            <Text style={[styles.menuIcon, !sidebarExpanded && styles.menuIconCollapsed]}>🚪</Text>
-            {sidebarExpanded && (
-              <View style={styles.menuTextContainer}>
-                <Text style={[styles.menuLabel, { color: '#dc3545' }]}>Logout</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Footer - only in expanded mode */}
-          {sidebarExpanded && (
-            <View style={styles.sidebarFooter}>
-              <Text style={styles.footerLink}>Help</Text>
-              <Text style={styles.footerDot}>·</Text>
-              <Text style={styles.footerLink}>About</Text>
-              <Text style={styles.footerDot}>·</Text>
-              <Text style={styles.footerLink}>Contact</Text>
+        <TouchableOpacity
+          style={[styles.topNavItem, activeTab === 'messages' && styles.topNavItemActive]}
+          onPress={() => handleMenuClick('messages')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.topNavIcon}>💬</Text>
+          {myMessagesCount > 0 && (
+            <View style={styles.topNavBadge}>
+              <Text style={styles.topNavBadgeText}>{myMessagesCount}</Text>
             </View>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.topNavItem, activeTab === 'l3v3lagent' && styles.topNavItemActive]}
+          onPress={() => handleMenuClick('l3v3lagent')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.topNavIcon}>🤖</Text>
+          {l3v3lAgentCount > 0 && (
+            <View style={styles.topNavBadge}>
+              <Text style={styles.topNavBadgeText}>{l3v3lAgentCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.topNavItem, styles.topNavAllButton]}
+          onPress={() => setActiveTab('messages')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.topNavAllText}>ALL</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.topNavItem, styles.topNavExitButton]}
+          onPress={onLogout}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.topNavIcon}>🟥</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Right column: header + content + footer all sit to the right of
-          the sidebar, so the sidebar visually spans full height. */}
+      {/* Right column: header + content + footer below the top nav bar. */}
       <View style={styles.rightColumn}>
         {/* Agent notification nudge — shows briefly after fresh data is loaded */}
         {showNotificationBanner && (
@@ -1192,16 +1061,6 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           </TouchableOpacity>
         )}
 
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerTitle}>🦋 L3V3L Matches Messenger</Text>
-            <Text style={styles.headerSubtitle}>
-              {`${onlineSet?.size || 0} online`}
-            </Text>
-          </View>
-        </View>
-
         {/* Content Area */}
         <View style={styles.content}>
           {selectedChat ? (
@@ -1209,6 +1068,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
               key={selectedChat.id}
               {...selectedChat}
               isOnline={isOnline}
+              onlineCount={onlineSet?.size || 0}
               onBack={() => setSelectedChat(null)}
               onOpenDirectChat={(uname) => {
                 // Open a legacy 1:1 chat with the tapped username. Mirrors the
@@ -1232,6 +1092,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         {/* Bottom Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>🦋 L3V3L Matches Messenger</Text>
+          <Text style={styles.footerOnlineText}>{`${onlineSet?.size || 0} online`}</Text>
         </View>
       </View>
     </View>
@@ -1245,317 +1106,80 @@ const styles = StyleSheet.create({
     minHeight: '100vh',
     maxHeight: '100dvh',
     backgroundColor: '#1a1a2e',
-    flexDirection: 'row',
+    flexDirection: 'column',
     overflow: 'hidden',
   },
   rightColumn: {
     flex: 1,
     flexDirection: 'column',
-    height: '100dvh',
-    maxHeight: '100dvh',
     overflow: 'hidden',
   },
 
-  // Header
-  header: {
-    backgroundColor: '#16213e',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#0f3460',
-    minHeight: 56,
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#e94560',
-    letterSpacing: 0.5,
-  },
-  headerTitleWrap: {
-    flex: 1,
-    flexDirection: 'column',
-  },
-  headerSubtitle: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '500',
-    opacity: 0.85,
-    marginTop: 2,
-  },
-  headerTitleCenter: {
-    textAlign: 'center',
-  },
-  headerToggleBtn: {
-    padding: 8,
-    marginRight: 12,
-  },
-  headerToggleText: {
-    color: '#fff',
-    fontSize: 20,
-  },
-  headerNewChatBtn: {
-    padding: 8,
-    marginLeft: 12,
-  },
-  headerNewChatText: {
-    fontSize: 20,
-  },
-
-  // Main layout
-  main: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-
-  // Sidebar
-  sidebar: {
+  // Top Navigation Bar
+  topNavBar: {
+    height: 48,
     backgroundColor: '#0f0f23',
-    borderRightWidth: 1,
-    borderRightColor: '#1a1a3e',
-    flexDirection: 'column',
-    height: '100dvh',
-  },
-  sidebarExpanded: {
-    width: 280,
-  },
-  sidebarCollapsed: {
-    width: 60,
-    alignItems: 'center',
-  },
-  sidebarScroll: {
-    flex: 1,
-  },
-  sidebarScrollContent: {
-    paddingBottom: 8,
-  },
-
-  // Sidebar toggle
-  sidebarHeaderRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a3e',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    marginBottom: 8,
+    paddingHorizontal: 8,
   },
-  sidebarHeaderRowCollapsed: {
-    paddingHorizontal: 0,
-    justifyContent: 'center',
-    width: '100%',
-  },
-  sidebarToggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    flex: 1,
-  },
-  sidebarToggleButtonCollapsed: {
-    paddingHorizontal: 0,
-    justifyContent: 'center',
-    width: '100%',
-  },
-  sidebarToggleText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  sidebarToggleLabel: {
-    color: '#fff',
-    fontSize: 14,
-    marginLeft: 10,
-    fontWeight: '500',
-  },
-  sidebarPinButton: {
+  topNavItem: {
     width: 32,
     height: 32,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-  },
-  sidebarPinIcon: {
-    fontSize: 16,
-  },
-
-  // Menu items
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 9,
-    paddingHorizontal: 15,
-    marginHorizontal: 8,
-    marginBottom: 2,
     borderRadius: 8,
-  },
-  menuItemCollapsed: {
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 0,
-    width: 42,
-    height: 42,
-    marginHorizontal: 0,
+    marginHorizontal: 4,
   },
-  menuItemActive: {
+  topNavItemActive: {
     backgroundColor: 'rgba(233, 69, 96, 0.15)',
   },
-  menuIcon: {
-    fontSize: 20,
-    marginRight: 12,
-    width: 28,
+  topNavIcon: {
+    width: 22,
+    height: 22,
+    fontSize: 22,
+    lineHeight: 22,
     textAlign: 'center',
+    textAlignVertical: 'center',
   },
-  menuIconCollapsed: {
-    marginRight: 0,
-  },
-  menuProfilePic: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    marginRight: 12,
-    borderWidth: 2,
+  topNavProfilePic: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1,
     borderColor: '#e94560',
   },
-  menuProfilePicCollapsed: {
-    marginRight: 0,
-  },
-  menuTextContainer: {
-    flex: 1,
-  },
-  menuLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuLabel: {
-    fontSize: 15,
-    color: '#fff',
-    fontWeight: '500',
-    lineHeight: 22,
-  },
-  menuLabelActive: {
-    color: '#e94560',
-    fontWeight: '700',
-  },
-  menuCountBadge: {
-    marginLeft: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    backgroundColor: '#e94560',
-  },
-  menuCountText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  menuSubLabel: {
-    fontSize: 12,
-    color: '#888',
-    lineHeight: 18,
-  },
-  sidebarChevron: {
-    color: '#888',
-    fontSize: 10,
-    marginLeft: 8,
-  },
-  subMenu: {
-    paddingLeft: 24,
-    paddingRight: 8,
-    paddingBottom: 4,
-  },
-  subMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  subMenuItemActive: {
-    backgroundColor: '#1a1a3e',
-  },
-  subMenuDivider: {
-    height: 1,
-    backgroundColor: '#1a1a3e',
-    marginVertical: 8,
-  },
-  subMenuIconWrap: {
-    position: 'relative', // anchor for absolutely positioned <OnlineDot />
-    marginRight: 8,
+  topNavBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
     minWidth: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  subMenuIcon: {
-    fontSize: 14,
-  },
-  subMenuProfilePic: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-  },
-  subMenuTextWrap: {
-    flex: 1,
-    flexDirection: 'column',
-  },
-  subMenuLabel: {
-    color: '#ccc',
-    fontSize: 13,
-  },
-  subMenuLabelActive: {
-    color: '#e94560',
-    fontWeight: '600',
-  },
-  subMenuMeta: {
-    color: '#888',
-    fontSize: 10,
-    marginTop: 2,
-  },
-  subMenuHint: {
-    color: '#666',
-    fontSize: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    fontStyle: 'italic',
-  },
-  unreadBadgeSmall: {
+    height: 16,
+    borderRadius: 8,
     backgroundColor: '#e94560',
-    borderRadius: 9,
-    minWidth: 18,
-    height: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 5,
+    paddingHorizontal: 3,
   },
-  unreadTextSmall: {
+  topNavBadgeText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
   },
-
-  // Divider
-  divider: {
-    height: 1,
+  topNavAllButton: {
     backgroundColor: '#1a1a3e',
-    marginVertical: 12,
-    marginHorizontal: 16,
+    borderRadius: 8,
   },
-
-  // Sidebar footer
-  sidebarFooter: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
-    marginTop: 'auto',
-    paddingBottom: 20,
-  },
-  footerLink: {
-    color: '#888',
+  topNavAllText: {
+    color: '#fff',
     fontSize: 11,
+    fontWeight: '700',
   },
-  footerDot: {
-    color: '#555',
-    fontSize: 11,
-    marginHorizontal: 6,
+  topNavExitButton: {
+    marginLeft: 'auto',
   },
 
   // Content area
@@ -1728,13 +1352,21 @@ const styles = StyleSheet.create({
   footer: {
     backgroundColor: '#16213e',
     padding: 10,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     borderTopWidth: 1,
     borderTopColor: '#0f3460',
   },
   footerText: {
     fontSize: 12,
     color: '#666',
+  },
+  footerOnlineText: {
+    fontSize: 12,
+    color: '#22c55e',
+    marginLeft: 10,
+    fontWeight: '500',
   },
 
   // ---- Profile panel (right side when "Your profile" is active) ----

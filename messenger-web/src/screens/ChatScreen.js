@@ -270,7 +270,7 @@ const formatRelative = (when) => {
 
 const EMPTY_MESSAGES = [];
 
-export default function ChatScreen({ id, name, isGroup, isLegacy, profile, username, isOnline, onBack, onOpenDirectChat }) {
+export default function ChatScreen({ id, name, isGroup, isLegacy, profile, username, isOnline, onlineCount, onBack, onOpenDirectChat }) {
   const { user } = useAuthStore();
   const storeMessages = useMessengerStore((state) => (id ? (state.messages[id] ?? EMPTY_MESSAGES) : EMPTY_MESSAGES));
   const fetchStoreMessages = useMessengerStore((state) => state.fetchMessages);
@@ -1060,6 +1060,12 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
             <Text style={styles.iconButtonText}>🗑️</Text>
           </TouchableOpacity>
         )}
+        {/* Online count badge */}
+        {typeof onlineCount === 'number' && onlineCount >= 0 && (
+          <View style={styles.onlineCountBadge}>
+            <Text style={styles.onlineCountText}>{onlineCount} online</Text>
+          </View>
+        )}
       </View>
 
       {/* Messages and Input container */}
@@ -1735,6 +1741,20 @@ const styles = StyleSheet.create({
   },
   headerStatusInlineDotOnline: {
     backgroundColor: '#22c55e',
+  },
+  onlineCountBadge: {
+    backgroundColor: '#1a1a3e',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#0f3460',
+  },
+  onlineCountText: {
+    color: '#22c55e',
+    fontSize: 11,
+    fontWeight: '600',
   },
 
   // Invited-recipient list (US Vedika @{email} status)
