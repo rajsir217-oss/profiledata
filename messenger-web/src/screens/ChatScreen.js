@@ -1006,7 +1006,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} className="chat-screen">
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -1070,8 +1070,8 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
       </View>
 
       {/* Messages and Input container */}
-      <View style={styles.body}>
-        <View style={styles.messagesWrapper}>
+      <View style={styles.body} className="chat-screen__body">
+        <View style={styles.messagesWrapper} className="chat-screen__messages-wrapper">
           {/* Messages */}
           {loading ? (
           <View style={styles.loadingContainer}>
@@ -1089,6 +1089,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           <ScrollView
             ref={scrollViewRef}
             style={styles.messagesContainer}
+            className="chat-screen__messages-scroll"
             contentContainerStyle={styles.messagesContent}
             keyboardShouldPersistTaps="handled"
           >
@@ -1258,6 +1259,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          className="chat-screen__composer"
         >
           {/* Inline send-error banner */}
           {sendError && (
@@ -1283,7 +1285,10 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
               </Text>
             </View>
           )}
-          <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
+          <View
+            style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}
+            className={`chat-screen__input${isMobile ? ' chat-screen__input--mobile' : ''}`}
+          >
             {!isLegacy && isPortalMembersTopic && (
               <TouchableOpacity
                 style={[styles.quickBtn, isMobile && styles.quickBtnMobile]}
