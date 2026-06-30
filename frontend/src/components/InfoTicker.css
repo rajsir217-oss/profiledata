@@ -293,52 +293,13 @@
 /* Responsive */
 @media (max-width: 768px) {
   .info-ticker {
-    height: 40px !important;
-    min-height: 40px !important;
-    padding: 0 8px;
-    gap: 8px;
-    position: relative;
-    z-index: 100;
-    display: flex !important;
-    flex-shrink: 0 !important;
-  }
-  
-  .ticker-item {
-    font-size: 11px;
-    padding: 4px 8px;
-    border-radius: 8px;
-    gap: 4px;
-  }
-  
-  .ticker-icon {
-    font-size: 14px;
-  }
-  
-  .item-icon {
-    font-size: 12px;
-  }
-  
-  .ticker-pause {
-    display: none;
-  }
-  
-  .ticker-content {
-    mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      black 8%,
-      black 92%,
-      transparent 100%
-    );
-  }
-  
-  .ticker-scroll {
-    animation: scroll-ticker 30s linear infinite;
-  }
-  
-  .item-dismiss {
-    font-size: 12px;
-    padding: 0 2px;
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
   }
 }
 

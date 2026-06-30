@@ -592,20 +592,22 @@
 
 @media (max-width: 768px) {
   .search-menu-dropdown {
-    min-width: 280px;
+    min-width: 260px;
+    max-width: 300px;
     right: 0;
   }
 }
 
 @media (max-width: 576px) {
   .search-menu-dropdown {
-    position: fixed;
-    top: 64px;
-    left: 10px;
-    right: 10px;
-    width: auto;
-    min-width: 0;
-    max-width: calc(100vw - 20px);
+    position: absolute; /* Changed from fixed to work with bottom positioning */
+    bottom: 100%;
+    top: auto !important;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100vw - 60px);
+    min-width: 240px;
+    max-width: 320px;
     max-height: calc(100vh - 80px);
     display: flex;
     flex-direction: column;
@@ -2308,5 +2310,103 @@
 
   .user-avatar-initials {
     font-size: 14px;
+  }
+}
+
+/* Mobile: Move TopBar to bottom, keep InfoTicker at top, flip dropdowns upward */
+@media (max-width: 768px) {
+  .info-ticker {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+  }
+
+  .top-bar {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .top-bar.sidebar-open,
+  .top-bar.sidebar-pinned {
+    left: 0;
+    width: 100%;
+  }
+
+  .page-title-section {
+    display: none; /* Hide page title on mobile bottom bar */
+  }
+
+  .topbar-branding {
+    display: none; /* Hide branding on mobile */
+  }
+
+  .top-bar-content {
+    padding: 0 16px;
+    height: 56px;
+  }
+
+  .btn-sidebar-toggle {
+    display: none; /* Hide sidebar toggle on mobile */
+  }
+
+  /* Ensure buttons and containers are above dropdown backdrop on mobile */
+  .search-menu-container,
+  .admin-actions-container,
+  .messenger-menu-container,
+  .user-menu-container {
+    position: relative;
+    z-index: 2500;
+  }
+
+  .btn-refer-friend,
+  .btn-admin-actions,
+  .btn-messenger-app,
+  .btn-user-avatar {
+    position: relative;
+    z-index: 2501;
+  }
+
+  /* Flip dropdowns to open upward on mobile */
+  .search-menu-dropdown,
+  .admin-actions-dropdown,
+  .messenger-menu-dropdown,
+  .user-menu-dropdown {
+    bottom: 100%;
+    top: auto !important;
+    transform-origin: bottom center;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 2600;
+  }
+
+  /* Center dropdowns on mobile */
+  .messenger-menu-dropdown {
+    right: 0;
+  }
+
+  .user-menu-dropdown {
+    right: 0;
+  }
+
+  .search-menu-dropdown::before,
+  .messenger-menu-dropdown::before {
+    bottom: -6px;
+    top: auto !important;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid var(--card-background);
+    border-top: none;
+  }
+
+  .user-menu-dropdown {
+    bottom: 60px;
+    right: 0;
   }
 }
