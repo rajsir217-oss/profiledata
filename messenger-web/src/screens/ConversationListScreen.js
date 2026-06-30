@@ -1570,7 +1570,8 @@ const styles = StyleSheet.create({
   // Footer
   footer: {
     backgroundColor: '#16213e',
-    padding: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1579,14 +1580,16 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   footerText: {
-    fontSize: 12,
+    fontSize: 9,
+    lineHeight: 11,
     color: '#666',
   },
   footerOnlineText: {
-    fontSize: 12,
+    fontSize: 9,
+    lineHeight: 11,
     color: '#22c55e',
-    marginLeft: 10,
-    fontWeight: '500',
+    marginLeft: 6,
+    fontWeight: '400',
   },
 
   // ---- Profile panel (right side when "Your profile" is active) ----
