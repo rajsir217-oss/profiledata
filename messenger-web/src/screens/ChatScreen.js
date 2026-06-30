@@ -270,7 +270,7 @@ const formatRelative = (when) => {
 
 const EMPTY_MESSAGES = [];
 
-export default function ChatScreen({ id, name, isGroup, isLegacy, profile, username, isOnline, onlineCount, onBack, onOpenDirectChat }) {
+export default function ChatScreen({ id, name, isGroup, isLegacy, profile, username, isOnline, onBack, onOpenDirectChat }) {
   const { user } = useAuthStore();
   const storeMessages = useMessengerStore((state) => (id ? (state.messages[id] ?? EMPTY_MESSAGES) : EMPTY_MESSAGES));
   const fetchStoreMessages = useMessengerStore((state) => state.fetchMessages);
@@ -308,7 +308,14 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   // (re-login, role promotion) flip the UI without a full reload.
   const isAdminOrModerator = user?.role === 'admin' || user?.role === 'moderator';
   const isL3v3lAgentTopic = !isLegacy && String(name || '').trim().toLowerCase() === 'l3v3l agent';
-  const isPortalMembersTopic = !isLegacy && String(name || '').trim().toLowerCase() === 'portal members';
+  const isPortalMembersTopic = !isLegacy && (
+    String(name || '').trim().toLowerCase() === 'portal members' ||
+    String(name || '').trim().toLowerCase() === 'l3v3l members'
+  );
+  // Canonical title for the members group (L3V3L Members) shown in the chat header.
+  const membersGroupTitle = 'L3V3L Members';
+  // Force the canonical label in the header for this topic.
+  const headerDisplayName = isPortalMembersTopic ? membersGroupTitle : name;
   const isComposerRestrictedTopic = isL3v3lAgentTopic;
   const canComposeInCurrentTopic = !isComposerRestrictedTopic || isAdminOrModerator;
   const canUsePublicRecipientFlow = isL3v3lAgentTopic && isAdminOrModerator;
@@ -1009,7 +1016,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           <Text style={styles.headerTitle} numberOfLines={1}>
             {profile && (profile.firstName || profile.lastName)
               ? `${profile.firstName} ${profile.lastName}`.trim()
-              : name}
+              : headerDisplayName}
           </Text>
           {isGroup ? (
             <Text style={styles.headerSubtitle}>Group Chat</Text>
@@ -1041,7 +1048,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
             onPress={() => setShowRetentionModal(true)}
             disabled={savingRetention}
           >
-            <Text style={styles.iconButtonText}>⏱️</Text>
+            <Text style={styles.headerActionEmoji}>⏱️</Text>
             {retentionHours ? (
               <Text style={styles.iconButtonBadge}>
                 {retentionHours >= 24 && retentionHours % 24 === 0
@@ -1057,14 +1064,8 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
             style={styles.iconButton}
             onPress={() => setShowClearConfirm(true)}
           >
-            <Text style={styles.iconButtonText}>🗑️</Text>
+            <Text style={styles.headerActionEmoji}>🗑️</Text>
           </TouchableOpacity>
-        )}
-        {/* Online count badge */}
-        {typeof onlineCount === 'number' && onlineCount >= 0 && (
-          <View style={styles.onlineCountBadge}>
-            <Text style={styles.onlineCountText}>{onlineCount} online</Text>
-          </View>
         )}
       </View>
 
@@ -1285,7 +1286,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         <View style={styles.inputContainer}>
           {/* ⚡ Quick Messages — hidden for legacy 1:1 chats since they don't
               support rich content types like profile_card. */}
-          {!isLegacy && name === 'Portal Members' && (
+          {!isLegacy && isPortalMembersTopic && (
             <TouchableOpacity
               style={[styles.quickBtn, isMobile && styles.quickBtnMobile]}
               onPress={() => setShowQuickMessages(true)}
@@ -1714,49 +1715,34 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     backgroundColor: '#16213e',
     borderBottomWidth: 1,
     borderBottomColor: '#0f3460',
   },
-  backButton: { padding: 8, marginRight: 8 },
-  backButtonText: { fontSize: 20, color: '#e94560' },
-  headerInfo: { flex: 1, flexDirection: 'column' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  headerMeta: { fontSize: 11, color: '#888', marginTop: 2 },
-  headerSubtitle: { fontSize: 11, color: '#888' },
+  backButton: { padding: 3, marginRight: 4 },
+  backButtonText: { fontSize: 12, color: '#e94560' },
+  headerInfo: { flex: 1, flexDirection: 'column', marginLeft: 4 },
+  headerTitle: { fontSize: 12, fontWeight: 'bold', color: '#fff' },
+  headerMeta: { fontSize: 8, color: '#888', marginTop: 1 },
+  headerSubtitle: { fontSize: 9, color: '#888' },
   headerSubtitleOnline: { color: '#22c55e' },
   headerStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 3,
+    marginTop: 2,
   },
   headerStatusInlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#6b7280',
-    marginRight: 6,
+    marginRight: 4,
   },
   headerStatusInlineDotOnline: {
     backgroundColor: '#22c55e',
   },
-  onlineCountBadge: {
-    backgroundColor: '#1a1a3e',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginLeft: 8,
-    borderWidth: 1,
-    borderColor: '#0f3460',
-  },
-  onlineCountText: {
-    color: '#22c55e',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-
   // Invited-recipient list (US Vedika @{email} status)
   recipientsList: {
     marginTop: 8,
@@ -1868,7 +1854,8 @@ const styles = StyleSheet.create({
   },
   messageActionIcon: {
     marginTop: 0,
-    fontSize: 10,
+    fontSize: 8,
+    lineHeight: 9,
     textAlign: 'left',
   },
   reconnectBanner: {
@@ -2200,18 +2187,18 @@ const styles = StyleSheet.create({
   headerInfo: {
     flex: 1,
     flexDirection: 'column',
-    marginLeft: 12,
+    marginLeft: 4,
   },
   // Shared tiny header icon button (⏱️ retention, 🗑️ clear chat).
   // Kept small so the chat header stays compact on narrow screens.
   iconButton: {
-    paddingVertical: 3,
-    paddingHorizontal: 5,
-    borderRadius: 6,
+    paddingVertical: 2,
+    paddingHorizontal: 3,
+    borderRadius: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
-    marginLeft: 6,
+    marginLeft: 3,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -2219,11 +2206,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 14,
   },
+  // Milli header action emojis (clock + trash) — step up from micro.
+  headerActionEmoji: {
+    fontSize: 11,
+    lineHeight: 11,
+  },
   iconButtonBadge: {
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '700',
     color: '#bfdbfe',
-    marginLeft: 4,
+    marginLeft: 3,
   },
   modalSubtext: {
     fontSize: 14,
