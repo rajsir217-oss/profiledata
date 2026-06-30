@@ -1087,7 +1087,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
       ) : (
         <ScrollView
           ref={scrollViewRef}
-          style={styles.messagesContainer}
+          style={{ flex: 1 }}
           contentContainerStyle={styles.messagesContent}
         >
           {!socketConnected && (
@@ -1250,7 +1250,6 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           )}
         </ScrollView>
       )}
-      </View>
 
       {/* Input */}
       <KeyboardAvoidingView
@@ -1329,6 +1328,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         </TouchableOpacity>
       </View>
       </KeyboardAvoidingView>
+      </View>
 
       {/* Quick Messages picker — opens from the ⚡ button. Only "Introduction"
           is wired up to a real action (sends a profile_card). The others are
