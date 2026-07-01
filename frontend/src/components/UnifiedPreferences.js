@@ -283,6 +283,29 @@ const UnifiedPreferences = () => {
     ]
   };
 
+  const activityTriggerIds = new Set(
+    (notificationTriggers.activity || []).map((trigger) => trigger.id)
+  );
+
+  const isActivityChannelBlocked = (triggerId, channel) => (
+    activityTriggerIds.has(triggerId)
+    && (channel === 'email' || channel === 'sms')
+  );
+
+  const sanitizeActivityChannels = (channelsMap = {}) => {
+    const sanitizedChannels = { ...channelsMap };
+    activityTriggerIds.forEach((triggerId) => {
+      const existingChannels = sanitizedChannels[triggerId];
+      if (Array.isArray(existingChannels)) {
+        sanitizedChannels[triggerId] = existingChannels.filter(
+          (channel) => channel !== 'email' && channel !== 'sms'
+        );
+      }
+    });
+
+    return sanitizedChannels;
+  };
+
   const channels = ['email', 'sms', 'push'];
 
   // Load contribution popup config (single source of truth from backend)
@@ -330,7 +353,11 @@ const UnifiedPreferences = () => {
       try {
         setLoadingNotifications(true);
         const data = await notifications.getPreferences();
-        setNotificationPreferences(data);
+        const sanitizedChannels = sanitizeActivityChannels(data.channels || {});
+        setNotificationPreferences({
+          ...data,
+          channels: sanitizedChannels,
+        });
         
         // Load privacy settings from notification preferences
         if (data.privacySettings) {
@@ -724,6 +751,10 @@ const UnifiedPreferences = () => {
 
   // Notification handlers
   const handleChannelToggle = (triggerId, channel) => {
+    if (isActivityChannelBlocked(triggerId, channel)) {
+      return;
+    }
+
     const currentChannels = notificationPreferences.channels[triggerId] || [];
     const newChannels = currentChannels.includes(channel)
       ? currentChannels.filter(c => c !== channel)
@@ -783,11 +814,16 @@ const UnifiedPreferences = () => {
   const handleSaveNotifications = async () => {
     try {
       setSavingNotifications(true);
+      const sanitizedChannels = sanitizeActivityChannels(notificationPreferences.channels);
       await notifications.updatePreferences({
-        channels: notificationPreferences.channels,
+        channels: sanitizedChannels,
         quietHours: notificationPreferences.quietHours,
         privacySettings: privacySettings,
         digestSettings: digestSettings
+      });
+      setNotificationPreferences({
+        ...notificationPreferences,
+        channels: sanitizedChannels,
       });
       showToast('Notification preferences saved successfully!', 'success');
     } catch (error) {
@@ -804,7 +840,12 @@ const UnifiedPreferences = () => {
     try {
       setSavingNotifications(true);
       const data = await notifications.resetPreferences();
-      setNotificationPreferences(data);
+      const resetPreferences = data?.data || data;
+      const sanitizedChannels = sanitizeActivityChannels(resetPreferences.channels || {});
+      setNotificationPreferences({
+        ...resetPreferences,
+        channels: sanitizedChannels,
+      });
       showToast('Notification preferences reset to defaults', 'success');
     } catch (error) {
       console.error('Error resetting preferences:', error);
@@ -1868,13 +1909,17 @@ const UnifiedPreferences = () => {
                     </div>
                     <div className="channel-toggles">
                       {channels.map((channel) => (
-                        <label key={channel} className="channel-toggle">
+                        <label
+                          key={channel}
+                          className={`channel-toggle ${isActivityChannelBlocked(trigger.id, channel) ? 'disabled' : ''}`}
+                        >
                           <input
                             type="checkbox"
                             checked={notificationPreferences.channels[trigger.id]?.includes(channel)}
+                            disabled={isActivityChannelBlocked(trigger.id, channel)}
                             onChange={() => handleChannelToggle(trigger.id, channel)}
                           />
-                          <span className={`channel-icon ${channel}`}>
+                          <span className={`channel-icon ${channel} ${isActivityChannelBlocked(trigger.id, channel) ? 'disabled' : ''}`}>
                             {channel === 'email' && '📧'}
                             {channel === 'sms' && '📱'}
                             {channel === 'push' && '🔔'}

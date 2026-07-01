@@ -762,6 +762,10 @@
   gap: 5px;
 }
 
+.channel-toggle.disabled {
+  cursor: not-allowed;
+}
+
 .channel-toggle input[type="checkbox"] {
   display: none;
 }
@@ -778,6 +782,11 @@
   border: 2px solid var(--border-color);
   background: var(--surface-color);
   opacity: 0.5;
+}
+
+.channel-icon.disabled {
+  opacity: 0.3;
+  filter: grayscale(0.4);
 }
 
 .channel-toggle input:checked + .channel-icon {
