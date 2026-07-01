@@ -266,13 +266,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         action: () => navigate('/automation')
       });
 
-      items.push({
-        icon: '📢',
-        label: 'Announcement Management',
-        subLabel: 'Site-wide announcements & polls',
-        action: () => navigate('/announcement-management')
-      });
-
       // === UTILITIES ===
       // items.push({ isHeader: true, label: 'UTILITIES' });
 
@@ -332,13 +325,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
 
       items.push({ isHeader: true, label: 'MONITORING' });
       
-      items.push({
-        icon: '📢',
-        label: 'Announcement Management',
-        subLabel: 'Site-wide announcements',
-        action: () => navigate('/announcement-management')
-      });
-
       items.push({
         icon: '📝',
         label: 'Blog Management',

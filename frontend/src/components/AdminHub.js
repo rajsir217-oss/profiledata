@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ContributionManagement from './ContributionManagement';
+import AnnouncementManagement from './AnnouncementManagement';
 import UnifiedReports from './UnifiedReports';
 import AdminUtilities from './AdminUtilities';
 import MarketingPricing from './MarketingPricing';
@@ -13,6 +14,11 @@ const SECTION_CONFIG = {
     label: 'Contributions',
     subtitle: 'View and manage contributions',
     component: ContributionManagement,
+  },
+  announcements: {
+    label: 'Announcements',
+    subtitle: 'Manage announcements, polls, ticker, and tips',
+    component: AnnouncementManagement,
   },
   reports: {
     label: 'Reports',
@@ -41,7 +47,7 @@ const SECTION_CONFIG = {
   },
 };
 
-const ADMIN_SECTIONS = ['contributions', 'reports', 'utilities', 'marketing', 'blog', 'test-suite'];
+const ADMIN_SECTIONS = ['contributions', 'announcements', 'reports', 'utilities', 'marketing', 'blog', 'test-suite'];
 
 const AdminHub = () => {
   const navigate = useNavigate();
@@ -50,23 +56,30 @@ const AdminHub = () => {
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const sectionParam = params.get('section');
   const userRole = localStorage.getItem('userRole');
+  const isAdmin = userRole === 'admin';
+  const isModerator = userRole === 'moderator';
   const availableSections = useMemo(() => {
-    if (userRole === 'admin') return ADMIN_SECTIONS;
+    if (isAdmin) return ADMIN_SECTIONS;
+    if (isModerator) return ['announcements'];
     return [];
-  }, [userRole]);
+  }, [isAdmin, isModerator]);
   const defaultSection = availableSections[0] || 'contributions';
   const section = availableSections.includes(sectionParam) ? sectionParam : defaultSection;
 
   React.useEffect(() => {
-    if (userRole !== 'admin') {
+    if (!isAdmin && !isModerator) {
       navigate('/dashboard');
       return;
     }
 
-    if (!availableSections.includes(sectionParam || '')) {
+    if (!availableSections.length) {
+      return;
+    }
+
+    if (!sectionParam || !availableSections.includes(sectionParam)) {
       navigate(`/admin-hub?section=${defaultSection}`, { replace: true });
     }
-  }, [navigate, userRole, availableSections, sectionParam, defaultSection]);
+  }, [navigate, isAdmin, isModerator, availableSections, sectionParam, defaultSection]);
 
   const handleSectionChange = (event) => {
     const nextSection = event.target.value;
