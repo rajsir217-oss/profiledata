@@ -47,7 +47,7 @@ const ActivePollsCard = ({ polls, onPollResponded }) => {
   const [paymentPending, setPaymentPending] = useState(null);
 
   const handleOpenInactivePolls = () => {
-    navigate('/announcement-management?tab=polls&status=closed');
+    navigate('/admin-hub?section=announcements&tab=polls&status=closed');
   };
 
   const poll = list[index] || null;

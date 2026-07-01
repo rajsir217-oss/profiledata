@@ -654,6 +654,23 @@ const InvitationManager = () => {
     };
   };
 
+  const getBulkResultStatusMeta = (detail) => {
+    switch (detail.status) {
+      case 'sent':
+        return { icon: '✅', label: 'Sent', tone: 'success', description: '' };
+      case 'created':
+        return { icon: '📝', label: 'Created', tone: 'info', description: '' };
+      case 'duplicate':
+        return { icon: '⚠️', label: 'Duplicate', tone: 'warning', description: detail.reason || 'Already invited' };
+      case 'invalid':
+        return { icon: '❌', label: 'Invalid', tone: 'danger', description: detail.reason || 'Invalid email' };
+      case 'failed':
+        return { icon: '❌', label: 'Failed', tone: 'danger', description: detail.reason || 'Send failed' };
+      default:
+        return { icon: 'ℹ️', label: detail.status || 'Info', tone: 'info', description: detail.reason || '' };
+    }
+  };
+
   // Filter and slice invitations for pagination
   const filteredInvitations = invitations.filter(inv => {
     // Filter by sender (case insensitive)
@@ -1582,72 +1599,49 @@ const InvitationManager = () => {
 
               {/* Step 4: Done */}
               {bulkCreateStep === 'done' && bulkCreateResults && (
-                <>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-                    {bulkCreateResults.sent > 0 && (
-                      <div style={{ textAlign: 'left', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--success-light)' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--success-color)' }}>{bulkCreateResults.sent}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--success-color)' }}>Sent</div>
+                <div className="bulk-create-done">
+                  <div className="bulk-create-summary-grid">
+                    <div className={`bulk-create-stat-card ${bulkCreateResults.sent > 0 ? 'is-success' : 'is-info'}`}>
+                      <div className="bulk-create-stat-value">
+                        {bulkCreateResults.sent > 0 ? bulkCreateResults.sent : bulkCreateResults.created}
                       </div>
-                    )}
-                    {bulkCreateResults.created > 0 && bulkCreateResults.sent === 0 && (
-                      <div style={{ textAlign: 'center', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--info-light)' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--info-color)' }}>{bulkCreateResults.created}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--info-color)' }}>Created</div>
+                      <div className="bulk-create-stat-label">
+                        {bulkCreateResults.sent > 0 ? 'Sent' : 'Created'}
                       </div>
-                    )}
-                    {bulkCreateResults.skipped_duplicate > 0 && (
-                      <div style={{ textAlign: 'center', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--warning-light)' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--warning-color)' }}>{bulkCreateResults.skipped_duplicate}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--warning-color)' }}>Skipped</div>
-                      </div>
-                    )}
-                    {bulkCreateResults.skipped_invalid > 0 && (
-                      <div style={{ textAlign: 'center', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--danger-light)' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--danger-color)' }}>{bulkCreateResults.skipped_invalid}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--danger-color)' }}>Invalid</div>
-                      </div>
-                    )}
-                    {bulkCreateResults.failed > 0 && (
-                      <div style={{ textAlign: 'center', padding: '16px', borderRadius: 'var(--radius-md)', background: 'var(--danger-light)' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--danger-color)' }}>{bulkCreateResults.failed}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--danger-color)' }}>Failed</div>
-                      </div>
-                    )}
-                  </div>
+                    </div>
 
-                  {bulkCreateResults.sent > 0 && (
-                    <div style={{ marginBottom: '16px', padding: '12px', borderRadius: 'var(--radius-md)', background: 'var(--info-light)', border: '1px solid var(--info-color)' }}>
-                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-color)' }}>
-                        Please check junk, spam and all email folders -- search from:l3v3lmatches.com OR search for word "l3v3l", just in case. Thanks!
+                    <div className="bulk-create-message-card">
+                      <p>
+                        {bulkCreateResults.sent > 0
+                          ? 'Please check junk, spam and all email folders — search from:l3v3lmatches.com or the keyword "l3v3l" just in case.'
+                          : 'Invitations created successfully and are ready for sending from the Invitations table.'}
                       </p>
                     </div>
-                  )}
+                  </div>
 
-                  {/* Per-email detail list */}
                   {bulkCreateResults.details && bulkCreateResults.details.length > 0 && (
-                    <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '12px' }}>
-                      {bulkCreateResults.details.map((d, idx) => (
-                        <div key={idx} style={{ 
-                          padding: '6px 12px', 
-                          borderBottom: '1px solid var(--border-color)',
-                          display: 'flex', 
-                          justifyContent: 'space-between',
-                          background: d.status === 'sent' ? 'var(--success-light)' : d.status === 'duplicate' ? 'var(--warning-light)' : d.status === 'invalid' || d.status === 'failed' ? 'var(--danger-light)' : 'transparent'
-                        }}>
-                          <span style={{ fontFamily: 'monospace' }}>{d.email}</span>
-                          <span>
-                            {d.status === 'sent' && '✅ Sent'}
-                            {d.status === 'created' && '📝 Created'}
-                            {d.status === 'duplicate' && `⚠️ ${d.reason}`}
-                            {d.status === 'invalid' && '❌ Invalid'}
-                            {d.status === 'failed' && `❌ ${d.reason}`}
-                          </span>
-                        </div>
-                      ))}
+                    <div className="bulk-create-result-list">
+                      {bulkCreateResults.details.map((detail, idx) => {
+                        const meta = getBulkResultStatusMeta(detail);
+                        return (
+                          <div
+                            key={`${detail.email}-${idx}`}
+                            className={`bulk-create-result-item bulk-create-result-item--${meta.tone}`}
+                          >
+                            <span className="bulk-create-result-email">{detail.email}</span>
+                            <span className={`bulk-create-result-status bulk-create-result-status--${meta.tone}`}>
+                              <span aria-hidden="true">{meta.icon}</span>
+                              {meta.label}
+                              {meta.description && (
+                                <span className="bulk-create-result-reason">{meta.description}</span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
 

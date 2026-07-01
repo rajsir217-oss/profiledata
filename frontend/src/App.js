@@ -524,7 +524,7 @@ function AppContent() {
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/admin/notification-config" element={<Navigate to="/admin-utilities?tab=notification-config" replace />} />
               <Route path="/email-templates" element={<Navigate to="/admin-utilities?tab=email-templates" replace />} />
-              <Route path="/announcement-management" element={<ProtectedRoute><AnnouncementManagement /></ProtectedRoute>} />
+              <Route path="/announcement-management" element={<Navigate to="/admin-hub?section=announcements" replace />} />
               <Route path="/blog-management" element={<ProtectedRoute><BlogManagement /></ProtectedRoute>} />
               {/* Unified Reports Page */}
               <Route path="/unified-reports" element={<ProtectedRoute><UnifiedReports /></ProtectedRoute>} />
@@ -556,7 +556,7 @@ function AppContent() {
               <Route path="/admin/recurring-contributions" element={<ProtectedRoute><AdminRecurringContributions /></ProtectedRoute>} />
               <Route path="/paypal-recurring-setup" element={<ProtectedRoute><PayPalRecurringSetup /></ProtectedRoute>} />
               <Route path="/paypal-recurring-return" element={<ProtectedRoute><PayPalRecurringReturn /></ProtectedRoute>} />
-              <Route path="/poll-management" element={<Navigate to="/announcement-management?tab=polls" replace />} />
+              <Route path="/poll-management" element={<Navigate to="/admin-hub?section=announcements&tab=polls" replace />} />
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/whatsapp-verification" element={<Navigate to="/admin-utilities?tab=whatsapp" replace />} />
               <Route path="/admin-reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />

@@ -70,6 +70,8 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   // Get page title based on current route
   const getPageTitle = () => {
     const path = location.pathname;
+    const params = new URLSearchParams(location.search);
+    const adminSection = path === '/admin-hub' ? params.get('section') : null;
     if (path === '/dashboardv2') return { icon: '🦋', title: 'My Dashboard', subtitle: 'Overview & Activity' };
     if (path === '/dashboard') return { icon: '💑', title: 'My Dashboard', subtitle: 'View your matches and activity' };
     if (path === '/search') return { icon: '🔍', title: 'Search Profiles', subtitle: 'Find your perfect match' };
@@ -93,7 +95,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     if (path === '/activity-logs') return { icon: '📊', title: 'Activity Logs', subtitle: 'Monitor user activities and system events' };
     if (path === '/email-analytics') return { icon: '📧', title: 'Email Analytics', subtitle: 'Track email opens, clicks, and engagement' };
     if (path === '/pause-analytics') return { icon: '⏸️', title: 'Pause Analytics', subtitle: 'Monitor pause feature usage and patterns' };
-    if (path === '/announcement-management') return { icon: '📢', title: 'Announcement Management', subtitle: 'Create and manage site-wide announcements' };
+    if (adminSection === 'announcements') return { icon: '📢', title: 'Announcement Management', subtitle: 'Create and manage site-wide announcements' };
     if (path === '/email-templates') return { icon: '✉️', title: 'Email Templates', subtitle: 'Preview and manage email templates' };
     if (path === '/notification-tester') return { icon: '🧪', title: 'Notification Tester', subtitle: 'Test notification delivery' };
     if (path === '/admin/notification-config') return { icon: '⚙️', title: 'Notification Config', subtitle: 'Configure notification settings' };
