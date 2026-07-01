@@ -110,6 +110,10 @@
   padding: 20px 0;
 }
 
+.sidebar.collapsed .sidebar-menu {
+  padding: 10px 0;
+}
+
 .menu-item {
   display: flex;
   align-items: center;

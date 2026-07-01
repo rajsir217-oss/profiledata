@@ -38,18 +38,30 @@
   font-size: 14px;
 }
 
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .add-payment-btn {
-  padding: 6px 8px;
+  padding: 0;
+  width: 40px;
+  height: 40px;
   border: none;
   border-radius: 10px;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .add-payment-btn:hover {
@@ -64,48 +76,11 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
+  font-size: 20px;
 }
 
 .add-payment-btn .btn-label {
-  display: inline-block;
-  margin-left: 10px;
-}
-
-/* Mobile (≤600px): collapse header action buttons to icon-only squares.
-   Labels are hidden but kept in the DOM for screen readers; the visual
-   tooltip comes from the button's `title` attribute. */
-@media (max-width: 600px) {
-  .add-payment-btn {
-    padding: 0;
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    font-size: 16px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .add-payment-btn .btn-label {
-    display: none;
-  }
-
-  .add-payment-btn .btn-icon {
-    margin: 0;
-    font-size: 16px;
-  }
-
-  .main-tab {
-    padding: 10px 12px;
-    min-width: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .main-tab .tab-label {
-    display: none;
-  }
+  display: none;
 }
 
 /* Error Message */

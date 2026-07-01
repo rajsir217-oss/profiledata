@@ -462,12 +462,10 @@ const ContributionManagement = () => {
           <h1>💝 Contribution Management</h1>
           <p>View and manage all contributions</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {/* Each header action wraps its text label in `.btn-label`. On
-              mobile (≤600px) the label is hidden via CSS so the button shrinks
-              to an icon-only square — the `title` attr keeps it accessible. */}
+        <div className="header-actions">
           <button
             className="add-payment-btn"
+            type="button"
             onClick={() => navigate('/admin/recurring-contributions')}
             style={{
               background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)'
@@ -475,10 +473,10 @@ const ContributionManagement = () => {
             title="Manage recurring contributions"
           >
             <span className="btn-icon">♻️</span>
-            <span className="btn-label">Recurring</span>
           </button>
           <button
             className="add-payment-btn"
+            type="button"
             onClick={handleExportCSV}
             disabled={isExporting}
             title={isExporting ? 'Exporting…' : 'Export contributions to CSV'}
@@ -488,15 +486,14 @@ const ContributionManagement = () => {
             }}
           >
             <span className="btn-icon">{isExporting ? '⏳' : '📥'}</span>
-            <span className="btn-label">{isExporting ? 'Exporting...' : 'Export'}</span>
           </button>
           <button
             className="add-payment-btn"
+            type="button"
             onClick={() => setShowAddPaymentModal(true)}
             title="Add manual payment"
           >
             <span className="btn-icon">+</span>
-            <span className="btn-label">Add Payment</span>
           </button>
         </div>
       </div>
