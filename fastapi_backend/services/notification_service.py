@@ -31,6 +31,13 @@ COMPLIANCE_ENFORCEMENT_TRIGGERS = {
     NotificationTrigger.MISSING_PHOTO_SUSPENDED,
 }
 
+ACTIVITY_EMAIL_SMS_DISABLED_TRIGGERS = {
+    NotificationTrigger.PROFILE_VIEW,
+    NotificationTrigger.FAVORITED,
+    NotificationTrigger.PROFILE_VISIBILITY_SPIKE,
+    NotificationTrigger.SEARCH_APPEARANCE,
+}
+
 
 class NotificationService:
     """Service for managing notifications"""
@@ -79,8 +86,8 @@ class NotificationService:
                 # Matches - EMAIL only by default; users opt-in to push/sms via settings
                 NotificationTrigger.NEW_MATCH: [NotificationChannel.EMAIL],
                 NotificationTrigger.MUTUAL_FAVORITE: [NotificationChannel.EMAIL],
-                NotificationTrigger.FAVORITED: [NotificationChannel.EMAIL],
                 NotificationTrigger.SHORTLIST_ADDED: [NotificationChannel.EMAIL],
+                NotificationTrigger.FAVORITED: [],
                 
                 # Messages - EMAIL only by default
                 NotificationTrigger.NEW_MESSAGE: [NotificationChannel.EMAIL],
@@ -88,8 +95,10 @@ class NotificationService:
                 NotificationTrigger.UNREAD_MESSAGES: [NotificationChannel.EMAIL],
                 NotificationTrigger.CONVERSATION_COLD: [NotificationChannel.EMAIL],
                 
-                # Profile Activity - EMAIL only by default
-                NotificationTrigger.PROFILE_VIEW: [NotificationChannel.EMAIL],
+                # Profile Activity - email/sms disabled by default
+                NotificationTrigger.PROFILE_VIEW: [],
+                NotificationTrigger.PROFILE_VISIBILITY_SPIKE: [],
+                NotificationTrigger.SEARCH_APPEARANCE: [],
                 
                 # PII/Privacy - EMAIL only by default
                 NotificationTrigger.PII_REQUEST: [NotificationChannel.EMAIL],
@@ -178,6 +187,22 @@ class NotificationService:
 
             if existing != desired:
                 normalized_channels[trigger_key] = desired
+                needs_update = True
+
+        for trigger in ACTIVITY_EMAIL_SMS_DISABLED_TRIGGERS:
+            trigger_key = trigger.value
+            existing = normalized_channels.get(trigger_key)
+            if existing is None:
+                normalized_channels[trigger_key] = []
+                needs_update = True
+                continue
+
+            filtered = [
+                channel for channel in existing
+                if channel not in (NotificationChannel.EMAIL.value, NotificationChannel.SMS.value)
+            ]
+            if filtered != existing:
+                normalized_channels[trigger_key] = filtered
                 needs_update = True
 
         if needs_update:
@@ -840,7 +865,6 @@ class NotificationService:
         default_enabled_triggers = [
             NotificationTrigger.SAVED_SEARCH_MATCHES,
             NotificationTrigger.NEW_MATCH,
-            NotificationTrigger.FAVORITED,
             NotificationTrigger.SHORTLIST_ADDED,
             NotificationTrigger.PII_REQUEST,
             NotificationTrigger.PII_GRANTED,
@@ -852,11 +876,12 @@ class NotificationService:
         
         # Handle both enum keys and string keys (MongoDB stores as strings due to use_enum_values=True)
         trigger_value = trigger.value if hasattr(trigger, 'value') else trigger
+        has_explicit_preference = trigger in prefs.channels or trigger_value in prefs.channels
         user_channels = prefs.channels.get(trigger, []) or prefs.channels.get(trigger_value, [])
         
         # If user has no preference set for this trigger and it's a default-enabled one,
         # allow it (default to email channel)
-        if not user_channels and trigger in default_enabled_triggers:
+        if not user_channels and not has_explicit_preference and trigger in default_enabled_triggers:
             # Default to allowing email for these triggers
             # Handle both enum and string comparison
             email_value = NotificationChannel.EMAIL.value if hasattr(NotificationChannel.EMAIL, 'value') else NotificationChannel.EMAIL
