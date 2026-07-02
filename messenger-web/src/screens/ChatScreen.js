@@ -304,6 +304,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   const [retentionHours, setRetentionHours] = useState(null);
   const [showRetentionModal, setShowRetentionModal] = useState(false);
   const [savingRetention, setSavingRetention] = useState(false);
+  const [portalMembersCount, setPortalMembersCount] = useState(null);
   // Derived from the reactive `user` from useAuthStore so role changes
   // (re-login, role promotion) flip the UI without a full reload.
   const isAdminOrModerator = user?.role === 'admin' || user?.role === 'moderator';
@@ -318,6 +319,40 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
   const headerDisplayName = isPortalMembersTopic ? membersGroupTitle : name;
   const isComposerRestrictedTopic = isL3v3lAgentTopic;
   const canComposeInCurrentTopic = !isComposerRestrictedTopic || isAdminOrModerator;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!isPortalMembersTopic) {
+      setPortalMembersCount(null);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const fetchPortalMembersCount = async () => {
+      try {
+        const api = useAuthStore.getState().getApi();
+        const res = await api.get('/api/users/active-members/count');
+        if (!isMounted) return;
+        const count = typeof res.data?.activeCount === 'number' ? res.data.activeCount : null;
+        setPortalMembersCount(count);
+      } catch (e) {
+        if (isMounted) {
+          setPortalMembersCount(null);
+        }
+        console.warn('⚠️ Failed to load portal members count:', e?.message || e);
+      }
+    };
+
+    fetchPortalMembersCount();
+    const interval = setInterval(fetchPortalMembersCount, 5 * 60 * 1000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isPortalMembersTopic]);
   const canUsePublicRecipientFlow = isL3v3lAgentTopic && isAdminOrModerator;
   // Clear chat
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -1013,11 +1048,20 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerInfo}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {profile && (profile.firstName || profile.lastName)
-              ? `${profile.firstName} ${profile.lastName}`.trim()
-              : headerDisplayName}
-          </Text>
+          <View style={styles.headerTitleRow}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {profile && (profile.firstName || profile.lastName)
+                ? `${profile.firstName} ${profile.lastName}`.trim()
+                : headerDisplayName}
+            </Text>
+            {isPortalMembersTopic && typeof portalMembersCount === 'number' && (
+              <View style={styles.headerCountBadge}>
+                <Text style={styles.headerCountText}>
+                  {portalMembersCount > 999 ? '999+' : portalMembersCount}
+                </Text>
+              </View>
+            )}
+          </View>
           {isGroup ? (
             <Text style={styles.headerSubtitle}>Group Chat</Text>
           ) : username && typeof isOnline === 'function' ? (
@@ -1731,7 +1775,26 @@ const styles = StyleSheet.create({
   backButton: { padding: 3, marginRight: 4 },
   backButtonText: { fontSize: 12, color: '#e94560' },
   headerInfo: { flex: 1, flexDirection: 'column', marginLeft: 4 },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
   headerTitle: { fontSize: 12, fontWeight: 'bold', color: '#fff' },
+  headerCountBadge: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    minWidth: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCountText: {
+    color: '#f5f5ff',
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
   headerMeta: { fontSize: 8, color: '#888', marginTop: 1 },
   headerSubtitle: { fontSize: 9, color: '#888' },
   headerSubtitleOnline: { color: '#22c55e' },
