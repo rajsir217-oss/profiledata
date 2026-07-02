@@ -17,6 +17,9 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
   const [userRole, setUserRole] = useState(null); // User's role
   const [userStatus, setUserStatus] = useState('active'); // Default to active
   const [localIsPinned, setLocalIsPinned] = useState(false); // Local pin state
+  const [memberCount, setMemberCount] = useState(null); // Active member count
+  const [unreadCount, setUnreadCount] = useState(null); // Unread message count
+  const [notificationCount, setNotificationCount] = useState(null); // Pending notification count
   const navigate = useNavigate();
   const { openPopup } = useContribution();
 
@@ -87,6 +90,54 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       window.removeEventListener('storage', checkLoginStatus);
     };
   }, []);
+
+  // Fetch active member count for admin users
+  useEffect(() => {
+    const fetchMemberCount = async () => {
+      try {
+        const response = await api.get('/users/active-count');
+        setMemberCount(response.data.activeCount);
+      } catch (error) {
+        console.error('Error fetching member count:', error);
+      }
+    };
+
+    if (userRole === 'admin') {
+      fetchMemberCount();
+    }
+  }, [userRole]);
+
+  // Fetch unread message count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await api.get('/messages/unread-count');
+        setUnreadCount(response.data.count);
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
+
+    if (isLoggedIn) {
+      fetchUnreadCount();
+    }
+  }, [isLoggedIn]);
+
+  // Fetch pending notification count for admin users
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      try {
+        const response = await api.get('/notifications/pending-count');
+        setNotificationCount(response.data.count);
+      } catch (error) {
+        console.error('Error fetching notification count:', error);
+      }
+    };
+
+    if (userRole === 'admin' || userRole === 'moderator') {
+      fetchNotificationCount();
+    }
+  }, [userRole]);
 
   const handleLogin = () => {
     navigate('/login');
@@ -189,12 +240,13 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         action: () => navigate('/search'),
         disabled: !isActive
       },
-      { 
-        icon: '💬', 
-        label: 'My Messages', 
+      {
+        icon: '💬',
+        label: 'My Messages',
         subLabel: 'Chat with matches',
         action: () => navigate('/messages'),
-        disabled: !isActive
+        disabled: !isActive,
+        badge: unreadCount
       },
       { 
         icon: '🔒', 
@@ -253,7 +305,8 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         icon: '👥',
         label: 'Member Roles',
         subLabel: 'Users & permissions',
-        action: () => navigate('/member-roles')
+        action: () => navigate('/member-roles'),
+        badge: memberCount
       });
       
       // === MONITORING & AUTOMATION ===
@@ -263,7 +316,8 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         icon: '🤖',
         label: 'Automation',
         subLabel: 'Scheduler & notifications',
-        action: () => navigate('/automation')
+        action: () => navigate('/automation'),
+        badge: notificationCount
       });
 
       // === UTILITIES ===
@@ -294,7 +348,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       });
       
       items.push({
-        icon: '🧭',
+        icon: '🏛️',
         label: 'Admin Hub',
         subLabel: 'Contributions, reports, utilities, marketing, blog & tests',
         action: () => navigate('/admin-hub?section=contributions')
@@ -455,9 +509,13 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
                         {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}
                       </div>
                     )}
+                    {item.badge && <span className="menu-badge">{item.badge}</span>}
                   </div>
                 ) : (
-                  <div className="menu-icon">{item.icon}</div>
+                  <div className="menu-icon">
+                    {item.icon}
+                    {item.badge && <span className="menu-badge">{item.badge}</span>}
+                  </div>
                 )}
                 {expanded && (
                   <div className="menu-content">
