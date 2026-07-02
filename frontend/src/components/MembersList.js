@@ -82,7 +82,10 @@ const MembersList = () => {
   return (
     <div className="members-list">
       <div className="members-list-header">
-        <h2>Members</h2>
+        <h2>
+          L3V3L Members
+          <span className="members-pill">{total}</span>
+        </h2>
         <span className="members-count">{total} total transactions</span>
       </div>
 

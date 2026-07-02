@@ -1210,6 +1210,11 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           activeOpacity={0.7}
         >
           <Text style={styles.topNavIcon}>🦋</Text>
+          {activeMembersCount > 0 && (
+            <View style={styles.topNavBadge}>
+              <Text style={styles.topNavBadgeText}>{activeMembersCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
