@@ -11,6 +11,7 @@ from datetime import datetime, date, timedelta
 from enum import Enum
 
 from bson import ObjectId
+from pymongo import ReturnDocument
 
 from config import settings
 from redis_manager import get_redis_manager
@@ -1647,39 +1648,68 @@ class EventDispatcher:
             meaningful_fields = []
 
         try:
-            user = await self.db.users.find_one(
-                {"username": actor},
-                {"accountStatus": 1, "portalProfileUpdateCardPostedAt": 1},
-            )
-            if not user or user.get("accountStatus") != "active":
-                logger.info(f"📝 Profile updated skipped for {actor}: account not active")
-                return
-
             cooldown_minutes = self.PROFILE_UPDATED_PORTAL_CARD_COOLDOWN_MINUTES
-            last_posted_at = user.get("portalProfileUpdateCardPostedAt")
-            if isinstance(last_posted_at, str):
-                try:
-                    last_posted_at = datetime.fromisoformat(last_posted_at.replace("Z", "+00:00"))
-                except Exception:
-                    last_posted_at = None
+            now = datetime.utcnow()
 
-            if isinstance(last_posted_at, datetime) and cooldown_minutes > 0:
-                if (datetime.utcnow() - last_posted_at).total_seconds() < cooldown_minutes * 60:
+            query: Dict[str, Any] = {
+                "username": actor,
+                "accountStatus": "active",
+            }
+
+            if cooldown_minutes > 0:
+                cutoff = now - timedelta(minutes=cooldown_minutes)
+                query["$or"] = [
+                    {"portalProfileUpdateCardPostedAt": {"$exists": False}},
+                    {"portalProfileUpdateCardPostedAt": None},
+                    {"portalProfileUpdateCardPostedAt": {"$type": "string"}},
+                    {"portalProfileUpdateCardPostedAt": {"$lte": cutoff}},
+                ]
+
+            previous_gate_state = await self.db.users.find_one_and_update(
+                query,
+                {"$set": {"portalProfileUpdateCardPostedAt": now}},
+                projection={"portalProfileUpdateCardPostedAt": 1},
+                return_document=ReturnDocument.BEFORE,
+            )
+
+            if not previous_gate_state:
+                # Determine skip reason for logging clarity
+                existing = await self.db.users.find_one(
+                    {"username": actor},
+                    {"accountStatus": 1, "portalProfileUpdateCardPostedAt": 1},
+                )
+                if not existing or existing.get("accountStatus") != "active":
+                    logger.info(f"📝 Profile updated skipped for {actor}: account not active")
+                elif cooldown_minutes > 0:
                     logger.info(
                         f"📝 Profile updated skipped for {actor}: within {cooldown_minutes}m cooldown"
                     )
-                    return
+                else:
+                    logger.info(f"📝 Profile updated skipped for {actor}: gate condition not met")
+                return
 
-            await self._post_activation_intro_to_portal_members(
-                actor,
-                intro_type="updated",
-                updated_fields=meaningful_fields,
-            )
-            await self.db.users.update_one(
-                {"username": actor},
-                {"$set": {"portalProfileUpdateCardPostedAt": datetime.utcnow()}},
-            )
-            logger.info(f"✅ Posted updated profile card in Portal Members for {actor}")
+            previous_timestamp = previous_gate_state.get("portalProfileUpdateCardPostedAt")
+
+            try:
+                await self._post_activation_intro_to_portal_members(
+                    actor,
+                    intro_type="updated",
+                    updated_fields=meaningful_fields,
+                )
+                logger.info(f"✅ Posted updated profile card in Portal Members for {actor}")
+            except Exception:
+                # Restore gate timestamp so a retry can happen if posting fails
+                if previous_timestamp:
+                    await self.db.users.update_one(
+                        {"username": actor},
+                        {"$set": {"portalProfileUpdateCardPostedAt": previous_timestamp}},
+                    )
+                else:
+                    await self.db.users.update_one(
+                        {"username": actor},
+                        {"$unset": {"portalProfileUpdateCardPostedAt": ""}},
+                    )
+                raise
         except Exception as e:
             logger.error(f"❌ Error handling profile_updated for {actor}: {e}", exc_info=True)
     
