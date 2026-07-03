@@ -6,7 +6,6 @@ import messengerSocket from '@messenger/services/socketService';
 import { API_BASE_URL } from '@messenger/config/api';
 import { getMainAppUrl } from '../config/apiConfig';
 import { openExternalUrl } from '../utils/openExternalUrl';
-import weddingImage from '../../web/images/wedding.png';
 
 // Quick Messages catalog. Only "introduction" is shipped today; future
 // categories (interest, more-info, next-steps, follow-up, decline) will be
@@ -274,42 +273,6 @@ const EMPTY_MESSAGES = [];
 export default function ChatScreen({ id, name, isGroup, isLegacy, profile, username, isOnline, onBack, onOpenDirectChat }) {
   const { user } = useAuthStore();
 
-  // Set background image on web via DOM manipulation
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      const applyBackground = () => {
-        // Target the chat window container - match both dev (css-view-175oi2r) and prod (css-175oi2r)
-        const elements = document.querySelectorAll('[class*="css-175oi2r"]');
-        elements.forEach(el => {
-          const classes = el.className;
-          // Check if this is the chat window - match both dev (with prefixes) and prod (minified)
-          // Dev: r-flex-13awgt0 + r-flexShrink-1wbh5a2 + r-minHeight-ifefl9
-          // Prod: r-13awgt0 + r-1wbh5a2 + r-ifefl9
-          const isChatWindow = (classes.includes('r-13awgt0') && classes.includes('r-1wbh5a2') && classes.includes('r-ifefl9')) ||
-                               (classes.includes('r-flex-13awgt0') && classes.includes('r-flexShrink-1wbh5a2') && classes.includes('r-minHeight-ifefl9'));
-          // Check if this is the inner content wrapper
-          // Dev: r-flexGrow-16y2uox + r-padding-nsbfu8
-          // Prod: r-16y2uox + r-nsbfu8
-          const isContentWrapper = (classes.includes('r-16y2uox') && classes.includes('r-nsbfu8')) ||
-                                    (classes.includes('r-flexGrow-16y2uox') && classes.includes('r-padding-nsbfu8'));
-
-          if (isChatWindow || isContentWrapper) {
-            el.style.setProperty('background-image', `url(${weddingImage})`, 'important');
-            el.style.setProperty('background-size', 'cover', 'important');
-            el.style.setProperty('background-position', 'center', 'important');
-            el.style.setProperty('background-repeat', 'no-repeat', 'important');
-          }
-        });
-      };
-
-      // Apply immediately and on DOM updates
-      applyBackground();
-      const observer = new MutationObserver(applyBackground);
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      return () => observer.disconnect();
-    }
-  }, []);
   const storeMessages = useMessengerStore((state) => (id ? (state.messages[id] ?? EMPTY_MESSAGES) : EMPTY_MESSAGES));
   const fetchStoreMessages = useMessengerStore((state) => state.fetchMessages);
   const fetchStoreMessagesAfter = useMessengerStore((state) => state.fetchMessagesAfter);

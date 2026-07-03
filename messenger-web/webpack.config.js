@@ -2,6 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const fs = require('fs');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const MESSENGER_SRC = path.resolve(__dirname, '../messenger/src');
 
@@ -112,7 +113,15 @@ module.exports = (env, argv) => {
     }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'web/index.html'),
-      favicon: path.resolve(__dirname, 'web/favicon.svg'),
+      favicon: path.resolve(__dirname, 'web/favicon.png'),
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: path.resolve(__dirname, 'web/images'),
+          to: path.resolve(__dirname, 'dist/images'),
+        },
+      ],
     }),
   ],
   devServer: {
