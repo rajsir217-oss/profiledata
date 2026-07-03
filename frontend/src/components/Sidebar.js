@@ -17,9 +17,7 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
   const [userRole, setUserRole] = useState(null); // User's role
   const [userStatus, setUserStatus] = useState('active'); // Default to active
   const [localIsPinned, setLocalIsPinned] = useState(false); // Local pin state
-  const [memberCount, setMemberCount] = useState(null); // Active member count
   const [unreadCount, setUnreadCount] = useState(null); // Unread message count
-  const [notificationCount, setNotificationCount] = useState(null); // Pending notification count
   const navigate = useNavigate();
   const { openPopup } = useContribution();
 
@@ -91,27 +89,12 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
     };
   }, []);
 
-  // Fetch active member count for admin users
-  useEffect(() => {
-    const fetchMemberCount = async () => {
-      try {
-        const response = await api.get('/users/active-count');
-        setMemberCount(response.data.activeCount);
-      } catch (error) {
-        console.error('Error fetching member count:', error);
-      }
-    };
-
-    if (userRole === 'admin') {
-      fetchMemberCount();
-    }
-  }, [userRole]);
-
   // Fetch unread message count
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
-        const response = await api.get('/messages/unread-count');
+        const username = localStorage.getItem('username');
+        const response = await api.get(`/messages/unread-count/${username}`);
         setUnreadCount(response.data.count);
       } catch (error) {
         console.error('Error fetching unread count:', error);
@@ -122,22 +105,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
       fetchUnreadCount();
     }
   }, [isLoggedIn]);
-
-  // Fetch pending notification count for admin users
-  useEffect(() => {
-    const fetchNotificationCount = async () => {
-      try {
-        const response = await api.get('/notifications/pending-count');
-        setNotificationCount(response.data.count);
-      } catch (error) {
-        console.error('Error fetching notification count:', error);
-      }
-    };
-
-    if (userRole === 'admin' || userRole === 'moderator') {
-      fetchNotificationCount();
-    }
-  }, [userRole]);
 
   const handleLogin = () => {
     navigate('/login');
@@ -300,25 +267,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         subLabel: 'Manage all users',
         action: () => navigate('/admin')
       });
-      
-      items.push({
-        icon: '👥',
-        label: 'Member Roles',
-        subLabel: 'Users & permissions',
-        action: () => navigate('/member-roles'),
-        badge: memberCount
-      });
-      
-      // === MONITORING & AUTOMATION ===
-      // items.push({ isHeader: true, label: 'MONITORING & AUTOMATION' });
-      
-      items.push({
-        icon: '🤖',
-        label: 'Automation',
-        subLabel: 'Scheduler & notifications',
-        action: () => navigate('/automation'),
-        badge: notificationCount
-      });
 
       // === UTILITIES ===
       // items.push({ isHeader: true, label: 'UTILITIES' });
@@ -351,7 +299,8 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         icon: '🏛️',
         label: 'Admin Hub',
         subLabel: 'Contributions, reports, utilities, marketing, blog & tests',
-        action: () => navigate('/admin-hub?section=contributions')
+        action: () => navigate('/admin-hub?section=contributions'),
+        divider: true
       });
       // === CONFIGURATION ===
       // items.push({ isHeader: true, label: 'CONFIGURATION' });
@@ -494,12 +443,13 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
             }
 
             return (
-              <div 
-                key={index} 
-                className={`menu-item ${item.isHeader ? 'menu-header' : ''} ${item.disabled ? 'disabled' : ''}`}
-                onClick={item.disabled ? undefined : () => handleMenuClick(item.action)}
-                title={isCollapsed ? item.label : (item.disabled ? 'Please activate your account to access this feature' : '')}
-              >
+              <React.Fragment key={index}>
+                {item.divider && <div className="menu-divider" />}
+                <div
+                  className={`menu-item ${item.isHeader ? 'menu-header' : ''} ${item.disabled ? 'disabled' : ''}`}
+                  onClick={item.disabled ? undefined : () => handleMenuClick(item.action)}
+                  title={isCollapsed ? item.label : (item.disabled ? 'Please activate your account to access this feature' : '')}
+                >
                 {item.profileImage ? (
                   <div className="menu-icon profile-icon">
                     {getProfilePicUrl(userProfile) ? (
@@ -546,6 +496,8 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
                   <div className="disabled-badge">🔒</div>
                 )}
               </div>
+              {item.divider && <div className="menu-divider" />}
+              </React.Fragment>
             );
           })}
         </div>

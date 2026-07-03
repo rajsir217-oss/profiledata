@@ -825,7 +825,6 @@ const AdminPage = () => {
                   <div className="status-icon">📧</div>
                   <div className="status-info">
                     <strong>Pending Email Verification</strong>
-                    <span>Awaiting email verification</span>
                   </div>
                 </label>
                 
@@ -840,7 +839,6 @@ const AdminPage = () => {
                   <div className="status-icon">⏳</div>
                   <div className="status-info">
                     <strong>Pending Admin Approval</strong>
-                    <span>Email verified, awaiting admin approval</span>
                   </div>
                 </label>
                 
@@ -855,7 +853,6 @@ const AdminPage = () => {
                   <div className="status-icon">✅</div>
                   <div className="status-info">
                     <strong>Active</strong>
-                    <span>Full access to all features</span>
                   </div>
                 </label>
                 
@@ -870,7 +867,6 @@ const AdminPage = () => {
                   <div className="status-icon">⚪</div>
                   <div className="status-info">
                     <strong>Inactive</strong>
-                    <span>Account dormant or on hold</span>
                   </div>
                 </label>
                 
@@ -885,7 +881,6 @@ const AdminPage = () => {
                   <div className="status-icon">⏸️</div>
                   <div className="status-info">
                     <strong>Paused</strong>
-                    <span>User-initiated temporary pause</span>
                   </div>
                 </label>
                 
@@ -900,7 +895,6 @@ const AdminPage = () => {
                   <div className="status-icon">🔒</div>
                   <div className="status-info">
                     <strong>Suspended</strong>
-                    <span>Admin-restricted access</span>
                   </div>
                 </label>
                 
@@ -915,7 +909,6 @@ const AdminPage = () => {
                   <div className="status-icon">🚫</div>
                   <div className="status-info">
                     <strong>Banned</strong>
-                    <span>Permanently blocked from access</span>
                   </div>
                 </label>
               </div>

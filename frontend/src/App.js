@@ -502,25 +502,25 @@ function AppContent() {
               <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
               <Route path="/pii-management" element={<ProtectedRoute><PIIManagement /></ProtectedRoute>} />
               <Route path="/notifications" element={<Navigate to="/preferences" replace />} />
-              {/* Member Roles unified page */}
-              <Route path="/member-roles" element={<ProtectedRoute><MemberRoles /></ProtectedRoute>} />
+              {/* Member Roles unified page - now part of AdminHub */}
+              <Route path="/member-roles" element={<Navigate to="/admin-hub?section=member-roles" replace />} />
               {/* Backward compatibility - redirect old member roles routes to unified page */}
-              <Route path="/user-management" element={<Navigate to="/member-roles?tab=users" replace />} />
-              <Route path="/role-management" element={<Navigate to="/member-roles?tab=roles" replace />} />
+              <Route path="/user-management" element={<Navigate to="/admin-hub?section=member-roles&tab=users" replace />} />
+              <Route path="/role-management" element={<Navigate to="/admin-hub?section=member-roles&tab=roles" replace />} />
               {/* Test Suite moved into Admin Hub */}
               <Route path="/test-suite" element={<ProtectedRoute><LegacyTestSuiteRedirect /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old test routes to unified page */}
               <Route path="/test-dashboard" element={<Navigate to="/admin-hub?section=test-suite&tab=test-dashboard" replace />} />
-              {/* Automation unified page */}
-              <Route path="/automation" element={<ProtectedRoute><Automation /></ProtectedRoute>} />
+              {/* Automation unified page - now part of AdminHub */}
+              <Route path="/automation" element={<Navigate to="/admin-hub?section=automation" replace />} />
               {/* Backward compatibility - redirect old automation routes to unified page */}
-              <Route path="/dynamic-scheduler" element={<Navigate to="/automation?tab=scheduler" replace />} />
+              <Route path="/dynamic-scheduler" element={<Navigate to="/admin-hub?section=automation&tab=scheduler" replace />} />
+              <Route path="/notification-management" element={<Navigate to="/admin-hub?section=automation&tab=notifications" replace />} />
               {/* Admin Utilities unified page */}
               <Route path="/admin-utilities" element={<ProtectedRoute><AdminUtilities /></ProtectedRoute>} />
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/admin-backups" element={<Navigate to="/admin-utilities?tab=backups" replace />} />
               <Route path="/notification-tester" element={<Navigate to="/admin-hub?section=test-suite&tab=notification-tester" replace />} />
-              <Route path="/notification-management" element={<Navigate to="/automation?tab=notifications" replace />} />
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/admin/notification-config" element={<Navigate to="/admin-utilities?tab=notification-config" replace />} />
               <Route path="/email-templates" element={<Navigate to="/admin-utilities?tab=email-templates" replace />} />
