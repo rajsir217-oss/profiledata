@@ -593,7 +593,12 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   if (!isLoggedIn) {
     return (
       <div className={`top-bar ${isOpen ? (isPinned ? 'sidebar-pinned' : 'sidebar-open') : ''}`}>
-        <div className="top-bar-content">
+        <div className="top-bar-content" style={{
+          backgroundImage: 'url(/images/wedding.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}>
           <div className="top-bar-left">
             <button className="sidebar-toggle-btn" onClick={onSidebarToggle} title="Toggle Sidebar">
               ☰
@@ -625,7 +630,12 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
           <span className="violation-count">{violations.violationCount}/3</span>
         </div>
       )}
-      <div className="top-bar-content">
+      <div className="top-bar-content" style={{
+        backgroundImage: 'url(/images/wedding.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}>
         <div className="top-bar-left">
           <button className="sidebar-toggle-btn" onClick={onSidebarToggle} title="Toggle Sidebar">
             ☰

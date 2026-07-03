@@ -272,6 +272,33 @@ const EMPTY_MESSAGES = [];
 
 export default function ChatScreen({ id, name, isGroup, isLegacy, profile, username, isOnline, onBack, onOpenDirectChat }) {
   const { user } = useAuthStore();
+
+  // Set background image on web via DOM manipulation
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const applyBackground = () => {
+        // Target the chat window container
+        const elements = document.querySelectorAll('.css-view-175oi2r');
+        elements.forEach(el => {
+          const classes = el.className;
+          // Check if this is the chat window (flex-13awgt0 + flexShrink-1wbh5a2 + minHeight-ifefl9)
+          if (classes.includes('r-flex-13awgt0') && classes.includes('r-flexShrink-1wbh5a2') && classes.includes('r-minHeight-ifefl9')) {
+            el.style.setProperty('background-image', 'url(/images/wedding.png)', 'important');
+            el.style.setProperty('background-size', 'cover', 'important');
+            el.style.setProperty('background-position', 'center', 'important');
+            el.style.setProperty('background-repeat', 'no-repeat', 'important');
+          }
+        });
+      };
+
+      // Apply immediately and on DOM updates
+      applyBackground();
+      const observer = new MutationObserver(applyBackground);
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      return () => observer.disconnect();
+    }
+  }, []);
   const storeMessages = useMessengerStore((state) => (id ? (state.messages[id] ?? EMPTY_MESSAGES) : EMPTY_MESSAGES));
   const fetchStoreMessages = useMessengerStore((state) => state.fetchMessages);
   const fetchStoreMessagesAfter = useMessengerStore((state) => state.fetchMessagesAfter);
