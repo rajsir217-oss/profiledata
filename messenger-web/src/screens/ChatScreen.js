@@ -6,6 +6,7 @@ import messengerSocket from '@messenger/services/socketService';
 import { API_BASE_URL } from '@messenger/config/api';
 import { getMainAppUrl } from '../config/apiConfig';
 import { openExternalUrl } from '../utils/openExternalUrl';
+import weddingImage from '../images/wedding.png';
 
 // Quick Messages catalog. Only "introduction" is shipped today; future
 // categories (interest, more-info, next-steps, follow-up, decline) will be
@@ -282,8 +283,10 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
         elements.forEach(el => {
           const classes = el.className;
           // Check if this is the chat window (flex-13awgt0 + flexShrink-1wbh5a2 + minHeight-ifefl9)
-          if (classes.includes('r-flex-13awgt0') && classes.includes('r-flexShrink-1wbh5a2') && classes.includes('r-minHeight-ifefl9')) {
-            el.style.setProperty('background-image', 'url(/images/wedding.png)', 'important');
+          // OR the inner content wrapper (flexGrow-16y2uox + padding-nsbfu8)
+          if ((classes.includes('r-flex-13awgt0') && classes.includes('r-flexShrink-1wbh5a2') && classes.includes('r-minHeight-ifefl9')) ||
+              (classes.includes('r-flexGrow-16y2uox') && classes.includes('r-padding-nsbfu8'))) {
+            el.style.setProperty('background-image', `url(${weddingImage})`, 'important');
             el.style.setProperty('background-size', 'cover', 'important');
             el.style.setProperty('background-position', 'center', 'important');
             el.style.setProperty('background-repeat', 'no-repeat', 'important');
