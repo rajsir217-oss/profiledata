@@ -7,6 +7,8 @@ import AdminUtilities from './AdminUtilities';
 import MarketingPricing from './MarketingPricing';
 import BlogManagement from './BlogManagement';
 import TestSuite from './TestSuite';
+import Automation from './Automation';
+import MemberRoles from './MemberRoles';
 import './AdminHub.css';
 
 const SECTION_CONFIG = {
@@ -45,9 +47,19 @@ const SECTION_CONFIG = {
     subtitle: 'Test dashboard and notification tools',
     component: TestSuite,
   },
+  automation: {
+    label: 'Automation',
+    subtitle: 'Scheduler and notification management',
+    component: Automation,
+  },
+  'member-roles': {
+    label: 'Member Roles',
+    subtitle: 'Users and permissions',
+    component: MemberRoles,
+  },
 };
 
-const ADMIN_SECTIONS = ['contributions', 'announcements', 'reports', 'utilities', 'marketing', 'blog', 'test-suite'];
+const ADMIN_SECTIONS = ['contributions', 'announcements', 'reports', 'utilities', 'marketing', 'blog', 'test-suite', 'automation', 'member-roles'];
 
 const AdminHub = () => {
   const navigate = useNavigate();

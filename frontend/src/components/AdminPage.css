@@ -879,17 +879,16 @@
 /* Status Radio Group */
 .status-radio-group {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
   margin-bottom: 20px;
 }
 
 .status-radio-option {
   display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
+  grid-template-columns: auto auto 1fr;
   align-items: center;
-  gap: 4px 10px;
+  gap: 8px 10px;
   padding: 14px 12px;
   border: 2px solid var(--border-color);
   border-radius: 10px;
@@ -911,25 +910,21 @@
 }
 
 .status-radio-option input[type="radio"] {
-  grid-column: 1 / -1;
-  justify-self: center;
+  grid-column: 1;
   width: 18px;
   height: 18px;
-  margin: 4px 0 0 0;
   cursor: pointer;
   accent-color: var(--primary-color);
 }
 
 .status-radio-option .status-icon {
-  grid-row: 1;
-  grid-column: 1;
+  grid-column: 2;
   font-size: 22px;
   text-align: center;
 }
 
 .status-radio-option .status-info {
-  grid-row: 1;
-  grid-column: 2;
+  grid-column: 3;
   display: flex;
   flex-direction: column;
   gap: 2px;
