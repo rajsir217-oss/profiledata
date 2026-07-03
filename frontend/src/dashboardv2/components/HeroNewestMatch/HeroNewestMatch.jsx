@@ -290,7 +290,12 @@ const HeroNewestMatch = ({
 
   return (
     <div className="dv2-hero-card dv2-variant-primary">
-      <div className="dv2-hero-photo" aria-hidden="true">
+      <div
+        className="dv2-hero-photo"
+        aria-hidden="true"
+        onClick={() => window.open(`/profile/${encodeURIComponent(profile.username)}`, '_blank')}
+        style={{ cursor: 'pointer' }}
+      >
         {photo && !photoFailed ? (
           <img className="dv2-hero-img" src={photo} alt="" onError={() => setPhotoFailed(true)} />
         ) : (
