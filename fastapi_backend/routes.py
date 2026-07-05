@@ -14,6 +14,7 @@ import httpx
 from pathlib import Path
 from urllib.parse import urlparse
 from sse_starlette.sse import EventSourceResponse
+from routers.registration_interest import _lookup_location_from_ip
 from models import (
     UserCreate, UserResponse, LoginRequest, Token,
     Favorite, Shortlist, Exclusion, Message, MessageCreate,
@@ -2034,7 +2035,7 @@ async def get_user_activity_summary(
 
     user = await db.users.find_one(
         {"username": username},
-        {"status": 1, "createdAt": 1, "lastLogin": 1, "security.last_login_at": 1, "accountStatus": 1, "profileCompletionPercentage": 1}
+        {"status": 1, "createdAt": 1, "lastLogin": 1, "security.last_login_at": 1, "security.last_login_ip": 1, "accountStatus": 1, "profileCompletionPercentage": 1}
     )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -2074,6 +2075,21 @@ async def get_user_activity_summary(
         _to_naive(log_last_login)
     ] if c is not None]
     best_last_login = max(candidates) if candidates else None
+
+    # Get last login location from IP
+    last_login_ip = user.get("security", {}).get("last_login_ip")
+    last_login_location = None
+    if last_login_ip:
+        location_data = await _lookup_location_from_ip(last_login_ip)
+        if location_data:
+            parts = []
+            if location_data.get("city"):
+                parts.append(location_data["city"])
+            if location_data.get("region"):
+                parts.append(location_data["region"])
+            if location_data.get("country"):
+                parts.append(location_data["country"])
+            last_login_location = ", ".join(parts) if parts else None
 
     # --- 2. PII Requests ---
     pii_sent_count = await db.pii_requests.count_documents({"requesterUsername": username})
@@ -2212,6 +2228,7 @@ async def get_user_activity_summary(
         "authentication": {
             "lastSeen": ts(last_seen),
             "lastLogin": ts(best_last_login),
+            "lastLoginLocation": last_login_location,
         },
         "piiRequests": {
             "sentCount": pii_sent_count,

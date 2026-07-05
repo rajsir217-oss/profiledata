@@ -7,7 +7,7 @@ import './ContributionPopup.css';
 const MEMBER_STATS_CACHE_TTL_MS = 10 * 60 * 1000;
 
 const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
-  const [selectedAmount, setSelectedAmount] = useState(25); // Default to $25
+  const [selectedAmount, setSelectedAmount] = useState(50); // Default to $50
   const [customAmount, setCustomAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,7 +16,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [paypalKey, setPaypalKey] = useState(0);
   const paypalContainerRef = useRef(null);
   const paypalScriptLoaded = useRef(false);
-  const amountRef = useRef(25);
+  const amountRef = useRef(50);
   const paypalInitialized = useRef(false);
   const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'paypal', 'venmo-qr', 'paypal-qr', 'clover'
   const [cloverLoading, setCloverLoading] = useState(false);
@@ -540,19 +540,9 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   return (
     <div className="contribution-popup-overlay" onClick={handleDismiss} style={{ display: isOpen ? 'flex' : 'none' }}>
       <div className="contribution-popup" onClick={(e) => e.stopPropagation()}>
-        <div className="contribution-popup-header">
-          <button 
-            className="contribution-popup-close" 
-            onClick={handleDismiss}
-            disabled={loading}
-          >
-            ✕
-          </button>
-        </div>
-
         <div className="contribution-popup-body">
           <p className="contribution-message">
-            Your support helps and enourage our team to continuously improving the platform for everyone.
+            YOUR SUPPORT HELPS AND ENCOURAGE OUR TEAM TO CONTINUOUSLY IMPROVING THE L3V3L MATCHES PLATFORM FOR EVERYONE.
           </p>
 
           <section className="contribution-member-stats" aria-label="Your member value stats">
