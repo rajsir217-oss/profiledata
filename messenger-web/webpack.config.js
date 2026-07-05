@@ -121,6 +121,10 @@ module.exports = (env, argv) => {
           from: path.resolve(__dirname, 'web/images'),
           to: path.resolve(__dirname, 'dist/images'),
         },
+        {
+          from: path.resolve(__dirname, 'web/favicon.png'),
+          to: path.resolve(__dirname, 'dist/favicon.png'),
+        },
       ],
     }),
   ],

@@ -172,6 +172,10 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
                 <span className="activity-label">Last Seen</span>
                 <span className="activity-value">{formatDate(d.authentication?.lastSeen)}</span>
               </div>
+              <div className="activity-item">
+                <span className="activity-label">Last Login Location</span>
+                <span className="activity-value">{d.authentication?.lastLoginLocation || '—'}</span>
+              </div>
             </div>
           </div>
 
