@@ -83,36 +83,51 @@ class NotificationService:
         default_prefs = NotificationPreferences(
             username=username,
             channels={
-                # Matches - EMAIL only by default; users opt-in to push/sms via settings
-                NotificationTrigger.NEW_MATCH: [NotificationChannel.EMAIL],
-                NotificationTrigger.MUTUAL_FAVORITE: [NotificationChannel.EMAIL],
-                NotificationTrigger.SHORTLIST_ADDED: [NotificationChannel.EMAIL],
+                # Matches - disabled by default
+                NotificationTrigger.NEW_MATCH: [],
+                NotificationTrigger.MUTUAL_FAVORITE: [],
+                NotificationTrigger.SHORTLIST_ADDED: [],
                 NotificationTrigger.FAVORITED: [],
-                
-                # Messages - EMAIL only by default
-                NotificationTrigger.NEW_MESSAGE: [NotificationChannel.EMAIL],
-                NotificationTrigger.MESSAGE_READ: [NotificationChannel.EMAIL],
-                NotificationTrigger.UNREAD_MESSAGES: [NotificationChannel.EMAIL],
-                NotificationTrigger.CONVERSATION_COLD: [NotificationChannel.EMAIL],
-                
-                # Profile Activity - email/sms disabled by default
+
+                # Messages - disabled by default
+                NotificationTrigger.NEW_MESSAGE: [],
+                NotificationTrigger.MESSAGE_READ: [],
+                NotificationTrigger.UNREAD_MESSAGES: [],
+                NotificationTrigger.CONVERSATION_COLD: [],
+
+                # Profile Activity - disabled by default
                 NotificationTrigger.PROFILE_VIEW: [],
                 NotificationTrigger.PROFILE_VISIBILITY_SPIKE: [],
                 NotificationTrigger.SEARCH_APPEARANCE: [],
-                
-                # PII/Privacy - EMAIL only by default
-                NotificationTrigger.PII_REQUEST: [NotificationChannel.EMAIL],
+
+                # PII/Privacy - only pending request reminder enabled
+                NotificationTrigger.PII_REQUEST: [],
                 NotificationTrigger.PENDING_PII_REQUEST: [NotificationChannel.EMAIL],
-                NotificationTrigger.PII_GRANTED: [NotificationChannel.EMAIL],
-                NotificationTrigger.PII_DENIED: [NotificationChannel.EMAIL],
-                NotificationTrigger.PII_REVOKED: [NotificationChannel.EMAIL],
-                NotificationTrigger.SUSPICIOUS_LOGIN: [NotificationChannel.EMAIL],
-                
-                # Polls
+                NotificationTrigger.PII_GRANTED: [],
+                NotificationTrigger.PII_DENIED: [],
+                NotificationTrigger.PII_REVOKED: [],
+                NotificationTrigger.SUSPICIOUS_LOGIN: [],
+                NotificationTrigger.PII_EXPIRING: [],
+
+                # Polls - poll reminder enabled
                 NotificationTrigger.POLL_REMINDER: [NotificationChannel.EMAIL],
-                # Profile compliance
+
+                # Profile compliance - enabled
                 NotificationTrigger.MISSING_PHOTO_WARNING: [NotificationChannel.EMAIL],
                 NotificationTrigger.MISSING_PHOTO_SUSPENDED: [NotificationChannel.EMAIL],
+
+                # Engagement - disabled by default
+                NotificationTrigger.NEW_USERS_MATCHING: [],
+                NotificationTrigger.PROFILE_INCOMPLETE: [],
+                NotificationTrigger.UPLOAD_PHOTOS: [],
+
+                # Digests - only monthly digest enabled
+                NotificationTrigger.DAILY_DIGEST: [],
+                NotificationTrigger.WEEKLY_DIGEST: [],
+                NotificationTrigger.MONTHLY_DIGEST: [NotificationChannel.EMAIL],
+
+                # Saved search matches - enabled
+                NotificationTrigger.SAVED_SEARCH_MATCHES: [NotificationChannel.EMAIL],
             },
             frequency={
                 "instant": [NotificationTrigger.SUSPICIOUS_LOGIN],  # Only security alerts are instant
