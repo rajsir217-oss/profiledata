@@ -19,6 +19,7 @@ const SaveSearchModal = ({
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [activeTab, setActiveTab] = useState('save'); // 'save' or 'manage'
+  const [isSaving, setIsSaving] = useState(false);
   const toast = useToast();
 
   // Notification schedule state
@@ -31,102 +32,93 @@ const SaveSearchModal = ({
   // When editingScheduleFor is set, pre-populate notification fields
   useEffect(() => {
     if (editingScheduleFor && show) {
-      // Auto-generate corrected name from saved criteria
+      // Auto-generate corrected name from saved criteria using readable format with field labels
       const criteria = editingScheduleFor.criteria || {};
       const score = editingScheduleFor.minMatchScore || 0;
       const parts = [];
-      
+
       // Gender
-      const gender = criteria.gender ? criteria.gender.charAt(0).toUpperCase() : '';
-      parts.push(gender);
-      
+      if (criteria.gender) {
+        const genderLabel = criteria.gender.charAt(0).toUpperCase() + criteria.gender.slice(1).toLowerCase();
+        parts.push(genderLabel);
+      }
+
       // Age range
-      const ageMin = criteria.ageMin || '';
-      const ageMax = criteria.ageMax || '';
-      const ageRange = ageMin && ageMax ? `${ageMin}-${ageMax}` : (ageMin || ageMax || '');
-      parts.push(ageRange);
-      
+      const ageMin = criteria.ageMin;
+      const ageMax = criteria.ageMax;
+      if (ageMin && ageMax) {
+        parts.push(`age ${ageMin}-${ageMax}`);
+      } else if (ageMin) {
+        parts.push(`age ${ageMin}+`);
+      } else if (ageMax) {
+        parts.push(`age up to ${ageMax}`);
+      }
+
       // Height range
-      let heightRange = '';
       if (criteria.heightMinFeet && criteria.heightMaxFeet) {
         const minFt = criteria.heightMinFeet;
         const minIn = criteria.heightMinInches || 0;
         const maxFt = criteria.heightMaxFeet;
         const maxIn = criteria.heightMaxInches || 0;
-        heightRange = `${minFt}'${minIn}-${maxFt}'${maxIn}`;
+        parts.push(`height ${minFt}'${minIn}"-${maxFt}'${maxIn}"`);
       } else if (criteria.heightMinFeet) {
         const minFt = criteria.heightMinFeet;
         const minIn = criteria.heightMinInches || 0;
-        heightRange = `${minFt}'${minIn}+`;
+        parts.push(`height ${minFt}'${minIn}"+`);
       } else if (criteria.heightMaxFeet) {
         const maxFt = criteria.heightMaxFeet;
         const maxIn = criteria.heightMaxInches || 0;
-        heightRange = `<${maxFt}'${maxIn}`;
+        parts.push(`height under ${maxFt}'${maxIn}"`);
       }
-      parts.push(heightRange);
-      
-      // Location filter (handle both single and multi-select formats)
+
+      // Location filter
       let locationText = '';
       if (criteria.locations && criteria.locations.length > 0) {
         if (criteria.locations.length === 1) {
-          // For single location, use city name only (remove state for brevity)
           const location = criteria.locations[0];
           locationText = location.includes(',') ? location.split(',')[0].trim() : location;
         } else {
-          // Multiple locations: loc(3)
-          // Single location: Nashville
-          locationText = `loc (${criteria.locations.length})`;
+          locationText = `${criteria.locations.length} locations`;
         }
-        logger.info(`📍 Location found in criteria: ${JSON.stringify(criteria.locations)}, locationText: ${locationText}`);
       } else if (criteria.location) {
-        // Backward compatibility for single location
         const location = criteria.location;
         locationText = location.includes(',') ? location.split(',')[0].trim() : location;
-        logger.info(`📍 Legacy location found: ${criteria.location}, locationText: ${locationText}`);
-      } else {
-        logger.info(`📍 No location found in criteria, locations: ${criteria.locations}, location: ${criteria.location}`);
       }
-      // Always push location part to maintain format (empty string if no location)
-      parts.push(locationText);
-      
+      if (locationText) {
+        parts.push(locationText);
+      }
+
       // Occupation filter
-      const occupation = criteria.occupation || criteria.occupations || '';
       let occupationText = '';
       if (criteria.occupations && criteria.occupations.length > 0) {
         if (criteria.occupations.length === 1) {
           occupationText = criteria.occupations[0];
         } else {
-          // Multiple occupations: occ(3)  
-          // Single occupation: Software Engineer
-          occupationText = `occ (${criteria.occupations.length})`;
+          occupationText = `${criteria.occupations.length} occupations`;
         }
-      } else if (occupation) {
-        occupationText = occupation.includes(',') ? occupation.split(',')[0].trim() : occupation;
+      } else if (criteria.occupation) {
+        occupationText = criteria.occupation.includes(',') ? criteria.occupation.split(',')[0].trim() : criteria.occupation;
       }
-      parts.push(occupationText);
-      
+      if (occupationText) {
+        parts.push(occupationText);
+      }
+
       // Days back filter
-      const daysBack = criteria.daysBack || '';
-      parts.push(daysBack ? `${daysBack}d` : '');
-      
-      // L3V3L Score
-      parts.push(score.toString());
-      
-      // Keep existing unique number or generate new one
-      const currentName = editingScheduleFor.name || '';
-      const currentParts = currentName.split('|');
-      // Format: Gender|Age|Height|Location|Occupation|DaysBack|Score|UniqueNum (7 parts) or old format (5-6 parts)
-      const uniqueNum = currentParts.length === 7 ? currentParts[6] : 
-                        currentParts.length === 6 ? currentParts[5] : 
-                        currentParts.length === 5 ? currentParts[4] : 
-                        String(Date.now() % 1000).padStart(3, '0');
-      parts.push(uniqueNum);
-      
-      const correctedName = parts.join('|');
+      const daysBack = criteria.daysBack;
+      if (daysBack) {
+        parts.push(`${daysBack} days`);
+      }
+
+      // L3V3L Score (only include if > 0)
+      if (score > 0) {
+        parts.push(`${score}% match`);
+      }
+
+      // Join with commas
+      const correctedName = parts.join(', ');
       logger.info(`🔧 Generated corrected search name: ${correctedName}`);
-      logger.info(`🔧 Name parts: [${parts.join(', ')}]`);
       setSearchName(correctedName);
-      
+
       // Pre-populate notification settings
       const notifications = editingScheduleFor.notifications || {};
       setEnableNotifications(notifications.enabled || false);
@@ -134,7 +126,7 @@ const SaveSearchModal = ({
       setNotificationTime(notifications.time || '09:00');
       setNotificationDay(notifications.dayOfWeek || 'monday');
       setSetAsDefault(editingScheduleFor.isDefault || false);
-      
+
       // Switch to save tab to show schedule options
       setActiveTab('save');
     } else if (show && !editingScheduleFor) {
@@ -167,91 +159,94 @@ const SaveSearchModal = ({
     if (editingScheduleFor) {
       return;
     }
-    
+
     if (show && activeTab === 'save') {
-      // Generate search name in format: gender|minage-maxage|minheight-maxheight|occupation|daysback|l3v3lscore|uniquenumber
-      // Example: M|19-77|5'6-5'9|Marketing Manager|7d|55|001
-      
+      // Generate readable search name with field labels
+      // Example: "Female, age 19-25, height 5'9\"-6'3\", Nashville, Software Engineer, 7 days, 50% match"
+      // Only include fields that have actual values
+
       const parts = [];
-      
-      // Gender (M/F or blank)
-      const gender = currentCriteria.gender ? currentCriteria.gender.charAt(0).toUpperCase() : '';
-      parts.push(gender);
-      
-      // Age range (format: 19-77 or just min/max if one is missing)
-      const ageMin = currentCriteria.ageMin || '';
-      const ageMax = currentCriteria.ageMax || '';
-      const ageRange = ageMin && ageMax ? `${ageMin}-${ageMax}` : (ageMin || ageMax || '');
-      parts.push(ageRange);
-      
-      // Height range (format: 5'6-5'9)
-      let heightRange = '';
+
+      // Gender
+      if (currentCriteria.gender) {
+        const genderLabel = currentCriteria.gender.charAt(0).toUpperCase() + currentCriteria.gender.slice(1).toLowerCase();
+        parts.push(genderLabel);
+      }
+
+      // Age range
+      const ageMin = currentCriteria.ageMin;
+      const ageMax = currentCriteria.ageMax;
+      if (ageMin && ageMax) {
+        parts.push(`age ${ageMin}-${ageMax}`);
+      } else if (ageMin) {
+        parts.push(`age ${ageMin}+`);
+      } else if (ageMax) {
+        parts.push(`age up to ${ageMax}`);
+      }
+
+      // Height range
       if (currentCriteria.heightMinFeet && currentCriteria.heightMaxFeet) {
         const minFt = currentCriteria.heightMinFeet;
         const minIn = currentCriteria.heightMinInches || 0;
         const maxFt = currentCriteria.heightMaxFeet;
         const maxIn = currentCriteria.heightMaxInches || 0;
-        heightRange = `${minFt}'${minIn}-${maxFt}'${maxIn}`;
+        parts.push(`height ${minFt}'${minIn}"-${maxFt}'${maxIn}"`);
       } else if (currentCriteria.heightMinFeet) {
         const minFt = currentCriteria.heightMinFeet;
         const minIn = currentCriteria.heightMinInches || 0;
-        heightRange = `${minFt}'${minIn}+`;
+        parts.push(`height ${minFt}'${minIn}"+`);
       } else if (currentCriteria.heightMaxFeet) {
         const maxFt = currentCriteria.heightMaxFeet;
         const maxIn = currentCriteria.heightMaxInches || 0;
-        heightRange = `<${maxFt}'${maxIn}`;
+        parts.push(`height under ${maxFt}'${maxIn}"`);
       }
-      parts.push(heightRange);
-      
-      // Location filter (handle both single and multi-select formats)
+
+      // Location filter
       let locationText = '';
       if (currentCriteria.locations && currentCriteria.locations.length > 0) {
         if (currentCriteria.locations.length === 1) {
-          // For single location, use city name only (remove state for brevity)
           const location = currentCriteria.locations[0];
           locationText = location.includes(',') ? location.split(',')[0].trim() : location;
         } else {
-          // Multiple locations: loc(3)
-          locationText = `loc (${currentCriteria.locations.length})`;
+          locationText = `${currentCriteria.locations.length} locations`;
         }
       } else if (currentCriteria.location) {
-        // Backward compatibility for single location
         const location = currentCriteria.location;
         locationText = location.includes(',') ? location.split(',')[0].trim() : location;
       }
-      parts.push(locationText);
-      
+      if (locationText) {
+        parts.push(locationText);
+      }
+
       // Occupation filter
-      const occupation = currentCriteria.occupation || currentCriteria.occupations || '';
       let occupationText = '';
       if (currentCriteria.occupations && currentCriteria.occupations.length > 0) {
         if (currentCriteria.occupations.length === 1) {
           occupationText = currentCriteria.occupations[0];
         } else {
-          // Multiple occupations: occ(3)
-          occupationText = `occ (${currentCriteria.occupations.length})`;
+          occupationText = `${currentCriteria.occupations.length} occupations`;
         }
-      } else if (occupation) {
-        // Handle both single occupation and comma-separated occupations
-        occupationText = occupation.includes(',') ? occupation.split(',')[0].trim() : occupation;
+      } else if (currentCriteria.occupation) {
+        occupationText = currentCriteria.occupation.includes(',') ? currentCriteria.occupation.split(',')[0].trim() : currentCriteria.occupation;
       }
-      parts.push(occupationText);
-      
+      if (occupationText) {
+        parts.push(occupationText);
+      }
+
       // Days back filter
-      const daysBack = currentCriteria.daysBack || '';
-      parts.push(daysBack ? `${daysBack}d` : '');
-      
-      // L3V3L Score (just the number)
-      const score = minMatchScore > 0 ? minMatchScore.toString() : '0';
-      parts.push(score);
-      
-      // Unique number (3 digits based on timestamp + existing search count)
-      const uniqueNum = String((Date.now() % 1000) + (savedSearches.length || 0)).padStart(3, '0');
-      parts.push(uniqueNum);
-      
-      // Join with pipe separator
-      const name = parts.join('|');
-      
+      const daysBack = currentCriteria.daysBack;
+      if (daysBack) {
+        parts.push(`${daysBack} days`);
+      }
+
+      // L3V3L Score (only include if > 0)
+      if (minMatchScore > 0) {
+        parts.push(`${minMatchScore}% match`);
+      }
+
+      // Join with commas
+      const name = parts.join(', ');
+
       // Set default name
       setSearchName(name);
     }
@@ -265,9 +260,92 @@ const SaveSearchModal = ({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!searchName.trim()) {
       toast.error('Please enter a search name');
+      return;
+    }
+
+    // Validate that at least one search filter is set
+    const criteria = editingScheduleFor ? editingScheduleFor.criteria : currentCriteria;
+    const score = editingScheduleFor ? editingScheduleFor.minMatchScore : minMatchScore;
+
+    const hasFilter =
+      criteria.gender ||
+      criteria.ageMin ||
+      criteria.ageMax ||
+      criteria.heightMinFeet ||
+      criteria.heightMaxFeet ||
+      (criteria.locations && criteria.locations.length > 0) ||
+      (criteria.location) ||
+      (criteria.occupations && criteria.occupations.length > 0) ||
+      (criteria.occupation) ||
+      criteria.daysBack ||
+      score > 0;
+
+    if (!hasFilter) {
+      toast.error('Please set at least one search filter before saving.');
+      return;
+    }
+
+    // Check for duplicate names (exclude current search if editing)
+    const trimmedName = searchName.trim();
+    const currentSearchId = editingScheduleFor ? (editingScheduleFor.id || editingScheduleFor._id) : null;
+    const duplicateExists = savedSearches.some(
+      search => (search.id || search._id) !== currentSearchId &&
+               search.name.trim().toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (duplicateExists) {
+      toast.error('A search with this name already exists. Please choose a different name.');
+      return;
+    }
+
+    // Check for duplicate search criteria (exclude current search if editing)
+    const isCriteriaEqual = (criteria1, criteria2, score1, score2) => {
+      // Compare minMatchScore
+      if (score1 !== score2) return false;
+
+      // Get all keys from both criteria objects
+      const allKeys = new Set([...Object.keys(criteria1 || {}), ...Object.keys(criteria2 || {})]);
+
+      // Exclude internal fields
+      const excludeKeys = ['page', 'limit', 'status'];
+
+      for (const key of allKeys) {
+        if (excludeKeys.includes(key)) continue;
+
+        const val1 = criteria1?.[key];
+        const val2 = criteria2?.[key];
+
+        // Handle arrays (like locations, occupations)
+        if (Array.isArray(val1) && Array.isArray(val2)) {
+          if (val1.length !== val2.length) return false;
+          // Sort and compare
+          const sorted1 = [...val1].sort();
+          const sorted2 = [...val2].sort();
+          if (JSON.stringify(sorted1) !== JSON.stringify(sorted2)) return false;
+        }
+        // Handle objects
+        else if (typeof val1 === 'object' && typeof val2 === 'object' && val1 !== null && val2 !== null) {
+          if (JSON.stringify(val1) !== JSON.stringify(val2)) return false;
+        }
+        // Handle primitives
+        else if (val1 !== val2) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    const duplicateCriteriaExists = savedSearches.some(
+      search => (search.id || search._id) !== currentSearchId &&
+               isCriteriaEqual(criteria, search.criteria, score, search.minMatchScore)
+    );
+
+    if (duplicateCriteriaExists) {
+      toast.error('A search with these filters already exists. Please modify the filters or use the existing search.');
       return;
     }
 
@@ -276,27 +354,35 @@ const SaveSearchModal = ({
       return;
     }
 
-    // Build save data with notification settings
-    const saveData = {
-      name: searchName.trim(),
-      criteria: editingScheduleFor ? editingScheduleFor.criteria : currentCriteria,
-      minMatchScore: editingScheduleFor ? editingScheduleFor.minMatchScore : minMatchScore,
-      notifications: {
-        enabled: enableNotifications,
-        frequency: notificationFrequency,
-        time: notificationTime,
-        dayOfWeek: notificationFrequency === 'weekly' ? notificationDay : null
-      },
-      isDefault: setAsDefault
-    };
+    setIsSaving(true);
+    try {
+      // Build save data with notification settings
+      const saveData = {
+        name: trimmedName,
+        criteria: criteria,
+        minMatchScore: score,
+        notifications: {
+          enabled: enableNotifications,
+          frequency: notificationFrequency,
+          time: notificationTime,
+          dayOfWeek: notificationFrequency === 'weekly' ? notificationDay : null
+        },
+        isDefault: setAsDefault
+      };
 
-    // If editing an existing search's schedule, include the ID
-    if (editingScheduleFor) {
-      saveData.id = editingScheduleFor.id || editingScheduleFor._id;
-      saveData.isUpdate = true;
+      // If editing an existing search's schedule, include the ID
+      if (editingScheduleFor) {
+        saveData.id = editingScheduleFor.id || editingScheduleFor._id;
+        saveData.isUpdate = true;
+      }
+
+      await onSave(saveData);
+    } catch (error) {
+      logger.error('Failed to save search:', error);
+      toast.error('Failed to save search. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
-
-    onSave(saveData);
   };
 
   const startEditing = (search) => {
@@ -378,10 +464,16 @@ const SaveSearchModal = ({
                   <h5>Current Criteria:</h5>
                   <div className="criteria-list">
                     {Object.entries(editingScheduleFor.criteria)
-                      .filter(([key, value]) => value && value !== '' && key !== 'page' && key !== 'limit' && key !== 'status')
+                      .filter(([key, value]) => {
+                        // Include boolean false values (like hasPhoto: false)
+                        // Exclude empty strings, null, undefined, and internal fields
+                        if (key === 'page' || key === 'limit' || key === 'status') return false;
+                        if (value === '' || value === null || value === undefined) return false;
+                        return true;
+                      })
                       .map(([key, value]) => (
                         <span key={key} className="criteria-badge">
-                          <strong>{key}:</strong> {value}
+                          <strong>{key}:</strong> {String(value)}
                         </span>
                       ))}
                     {editingScheduleFor.minMatchScore > 0 ? (
@@ -412,57 +504,6 @@ const SaveSearchModal = ({
                   </label>
                 </div>
 
-                {/* DISABLED: Frequency/Time settings - job now runs on fixed weekly schedule
-                   User-level scheduling is no longer needed. Re-enable if per-user scheduling is restored.
-                {enableNotifications && (
-                  <>
-                    <div className="form-group">
-                      <label>Frequency</label>
-                      <select
-                        className="form-control"
-                        value={notificationFrequency}
-                        onChange={(e) => setNotificationFrequency(e.target.value)}
-                      >
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                      </select>
-                    </div>
-
-                    {notificationFrequency === 'weekly' && (
-                      <div className="form-group">
-                        <label>Day of Week</label>
-                        <select
-                          className="form-control"
-                          value={notificationDay}
-                          onChange={(e) => setNotificationDay(e.target.value)}
-                        >
-                          <option value="monday">Monday</option>
-                          <option value="tuesday">Tuesday</option>
-                          <option value="wednesday">Wednesday</option>
-                          <option value="thursday">Thursday</option>
-                          <option value="friday">Friday</option>
-                          <option value="saturday">Saturday</option>
-                          <option value="sunday">Sunday</option>
-                        </select>
-                      </div>
-                    )}
-
-                    <div className="form-group">
-                      <label>Time</label>
-                      <input
-                        type="time"
-                        className="form-control"
-                        value={notificationTime}
-                        onChange={(e) => setNotificationTime(e.target.value)}
-                      />
-                      <small className="text-muted">
-                        {formatTimeDisplay(notificationTime)}
-                      </small>
-                    </div>
-                  </>
-                )}
-                */}
-                
                 {/* Set as Default checkbox */}
                 <div className="form-group" style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--border-color)'}}>
                   <label className="checkbox-label">
@@ -483,11 +524,11 @@ const SaveSearchModal = ({
               </div>
 
               <div className="modal-actions">
-                <button className="btn btn-secondary" onClick={onClose}>
+                <button className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
                   Cancel
                 </button>
-                <button className="btn btn-primary" onClick={handleSave}>
-                  ⏰ Update Schedule
+                <button className="btn btn-primary" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? 'Saving...' : '⏰ Update Schedule'}
                 </button>
               </div>
             </div>
@@ -512,10 +553,16 @@ const SaveSearchModal = ({
                 <h5>Current Criteria:</h5>
                 <div className="criteria-list">
                   {Object.entries(currentCriteria)
-                    .filter(([key, value]) => value && value !== '' && key !== 'page' && key !== 'limit' && key !== 'status')
+                    .filter(([key, value]) => {
+                      // Include boolean false values (like hasPhoto: false)
+                      // Exclude empty strings, null, undefined, and internal fields
+                      if (key === 'page' || key === 'limit' || key === 'status') return false;
+                      if (value === '' || value === null || value === undefined) return false;
+                      return true;
+                    })
                     .map(([key, value]) => (
                       <span key={key} className="criteria-badge">
-                        <strong>{key}:</strong> {value}
+                        <strong>{key}:</strong> {String(value)}
                       </span>
                     ))}
                   {minMatchScore > 0 ? (
@@ -545,64 +592,31 @@ const SaveSearchModal = ({
                   </label>
                 </div>
 
-                {/* DISABLED: Frequency/Time settings - job now runs on fixed weekly schedule
-                   User-level scheduling is no longer needed. Re-enable if per-user scheduling is restored.
-                {enableNotifications && (
-                  <>
-                    <div className="form-group">
-                      <label>Frequency</label>
-                      <select
-                        className="form-control"
-                        value={notificationFrequency}
-                        onChange={(e) => setNotificationFrequency(e.target.value)}
-                      >
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                      </select>
-                    </div>
-
-                    {notificationFrequency === 'weekly' && (
-                      <div className="form-group">
-                        <label>Day of Week</label>
-                        <select
-                          className="form-control"
-                          value={notificationDay}
-                          onChange={(e) => setNotificationDay(e.target.value)}
-                        >
-                          <option value="monday">Monday</option>
-                          <option value="tuesday">Tuesday</option>
-                          <option value="wednesday">Wednesday</option>
-                          <option value="thursday">Thursday</option>
-                          <option value="friday">Friday</option>
-                          <option value="saturday">Saturday</option>
-                          <option value="sunday">Sunday</option>
-                        </select>
-                      </div>
-                    )}
-
-                    <div className="form-group">
-                      <label>Time</label>
-                      <input
-                        type="time"
-                        className="form-control"
-                        value={notificationTime}
-                        onChange={(e) => setNotificationTime(e.target.value)}
-                      />
-                      <small className="text-muted">
-                        {formatTimeDisplay(notificationTime)}
-                      </small>
-                    </div>
-                  </>
-                )}
-                */}
+                {/* Set as Default checkbox */}
+                <div className="form-group" style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--border-color)'}}>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={setAsDefault}
+                      onChange={(e) => setSetAsDefault(e.target.checked)}
+                      style={{marginRight: '8px'}}
+                    />
+                    <span style={{fontSize: '16px'}}>
+                      ⭐ Set as default search
+                    </span>
+                  </label>
+                  <small className="text-muted" style={{display: 'block', marginTop: '8px', marginLeft: '28px'}}>
+                    This search will automatically run when you visit the search page
+                  </small>
+                </div>
               </div>
 
               <div className="modal-actions">
-                <button className="btn btn-secondary" onClick={onClose}>
+                <button className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
                   Cancel
                 </button>
-                <button className="btn btn-primary" onClick={handleSave}>
-                  {editingScheduleFor ? '⏰ Update Schedule' : '💾 Save Search'}
+                <button className="btn btn-primary" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? 'Saving...' : '💾 Save Search'}
                 </button>
               </div>
             </div>
@@ -616,8 +630,8 @@ const SaveSearchModal = ({
               ) : (
                 <div className="saved-searches-list">
                   {savedSearches.map((search) => (
-                    <div key={search.id} className="saved-search-item">
-                      {editingId === search.id ? (
+                    <div key={search.id || search._id} className="saved-search-item">
+                      {editingId === (search.id || search._id) ? (
                         <div className="edit-mode">
                           <input
                             type="text"
@@ -647,7 +661,7 @@ const SaveSearchModal = ({
                           <div className="search-info">
                             <h5>{search.name}</h5>
                             <p className="text-muted">
-                              Created: {new Date(search.created_at).toLocaleDateString()}
+                              Created: {new Date(search.created_at || search.createdAt).toLocaleDateString()}
                             </p>
                             {search.notifications?.enabled && (
                               <div className="notification-badge">
@@ -685,16 +699,5 @@ const SaveSearchModal = ({
     document.body
   );
 };
-
-// Helper function to format time display
-// eslint-disable-next-line no-unused-vars
-function formatTimeDisplay(time) {
-  if (!time) return '';
-  const [hours, minutes] = time.split(':');
-  const hour = parseInt(hours);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  return `${displayHour}:${minutes} ${ampm}`;
-}
 
 export default SaveSearchModal;
