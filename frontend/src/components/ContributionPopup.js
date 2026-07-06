@@ -163,20 +163,26 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         logger.debug('Contribution status loaded:', data);
 
         // Calculate required dismissals
-        const registrationDate = data.registrationDate ? new Date(data.registrationDate) : null;
+        const approvedDate = data.approvedDate ? new Date(data.approvedDate) : null;
         const lastContributionDate = data.lastContributionDate ? new Date(data.lastContributionDate) : null;
 
-        if (registrationDate) {
+        if (approvedDate) {
           const now = new Date();
-          const daysSinceRegistration = Math.floor((now - registrationDate) / (1000 * 60 * 60 * 24));
-          const daysSinceLastContribution = lastContributionDate
-            ? Math.floor((now - lastContributionDate) / (1000 * 60 * 60 * 24))
-            : daysSinceRegistration;
+          const daysSinceApproved = Math.floor((now - approvedDate) / (1000 * 60 * 60 * 24));
 
-          const daysWithoutContribution = daysSinceRegistration - daysSinceLastContribution;
-          const requiredDismissals = Math.max(1, Math.round(daysWithoutContribution / 5));
+          let requiredDismissals;
+          if (lastContributionDate) {
+            // User has contributed before: calculate based on time since last contribution
+            const daysSinceLastContribution = Math.floor((now - lastContributionDate) / (1000 * 60 * 60 * 24));
+            const daysWithoutContribution = daysSinceApproved - daysSinceLastContribution;
+            requiredDismissals = Math.max(1, Math.round(daysWithoutContribution / 30));
+            logger.debug(`Dismissal calculation: daysSinceApproved=${daysSinceApproved}, daysSinceLastContribution=${daysSinceLastContribution}, daysWithoutContribution=${daysWithoutContribution}, requiredDismissals=${requiredDismissals}`);
+          } else {
+            // User has never contributed: calculate based on time since approval
+            requiredDismissals = Math.max(1, Math.round(daysSinceApproved / 30));
+            logger.debug(`Dismissal calculation (no contribution): daysSinceApproved=${daysSinceApproved}, requiredDismissals=${requiredDismissals}`);
+          }
           setRequiredDismissals(requiredDismissals);
-          logger.debug(`Dismissal calculation: daysSinceRegistration=${daysSinceRegistration}, daysSinceLastContribution=${daysSinceLastContribution}, requiredDismissals=${requiredDismissals}`);
         }
       } else {
         logger.warn('Contribution status response not ok:', response.status);
