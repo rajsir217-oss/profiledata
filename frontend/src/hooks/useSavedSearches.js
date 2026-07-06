@@ -83,8 +83,24 @@ const useSavedSearches = ({
         await api.put(`/${username}/saved-searches/${searchId}`, {
           name: searchName?.trim(),
           ...(notifications && { notifications }),
-          ...(typeof saveData?.isDefault === 'boolean' ? { isDefault: saveData.isDefault } : {}),
         });
+
+        // Handle isDefault using dedicated API endpoints
+        if (typeof saveData?.isDefault === 'boolean') {
+          try {
+            if (saveData.isDefault) {
+              await setDefaultSavedSearch(searchId);
+            } else {
+              await unsetDefaultSavedSearch();
+            }
+          } catch (defaultErr) {
+            logger.error('Error setting default state:', defaultErr);
+            toastService.error('Search updated but failed to set default state');
+            onAfterSave?.();
+            loadSavedSearches();
+            return;
+          }
+        }
 
         toastService.success(`✅ Saved search updated: "${searchName}"`);
         onAfterSave?.();
@@ -103,7 +119,21 @@ const useSavedSearches = ({
 
       logger.info('💾 Search data to save:', searchData);
 
-      await api.post(`/${username}/saved-searches`, searchData);
+      const saveResponse = await api.post(`/${username}/saved-searches`, searchData);
+      const savedSearchId = saveResponse.data.savedSearch?.id;
+
+      // Handle isDefault using dedicated API endpoint
+      if (typeof saveData?.isDefault === 'boolean' && saveData.isDefault && savedSearchId) {
+        try {
+          await setDefaultSavedSearch(savedSearchId);
+        } catch (defaultErr) {
+          logger.error('Error setting default state:', defaultErr);
+          toastService.error('Search saved but failed to set as default');
+          onAfterSave?.();
+          loadSavedSearches();
+          return;
+        }
+      }
 
       const notificationMsg = notifications?.enabled
         ? ` with ${notifications.frequency} notifications`
