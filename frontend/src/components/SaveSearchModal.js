@@ -493,31 +493,28 @@ const SaveSearchModal = ({
                 <h5>📧 Email Notifications for New Matches</h5>
                 <p className="text-muted">Get notified when new profiles match this search</p>
                 
-                <div className="form-group">
+                <div className="form-group email-notifications-section">
                   <label className="checkbox-label">
+                    <span>📧 Enable email notifications</span>
                     <input
                       type="checkbox"
                       checked={enableNotifications}
                       onChange={(e) => setEnableNotifications(e.target.checked)}
                     />
-                    <span>Enable email notifications</span>
                   </label>
                 </div>
 
                 {/* Set as Default checkbox */}
-                <div className="form-group" style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--border-color)'}}>
+                <div className="form-group default-search-section">
                   <label className="checkbox-label">
+                    <span>⭐ Set as default search</span>
                     <input
                       type="checkbox"
                       checked={setAsDefault}
                       onChange={(e) => setSetAsDefault(e.target.checked)}
-                      style={{marginRight: '8px'}}
                     />
-                    <span style={{fontSize: '16px'}}>
-                      ⭐ Set as default search
-                    </span>
                   </label>
-                  <small className="text-muted" style={{display: 'block', marginTop: '8px', marginLeft: '28px'}}>
+                  <small className="text-muted">
                     This search will automatically run when you visit the search page
                   </small>
                 </div>
@@ -581,31 +578,28 @@ const SaveSearchModal = ({
                 <h5>📧 Email Notifications for New Matches</h5>
                 <p className="text-muted">Get notified when new profiles match this search</p>
                 
-                <div className="form-group">
+                <div className="form-group email-notifications-section">
                   <label className="checkbox-label">
+                    <span>📧 Enable email notifications</span>
                     <input
                       type="checkbox"
                       checked={enableNotifications}
                       onChange={(e) => setEnableNotifications(e.target.checked)}
                     />
-                    <span>Enable email notifications</span>
                   </label>
                 </div>
 
                 {/* Set as Default checkbox */}
-                <div className="form-group" style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--border-color)'}}>
+                <div className="form-group default-search-section">
                   <label className="checkbox-label">
+                    <span>⭐ Set as default search</span>
                     <input
                       type="checkbox"
                       checked={setAsDefault}
                       onChange={(e) => setSetAsDefault(e.target.checked)}
-                      style={{marginRight: '8px'}}
                     />
-                    <span style={{fontSize: '16px'}}>
-                      ⭐ Set as default search
-                    </span>
                   </label>
-                  <small className="text-muted" style={{display: 'block', marginTop: '8px', marginLeft: '28px'}}>
+                  <small className="text-muted">
                     This search will automatically run when you visit the search page
                   </small>
                 </div>
