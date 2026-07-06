@@ -105,7 +105,7 @@ const useContributionPopup = () => {
 
       // Gate: dismiss count check (nag mechanism)
       const username = localStorage.getItem('username');
-      const dismissCount = parseInt(localStorage.getItem(`contribution_dismiss_count:${username}`) || '0', 10);
+      let dismissCount = parseInt(localStorage.getItem(`contribution_dismiss_count:${username}`) || '0', 10);
 
       const approvedDate = data.approvedDate ? new Date(data.approvedDate) : null;
       const lastContributionDate = data.lastContributionDate ? new Date(data.lastContributionDate) : null;

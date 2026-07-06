@@ -37,6 +37,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [contributionStatus, setContributionStatus] = useState(null);
   const [dismissCount, setDismissCount] = useState(0);
   const [requiredDismissals, setRequiredDismissals] = useState(0);
+  const [isDismissing, setIsDismissing] = useState(false);
 
   const computeDaysActive = useCallback((createdAtValue) => {
     if (!createdAtValue) return 0;
@@ -148,6 +149,23 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, [computeDaysActive]);
 
+  // Load dismiss count from localStorage
+  const loadDismissCount = useCallback(() => {
+    const username = localStorage.getItem('username');
+    if (!username) return;
+    const saved = localStorage.getItem(`contribution_dismiss_count:${username}`);
+    const parsed = saved ? parseInt(saved, 10) : 0;
+    setDismissCount(Number.isNaN(parsed) ? 0 : parsed);
+  }, []);
+
+  // Save dismiss count to localStorage
+  const saveDismissCount = useCallback((count) => {
+    const username = localStorage.getItem('username');
+    if (!username) return;
+    localStorage.setItem(`contribution_dismiss_count:${username}`, count.toString());
+    setDismissCount(count);
+  }, []);
+
   const loadContributionStatus = useCallback(async () => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -170,15 +188,19 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           const now = new Date();
           const daysSinceApproved = Math.floor((now - approvedDate) / (1000 * 60 * 60 * 24));
 
+          // Validate dates are not in the future
+          if (daysSinceApproved < 0) {
+            logger.warn('approvedDate is in the future, skipping dismissal calculation');
+            return;
+          }
+
           let requiredDismissals;
           if (lastContributionDate) {
-            // User has contributed before: calculate based on time since last contribution
             const daysSinceLastContribution = Math.floor((now - lastContributionDate) / (1000 * 60 * 60 * 24));
             const daysWithoutContribution = daysSinceApproved - daysSinceLastContribution;
             requiredDismissals = Math.max(1, Math.round(daysWithoutContribution / 30));
             logger.debug(`Dismissal calculation: daysSinceApproved=${daysSinceApproved}, daysSinceLastContribution=${daysSinceLastContribution}, daysWithoutContribution=${daysWithoutContribution}, requiredDismissals=${requiredDismissals}`);
           } else {
-            // User has never contributed: calculate based on time since approval
             requiredDismissals = Math.max(1, Math.round(daysSinceApproved / 30));
             logger.debug(`Dismissal calculation (no contribution): daysSinceApproved=${daysSinceApproved}, requiredDismissals=${requiredDismissals}`);
           }
@@ -186,7 +208,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
           // Reset dismissCount if it already exceeds requiredDismissals
           const currentDismissCount = parseInt(localStorage.getItem(`contribution_dismiss_count:${username}`) || '0', 10);
-          if (currentDismissCount >= requiredDismissals) {
+          if (!Number.isNaN(currentDismissCount) && currentDismissCount >= requiredDismissals) {
             logger.debug(`Resetting dismissCount from ${currentDismissCount} to 0 (exceeds requiredDismissals=${requiredDismissals})`);
             saveDismissCount(0);
           }
@@ -197,23 +219,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     } catch (err) {
       logger.warn('Failed to load contribution status', err);
     }
-  }, []);
-
-  // Load dismiss count from localStorage
-  const loadDismissCount = useCallback(() => {
-    const username = localStorage.getItem('username');
-    if (!username) return;
-    const saved = localStorage.getItem(`contribution_dismiss_count:${username}`);
-    setDismissCount(saved ? parseInt(saved, 10) : 0);
-  }, []);
-
-  // Save dismiss count to localStorage
-  const saveDismissCount = useCallback((count) => {
-    const username = localStorage.getItem('username');
-    if (!username) return;
-    localStorage.setItem(`contribution_dismiss_count:${username}`, count.toString());
-    setDismissCount(count);
-  }, []);
+  }, [saveDismissCount]);
 
   // Use admin-configured amounts (deduped + descending numeric sort for display).
   // Default [25, 50, 75, 100] renders as [100, 75, 50, 25].
@@ -602,8 +608,9 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
   // Handle dismiss. onClose() delegates to the hook, which writes the
   // per-session SESSION_POPUP_DISMISSED flag. No localStorage write here.
-  const handleDismiss = () => {
-    if (!loading) {
+  const handleDismiss = useCallback(() => {
+    if (!loading && !isDismissing) {
+      setIsDismissing(true);
       logActivity('popup_dismissed');
       const newCount = dismissCount + 1;
       saveDismissCount(newCount);
@@ -613,13 +620,34 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         onClose();
       }
       // Otherwise, popup stays open (user can click close again)
+
+      // Reset dismissing flag after short delay
+      setTimeout(() => setIsDismissing(false), 300);
     }
-  };
+  }, [loading, isDismissing, dismissCount, requiredDismissals, logActivity, saveDismissCount, onClose]);
+
+  // ESC key handler
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && !loading) {
+        handleDismiss();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [isOpen, loading, handleDismiss]);
 
   return (
     <div className="contribution-popup-overlay" onClick={(e) => {
       // Only allow overlay click to close if required dismissals reached
-      if (dismissCount >= requiredDismissals) {
+      const newCount = dismissCount + 1;
+      if (newCount >= requiredDismissals) {
         handleDismiss();
       }
     }} style={{ display: isOpen ? 'flex' : 'none' }}>
