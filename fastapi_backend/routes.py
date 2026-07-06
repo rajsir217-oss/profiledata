@@ -1438,6 +1438,13 @@ async def register_user(
         "consentUserAgent": request.headers.get("user-agent") if request else None,
         "createdAt": now,
         "updatedAt": now,
+        # Pre-computed sort fields for search performance optimization
+        "_sortFreshness": now,  # Will be updated on profile updates
+        "_sortHeightInches": heightInches if heightInches else 0,
+        "_sortFirstName": str(firstName or username).strip().lower(),
+        "_sortLocation": str(location or state or "").strip().lower(),
+        "_sortEducation": "",  # Will be computed from educationHistory
+        "_sortProfession": str(occupation or "").strip().lower(),
         # Role & Permissions
         "role_name": "free_user",  # Default role for new users
         # Account status - UNIFIED FIELD (replaces old status.status)
@@ -3185,7 +3192,60 @@ async def update_user_profile(
     
     # Update timestamp
     update_data["updatedAt"] = datetime.utcnow().isoformat()
-    
+
+    # Update pre-computed sort fields if relevant fields changed
+    sort_fields_updated = False
+
+    # Update _sortFreshness (always update on any profile change)
+    update_data["_sortFreshness"] = datetime.utcnow().isoformat()
+    sort_fields_updated = True
+
+    # Update _sortHeightInches if height changed
+    if height is not None:
+        heightInches = parse_height(height)
+        if heightInches:
+            update_data["_sortHeightInches"] = heightInches
+            sort_fields_updated = True
+
+    # Update _sortFirstName if firstName changed
+    if firstName is not None:
+        update_data["_sortFirstName"] = str(firstName).strip().lower()
+        sort_fields_updated = True
+
+    # Update _sortLocation if location/state changed
+    if location is not None or state is not None:
+        update_data["_sortLocation"] = str(location or state or "").strip().lower()
+        sort_fields_updated = True
+
+    # Update _sortEducation if educationHistory changed
+    if educationHistory is not None:
+        try:
+            parsed_edu = json.loads(educationHistory)
+            if parsed_edu and len(parsed_edu) > 0:
+                degree = parsed_edu[0].get('degree') or parsed_edu[0].get('level') or ''
+                update_data["_sortEducation"] = str(degree).strip().lower()
+                sort_fields_updated = True
+        except json.JSONDecodeError:
+            pass
+
+    # Update _sortProfession if occupation or workExperience changed
+    if occupation is not None or workExperience is not None:
+        if occupation is not None:
+            update_data["_sortProfession"] = str(occupation).strip().lower()
+            sort_fields_updated = True
+        elif workExperience is not None:
+            try:
+                parsed_work = json.loads(workExperience)
+                if parsed_work and len(parsed_work) > 0:
+                    work_type = parsed_work[0].get('workType') or ''
+                    update_data["_sortProfession"] = str(work_type).strip().lower()
+                    sort_fields_updated = True
+            except json.JSONDecodeError:
+                pass
+
+    if sort_fields_updated:
+        logger.info(f"🔀 Updated pre-computed sort fields for user '{username}'")
+
     # Log what's being updated
     logger.info(f"📝 update_data keys: {list(update_data.keys())}")
     
@@ -5052,7 +5112,19 @@ async def delete_user_profile(
 async def get_occupation_options(db = Depends(get_database)):
     """Get standardized work type options for occupation search"""
     logger.info("🔍 Fetching standardized work type options")
-    
+
+    # Try Redis cache first
+    try:
+        from redis_manager import get_redis_manager
+        redis_mgr = get_redis_manager()
+        cache_key = "occupation_options:all"
+        cached_data = redis_mgr.redis_client.get(cache_key)
+        if cached_data:
+            logger.info("✅ Occupation options served from Redis cache")
+            return json.loads(cached_data)
+    except Exception as e:
+        logger.warning(f"⚠️ Redis cache miss for occupation options: {e}")
+
     try:
         # Return standardized workType categories
         work_type_options = [
@@ -5085,15 +5157,27 @@ async def get_occupation_options(db = Depends(get_database)):
         
         # Combine standard and custom options
         all_options = work_type_options + sorted(list(custom_types))
-        
+
         logger.info(f"✅ Found {len(all_options)} work type options ({len(custom_types)} custom)")
-        
-        return {
+
+        result = {
             "options": all_options,
             "count": len(all_options),
             "standard_count": len(work_type_options),
             "custom_count": len(custom_types)
         }
+
+        # Cache result in Redis for 1 hour
+        try:
+            from redis_manager import get_redis_manager
+            redis_mgr = get_redis_manager()
+            cache_key = "occupation_options:all"
+            redis_mgr.redis_client.setex(cache_key, 3600, json.dumps(result))
+            logger.info("✅ Occupation options cached in Redis for 1 hour")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to cache occupation options: {e}")
+
+        return result
         
     except Exception as e:
         logger.error(f"❌ Error fetching occupation options: {e}", exc_info=True)
@@ -5114,7 +5198,19 @@ async def get_occupation_options(db = Depends(get_database)):
 async def get_location_options(db = Depends(get_database)):
     """Get unique location options from city and state fields (normalized, case-deduped)"""
     logger.info("🔍 Fetching unique location options")
-    
+
+    # Try Redis cache first
+    try:
+        from redis_manager import get_redis_manager
+        redis_mgr = get_redis_manager()
+        cache_key = "location_options:all"
+        cached_data = redis_mgr.redis_client.get(cache_key)
+        if cached_data:
+            logger.info("✅ Location options served from Redis cache")
+            return json.loads(cached_data)
+    except Exception as e:
+        logger.warning(f"⚠️ Redis cache miss for location options: {e}")
+
     try:
         locations_map = {}  # key=lowercase, value=display form (for dedup)
         skip_values = {"", "N/A", "n/a", "None", "none", "null", "undefined"}
@@ -5173,13 +5269,25 @@ async def get_location_options(db = Depends(get_database)):
         
         # Sort locations alphabetically for better UX
         sorted_locations = sorted(locations_map.values())
-        
+
         logger.info(f"🔍 Found {len(sorted_locations)} location options (normalized, deduped)")
-        
-        return {
+
+        result = {
             "options": sorted_locations,
             "count": len(sorted_locations)
         }
+
+        # Cache result in Redis for 1 hour
+        try:
+            from redis_manager import get_redis_manager
+            redis_mgr = get_redis_manager()
+            cache_key = "location_options:all"
+            redis_mgr.redis_client.setex(cache_key, 3600, json.dumps(result))
+            logger.info("✅ Location options cached in Redis for 1 hour")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to cache location options: {e}")
+
+        return result
         
     except Exception as e:
         logger.error(f"❌ Error fetching location options: {e}", exc_info=True)
@@ -5583,64 +5691,10 @@ async def search_users(
     }
     sort = sort_options.get(normalized_sort_by, sort_options["newest"])[normalized_sort_order]
 
-    sort_computed_fields = {
-        "_sortFreshness": {
-            "$max": [
-                {"$convert": {"input": "$updated_at", "to": "date", "onError": None, "onNull": None}},
-                {"$convert": {"input": "$updatedAt", "to": "date", "onError": None, "onNull": None}},
-                {"$convert": {"input": "$createdAt", "to": "date", "onError": None, "onNull": None}}
-            ]
-        },
-        "_sortHeightInches": {"$ifNull": ["$heightInches", 0]},
-        "_sortFirstName": {
-            "$toLower": {
-                "$trim": {
-                    "input": {"$ifNull": ["$firstName", {"$ifNull": ["$username", ""]}]}
-                }
-            }
-        },
-        "_sortLocation": {
-            "$toLower": {
-                "$trim": {
-                    "input": {
-                        "$ifNull": [
-                            "$city",
-                            {"$ifNull": ["$state", {"$ifNull": ["$location", ""]}]}
-                        ]
-                    }
-                }
-            }
-        },
-        "_sortEducation": {
-            "$toLower": {
-                "$trim": {
-                    "input": {
-                        "$ifNull": [
-                            "$education",
-                            {
-                                "$ifNull": [
-                                    {"$arrayElemAt": ["$educationHistory.degree", 0]},
-                                    {"$ifNull": [{"$arrayElemAt": ["$educationHistory.level", 0]}, ""]}
-                                ]
-                            }
-                        ]
-                    }
-                }
-            }
-        },
-        "_sortProfession": {
-            "$toLower": {
-                "$trim": {
-                    "input": {
-                        "$ifNull": [
-                            "$occupation",
-                            {"$ifNull": [{"$arrayElemAt": ["$workExperience.workType", 0]}, ""]}
-                        ]
-                    }
-                }
-            }
-        },
-    }
+    # OPTIMIZATION: Using pre-computed sort fields from database (_sortFreshness, _sortHeightInches, etc.)
+    # These fields are maintained by register_user and update_user_profile endpoints
+    # No need to compute them on-the-fly in aggregation pipeline
+    sort_computed_fields = {}
 
     logger.info(
         f"🔀 Search sort normalized: raw(sortBy='{sortBy}', sortOrder='{sortOrder}') -> "
@@ -6267,9 +6321,9 @@ async def update_saved_search(username: str, search_id: str, search_data: dict, 
         # Remove id and _id fields if present (can't update _id)
         update_data.pop("id", None)
         update_data.pop("_id", None)
-        
+
         logger.info(f"📝 Updating search '{search_data.get('name')}' with data: {update_data}")
-        
+
         # If user is updating notification settings, clear any active admin override
         # (but preserve disabled status if admin disabled notifications)
         if "notifications" in search_data:
@@ -6350,6 +6404,23 @@ async def get_search_criteria_breakdown(username: str, criteria: dict, current_u
         # Verify user is requesting their own data
         if current_user.get("username") != username:
             raise HTTPException(status_code=403, detail="Access denied")
+
+        # Try Redis cache first (cache key based on criteria hash)
+        try:
+            from redis_manager import get_redis_manager
+            import hashlib
+            import json
+            redis_mgr = get_redis_manager()
+            # Create hash of criteria for cache key
+            criteria_str = json.dumps(criteria, sort_keys=True)
+            criteria_hash = hashlib.md5(criteria_str.encode()).hexdigest()
+            cache_key = f"search_breakdown:{username}:{criteria_hash}"
+            cached_data = redis_mgr.redis_client.get(cache_key)
+            if cached_data:
+                logger.info("✅ Search criteria breakdown served from Redis cache")
+                return json.loads(cached_data)
+        except Exception as e:
+            logger.warning(f"⚠️ Redis cache miss for search breakdown: {e}")
 
         # Build MongoDB query from provided criteria (same logic as search endpoint)
         query = {}
@@ -6759,7 +6830,7 @@ async def get_search_criteria_breakdown(username: str, criteria: dict, current_u
 
         logger.info(f"✅ Total matches: {total_matches}, Location breakdown: {total_unique_locations_count}, Education: {total_unique_education_count}, Profession: {total_unique_profession_count}")
 
-        return {
+        result = {
             "criteria": criteria,
             "totalMatches": total_matches,
             "breakdown": {
@@ -6777,6 +6848,22 @@ async def get_search_criteria_breakdown(username: str, criteria: dict, current_u
                 }
             }
         }
+
+        # Cache result in Redis for 30 minutes (shorter TTL since data changes)
+        try:
+            from redis_manager import get_redis_manager
+            import hashlib
+            import json
+            redis_mgr = get_redis_manager()
+            criteria_str = json.dumps(criteria, sort_keys=True)
+            criteria_hash = hashlib.md5(criteria_str.encode()).hexdigest()
+            cache_key = f"search_breakdown:{username}:{criteria_hash}"
+            redis_mgr.redis_client.setex(cache_key, 1800, json.dumps(result))
+            logger.info("✅ Search criteria breakdown cached in Redis for 30 minutes")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to cache search breakdown: {e}")
+
+        return result
     except HTTPException:
         raise
     except Exception as e:

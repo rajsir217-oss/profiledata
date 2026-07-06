@@ -3383,6 +3383,17 @@ button.card-image-nav {
   box-shadow: var(--shadow-sm);
 }
 
+/* Active/default state - star is ON */
+.btn-set-default.is-default {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.btn-set-default.is-default .default-icon {
+  color: #FFD700; /* Gold color for the star */
+}
+
 .default-indicator {
   color: var(--primary-color);
   font-size: 12px;
