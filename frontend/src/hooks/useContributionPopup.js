@@ -103,6 +103,36 @@ const useContributionPopup = () => {
         return;
       }
 
+      // Gate: dismiss count check (nag mechanism)
+      const username = localStorage.getItem('username');
+      const dismissCount = parseInt(localStorage.getItem(`contribution_dismiss_count:${username}`) || '0', 10);
+
+      const registrationDate = data.registrationDate ? new Date(data.registrationDate) : null;
+      const lastContributionDate = data.lastContributionDate ? new Date(data.lastContributionDate) : null;
+
+      logger.debug(`🔔 Dismiss check: dismissCount=${dismissCount}, registrationDate=${registrationDate}, lastContributionDate=${lastContributionDate}`);
+
+      if (registrationDate) {
+        const now = new Date();
+        const daysSinceRegistration = Math.floor((now - registrationDate) / (1000 * 60 * 60 * 24));
+        const daysSinceLastContribution = lastContributionDate
+          ? Math.floor((now - lastContributionDate) / (1000 * 60 * 60 * 24))
+          : daysSinceRegistration;
+
+        const daysWithoutContribution = daysSinceRegistration - daysSinceLastContribution;
+        const requiredDismissals = Math.max(1, Math.round(daysWithoutContribution / 5));
+
+        logger.debug(`🔔 Dismissal calc: daysSinceRegistration=${daysSinceRegistration}, daysSinceLastContribution=${daysSinceLastContribution}, daysWithoutContribution=${daysWithoutContribution}, requiredDismissals=${requiredDismissals}`);
+
+        if (dismissCount >= requiredDismissals) {
+          logger.debug(
+            `🔔 Contribution: dismissed ${dismissCount}/${requiredDismissals} times, popup suppressed`
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
       // Eligible — banners activate.
       setShouldShowContribution(true);
 
