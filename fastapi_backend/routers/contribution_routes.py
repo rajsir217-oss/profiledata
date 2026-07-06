@@ -285,6 +285,7 @@ async def get_contribution_status(
             "siteEnabled": site_enabled,  # Only True if explicitly enabled
             "userDisabledByAdmin": user.get("contributionPopupDisabledByAdmin", False),
             "hasActiveRecurringContribution": contributions.get("hasActiveRecurring", False),
+            "registrationDate": user.get("createdAt"),
             "lastContributionDate": contributions.get("lastContributionDate"),
             "lastRecurringPaymentDate": contributions.get("lastRecurringPaymentDate"),
             "lastContributionAmount": last_amount,

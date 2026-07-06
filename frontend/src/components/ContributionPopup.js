@@ -34,6 +34,9 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     conversations: 0,
   });
   const [memberStatsLoading, setMemberStatsLoading] = useState(false);
+  const [contributionStatus, setContributionStatus] = useState(null);
+  const [dismissCount, setDismissCount] = useState(0);
+  const [requiredDismissals, setRequiredDismissals] = useState(0);
 
   const computeDaysActive = useCallback((createdAtValue) => {
     if (!createdAtValue) return 0;
@@ -144,6 +147,60 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
       setMemberStatsLoading(false);
     }
   }, [computeDaysActive]);
+
+  const loadContributionStatus = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+    if (!token || !username) return;
+
+    try {
+      const response = await fetch(`${getBackendUrl()}/api/contributions/contribution-status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setContributionStatus(data);
+        logger.debug('Contribution status loaded:', data);
+
+        // Calculate required dismissals
+        const registrationDate = data.registrationDate ? new Date(data.registrationDate) : null;
+        const lastContributionDate = data.lastContributionDate ? new Date(data.lastContributionDate) : null;
+
+        if (registrationDate) {
+          const now = new Date();
+          const daysSinceRegistration = Math.floor((now - registrationDate) / (1000 * 60 * 60 * 24));
+          const daysSinceLastContribution = lastContributionDate
+            ? Math.floor((now - lastContributionDate) / (1000 * 60 * 60 * 24))
+            : daysSinceRegistration;
+
+          const daysWithoutContribution = daysSinceRegistration - daysSinceLastContribution;
+          const requiredDismissals = Math.max(1, Math.round(daysWithoutContribution / 5));
+          setRequiredDismissals(requiredDismissals);
+          logger.debug(`Dismissal calculation: daysSinceRegistration=${daysSinceRegistration}, daysSinceLastContribution=${daysSinceLastContribution}, requiredDismissals=${requiredDismissals}`);
+        }
+      } else {
+        logger.warn('Contribution status response not ok:', response.status);
+      }
+    } catch (err) {
+      logger.warn('Failed to load contribution status', err);
+    }
+  }, []);
+
+  // Load dismiss count from localStorage
+  const loadDismissCount = useCallback(() => {
+    const username = localStorage.getItem('username');
+    if (!username) return;
+    const saved = localStorage.getItem(`contribution_dismiss_count:${username}`);
+    setDismissCount(saved ? parseInt(saved, 10) : 0);
+  }, []);
+
+  // Save dismiss count to localStorage
+  const saveDismissCount = useCallback((count) => {
+    const username = localStorage.getItem('username');
+    if (!username) return;
+    localStorage.setItem(`contribution_dismiss_count:${username}`, count.toString());
+    setDismissCount(count);
+  }, []);
 
   // Use admin-configured amounts (deduped + descending numeric sort for display).
   // Default [25, 50, 75, 100] renders as [100, 75, 50, 25].
@@ -364,13 +421,15 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
       document.body.style.overflow = 'hidden';
       logActivity('popup_shown');
       loadMemberStats();
+      loadContributionStatus();
+      loadDismissCount();
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, logActivity, loadMemberStats]);
+  }, [isOpen, logActivity, loadMemberStats, loadContributionStatus, loadDismissCount]);
 
   // Load PayPal SDK once and render buttons on first open
   useEffect(() => {
@@ -533,6 +592,8 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const handleDismiss = () => {
     if (!loading) {
       logActivity('popup_dismissed');
+      const newCount = dismissCount + 1;
+      saveDismissCount(newCount);
       onClose();
     }
   };
@@ -838,12 +899,17 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             </div>
           )}
 
-          <button 
+          <button
             className="contribution-remind-btn"
             onClick={handleDismiss}
             disabled={loading}
           >
             Close
+            {requiredDismissals > 0 && (
+              <span className="dismiss-count-text">
+                {dismissCount + 1} of {requiredDismissals} times to close...
+              </span>
+            )}
           </button>
         </div>
       </div>
