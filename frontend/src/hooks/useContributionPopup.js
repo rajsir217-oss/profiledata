@@ -129,6 +129,13 @@ const useContributionPopup = () => {
           logger.debug(`🔔 Dismissal calc (no contribution): daysSinceApproved=${daysSinceApproved}, requiredDismissals=${requiredDismissals}`);
         }
 
+        // Reset dismissCount if it already exceeds requiredDismissals
+        if (dismissCount >= requiredDismissals) {
+          logger.debug(`🔔 Resetting dismissCount from ${dismissCount} to 0 (exceeds requiredDismissals=${requiredDismissals})`);
+          localStorage.setItem(`contribution_dismiss_count:${username}`, '0');
+          dismissCount = 0;
+        }
+
         if (dismissCount >= requiredDismissals) {
           logger.debug(
             `🔔 Contribution: dismissed ${dismissCount}/${requiredDismissals} times, popup suppressed`
