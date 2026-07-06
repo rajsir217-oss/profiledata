@@ -107,22 +107,27 @@ const useContributionPopup = () => {
       const username = localStorage.getItem('username');
       const dismissCount = parseInt(localStorage.getItem(`contribution_dismiss_count:${username}`) || '0', 10);
 
-      const registrationDate = data.registrationDate ? new Date(data.registrationDate) : null;
+      const approvedDate = data.approvedDate ? new Date(data.approvedDate) : null;
       const lastContributionDate = data.lastContributionDate ? new Date(data.lastContributionDate) : null;
 
-      logger.debug(`🔔 Dismiss check: dismissCount=${dismissCount}, registrationDate=${registrationDate}, lastContributionDate=${lastContributionDate}`);
+      logger.debug(`🔔 Dismiss check: dismissCount=${dismissCount}, approvedDate=${approvedDate}, lastContributionDate=${lastContributionDate}`);
 
-      if (registrationDate) {
+      if (approvedDate) {
         const now = new Date();
-        const daysSinceRegistration = Math.floor((now - registrationDate) / (1000 * 60 * 60 * 24));
-        const daysSinceLastContribution = lastContributionDate
-          ? Math.floor((now - lastContributionDate) / (1000 * 60 * 60 * 24))
-          : daysSinceRegistration;
+        const daysSinceApproved = Math.floor((now - approvedDate) / (1000 * 60 * 60 * 24));
 
-        const daysWithoutContribution = daysSinceRegistration - daysSinceLastContribution;
-        const requiredDismissals = Math.max(1, Math.round(daysWithoutContribution / 5));
-
-        logger.debug(`🔔 Dismissal calc: daysSinceRegistration=${daysSinceRegistration}, daysSinceLastContribution=${daysSinceLastContribution}, daysWithoutContribution=${daysWithoutContribution}, requiredDismissals=${requiredDismissals}`);
+        let requiredDismissals;
+        if (lastContributionDate) {
+          // User has contributed before: calculate based on time since last contribution
+          const daysSinceLastContribution = Math.floor((now - lastContributionDate) / (1000 * 60 * 60 * 24));
+          const daysWithoutContribution = daysSinceApproved - daysSinceLastContribution;
+          requiredDismissals = Math.max(1, Math.round(daysWithoutContribution / 30));
+          logger.debug(`🔔 Dismissal calc: daysSinceApproved=${daysSinceApproved}, daysSinceLastContribution=${daysSinceLastContribution}, daysWithoutContribution=${daysWithoutContribution}, requiredDismissals=${requiredDismissals}`);
+        } else {
+          // User has never contributed: calculate based on time since approval
+          requiredDismissals = Math.max(1, Math.round(daysSinceApproved / 30));
+          logger.debug(`🔔 Dismissal calc (no contribution): daysSinceApproved=${daysSinceApproved}, requiredDismissals=${requiredDismissals}`);
+        }
 
         if (dismissCount >= requiredDismissals) {
           logger.debug(
