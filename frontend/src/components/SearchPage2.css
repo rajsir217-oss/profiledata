@@ -120,6 +120,8 @@
 
 .search-filters-panel-body .tab-content-area {
   padding-top: 16px;
+  overflow-x: auto;
+  min-width: 0;
 }
 
 .active-criteria-bar {

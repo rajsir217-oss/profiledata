@@ -22,13 +22,13 @@
 .active-criteria-bar-body .basic-filters-section {
   display: grid;
   grid-template-columns:
-    minmax(140px, 1fr)
-    minmax(140px, 1fr)
-    minmax(120px, 0.9fr)
-    minmax(170px, 1.1fr)
-    minmax(170px, 1.1fr)
-    minmax(150px, 0.95fr)
-    minmax(260px, 1.4fr);
+    minmax(130px, 1fr)
+    minmax(130px, 1fr)
+    minmax(110px, 0.9fr)
+    minmax(150px, 1fr)
+    minmax(150px, 1fr)
+    minmax(130px, 0.9fr)
+    minmax(120px, 0.8fr);
   grid-template-areas:
     "age hmin hmax days profileid photo photo"
     "occupation occupation location location state actions actions";
@@ -69,12 +69,12 @@
 }
 
 .active-criteria-bar-body .search-action-buttons.search-action-buttons-inline {
-  justify-content: flex-end;
+  justify-content: center;
   margin: 0;
   padding: 0 !important;
-  gap: 8px;
+  gap: 4px;
   width: 100%;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .active-criteria-bar-body .basic-filters-section .search-action-buttons-inline {
@@ -83,6 +83,19 @@
 
 .active-criteria-bar-body .search-action-buttons.search-action-buttons-inline .btn {
   width: auto;
+  min-width: 40px;
+  flex-shrink: 1;
+  flex-grow: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.active-criteria-bar-body .search-action-buttons.search-action-buttons-inline .btn-label {
+  display: none;
+}
+
+.active-criteria-bar-body .search-action-buttons.search-action-buttons-inline .btn-icon {
+  font-size: 16px;
 }
 
 .active-criteria-bar-body .advanced-filters-section {
@@ -159,7 +172,7 @@
   .active-criteria-bar-body .basic-filters-section {
     grid-template-columns:
       minmax(240px, 2fr)
-      minmax(170px, 1fr)
+      minmax(150px, 1fr)
       minmax(160px, 1fr);
     grid-template-areas:
       "age hmin hmax"
@@ -169,6 +182,10 @@
       "state state state"
       "actions actions actions";
     align-items: stretch;
+  }
+  
+  .active-criteria-bar-body .search-action-buttons.search-action-buttons-inline .btn-label {
+    display: none;
   }
 }
 
@@ -406,6 +423,7 @@
   padding: 0 !important;
   width: 100%;
   box-sizing: border-box;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 768px) {
@@ -435,19 +453,66 @@
 
 /* Basic Filters Grid Layout - Custom layout */
 .basic-filters-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  /* margin-bottom: 20px; */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
   overflow: visible; /* Allow tooltips to overflow */
-  /* background-color:var(--primary-color); */
-  /* padding: 10px; */
-
-    background: var(--card-background);
+  background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 20px;
+  align-items: end;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Reduce columns on smaller screens to prevent button overflow */
+@media (max-width: 1200px) {
+  .basic-filters-section {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .basic-filters-section {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .basic-filters-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Action buttons span full width on larger screens */
+.basic-filters-section .search-action-buttons-inline {
+  grid-column: 1 / -1;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  gap: 6px;
+}
+
+.basic-filters-section .search-action-buttons-inline .btn {
+  min-width: 50px !important;
+  flex-shrink: 1 !important;
+  flex-grow: 0 !important;
+  padding: 6px 8px !important;
+  font-size: 12px !important;
+}
+
+@media (max-width: 1100px) {
+  .basic-filters-section .search-action-buttons-inline .btn-label {
+    display: none;
+  }
+  
+  .basic-filters-section .search-action-buttons-inline .btn {
+    padding: 8px 10px !important;
+  }
 }
 
 /* Keyword Search - Full width */
