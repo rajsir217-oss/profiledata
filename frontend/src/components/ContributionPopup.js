@@ -183,6 +183,13 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             logger.debug(`Dismissal calculation (no contribution): daysSinceApproved=${daysSinceApproved}, requiredDismissals=${requiredDismissals}`);
           }
           setRequiredDismissals(requiredDismissals);
+
+          // Reset dismissCount if it already exceeds requiredDismissals
+          const currentDismissCount = parseInt(localStorage.getItem(`contribution_dismiss_count:${username}`) || '0', 10);
+          if (currentDismissCount >= requiredDismissals) {
+            logger.debug(`Resetting dismissCount from ${currentDismissCount} to 0 (exceeds requiredDismissals=${requiredDismissals})`);
+            saveDismissCount(0);
+          }
         }
       } else {
         logger.warn('Contribution status response not ok:', response.status);
@@ -923,7 +930,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             Close
             {requiredDismissals > 0 && (
               <span className="dismiss-count-text">
-                {dismissCount + 1} of {requiredDismissals} times to close...
+                {Math.min(dismissCount + 1, requiredDismissals)} of {requiredDismissals} times to close...
               </span>
             )}
           </button>
