@@ -600,12 +600,22 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
       logActivity('popup_dismissed');
       const newCount = dismissCount + 1;
       saveDismissCount(newCount);
-      onClose();
+
+      // Only close popup after required dismissals reached
+      if (newCount >= requiredDismissals) {
+        onClose();
+      }
+      // Otherwise, popup stays open (user can click close again)
     }
   };
 
   return (
-    <div className="contribution-popup-overlay" onClick={handleDismiss} style={{ display: isOpen ? 'flex' : 'none' }}>
+    <div className="contribution-popup-overlay" onClick={(e) => {
+      // Only allow overlay click to close if required dismissals reached
+      if (dismissCount >= requiredDismissals) {
+        handleDismiss();
+      }
+    }} style={{ display: isOpen ? 'flex' : 'none' }}>
       <div className="contribution-popup" onClick={(e) => e.stopPropagation()}>
         <div className="contribution-popup-body">
           <p className="contribution-message">
