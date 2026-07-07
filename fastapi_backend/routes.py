@@ -10530,7 +10530,13 @@ async def get_user_stats(
                 raise HTTPException(status_code=404, detail="User not found")
 
             created_at = user.get("createdAt")
-            days_active = (today - created_at).days if created_at else 0
+            if created_at:
+                # Handle both datetime objects and ISO string formats
+                if isinstance(created_at, str):
+                    created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                days_active = (today - created_at).days
+            else:
+                days_active = 0
 
             # Live calculation for other stats
             views_count = await db.profile_views.count_documents({"profileUsername": username})
