@@ -1440,7 +1440,7 @@ async def register_user(
         "updatedAt": now,
         # Pre-computed sort fields for search performance optimization
         "_sortFreshness": now,  # Will be updated on profile updates
-        "_sortHeightInches": heightInches if heightInches else 0,
+        "_sortHeightInches": parse_height_to_inches(height) if height else 0,
         "_sortFirstName": str(firstName or username).strip().lower(),
         "_sortLocation": str(location or state or "").strip().lower(),
         "_sortEducation": "",  # Will be computed from educationHistory
