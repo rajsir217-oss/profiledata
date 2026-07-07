@@ -11,6 +11,7 @@ import json
 import re
 import io
 import httpx
+import asyncio
 from pathlib import Path
 from urllib.parse import urlparse
 from sse_starlette.sse import EventSourceResponse
@@ -9470,14 +9471,17 @@ async def check_message_visibility(username1: str, username2: str, db) -> bool:
     
     # Check if either user has unfavorited the other (removed from favorites)
     # If they were in favorites and removed, hide messages
-    favorite1 = await db.favorites.find_one({
-        "userUsername": username1,
-        "favoriteUsername": username2
-    })
-    favorite2 = await db.favorites.find_one({
-        "userUsername": username2,
-        "favoriteUsername": username1
-    })
+    # Parallelize the two favorites checks since they're independent
+    favorite1, favorite2 = await asyncio.gather(
+        db.favorites.find_one({
+            "userUsername": username1,
+            "favoriteUsername": username2
+        }),
+        db.favorites.find_one({
+            "userUsername": username2,
+            "favoriteUsername": username1
+        })
+    )
     
     # If neither has favorited the other, messages are still visible
     # Only hide if explicitly excluded
@@ -9740,14 +9744,13 @@ async def get_user_violations(
 async def get_conversation(
     other_username: str,
     username: str = Query(...),
+    limit: int = Query(100, ge=1, le=500),
+    skip: int = Query(0, ge=0),
     db = Depends(get_database)
 ):
     """Get conversation with specific user (with privacy checks)"""
     logger.info(f"💭 Getting conversation between {username} and {other_username}")
     
-    # Check if current user is admin
-    current_user = await db.users.find_one({"username": username})
-    is_admin = current_user and current_user.get("username") == "admin"
     ack_phrase = "connected and will stay in touch"
     
     try:
@@ -9799,8 +9802,14 @@ async def get_conversation(
 
             return None
 
-        # Check visibility
-        is_visible = await check_message_visibility(username, other_username, db)
+        # Parallelize independent queries: current user, visibility check, conversation status
+        sorted_pp = sorted([username, other_username])
+        current_user, is_visible, cs_doc = await asyncio.gather(
+            db.users.find_one({"username": username}),
+            check_message_visibility(username, other_username, db),
+            db.conversation_status.find_one({"participants": sorted_pp})
+        )
+        is_admin = current_user and current_user.get("username") == "admin"
         
         # Build query
         query = {
@@ -9815,14 +9824,12 @@ async def get_conversation(
             query["isVisible"] = True
         
         # Per-user "clear chat" filter — hide messages older than clearedAt
-        sorted_pp = sorted([username, other_username])
-        cs_doc = await db.conversation_status.find_one({"participants": sorted_pp})
         cleared_for = (cs_doc or {}).get("clearedFor", {}).get(username)
         if cleared_for:
             query["createdAt"] = {"$gt": cleared_for}
 
-        messages_cursor = db.messages.find(query).sort("createdAt", 1)
-        messages = await messages_cursor.to_list(500)
+        messages_cursor = db.messages.find(query).sort("createdAt", 1).skip(skip)
+        messages = await messages_cursor.to_list(limit)
 
         expired_ids = []
         visible_messages = []
@@ -9851,13 +9858,13 @@ async def get_conversation(
 
         messages = visible_messages
         
-        # Mark messages as read
-        for msg in messages:
-            if msg["toUsername"] == username and not msg.get("isRead", False):
-                await db.messages.update_one(
-                    {"_id": msg["_id"]},
-                    {"$set": {"isRead": True, "readAt": datetime.utcnow()}}
-                )
+        # Mark messages as read - use bulk update instead of N+1 queries
+        unread_ids = [msg["_id"] for msg in messages if msg["toUsername"] == username and not msg.get("isRead", False)]
+        if unread_ids:
+            await db.messages.update_many(
+                {"_id": {"$in": unread_ids}},
+                {"$set": {"isRead": True, "readAt": datetime.utcnow()}}
+            )
         
         # Convert ObjectId to string + decrypt any legacy Fernet-encrypted content
         # (new sends store plaintext; old rows may still be encrypted).
