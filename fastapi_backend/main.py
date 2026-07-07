@@ -446,26 +446,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# NOTE: CORS middleware is configured below based on ENV (production vs development)
-# Do NOT add a duplicate CORSMiddleware here - it causes conflicts
-
-# Trust proxy headers (X-Forwarded-Proto, X-Forwarded-For) from Cloud Run's load balancer
-# This ensures trailing-slash redirects use https:// instead of http://
-from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
-
-# Rate limiter setup - must be attached to app.state for slowapi to work
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
-
-# Mount static files for uploads only in non-production
+# CRITICAL: CORS middleware MUST be added first, before any other middleware
+# This ensures CORS headers are set for all responses
 env = os.getenv("ENV", "development")
-if env != "production" and os.path.exists(settings.upload_dir):
-    from fastapi.staticfiles import StaticFiles
-    app.mount(f"/{settings.upload_dir}", StaticFiles(directory=settings.upload_dir), name="uploads")
-    logger.info(f"📁 Static files mounted at /{settings.upload_dir}")
-
-# CORS middleware (must be added before other middleware)
 frontend_url = os.getenv("FRONTEND_URL", "https://l3v3lmatches.com")
 
 # Log environment for debugging
@@ -526,6 +509,21 @@ else:
         allow_headers=["*"],
         expose_headers=["*"],
     )
+
+# Trust proxy headers (X-Forwarded-Proto, X-Forwarded-For) from Cloud Run's load balancer
+# This ensures trailing-slash redirects use https:// instead of http://
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
+
+# Rate limiter setup - must be attached to app.state for slowapi to work
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
+# Mount static files for uploads only in non-production
+if env != "production" and os.path.exists(settings.upload_dir):
+    from fastapi.staticfiles import StaticFiles
+    app.mount(f"/{settings.upload_dir}", StaticFiles(directory=settings.upload_dir), name="uploads")
+    logger.info(f"📁 Static files mounted at /{settings.upload_dir}")
 
 # Cache Control middleware for PCI compliance
 # Must be added BEFORE other middleware to ensure headers are set
