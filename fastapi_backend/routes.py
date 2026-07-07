@@ -2679,6 +2679,8 @@ async def update_user_profile(
     relationshipStatus: Optional[str] = Form(None),  # NEW
     lookingFor: Optional[str] = Form(None),  # NEW
     bodyType: Optional[str] = Form(None),  # NEW
+    occupation: Optional[str] = Form(None),  # NEW
+    incomeRange: Optional[str] = Form(None),  # NEW
     drinking: Optional[str] = Form(None),  # NEW
     smoking: Optional[str] = Form(None),  # NEW
     hasChildren: Optional[str] = Form(None),  # NEW
@@ -2882,6 +2884,10 @@ async def update_user_profile(
     # Education & Work
     if workingStatus is not None and workingStatus.strip():
         update_data["workingStatus"] = workingStatus.strip()
+    if occupation is not None and occupation.strip():
+        update_data["occupation"] = occupation.strip()
+    if incomeRange is not None and incomeRange.strip():
+        update_data["incomeRange"] = incomeRange.strip()
     if citizenshipStatus is not None and citizenshipStatus.strip():
         update_data["citizenshipStatus"] = citizenshipStatus.strip()
     
