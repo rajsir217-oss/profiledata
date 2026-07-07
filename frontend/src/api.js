@@ -28,6 +28,13 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
+    // CRITICAL: Remove Content-Type for FormData requests
+    // This allows the browser to set the correct boundary parameter
+    // Otherwise, multipart/form-data uploads will fail with network errors
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
     // NOTE: API activity tracking removed - it was resetting inactivity timer on background polling
     // User activity is now tracked only via DOM events (mouse, keyboard, click, scroll)
     
@@ -284,6 +291,12 @@ imageAccessApi.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Remove Content-Type for FormData requests to allow browser to set boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
     return config;
   },
   (error) => {
@@ -500,6 +513,12 @@ notificationsApi.interceptors.request.use(
     } else {
       console.warn('⚠️ No token found in localStorage for notifications API');
     }
+    
+    // Remove Content-Type for FormData requests to allow browser to set boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
     return config;
   },
   (error) => {
