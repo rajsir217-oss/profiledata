@@ -3202,7 +3202,7 @@ async def update_user_profile(
 
     # Update _sortHeightInches if height changed
     if height is not None:
-        heightInches = parse_height(height)
+        heightInches = parse_height_to_inches(height)
         if heightInches:
             update_data["_sortHeightInches"] = heightInches
             sort_fields_updated = True
