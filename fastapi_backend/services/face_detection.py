@@ -180,11 +180,27 @@ def _get_detectors():
 
         haarcascades = cv2.data.haarcascades
 
-        frontal = cv2.CascadeClassifier(haarcascades + "haarcascade_frontalface_default.xml")
-        profile = cv2.CascadeClassifier(haarcascades + "haarcascade_profileface.xml")
+        frontal = None
+        frontal_candidates = [
+            "haarcascade_frontalface_default.xml",
+            "haarcascade_frontalface_alt.xml",
+            "haarcascade_frontalface_alt2.xml",
+        ]
+        for cascade_name in frontal_candidates:
+            detector = cv2.CascadeClassifier(haarcascades + cascade_name)
+            if not detector.empty():
+                frontal = detector
+                break
 
-        if frontal.empty():
-            raise RuntimeError("Failed to load frontalface cascade")
+        if frontal is None:
+            _cv2_available = False
+            logger.warning(
+                "⚠️ OpenCV face detection unavailable: no frontal cascade loaded "
+                f"from path '{haarcascades}'"
+            )
+            return None
+
+        profile = cv2.CascadeClassifier(haarcascades + "haarcascade_profileface.xml")
 
         _detectors = {
             "frontal": frontal,
@@ -202,7 +218,7 @@ def _get_detectors():
         return None
     except Exception as e:
         _cv2_available = False
-        logger.error(f"❌ Failed to initialize OpenCV face detection: {e}", exc_info=True)
+        logger.warning(f"⚠️ Failed to initialize OpenCV face detection: {e}")
         return None
 
 
