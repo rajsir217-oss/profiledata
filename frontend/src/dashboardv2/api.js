@@ -100,8 +100,12 @@ export async function searchProfiles(criteria, overrides = {}) {
 
 export async function searchProfilesStrict(criteria, overrides = {}) {
   const params = buildSearchParams(criteria, overrides);
-  const { data } = await api.get(`/search?${params.toString()}`);
-  return data;
+  try {
+    const { data } = await api.get(`/search?${params.toString()}`);
+    return data;
+  } catch (err) {
+    throw err;
+  }
 }
 
 // ============================================================================
