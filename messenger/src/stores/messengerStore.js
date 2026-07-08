@@ -14,6 +14,7 @@ const useMessengerStore = create((set, get) => ({
   isLoadingConversations: false,
   isLoadingMessages: false,
   typingUsers: {},       // { [conversationId]: Set<username> }
+  fetching: {},          // { [conversationId]: boolean } - fetch lock to prevent concurrent fetches
 
   // -----------------------------------------------------------------
   // Conversations
@@ -40,6 +41,17 @@ const useMessengerStore = create((set, get) => ({
     if (!conversationId || !after) {
       return { hasMore: false, cursor: null, fetched: 0 };
     }
+
+    // Check if already fetching this conversation
+    const state = get();
+    if (state.fetching[conversationId]) {
+      return { hasMore: true, cursor: null, fetched: 0, skipped: true };
+    }
+
+    // Set fetch lock
+    set((s) => ({
+      fetching: { ...s.fetching, [conversationId]: true }
+    }));
 
     try {
       const api = useAuthStore.getState().getApi();
@@ -88,6 +100,13 @@ const useMessengerStore = create((set, get) => ({
       };
     } catch (e) {
       return { hasMore: false, cursor: null, fetched: 0 };
+    } finally {
+      // Clear fetch lock
+      set((s) => {
+        const nextFetching = { ...s.fetching };
+        delete nextFetching[conversationId];
+        return { fetching: nextFetching };
+      });
     }
   },
 
@@ -114,7 +133,19 @@ const useMessengerStore = create((set, get) => ({
   // -----------------------------------------------------------------
 
   fetchMessages: async (conversationId, before = null) => {
+    // Check if already fetching this conversation
+    const state = get();
+    if (state.fetching[conversationId]) {
+      return { hasMore: true, cursor: null, skipped: true };
+    }
+
     set({ isLoadingMessages: true });
+
+    // Set fetch lock
+    set((s) => ({
+      fetching: { ...s.fetching, [conversationId]: true }
+    }));
+
     try {
       const api = useAuthStore.getState().getApi();
       const params = { limit: 50 };
@@ -139,6 +170,13 @@ const useMessengerStore = create((set, get) => ({
     } catch (e) {
       set({ isLoadingMessages: false });
       return { hasMore: false, cursor: null };
+    } finally {
+      // Clear fetch lock
+      set((s) => {
+        const nextFetching = { ...s.fetching };
+        delete nextFetching[conversationId];
+        return { fetching: nextFetching };
+      });
     }
   },
 

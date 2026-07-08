@@ -713,6 +713,13 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   // Helper: get display name for a conversation (L3V3L Messenger structure).
   // Returns `username` for direct chats so callers can do online-presence lookups.
   const getConvDisplay = (conv) => {
+    const toDisplayName = (obj) => {
+      if (!obj) return '';
+      const firstName = obj.firstName || obj.first_name || '';
+      const lastName = obj.lastName || obj.last_name || '';
+      return `${firstName} ${lastName}`.trim();
+    };
+
     // L3V3L Agent (system bot topic)
     if (conv.isSystemBot || (conv.participants || []).some(p => p.username === 'l3v3lagent')) {
       return { name: 'L3V3L Agent', isGroup: false, username: 'l3v3lagent', icon: '🤖' };
@@ -726,8 +733,10 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     }
     // Legacy direct chat
     if (conv.type === 'direct_legacy') {
+      const profileName = toDisplayName(conv.profile);
+      const directName = profileName || conv.otherFullName || conv.otherDisplayName || conv.otherUsername || 'Unknown';
       return {
-        name: conv.otherUsername || 'Unknown',
+        name: directName,
         isGroup: false,
         username: conv.otherUsername || null,
         icon: null,
@@ -735,7 +744,9 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     }
     // Direct chat - find other participant
     const other = conv.participants?.find(p => p.username !== user?.username);
-    const name = other?.username || 'Unknown';
+    const participantName = toDisplayName(other);
+    const profileName = toDisplayName(conv.profile);
+    const name = participantName || profileName || other?.displayName || other?.fullName || other?.username || 'Unknown';
     return { name, isGroup: false, username: other?.username || null, icon: null };
   };
 
