@@ -30,6 +30,7 @@ import FavoritedByModal from '../components/FavoritedByModal';
 import ProfileNotes from '../components/ProfileNotes';
 import PollWidget from '../components/PollWidget';
 import { formatShortDateTime } from '../utils/timeFormatter';
+import logger from '../utils/logger';
 import { useDashboardData } from './hooks/useDashboardData';
 import { useNewestMatch } from './hooks/useNewestMatch';
 import HeroNewestMatch from './components/HeroNewestMatch/HeroNewestMatch';
@@ -62,7 +63,14 @@ const DashboardV2Page = () => {
   const [showFavoritedBy, setShowFavoritedBy] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
 
-  const currentUsername = useMemo(() => localStorage.getItem('username'), []);
+  const currentUsername = localStorage.getItem('username');
+
+  useEffect(() => {
+    if (!currentUsername) {
+      logger.warn('No username found in localStorage, redirecting to login');
+      navigate('/login');
+    }
+  }, [currentUsername, navigate]);
   const lastLoginAt = data.userProfile?.security?.last_login_at;
 
   const getConversationUnreadCount = (conversation) => {

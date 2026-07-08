@@ -4,6 +4,11 @@ import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import HeroNewestMatch from './HeroNewestMatch';
 
+jest.mock('react-router-dom', () => ({
+  MemoryRouter: ({ children }) => children,
+  useNavigate: () => jest.fn(),
+}));
+
 describe('HeroNewestMatch', () => {
   test('renders profile data pills and looking-for summary', () => {
     const pick = {

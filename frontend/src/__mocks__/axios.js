@@ -5,6 +5,9 @@ const mockAxios = {
   post: jest.fn(),
   put: jest.fn(),
   delete: jest.fn(),
+  patch: jest.fn(),
+  head: jest.fn(),
+  options: jest.fn(),
   interceptors: {
     request: {
       use: jest.fn(),
