@@ -631,9 +631,10 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
             ☰
           </button>
           <div className="app-logo" onClick={() => navigate('/dashboardv2')}>
-            <span className="logo-text">
-              <span className="butterfly-icon">🦋</span>
-              <span className="logo-text-full"> L3V3L</span>
+            <span className="butterfly-icon" aria-hidden="true">🦋</span>
+            <span className="logo-wordmark">
+              <span className="logo-text-full">L3V3L</span>
+              <span className="logo-tagline">MATCHES</span>
             </span>
           </div>
           {/* Branding text - merged from BrandBanner */}

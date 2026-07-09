@@ -123,37 +123,53 @@
   flex-shrink: 0;
 }
 
+
 .app-logo {
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  min-width: 70px;
+  min-width: 84px;
   height: 44px;
-  border-radius: 12px;
-  background: transparent;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 8px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--primary-color) 25%, var(--secondary-color) 25%);
+  border: 2px solid color-mix(in srgb, var(--primary-color) 65%, white 25%);
+  padding: 4px 10px;
   flex-shrink: 0;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--primary-color) 20%, rgba(0, 0, 0, 0.35));
+  gap: 8px;
 }
 
-.logo-text {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  color: white;
-  font-family: 'Arial Black', 'Arial Bold', sans-serif;
+.app-logo .butterfly-icon {
+  font-size: 22px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
+.logo-wordmark {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
 }
 
-/* L3V3L text - ensure bright white */
 .logo-text-full {
-  color: #ffffff !important;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  font-family: 'Space Grotesk', 'Arial Black', 'Arial Bold', sans-serif;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--card-background, #ffffff) 80%, white 20%);
+}
+
+.logo-tagline {
+  margin-top: 0px;
+  font-size: 9px;
+  letter-spacing: 3px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text-color, #111) 80%, var(--secondary-color) 20%);
+  text-transform: uppercase;
 }
 
 /* Branding text merged from BrandBanner */
@@ -205,24 +221,24 @@
 /* Mobile: Slightly smaller text */
 @media (max-width: 768px) {
   .app-logo {
-    min-width: 32px;
-    width: 32px;
-    height: 32px;
-    padding: 0;
+    min-width: 64px;
+    width: auto;
+    height: 40px;
+    padding: 4px 8px;
     box-sizing: border-box;
   }
   
-  .logo-text {
-    font-size: 18px;
+  .app-logo .butterfly-icon {
+    font-size: 20px;
   }
-  
-  /* Hide "L3V3L" text on mobile - show only butterfly */
+
   .logo-text-full {
-    display: none;
+    font-size: 13px;
   }
-  
-  .butterfly-icon {
-    font-size: 18px;
+
+  .logo-tagline {
+    letter-spacing: 2px;
+    font-size: 8px;
   }
   
   /* Hide page title breadcrumb on mobile */
