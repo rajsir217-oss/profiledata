@@ -58,6 +58,7 @@ const getPhoneLoginPayload = (result) => {
 };
 
 const PHONE_LOGIN_ERROR_FALLBACK_THRESHOLD = 3;
+const LOGIN_CARD_SCALE = 2 / 3;
 
 const LoginScreen = () => {
   const [form, setForm] = useState({ username: '', password: '', phone: '' });
@@ -574,10 +575,14 @@ const LoginScreen = () => {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.page}>
-        <View style={styles.card}>
+        <View style={styles.cardWrapper}>
+          <View style={styles.card}>
           <View style={styles.brandHeader}>
             <Text style={styles.brandIcon}>🦋</Text>
-            <Text style={styles.brandText}>L3V3L</Text>
+            <View style={styles.logoWordmark}>
+              <Text style={styles.brandText}>L3V3L</Text>
+              <Text style={styles.logoTagline}>MATCHES</Text>
+            </View>
           </View>
           <Text style={styles.title}>{(mfaRequired || phoneCodeRequired) ? 'Verification Required' : 'Welcome Back!'}</Text>
           <Text style={styles.subtitle}>
@@ -842,6 +847,7 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </>
         )}
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -860,6 +866,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
   },
+  cardWrapper: {
+    width: '100%',
+    alignItems: 'center',
+  },
   card: {
     width: '100%',
     maxWidth: 440,
@@ -869,20 +879,46 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderWidth: 1,
     borderColor: '#1a1a3e',
+    transform: [{ scale: LOGIN_CARD_SCALE }],
+    transformOrigin: 'center',
   },
   brandHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     marginBottom: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    alignSelf: 'center',
+    width: 'auto',
   },
   brandIcon: {
-    fontSize: 40,
-    lineHeight: 44,
+    fontSize: 28,
+    lineHeight: 32,
+  },
+  logoWordmark: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    lineHeight: 1,
   },
   brandText: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#e94560',
-    letterSpacing: 2,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    color: '#111827',
+    textTransform: 'uppercase',
+  },
+  logoTagline: {
+    marginTop: 0,
+    fontSize: 10,
+    letterSpacing: 3,
+    fontWeight: '600',
+    color: '#111827',
+    textTransform: 'uppercase',
   },
   title: {
     fontSize: 22,
