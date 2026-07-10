@@ -95,6 +95,8 @@ async def ensure_indexes():
             ("createdAt", 1),
             ("missingPhotoWarningSentAt", 1),
             ("missingPhotoSuspendedAt", 1),
+            ("missingPhotoDeleteWarningSentAt", 1),
+            ("missingPhotoDeletedAt", 1),
         ],
         name="missing_photo_enforcement",
         background=True,
@@ -105,6 +107,15 @@ async def ensure_indexes():
             ("missingPhotoWarningSentAt", 1),
         ],
         name="missing_photo_warning_lookup",
+        background=True,
+    )
+    await db.users.create_index(
+        [
+            ("accountStatus", 1),
+            ("missingPhotoSuspendedAt", 1),
+            ("missingPhotoDeleteWarningSentAt", 1),
+        ],
+        name="missing_photo_delete_enforcement",
         background=True,
     )
 

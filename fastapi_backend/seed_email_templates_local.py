@@ -258,6 +258,20 @@ ALL_TEMPLATES = [
         "Contact Support", "contact"
     ),
     create_template(
+        "missing_photo_delete_warning", "account",
+        "🚨 Final Warning: Your Profile Will Be Deleted",
+        "#7f1d1d", "high",
+        "Your account remains suspended. This is your final warning — update your profile within {deleteDays} days or your profile will be permanently deleted.",
+        "Update Profile", "profile"
+    ),
+    create_template(
+        "missing_photo_deleted", "account",
+        "🗑️ Your Profile Has Been Deleted",
+        "#7f1d1d", "high",
+        "Your profile has been permanently deleted because the required profile information was not provided after multiple warnings. Contact support if you believe this is an error.",
+        "Contact Support", "contact"
+    ),
+    create_template(
         "new_users_matching", "digest",
         "📬 {matches_count} new people match your preferences",
         "#667eea", "low",

@@ -64,6 +64,8 @@ class NotificationTrigger(str, Enum):
     UPLOAD_PHOTOS = "upload_photos"
     MISSING_PHOTO_WARNING = "missing_photo_warning"
     MISSING_PHOTO_SUSPENDED = "missing_photo_suspended"
+    MISSING_PHOTO_DELETE_WARNING = "missing_photo_delete_warning"
+    MISSING_PHOTO_DELETED = "missing_photo_deleted"
     
     # Digest emails
     DAILY_DIGEST = "daily_digest"

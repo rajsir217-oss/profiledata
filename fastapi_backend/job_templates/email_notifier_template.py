@@ -440,6 +440,14 @@ class EmailNotifierTemplate(JobTemplate):
                     "subject": self._build_profile_compliance_subject(template_data, stage="suspended"),
                     "body": self._build_profile_compliance_suspended_body(template_data, notification),
                 },
+                "missing_photo_delete_warning": {
+                    "subject": self._build_profile_compliance_subject(template_data, stage="delete_warning"),
+                    "body": self._build_profile_compliance_delete_warning_body(template_data, notification),
+                },
+                "missing_photo_deleted": {
+                    "subject": self._build_profile_compliance_subject(template_data, stage="deleted"),
+                    "body": self._build_profile_compliance_deleted_body(template_data, notification),
+                },
                 "pending_pii_request": {
                     "subject": f"🔒 {requester_name} requested your contact information",
                     "body": self._build_pii_request_fallback_body(template_data, notification, requester_name)
@@ -542,13 +550,30 @@ class EmailNotifierTemplate(JobTemplate):
             return "⚠️ Action Required: Update Your Profile Details"
 
         # Suspension stage
-        if photo_issue and phone_issue:
-            return "⚠️ Account Suspended — Photo & Phone Missing"
-        if photo_issue:
-            return "⚠️ Account Suspended — Missing Profile Picture"
-        if phone_issue:
-            return "⚠️ Account Suspended — Invalid Phone Number"
-        return "⚠️ Account Suspended — Profile Compliance"
+        if stage == "suspended":
+            if photo_issue and phone_issue:
+                return "⚠️ Account Suspended — Photo & Phone Missing"
+            if photo_issue:
+                return "⚠️ Account Suspended — Missing Profile Picture"
+            if phone_issue:
+                return "⚠️ Account Suspended — Invalid Phone Number"
+            return "⚠️ Account Suspended — Profile Compliance"
+
+        # Delete warning stage
+        if stage == "delete_warning":
+            if photo_issue and phone_issue:
+                return "🚨 Final Warning: Your Profile Will Be Deleted"
+            if photo_issue:
+                return "🚨 Final Warning: Profile Will Be Deleted — Missing Photo"
+            if phone_issue:
+                return "🚨 Final Warning: Profile Will Be Deleted — Invalid Phone"
+            return "🚨 Final Warning: Your Profile Will Be Deleted"
+
+        # Deleted stage
+        if stage == "deleted":
+            return "🗑️ Your Profile Has Been Deleted"
+
+        return "⚠️ Profile Compliance Notice"
 
     def _build_profile_compliance_list_html(self, template_data: dict) -> str:
         """List out unresolved compliance items as HTML bullet list."""
@@ -609,6 +634,41 @@ class EmailNotifierTemplate(JobTemplate):
             f"{issues_html}"
             f"<p>Once you've updated your profile, please <a href=\"{support_url}\">contact support</a> so we can review and reactivate your account.</p>"
             f"<p><a href=\"{profile_url}\">Update your profile</a></p>"
+        )
+
+    def _build_profile_compliance_delete_warning_body(self, template_data: dict, notification) -> str:
+        """Fallback body for profile compliance delete warning emails."""
+        if not isinstance(template_data, dict):
+            template_data = {}
+
+        first_name = template_data.get("recipient_firstName", notification.username)
+        delete_days = template_data.get("deleteDays", 10)
+        profile_url = template_data.get("profile_url", "https://l3v3lmatches.com/profile/edit")
+        issues_html = self._build_profile_compliance_list_html(template_data)
+        days_label = "day" if delete_days == 1 else "days"
+
+        return (
+            f"<p>Hello {first_name},</p>"
+            "<p>Your account remains <strong>suspended</strong> and these requirements are still unresolved:</p>"
+            f"{issues_html}"
+            f"<p><strong>This is your final warning.</strong> If you don't update your profile within "
+            f"<strong>{delete_days} {days_label}</strong>, your profile will be <strong>permanently deleted</strong>.</p>"
+            f"<p><a href=\"{profile_url}\">Update your profile now</a></p>"
+            "<p>Once deleted, your profile cannot be recovered. If you need assistance, please contact support.</p>"
+        )
+
+    def _build_profile_compliance_deleted_body(self, template_data: dict, notification) -> str:
+        """Fallback body for profile compliance deletion emails."""
+        if not isinstance(template_data, dict):
+            template_data = {}
+
+        first_name = template_data.get("recipient_firstName", notification.username)
+        support_url = template_data.get("app", {}).get("contactUrl", "https://l3v3lmatches.com/contact")
+
+        return (
+            f"<p>Hello {first_name},</p>"
+            "<p>Your profile has been <strong>permanently deleted</strong> because the required profile information was not provided after multiple warnings.</p>"
+            f"<p>If you believe this is an error or would like to create a new profile, please <a href=\"{support_url}\">contact support</a>.</p>"
         )
 
     def _build_saved_search_fallback_body(self, template_data: dict) -> str:
