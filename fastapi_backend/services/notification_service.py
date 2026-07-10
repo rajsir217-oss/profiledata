@@ -29,6 +29,8 @@ from models.notification_models import (
 COMPLIANCE_ENFORCEMENT_TRIGGERS = {
     NotificationTrigger.MISSING_PHOTO_WARNING,
     NotificationTrigger.MISSING_PHOTO_SUSPENDED,
+    NotificationTrigger.MISSING_PHOTO_DELETE_WARNING,
+    NotificationTrigger.MISSING_PHOTO_DELETED,
 }
 
 ACTIVITY_EMAIL_SMS_DISABLED_TRIGGERS = {
@@ -115,6 +117,8 @@ class NotificationService:
                 # Profile compliance - enabled
                 NotificationTrigger.MISSING_PHOTO_WARNING: [NotificationChannel.EMAIL],
                 NotificationTrigger.MISSING_PHOTO_SUSPENDED: [NotificationChannel.EMAIL],
+                NotificationTrigger.MISSING_PHOTO_DELETE_WARNING: [NotificationChannel.EMAIL],
+                NotificationTrigger.MISSING_PHOTO_DELETED: [NotificationChannel.EMAIL],
 
                 # Engagement - disabled by default
                 NotificationTrigger.NEW_USERS_MATCHING: [],
@@ -887,6 +891,8 @@ class NotificationService:
             NotificationTrigger.MONTHLY_DIGEST,
             NotificationTrigger.MISSING_PHOTO_WARNING,
             NotificationTrigger.MISSING_PHOTO_SUSPENDED,
+            NotificationTrigger.MISSING_PHOTO_DELETE_WARNING,
+            NotificationTrigger.MISSING_PHOTO_DELETED,
         ]
         
         # Handle both enum keys and string keys (MongoDB stores as strings due to use_enum_values=True)

@@ -9,10 +9,16 @@ numbers whose accounts were activated more than 30 days ago.
 - Day 37+:  If still non-compliant, suspends the account and sends email —
             "your account has been suspended due to unresolved profile data
             issues."
+- Day 47+:  If still non-compliant, sends delete warning email — "your profile
+            will be deleted in 10 days if you don't update your profile data."
+- Day 57+:  If still non-compliant, marks profile as deleted and sends email —
+            "your profile has been deleted due to unresolved profile data issues."
 
 Runs daily. Tracks state via user document fields:
-  missingPhotoWarningSentAt  — datetime of first warning
-  missingPhotoSuspendedAt    — datetime of suspension
+  missingPhotoWarningSentAt      — datetime of first warning
+  missingPhotoSuspendedAt        — datetime of suspension
+  missingPhotoDeleteWarningSentAt — datetime of delete warning
+  missingPhotoDeletedAt          — datetime of deletion
 """
 
 import logging
@@ -164,16 +170,24 @@ class MissingProfilePhotosJob(JobTemplate):
     # ── configurable defaults ──────────────────────────────────────────
     DEFAULT_WARNING_DAYS = 30   # days after createdAt before first warning
     DEFAULT_GRACE_DAYS = 7      # days after warning before suspension
+    DEFAULT_DELETE_WARNING_DAYS = 10  # days after suspension before delete warning
+    DEFAULT_DELETE_DAYS = 10    # days after delete warning before deletion
 
     def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         warning_days = params.get("warningDays", self.DEFAULT_WARNING_DAYS)
         grace_days = params.get("graceDays", self.DEFAULT_GRACE_DAYS)
+        delete_warning_days = params.get("deleteWarningDays", self.DEFAULT_DELETE_WARNING_DAYS)
+        delete_days = params.get("deleteDays", self.DEFAULT_DELETE_DAYS)
         batch_size = params.get("batchSize", 100)
 
         if not isinstance(warning_days, int) or warning_days < 1:
             return False, "warningDays must be a positive integer"
         if not isinstance(grace_days, int) or grace_days < 1:
             return False, "graceDays must be a positive integer"
+        if not isinstance(delete_warning_days, int) or delete_warning_days < 1:
+            return False, "deleteWarningDays must be a positive integer"
+        if not isinstance(delete_days, int) or delete_days < 1:
+            return False, "deleteDays must be a positive integer"
         if not isinstance(batch_size, int) or batch_size < 1 or batch_size > 500:
             return False, "batchSize must be between 1 and 500"
 
@@ -183,6 +197,8 @@ class MissingProfilePhotosJob(JobTemplate):
         return {
             "warningDays": self.DEFAULT_WARNING_DAYS,
             "graceDays": self.DEFAULT_GRACE_DAYS,
+            "deleteWarningDays": self.DEFAULT_DELETE_WARNING_DAYS,
+            "deleteDays": self.DEFAULT_DELETE_DAYS,
             "batchSize": 100,
             "dryRun": False,
         }
@@ -202,6 +218,22 @@ class MissingProfilePhotosJob(JobTemplate):
                 "label": "Grace Period (Days)",
                 "description": "Days after warning before account is suspended",
                 "default": self.DEFAULT_GRACE_DAYS,
+                "min": 1,
+                "max": 90,
+            },
+            "deleteWarningDays": {
+                "type": "integer",
+                "label": "Delete Warning After (Days)",
+                "description": "Days after suspension before sending delete warning",
+                "default": self.DEFAULT_DELETE_WARNING_DAYS,
+                "min": 1,
+                "max": 90,
+            },
+            "deleteDays": {
+                "type": "integer",
+                "label": "Delete After (Days)",
+                "description": "Days after delete warning before profile deletion",
+                "default": self.DEFAULT_DELETE_DAYS,
                 "min": 1,
                 "max": 90,
             },
@@ -230,21 +262,27 @@ class MissingProfilePhotosJob(JobTemplate):
 
         warning_days = params.get("warningDays", self.DEFAULT_WARNING_DAYS)
         grace_days = params.get("graceDays", self.DEFAULT_GRACE_DAYS)
+        delete_warning_days = params.get("deleteWarningDays", self.DEFAULT_DELETE_WARNING_DAYS)
+        delete_days = params.get("deleteDays", self.DEFAULT_DELETE_DAYS)
         batch_size = params.get("batchSize", 100)
         dry_run = params.get("dryRun", False)
 
         now = datetime.utcnow()
         warning_cutoff = now - timedelta(days=warning_days)
         suspension_cutoff = now - timedelta(days=warning_days + grace_days)
+        delete_warning_cutoff = now - timedelta(days=warning_days + grace_days + delete_warning_days)
+        deletion_cutoff = now - timedelta(days=warning_days + grace_days + delete_warning_days + delete_days)
 
         context.log(
             "info",
             f"Scanning for users with no profile pictures "
-            f"(warning={warning_days}d, grace={grace_days}d, batch={batch_size}, dry_run={dry_run})",
+            f"(warning={warning_days}d, grace={grace_days}d, delete_warning={delete_warning_days}d, delete={delete_days}d, batch={batch_size}, dry_run={dry_run})",
         )
 
         warnings_sent = 0
         suspensions = 0
+        delete_warnings_sent = 0
+        deletions = 0
         errors = []
 
         settings = Settings()
@@ -707,6 +745,13 @@ class MissingProfilePhotosJob(JobTemplate):
 
                     warn_time = datetime.utcnow()
 
+                    issue_parts = []
+                    if photo_missing:
+                        issue_parts.append("missing profile photo")
+                    if phone_issue:
+                        issue_parts.append(f"phone issue ({phone_details['issue_reason']})")
+                    issue_description = " and ".join(issue_parts)
+
                     template_data = {
                         "recipient": {
                             "firstName": first_name,
@@ -724,7 +769,7 @@ class MissingProfilePhotosJob(JobTemplate):
                     }
 
                     if not dry_run:
-                        context.log("info", f"[Phase 1] Queuing warning email for {username} ({issue_description if not issue_parts else ', '.join(issue_parts)})")
+                        context.log("info", f"[Phase 1] Queuing warning email for {username} ({issue_description})")
                         queue_result = await notification_service.queue_notification(
                             username=username,
                             trigger="missing_photo_warning",
@@ -763,13 +808,6 @@ class MissingProfilePhotosJob(JobTemplate):
                         photo_issue_warnings += 1
                     if phone_issue:
                         phone_issue_warnings += 1
-
-                    issue_parts = []
-                    if photo_missing:
-                        issue_parts.append("missing profile photo")
-                    if phone_issue:
-                        issue_parts.append(f"phone issue ({phone_details['issue_reason']})")
-                    issue_description = " and ".join(issue_parts)
 
                     context.log(
                         "info",
@@ -989,23 +1027,349 @@ class MissingProfilePhotosJob(JobTemplate):
             if backlog_suspend:
                 context.log("info", f"Suspension backlog estimate: {backlog_suspend} user(s) waiting (rerun job to continue)")
 
+            # ── Phase 3: Send delete warning (suspended ≥ delete_warning_days ago, still non-compliant) ──
+            context.log("info", f"[Phase 3] Scanning for suspended users to send delete warning (suspended ≥ {delete_warning_days}d ago, still non-compliant)…")
+            delete_warning_sent_before_filter = _build_date_lte_filter("missingPhotoSuspendedAt", delete_warning_cutoff)
+            delete_warning_not_sent_filter = {
+                "$or": [
+                    {"missingPhotoDeleteWarningSentAt": {"$exists": False}},
+                    {"missingPhotoDeleteWarningSentAt": None},
+                ]
+            }
+            delete_warn_query = {
+                "$and": [
+                    {"accountStatus": "suspended"},
+                    {"deactivationReason": {"$in": ["profile_data_non_compliant", "no_photo_limit_reached", "invalid_phone_number"]}},
+                    delete_warning_sent_before_filter,
+                    delete_warning_not_sent_filter,
+                    {
+                        "$or": [
+                            no_photo_filter,
+                            phone_missing_filter,
+                        ]
+                    },
+                ]
+            }
+            delete_warn_count = await db.users.count_documents(delete_warn_query)
+            context.log("info", f"[Phase 3] Delete warning candidates eligible this run: {delete_warn_count}")
+            delete_warn_cursor = db.users.find(delete_warn_query).sort("missingPhotoSuspendedAt", 1).limit(batch_size * 10)
+
+            delete_warn_candidates_checked = 0
+            delete_warn_skipped_no_username = 0
+            delete_warn_skipped_no_issue = 0
+            delete_warn_skipped_pending_notification = 0
+            delete_warn_skipped_recent_delivery = 0
+
+            async for user in delete_warn_cursor:
+                delete_warn_candidates_checked += 1
+
+                username = user.get("username")
+                if not username:
+                    delete_warn_skipped_no_username += 1
+                    continue
+
+                photo_missing, phone_issue, phone_details, summary = analyse_user_compliance(user)
+
+                if not (photo_missing or phone_issue):
+                    delete_warn_skipped_no_issue += 1
+                    if not dry_run:
+                        await db.users.update_one(
+                            {"username": username},
+                            {
+                                "$set": {
+                                    "missingPhotoDeleteWarningSentAt": None,
+                                    "updated_at": datetime.utcnow(),
+                                },
+                            },
+                        )
+                    context.log("info", f"Skipping delete warning for {username} — compliance restored")
+                    continue
+
+                existing_delete_warning_at = _coerce_datetime(user.get("missingPhotoDeleteWarningSentAt"))
+
+                if not dry_run and existing_delete_warning_at:
+                    active_notification = await notification_service.queue_collection.find_one({
+                        "username": username,
+                        "trigger": "missing_photo_delete_warning",
+                        "status": {"$in": ["pending", "scheduled", "processing"]},
+                    })
+                    if active_notification:
+                        delete_warn_skipped_pending_notification += 1
+                        continue
+
+                    recent_threshold = datetime.utcnow() - timedelta(days=1)
+                    recent_delivery = await notification_service.log_collection.find_one({
+                        "username": username,
+                        "trigger": "missing_photo_delete_warning",
+                        "createdAt": {"$gte": recent_threshold},
+                    })
+                    if recent_delivery and existing_delete_warning_at >= recent_threshold:
+                        delete_warn_skipped_recent_delivery += 1
+                        continue
+
+                try:
+                    first_name = user.get("firstName", username)
+
+                    delete_warn_time = datetime.utcnow()
+
+                    issue_parts = []
+                    if photo_missing:
+                        issue_parts.append("missing profile photo")
+                    if phone_issue:
+                        issue_parts.append(f"phone issue ({phone_details['issue_reason']})")
+                    issue_description = " and ".join(issue_parts)
+
+                    template_data = {
+                        "recipient": {
+                            "firstName": first_name,
+                            "username": username,
+                        },
+                        "recipient_firstName": first_name,
+                        "deleteDays": delete_days,
+                        "profile_url": profile_edit_url,
+                        "photo_issue": photo_missing,
+                        "phone_issue": phone_issue,
+                        "phone_issue_reason": phone_details["issue_reason"],
+                        "phone_issue_description": phone_details["issue_description"],
+                        "compliance_issue_summary": summary["summary"],
+                        "compliance_issue_list_html": summary["issues_html"],
+                    }
+
+                    if not dry_run:
+                        context.log("info", f"[Phase 3] Queuing delete warning email for {username} ({issue_description})")
+                        queue_result = await notification_service.queue_notification(
+                            username=username,
+                            trigger="missing_photo_delete_warning",
+                            channels=["email"],
+                            template_data=template_data,
+                            priority="high",
+                            force_send=True,
+                        )
+
+                        if not queue_result:
+                            raise RuntimeError(
+                                "Notification queue did not accept missing_photo_delete_warning; unexpected None response"
+                            )
+                        context.log("info", f"[Phase 3] ✓ Delete warning email queued for {username}")
+
+                        await db.users.update_one(
+                            {"username": username},
+                            {
+                                "$set": {
+                                    "missingPhotoDeleteWarningSentAt": delete_warn_time,
+                                    "updated_at": delete_warn_time,
+                                }
+                            },
+                        )
+
+                    delete_warnings_sent += 1
+
+                    context.log(
+                        "info",
+                        f"{'[DRY RUN] ' if dry_run else ''}"
+                        f"Sent delete warning to {username} for {issue_description}",
+                    )
+
+                    if delete_warnings_sent >= batch_size:
+                        break
+
+                except Exception as e:
+                    err_msg = f"Failed to send delete warning to {user.get('username')}: {e}"
+                    errors.append(err_msg)
+                    context.log("error", err_msg)
+
+            total_delete_warn = await db.users.count_documents({
+                "$and": [
+                    {"accountStatus": "suspended"},
+                    {"deactivationReason": {"$in": ["profile_data_non_compliant", "no_photo_limit_reached", "invalid_phone_number"]}},
+                    delete_warning_sent_before_filter,
+                    delete_warning_not_sent_filter,
+                    {
+                        "$or": [
+                            no_photo_filter,
+                            phone_missing_filter,
+                        ]
+                    },
+                ]
+            })
+            backlog_delete_warn = max(0, total_delete_warn - delete_warnings_sent)
+            if backlog_delete_warn:
+                context.log("info", f"Delete warning backlog estimate: {backlog_delete_warn} user(s) waiting (rerun job to continue)")
+
+            # ── Phase 4: Delete profiles (delete warning sent ≥ delete_days ago, still non-compliant) ──
+            context.log("info", f"[Phase 4] Scanning for suspended users to delete (delete warning sent ≥ {delete_days}d ago, still non-compliant)…")
+            delete_sent_before_filter = _build_date_lte_filter("missingPhotoDeleteWarningSentAt", deletion_cutoff)
+            delete_not_done_filter = {
+                "$or": [
+                    {"missingPhotoDeletedAt": {"$exists": False}},
+                    {"missingPhotoDeletedAt": None},
+                ]
+            }
+            delete_query = {
+                "$and": [
+                    {"accountStatus": "suspended"},
+                    {"deactivationReason": {"$in": ["profile_data_non_compliant", "no_photo_limit_reached", "invalid_phone_number"]}},
+                    delete_sent_before_filter,
+                    delete_not_done_filter,
+                    {
+                        "$or": [
+                            no_photo_filter,
+                            phone_missing_filter,
+                        ]
+                    },
+                ]
+            }
+            delete_count = await db.users.count_documents(delete_query)
+            context.log("info", f"[Phase 4] Deletion candidates eligible this run: {delete_count}")
+            delete_cursor = db.users.find(delete_query).sort("missingPhotoDeleteWarningSentAt", 1).limit(batch_size * 10)
+
+            delete_candidates_checked = 0
+            delete_skipped_no_username = 0
+            delete_skipped_no_issue = 0
+
+            async for user in delete_cursor:
+                delete_candidates_checked += 1
+
+                username = user.get("username")
+                if not username:
+                    delete_skipped_no_username += 1
+                    continue
+
+                photo_missing, phone_issue, phone_details, summary = analyse_user_compliance(user)
+
+                if not (photo_missing or phone_issue):
+                    delete_skipped_no_issue += 1
+                    if not dry_run:
+                        await db.users.update_one(
+                            {"username": username},
+                            {
+                                "$set": {
+                                    "missingPhotoDeletedAt": None,
+                                    "updated_at": datetime.utcnow(),
+                                },
+                            },
+                        )
+                    context.log("info", f"Skipping deletion for {username} — compliance restored")
+                    continue
+
+                try:
+                    first_name = user.get("firstName", username)
+
+                    deletion_time = datetime.utcnow()
+
+                    issue_parts = []
+                    if photo_missing:
+                        issue_parts.append("missing profile photo")
+                    if phone_issue:
+                        issue_parts.append(f"phone issue ({phone_details['issue_reason']})")
+                    issue_description = " and ".join(issue_parts)
+
+                    template_data = {
+                        "recipient": {
+                            "firstName": first_name,
+                            "username": username,
+                        },
+                        "recipient_firstName": first_name,
+                        "profile_url": profile_edit_url,
+                        "photo_issue": photo_missing,
+                        "phone_issue": phone_issue,
+                        "phone_issue_reason": phone_details["issue_reason"],
+                        "phone_issue_description": phone_details["issue_description"],
+                        "compliance_issue_summary": summary["summary"],
+                        "compliance_issue_list_html": summary["issues_html"],
+                    }
+
+                    if not dry_run:
+                        # Mark profile as deleted (soft delete)
+                        context.log("info", f"[Phase 4] Marking {username} as deleted")
+                        await db.users.update_one(
+                            {"username": username},
+                            {
+                                "$set": {
+                                    "accountStatus": "deleted",
+                                    "deactivationReason": "profile_data_non_compliant_deleted",
+                                    "missingPhotoDeletedAt": deletion_time,
+                                    "updated_at": deletion_time,
+                                    "profileComplianceIssues": {
+                                        "photoMissing": photo_missing,
+                                        "phoneIssue": phone_issue,
+                                        "phoneIssueReason": phone_details["issue_reason"],
+                                        "summary": summary["summary"],
+                                        "issuesHtml": summary["issues_html"],
+                                        "deletedAt": deletion_time,
+                                    },
+                                }
+                            },
+                        )
+                        context.log("info", f"[Phase 4] ✓ {username} marked as deleted")
+
+                        # Send deletion confirmation email
+                        context.log("info", f"[Phase 4] Queuing deletion email for {username}")
+                        await notification_service.queue_notification(
+                            username=username,
+                            trigger="missing_photo_deleted",
+                            channels=["email"],
+                            template_data=template_data,
+                            priority="high",
+                        )
+                        context.log("info", f"[Phase 4] ✓ Deletion email queued for {username}")
+
+                    deletions += 1
+
+                    context.log(
+                        "info",
+                        f"{'[DRY RUN] ' if dry_run else ''}"
+                        f"Deleted {username} — unresolved {issue_description}",
+                    )
+
+                    if deletions >= batch_size:
+                        break
+
+                except Exception as e:
+                    err_msg = f"Failed to delete {user.get('username')}: {e}"
+                    errors.append(err_msg)
+                    context.log("error", err_msg)
+
+            total_delete = await db.users.count_documents({
+                "$and": [
+                    {"accountStatus": "suspended"},
+                    {"deactivationReason": {"$in": ["profile_data_non_compliant", "no_photo_limit_reached", "invalid_phone_number"]}},
+                    delete_sent_before_filter,
+                    delete_not_done_filter,
+                    {
+                        "$or": [
+                            no_photo_filter,
+                            phone_missing_filter,
+                        ]
+                    },
+                ]
+            })
+            backlog_delete = max(0, total_delete - deletions)
+            if backlog_delete:
+                context.log("info", f"Deletion backlog estimate: {backlog_delete} user(s) waiting (rerun job to continue)")
+
             # ── result ─────────────────────────────────────────────────
             duration = (datetime.utcnow() - start_time).total_seconds()
-            total = warnings_sent + suspensions
+            total = warnings_sent + suspensions + delete_warnings_sent + deletions
 
             return JobResult(
                 status="success" if not errors else "partial",
                 message=(
-                    f"Warned {warnings_sent} user(s), suspended {suspensions} user(s)"
+                    f"Warned {warnings_sent} user(s), suspended {suspensions} user(s), "
+                    f"delete warned {delete_warnings_sent} user(s), deleted {deletions} user(s)"
                     + (" [DRY RUN]" if dry_run else "")
                 ),
                 details={
                     "warnings_sent": warnings_sent,
                     "suspensions": suspensions,
+                    "delete_warnings_sent": delete_warnings_sent,
+                    "deletions": deletions,
                     "total_affected": total,
                     "dry_run": dry_run,
                     "warning_days": warning_days,
                     "grace_days": grace_days,
+                    "delete_warning_days": delete_warning_days,
+                    "delete_days": delete_days,
                     "photo_issue_warnings": photo_issue_warnings,
                     "phone_issue_warnings": phone_issue_warnings,
                     "photo_issue_suspensions": photo_issue_suspensions,
@@ -1019,7 +1383,7 @@ class MissingProfilePhotosJob(JobTemplate):
                     "warning_skip_pending_notification": warning_skipped_pending_notification,
                     "warning_skip_recent_delivery": warning_skipped_recent_delivery,
                 },
-                records_processed=warning_candidates_checked + suspend_candidates_checked,
+                records_processed=warning_candidates_checked + suspend_candidates_checked + delete_warn_candidates_checked + delete_candidates_checked,
                 records_affected=total,
                 errors=errors[:10],
                 duration_seconds=duration,
