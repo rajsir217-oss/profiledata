@@ -112,10 +112,15 @@
 /* Mobile responsive - show only the timer (tiny), hide bell + labels */
 @media (max-width: 768px) {
   .event-countdown-container {
-    padding: 0 4px;
-    margin: 0 2px;
-    border-left: none;
-    border-right: none;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    margin: 0 4px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
   }
 
   .event-countdown-icon {
@@ -135,11 +140,18 @@
   }
 
   .event-countdown-timer {
-    display: inline-block;
-    font-size: 9px;
-    letter-spacing: 1px;
-    padding: 2px 5px;
-    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    letter-spacing: normal;
+    padding: 0;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    box-sizing: border-box;
   }
 
   .countdown-nav-btn {
