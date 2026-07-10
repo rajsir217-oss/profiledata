@@ -1059,40 +1059,24 @@ async def refresh_token(
 ):
     """
     Refresh access token using refresh token.
-    Extends session for active users up to 8-hour hard limit from initial login.
+    Extends session for active users until the refresh token expires.
     """
     try:
         # Verify refresh token and get user
         user = await AuthenticationService.verify_refresh_token(request.refresh_token, db)
-        
-        # Get session to check initial login time
+
+        # Get session to verify it exists and has not been revoked
         session = await db.sessions.find_one({
             "refresh_token": request.refresh_token,
             "revoked": False
         })
-        
+
         if not session:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Session not found or expired"
             )
-        
-        # Check if session has exceeded 8-hour hard limit from initial login
-        created_at = session.get("created_at")
-        if created_at:
-            time_since_login = datetime.utcnow() - created_at
-            # Hard limit: 8 hours (28800 seconds) - full work day
-            if time_since_login.total_seconds() > 28800:
-                # Revoke session
-                await db.sessions.update_one(
-                    {"_id": session["_id"]},
-                    {"$set": {"revoked": True}}
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Session exceeded maximum duration (8 hours). Please log in again."
-                )
-        
+
         # Create new access token (extends session)
         token_data = {
             "sub": user["username"],
@@ -1113,7 +1097,7 @@ async def refresh_token(
                 "$set": {
                     "token": access_token,
                     "last_activity": datetime.utcnow(),
-                    "expires_at": datetime.utcnow() + timedelta(days=7), # Extend session life
+                    "expires_at": datetime.utcnow() + timedelta(days=security_settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS),
                     "ip_address": http_request.client.host
                 }
             }
