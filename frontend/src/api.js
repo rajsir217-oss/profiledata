@@ -504,14 +504,11 @@ const notificationsApi = axios.create({
 notificationsApi.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    console.log(`🔑 Notifications API ${config.method.toUpperCase()} ${config.url}`, {
-      hasToken: !!token,
-      tokenPreview: token ? token.substring(0, 20) + '...' : 'none'
-    });
+    logger.debug(`🔑 Notifications API ${config.method.toUpperCase()} ${config.url}`, { hasToken: !!token });
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
-      console.warn('⚠️ No token found in localStorage for notifications API');
+      logger.debug('No token found in localStorage for notifications API');
     }
     
     // Remove Content-Type for FormData requests to allow browser to set boundary
