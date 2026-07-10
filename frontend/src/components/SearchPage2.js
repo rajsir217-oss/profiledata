@@ -1891,8 +1891,15 @@ const SearchPage2 = () => {
     } else if (pendingSearchAction.type === 'loadSavedSearch' && pendingSearchAction.savedSearch) {
       handleLoadSavedSearch(pendingSearchAction.savedSearch);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // If sortBy is specified, apply the sort after search loads
+      if (pendingSearchAction.sortBy) {
+        setTimeout(() => {
+          applyServerSort(pendingSearchAction.sortBy);
+        }, 500);
+      }
     }
-  }, [currentUserProfile, pendingSearchAction, handleLoadSavedSearch, handleNewMeSearch, openFiltersPanel]);
+  }, [currentUserProfile, pendingSearchAction, handleLoadSavedSearch, handleNewMeSearch, openFiltersPanel, applyServerSort]);
 
 
   const handleEditSchedule = (search) => {

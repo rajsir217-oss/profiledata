@@ -104,7 +104,7 @@ const DashboardV2Page = () => {
     }
   }, [newestMatch.pick, fetchBreakdown]);
 
-  const openSavedSearch = (savedSearchOrEvent) => {
+  const openSavedSearch = (savedSearchOrEvent, sortBy = null) => {
     const isEventLike =
       !!savedSearchOrEvent &&
       typeof savedSearchOrEvent === 'object' &&
@@ -117,7 +117,7 @@ const DashboardV2Page = () => {
     if (savedSearch && typeof savedSearch === 'object' && (savedSearch.criteria || savedSearch._id || savedSearch.id)) {
       sessionStorage.setItem(
         'pendingSearchAction',
-        JSON.stringify({ type: 'loadSavedSearch', savedSearch })
+        JSON.stringify({ type: 'loadSavedSearch', savedSearch, sortBy })
       );
     } else {
       sessionStorage.setItem(
@@ -233,7 +233,7 @@ const DashboardV2Page = () => {
             title: 'Matches by location',
             count: counts.locationUnique,
             variant: 'info',
-            onClick: () => openSavedSearch(),
+            onClick: () => openSavedSearch(newestMatch.pick?.savedSearch, 'location'),
           },
           {
             key: 'educationUnique',
@@ -241,7 +241,7 @@ const DashboardV2Page = () => {
             title: 'Matches by education',
             count: counts.educationUnique,
             variant: 'primary',
-            onClick: () => openSavedSearch(),
+            onClick: () => openSavedSearch(newestMatch.pick?.savedSearch, 'education'),
           },
           {
             key: 'professionUnique',
@@ -249,7 +249,7 @@ const DashboardV2Page = () => {
             title: 'Matches by profession',
             count: counts.professionUnique,
             variant: 'success',
-            onClick: () => openSavedSearch(),
+            onClick: () => openSavedSearch(newestMatch.pick?.savedSearch, 'profession'),
           },
           {
             key: 'searchMatches',

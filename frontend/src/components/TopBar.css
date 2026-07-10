@@ -222,17 +222,17 @@
 @media (max-width: 768px) {
   .app-logo {
     min-width: unset;
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: 12px;
     box-sizing: border-box;
     gap: 0;
   }
 
   .app-logo .butterfly-icon {
-    font-size: 22px;
+    font-size: 18px;
   }
 
   .app-logo .logo-wordmark {
