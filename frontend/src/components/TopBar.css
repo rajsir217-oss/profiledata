@@ -626,6 +626,7 @@
     max-height: calc(100vh - 80px);
     display: flex;
     flex-direction: column;
+    animation: dropdown-slide-up 0.25s ease;
   }
 
   .search-menu-saved-list {
@@ -1453,6 +1454,17 @@
 @keyframes dropdown-slide {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dropdown-slide-up {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .admin-actions-header {
