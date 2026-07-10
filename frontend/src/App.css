@@ -185,3 +185,30 @@ html, body {
 * {
   box-sizing: border-box;
 }
+
+/* Auto-login bootstrap loading screen */
+.app-loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: var(--background-color, #f5f7fa);
+  color: var(--text-color, #1f2937);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.app-loading-screen .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-color, #d1d5db);
+  border-top: 4px solid var(--primary-color, #3b82f6);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

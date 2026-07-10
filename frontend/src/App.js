@@ -1,6 +1,6 @@
 // frontend/src/App.js
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 // Registration and Profile pages
 import Register2 from './components/Register2';
@@ -107,6 +107,7 @@ import { onMessageListener, requestNotificationPermission } from './services/pus
 import toastService from './services/toastService';
 import logger from './utils/logger';
 import sessionManager from './services/sessionManager';
+import { biometricLogin, isCredentialSaved, isNativePlatform } from './services/biometricAuth';
 
 // Theme configuration
 const themes = {
@@ -138,15 +139,86 @@ const applyTheme = (themeId) => {
 // Auth Guard Component - checks token before rendering protected content
 function AuthGuard({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const publicRoutes = ['/', '/login', '/register', '/register2', '/register3', '/register-interest', '/messenger/public-reply', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/refund', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
   const isPublicRoute = publicRoutes.some(route => location.pathname === route || location.pathname.startsWith(route + '/'));
-  const token = localStorage.getItem('token');
-  
+  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [isAuthChecking, setIsAuthChecking] = useState(!token);
+  const hasAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    const tryAutoLogin = async () => {
+      if (hasAttemptedRef.current) return;
+      hasAttemptedRef.current = true;
+
+      const existingToken = localStorage.getItem('token');
+      if (existingToken) {
+        setIsAuthChecking(false);
+        return;
+      }
+
+      if (!isNativePlatform()) {
+        setIsAuthChecking(false);
+        return;
+      }
+
+      try {
+        const hasCredential = await isCredentialSaved();
+        if (!hasCredential) {
+          setIsAuthChecking(false);
+          return;
+        }
+
+        const res = await biometricLogin();
+        if (!res?.ok) {
+          logger.warn('Biometric auto-login failed:', res?.error);
+          setIsAuthChecking(false);
+          return;
+        }
+
+        localStorage.setItem('token', res.accessToken);
+        if (res.refreshToken) {
+          localStorage.setItem('refreshToken', res.refreshToken);
+        }
+        localStorage.setItem('username', res.username || res.user?.username || '');
+        if (res.user?.role) {
+          localStorage.setItem('userRole', res.user.role);
+        }
+        if (res.user?.status) {
+          localStorage.setItem('userStatus', res.user.status);
+        }
+        setToken(res.accessToken);
+        window.dispatchEvent(new Event('userLoggedIn'));
+
+        // If the user started on a public route (login/landing), redirect to dashboard.
+        // If they started on a protected route, leave the URL as-is so the intended page renders.
+        if (isPublicRoute) {
+          navigate('/dashboardv2', { replace: true });
+        }
+      } catch (e) {
+        logger.error('Auto-login error:', e);
+      } finally {
+        setIsAuthChecking(false);
+      }
+    };
+
+    tryAutoLogin();
+  }, [isPublicRoute, navigate]);
+
+  if (isAuthChecking) {
+    return (
+      <div className="app-loading-screen">
+        <div className="loading-spinner" />
+        <p>Signing you in...</p>
+      </div>
+    );
+  }
+
   if (!isPublicRoute && !token) {
-    console.warn(' AuthGuard: No token on protected route - redirecting to login');
+    logger.warn('AuthGuard: No token on protected route - redirecting to login');
     return <Navigate to="/login" replace />;
   }
-  
+
   return children;
 }
 
@@ -250,7 +322,7 @@ function AppContent() {
           // If 401, the interceptor will redirect to login
           // For other errors, use default theme
           if (error.response?.status !== 401) {
-            console.warn('Failed to load theme preferences, using default');
+            logger.warn('Failed to load theme preferences, using default');
           }
           applyTheme('light-blue');
         }
@@ -303,17 +375,16 @@ function AppContent() {
 
     const initializePushNotifications = async () => {
       const token = localStorage.getItem('token');
-      console.log('[App.js] initializePushNotifications called, hasToken:', !!token);
-      
+      logger.debug('[App.js] initializePushNotifications called, hasToken:', !!token);
+
       if (token && !onRegistrationPage) {
         // User is logged in, request notification permission
         try {
-          console.log('[App.js] Calling requestNotificationPermission...');
+          logger.debug('[App.js] Calling requestNotificationPermission...');
           const fcmToken = await requestNotificationPermission();
-          console.log('[App.js] requestNotificationPermission result:', fcmToken ? 'Token obtained' : 'No token');
+          logger.debug('[App.js] requestNotificationPermission result:', fcmToken ? 'Token obtained' : 'No token');
           logger.info('Push notifications initialized');
         } catch (error) {
-          console.error('[App.js] Failed to initialize push notifications:', error);
           logger.error('Failed to initialize push notifications:', error);
         }
         

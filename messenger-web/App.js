@@ -6,6 +6,11 @@ import useAuthStore from '@messenger/stores/authStore';
 import messengerSocket from '@messenger/services/socketService';
 import { setTokenGetter } from '@messenger/utils/imageHelper';
 import { initializePushNotifications } from './src/services/pushNotificationService';
+import {
+  biometricGetRefreshToken,
+  isCredentialSaved,
+  isNativePlatform,
+} from './src/services/biometricAuth';
 
 // Wire imageHelper to the auth store so protected /api/users/media/ URLs
 // receive the current JWT as ?token=...
@@ -43,7 +48,7 @@ const checkForUpdates = async () => {
 };
 
 export default function App() {
-  const { token, restore } = useAuthStore();
+  const { token, restore, loginWithRefreshToken } = useAuthStore();
   const [currentScreen, setCurrentScreen] = useState('conversations');
   const [chatParams, setChatParams] = useState(null);
   // Only block the whole app with a spinner during the INITIAL session
@@ -54,12 +59,29 @@ export default function App() {
 
   useEffect(() => {
     // Bootstrap auth: try SSO from URL (?token=...) first, then fall back
-    // to restoring any persisted session from AsyncStorage.
+    // to restoring any persisted session from AsyncStorage. On native devices
+    // with saved biometric credentials, prompt for biometrics and silently
+    // refresh the session without requiring the user to re-enter credentials.
     const bootstrap = async () => {
       try {
         const ssoSucceeded = await useAuthStore.getState().ssoFromUrl();
         if (!ssoSucceeded) {
           await restore();
+        }
+
+        const state = useAuthStore.getState();
+        if (!state.token && isNativePlatform()) {
+          try {
+            const saved = await isCredentialSaved();
+            if (saved) {
+              const bioRes = await biometricGetRefreshToken();
+              if (bioRes?.ok) {
+                await loginWithRefreshToken(bioRes.refreshToken);
+              }
+            }
+          } catch (e) {
+            // Biometric auto-login is a best-effort fallback; continue to login.
+          }
         }
       } finally {
         setBootstrapping(false);
