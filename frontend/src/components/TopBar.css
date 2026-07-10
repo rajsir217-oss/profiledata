@@ -218,27 +218,25 @@
   /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); Enhanced shadow on hover */
 }
 
-/* Mobile: Slightly smaller text */
+/* Mobile: Show only the butterfly icon */
 @media (max-width: 768px) {
   .app-logo {
-    min-width: 64px;
-    width: auto;
+    min-width: unset;
+    width: 40px;
     height: 40px;
-    padding: 4px 8px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
     box-sizing: border-box;
+    gap: 0;
   }
-  
+
   .app-logo .butterfly-icon {
-    font-size: 20px;
+    font-size: 22px;
   }
 
-  .logo-text-full {
-    font-size: 13px;
-  }
-
-  .logo-tagline {
-    letter-spacing: 2px;
-    font-size: 8px;
+  .app-logo .logo-wordmark {
+    display: none;
   }
   
   /* Hide page title breadcrumb on mobile */

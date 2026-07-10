@@ -110,7 +110,7 @@ const LandingPage = () => {
             <span className="logo-text">L3V3L</span>
             <span className="lp-matches-badge">Matches</span>
           </div>
-          <span className="lp-platform-badge">Matrimonial Match Making Platform</span>
+          <span className="lp-platform-badge">Matrimonials</span>
         </div>
       </header>
 
