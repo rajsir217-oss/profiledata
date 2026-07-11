@@ -46,6 +46,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const showNearMeNewBadge = Date.now() < new Date(NEAR_ME_NEW_BADGE_EXPIRES_AT).getTime();
   const [showMessengerMenu, setShowMessengerMenu] = useState(false);
   const messengerMenuRef = useRef(null);
+  const [onlineCount, setOnlineCount] = useState(0);
 
   const clampNearMeRadius = (value) => {
     const parsed = Number(value);
@@ -66,6 +67,23 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   useEffect(() => {
     loadWhitelabelConfig().then(cfg => setBrandConfig(cfg));
   }, []);
+
+  // Subscribe to realtime online count updates (reuses existing socket pattern)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const handleOnlineCountUpdate = (data) => {
+      setOnlineCount(data.count || 0);
+    };
+    socketService.on('online_count_update', handleOnlineCountUpdate);
+    // Seed with current value
+    try {
+      const initial = socketService.getOnlineCount?.();
+      if (typeof initial === 'number') setOnlineCount(initial);
+    } catch (_e) { /* noop */ }
+    return () => {
+      socketService.off('online_count_update', handleOnlineCountUpdate);
+    };
+  }, [isLoggedIn]);
 
   // Get page title based on current route
   const getPageTitle = () => {
@@ -614,6 +632,13 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
 
   return (
     <>
+      {/* Mobile Header - shown only on mobile, positioned at very top of page */}
+      {isMobile && (
+        <div className="mobile-messenger-header">
+          <span className="mobile-header-title">🦋 L3V3L Matches</span>
+          <span className="mobile-header-online">{onlineCount} online</span>
+        </div>
+      )}
       <div className={`top-bar ${isOpen ? (isPinned ? 'sidebar-pinned' : 'sidebar-open') : ''}`}>
       {/* Violation Warning Banner */}
       {violations && violations.violationCount > 0 && (

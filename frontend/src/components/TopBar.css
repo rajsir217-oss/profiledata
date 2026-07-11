@@ -2360,6 +2360,11 @@
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
   }
 
+  /* Mobile messenger header is at the very top with higher z-index */
+  .mobile-messenger-header {
+    z-index: 1001;
+  }
+
   .top-bar.sidebar-open,
   .top-bar.sidebar-pinned {
     left: 0;
@@ -2436,4 +2441,31 @@
     bottom: 60px;
     right: 0;
   }
+}
+
+/* Mobile Messenger Header - shown only on mobile */
+.mobile-messenger-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background: var(--card-background);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 11px;
+  z-index: 1000;
+}
+
+.mobile-header-title {
+  color: var(--text-color);
+  font-weight: 400;
+}
+
+.mobile-header-online {
+  color: #22c55e;
+  font-weight: 400;
+  margin-left: 4px;
 }
