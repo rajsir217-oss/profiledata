@@ -12,7 +12,7 @@
 .landing-header {
   background: white;
   border-bottom: 1px solid #e0e0e0;
-  padding: 16px 0;
+  padding: 8px 0;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -22,7 +22,7 @@
 .landing-header-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1585,11 +1585,12 @@
 .lp-hero-split {
   background: rgba(0,0,0,0.55);
   display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 36px;
-  align-items: flex-start;
-  padding: 16px 48px 48px !important;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  align-items: center;
+  padding: 4px 24px 16px !important;
   min-height: calc(100vh - 60px);
+  position: relative;
 }
 
 /* Kill the radial-gradient ::before overlay on dark hero */
@@ -1599,7 +1600,7 @@
 
 /* Dark header */
 .lp-dark-header {
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 60%, #1a1040 100%) !important;
+  background: linear-gradient(180deg, #1a1a1a 0%, #2d2d2d 100%) !important;
   backdrop-filter: none;
   border-bottom: 1px solid rgba(255,255,255,0.08) !important;
   box-shadow: 0 2px 16px rgba(0,0,0,0.5) !important;
@@ -1637,54 +1638,128 @@
   text-shadow: 0 1px 2px rgba(0,0,0,0.25);
 }
 
+.lp-header-hands {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  margin-left: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.lp-header-hands:hover {
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
 /* Left column */
 .lp-hero-left {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  align-items: center;
-  text-align: center;
+  gap: 12px;
+  align-items: flex-start;
+  text-align: left;
+  max-width: 680px;
 }
 
 .lp-trust-pill {
   display: inline-flex;
-  align-items: flex-start;
-  gap: 8px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.28);
-  border-radius: 8px;
-  padding: 10px 16px;
-  font-size: 13px;
-  color: rgba(255,255,255,0.9);
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 50px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.95);
   max-width: 560px;
-  line-height: 1.5;
+  line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
 }
 
 .lp-trust-check {
-  color: #4caf50;
+  color: #4ade80;
   font-weight: 900;
   flex-shrink: 0;
-  margin-top: 1px;
+  font-size: 13px;
 }
 
 .lp-hero-title-dark {
-  background: linear-gradient(160deg, #ffffff 0%, #f5efe0 45%, #e8d9b8 100%);
+  background: linear-gradient(160deg, #ffffff 0%, #fef3c7 50%, #fde68a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.45));
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
   color: unset !important;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .lp-title-accent {
-  background: linear-gradient(160deg, #ffffff 0%, #f5efe0 45%, #e8d9b8 100%);
+  background: linear-gradient(160deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  position: relative;
 }
 
 .lp-subtitle-dark {
-  color: rgba(255,255,255,0.82) !important;
+  color: rgba(255,255,255,0.9) !important;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  max-width: 580px;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  margin-top: 2px;
+}
+
+.btn-register-profile {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 50px;
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-register-profile:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(245, 158, 11, 0.5);
+}
+
+.btn-learn-more {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 50px;
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-learn-more:hover {
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.6);
+  transform: translateY(-2px);
 }
 
 .lp-features-dark {
@@ -1707,9 +1782,11 @@
 
 /* ── INLINE LOGIN CARD ───────────────────────────────── */
 .lp-login-card {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 14px;
-  padding: 16px 18px;
+  padding: 10px 14px;
   box-shadow: 0 8px 40px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.15);
   overflow: hidden;
 }
@@ -1726,43 +1803,43 @@
 .lp-login-card-header h2 {
   font-size: 15px;
   font-weight: 900;
-  color: #1a1a2e;
+  color: #ffffff;
   margin: 0 0 2px 0;
 }
 
 .lp-login-card-header p {
   font-size: 11px;
-  color: #888;
+  color: rgba(255, 255, 255, 0.7);
   margin: 0;
 }
 
 .lp-login-divider {
   height: 1px;
-  background: #f0f0f8;
-  margin: 6px 0 10px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 3px 0 6px;
 }
 
 .lp-form-group {
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .lp-form-group label {
   display: block;
   font-size: 9px;
   font-weight: 700;
-  color: #555;
-  margin-bottom: 3px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 2px;
   letter-spacing: 0.5px;
 }
 
 .lp-form-group input {
   width: 100%;
-  padding: 6px 10px;
-  border: 2px solid #c8d0e8;
+  padding: 4px 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 6px;
   font-size: 12px;
-  color: #1a1a2e;
-  background: #ffffff;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.3);
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
   font-family: inherit;
@@ -1770,9 +1847,9 @@
 }
 
 .lp-form-group input:focus {
-  border-color: #5a5ac8;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(90,90,200,0.15);
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
 .lp-password-wrap {
@@ -1794,12 +1871,12 @@
   font-size: 14px;
   padding: 0;
   line-height: 1;
-  color: #888;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .lp-forgot-row {
   text-align: right;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   margin-top: -2px;
 }
 
@@ -1808,7 +1885,7 @@
   border: none;
   cursor: pointer;
   font-size: 11px;
-  color: #5a5ac8;
+  color: rgba(255, 255, 255, 0.8);
   padding: 0;
   font-family: inherit;
 }
@@ -1856,7 +1933,7 @@
 
 .lp-signin-btn {
   width: 100%;
-  padding: 9px;
+  padding: 7px;
   background: linear-gradient(135deg, #5a5ac8 0%, #7b59c8 100%);
   color: #fff;
   border: none;
@@ -1884,9 +1961,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 8px 0;
+  margin: 4px 0;
   font-size: 10px;
-  color: #bbb;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .lp-or-divider::before,
@@ -1894,32 +1971,33 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: #eee;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .lp-otp-btn {
   width: 100%;
-  padding: 7px;
-  border: 1.5px solid #dde3f0;
+  padding: 5px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
   border-radius: 50px;
-  background: #fff;
+  background: rgba(0, 0, 0, 0.3);
   font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: #ffffff;
   cursor: pointer;
   font-family: inherit;
   transition: border-color 0.2s;
 }
 
 .lp-otp-btn:hover {
-  border-color: #5a5ac8;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .lp-signup-row {
   text-align: center;
   font-size: 11px;
-  color: #777;
-  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
   margin-bottom: 0;
 }
 
@@ -1927,7 +2005,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #5a5ac8;
+  color: #fbbf24;
   font-weight: 700;
   font-size: 12px;
   padding: 0;
