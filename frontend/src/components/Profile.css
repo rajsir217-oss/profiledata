@@ -172,7 +172,7 @@
 
 .profile-header-inner .profile-avatar-container {
   grid-area: avatar;
-  width: 160px;
+  width: 200px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -181,8 +181,8 @@
 }
 
 .profile-avatar-image-shell {
-  width: 160px;
-  height: 160px;
+  width: 200px;
+  height: 200px;
 }
 
 .profile-header-inner .profile-title-section {
@@ -1749,12 +1749,12 @@
   }
 
   .profile-header-inner .profile-avatar-container {
-    width: 120px;
+    width: 140px;
   }
 
   .profile-avatar-image-shell {
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
   }
 
   .profile-avatar-updated-at {
