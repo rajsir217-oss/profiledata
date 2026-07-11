@@ -2,7 +2,7 @@
  * LoginScreen — Uses existing L3V3L MATCHES credentials.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,15 +14,78 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import useAuthStore from '../stores/authStore';
+import {
+  isNativePlatform,
+  isBiometricAvailable,
+  isCredentialSaved,
+  saveCredential,
+  clearCredential,
+  biometricGetRefreshToken,
+} from '../services/biometricAuth';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading, error } = useAuthStore();
+  const [localError, setLocalError] = useState('');
+  const [enableBiometric, setEnableBiometric] = useState(false);
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricSaved, setBiometricSaved] = useState(false);
+
+  const { login, loginWithRefreshToken, isLoading, error } = useAuthStore();
+
+  useEffect(() => {
+    const initBiometrics = async () => {
+      if (!isNativePlatform()) return;
+      const availability = await isBiometricAvailable();
+      const supported = !!availability?.isAvailable;
+      setBiometricSupported(supported);
+      if (!supported) return;
+      const saved = await isCredentialSaved();
+      setBiometricSaved(saved);
+    };
+    initBiometrics();
+  }, []);
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) return;
-    await login(username.trim(), password.trim());
+    setLocalError('');
+    const res = await login(username.trim(), password.trim());
+    if (!res?.ok) return;
+
+    if (enableBiometric) {
+      const state = useAuthStore.getState();
+      const refreshToken = state.refreshToken;
+      const user = state.user;
+      if (user?.username && refreshToken) {
+        try {
+          await saveCredential({ username: user.username, refreshToken });
+          setBiometricSaved(true);
+        } catch (_) {
+          // Saving biometric credentials is best-effort.
+        }
+      }
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    setLocalError('');
+    const bioRes = await biometricGetRefreshToken();
+    if (!bioRes?.ok) {
+      setLocalError(bioRes?.error || 'Biometric login failed.');
+      return;
+    }
+    const loginRes = await loginWithRefreshToken(bioRes.refreshToken);
+    if (!loginRes?.ok) {
+      setLocalError(loginRes?.error || 'Biometric login failed.');
+    }
+  };
+
+  const handleClearBiometric = async () => {
+    try {
+      await clearCredential();
+      setBiometricSaved(false);
+      setEnableBiometric(false);
+    } catch (_) {}
   };
 
   return (
@@ -57,7 +120,9 @@ export default function LoginScreen() {
           onSubmitEditing={handleLogin}
         />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {localError || error ? (
+          <Text style={styles.error}>{localError || error}</Text>
+        ) : null}
 
         <TouchableOpacity
           style={[styles.button, isLoading && styles.buttonDisabled]}
@@ -70,6 +135,44 @@ export default function LoginScreen() {
             <Text style={styles.buttonText}>Sign In</Text>
           )}
         </TouchableOpacity>
+
+        {biometricSupported && biometricSaved && (
+          <>
+            <TouchableOpacity
+              style={[styles.button, styles.biometricButton]}
+              onPress={handleBiometricLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Sign In with Biometrics</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.biometricClearRow}
+              onPress={handleClearBiometric}
+              disabled={isLoading}
+            >
+              <Text style={[styles.hint, styles.biometricClearText]}>
+                Remove biometric login from this device
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {biometricSupported && !biometricSaved && (
+          <TouchableOpacity
+            style={styles.biometricToggleRow}
+            onPress={() => setEnableBiometric((v) => !v)}
+            disabled={isLoading}
+          >
+            <Text style={styles.biometricToggleIcon}>{enableBiometric ? '☑️' : '⬜️'}</Text>
+            <Text style={[styles.hint, styles.biometricToggleText]}>
+              Enable biometric login on this device
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <Text style={styles.hint}>
           Use your L3V3L MATCHES credentials to sign in.
@@ -134,6 +237,30 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  biometricButton: {
+    marginTop: 12,
+  },
+  biometricToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  biometricToggleIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  biometricToggleText: {
+    marginTop: 0,
+    color: '#666',
+  },
+  biometricClearRow: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  biometricClearText: {
+    marginTop: 0,
+    color: '#e53e3e',
   },
   error: {
     color: '#e53e3e',
