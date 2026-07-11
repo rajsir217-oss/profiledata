@@ -103,7 +103,7 @@ const LandingPage = () => {
       />
     <div className="landing-page">
       {/* Header */}
-      <header className="landing-header lp-dark-header">
+      <header className="landing-header lp-dark-header" style={{ background: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)), url('/images/hands.jpeg') center/cover no-repeat fixed` }}>
         <div className="landing-header-content">
           <div className="logo-section">
             <span className="logo-icon">🦋</span>
@@ -111,11 +111,12 @@ const LandingPage = () => {
             <span className="lp-matches-badge">Matches</span>
           </div>
           <span className="lp-platform-badge">Matrimonials</span>
+          <img src="/images/hands.jpeg" alt="" className="lp-header-hands" />
         </div>
       </header>
 
       {/* Hero Section — Split Layout */}
-      <section className="hero-section lp-hero-split" style={{ background: `linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55)), url('/images/wedding-bg.jpg') center/cover no-repeat fixed` }}>
+      <section className="hero-section lp-hero-split" style={{ background: `linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.6)), url('/images/hands.jpeg') center/cover no-repeat fixed` }}>
         {/* Left: Marketing */}
         <div className="lp-hero-left">
           <div className="lp-trust-pill">
