@@ -35,6 +35,41 @@
   cursor: pointer;
 }
 
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.butterfly-icon {
+  font-size: 64px;
+}
+
+.logo-wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.logo-text-full {
+  font-size: 48px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ec4899 0%, #a78bfa 50%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 2px;
+}
+
+.logo-tagline {
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 2px;
+  margin-top: 2px;
+}
+
 .logo-icon {
   font-size: 32px;
 }
@@ -1606,6 +1641,20 @@
   box-shadow: 0 2px 16px rgba(0,0,0,0.5) !important;
 }
 
+.lp-dark-header .logo-text-full {
+  color: #ffffff !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.lp-dark-header .logo-tagline {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.lp-dark-header .butterfly-icon {
+  color: #fff;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.2));
+}
+
 .lp-dark-header .logo-text {
   color: #ffffff !important;
   text-shadow: 0 1px 4px rgba(0,0,0,0.2);
@@ -1639,8 +1688,8 @@
 }
 
 .lp-header-hands {
-  width: 64px;
-  height: 64px;
+  width: 120px;
+  height: 44px;
   border-radius: 8px;
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.3);

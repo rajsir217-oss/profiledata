@@ -105,12 +105,13 @@ const LandingPage = () => {
       {/* Header */}
       <header className="landing-header lp-dark-header" style={{ background: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)), url('/images/hands.jpeg') center/cover no-repeat fixed` }}>
         <div className="landing-header-content">
-          <div className="logo-section">
-            <span className="logo-icon">🦋</span>
-            <span className="logo-text">L3V3L</span>
-            <span className="lp-matches-badge">Matches</span>
+          <div className="app-logo">
+            <span className="butterfly-icon" aria-hidden="true">🦋</span>
+            <span className="logo-wordmark">
+              <span className="logo-text-full">L3V3L</span>
+              <span className="logo-tagline">MATCHES</span>
+            </span>
           </div>
-          <span className="lp-platform-badge">Matrimonials</span>
           <img src="/images/hands.jpeg" alt="" className="lp-header-hands" />
         </div>
       </header>
