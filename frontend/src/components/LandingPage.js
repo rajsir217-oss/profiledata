@@ -213,10 +213,6 @@ const LandingPage = () => {
               {loginLoading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
-          <div className="lp-or-divider"><span>or</span></div>
-          <button type="button" className="lp-otp-btn" onClick={() => navigate('/login?method=otp')}>
-            � Sign in with OTP
-          </button>
           <p className="lp-signup-row">
             Don't have an account?{' '}
             <button type="button" className="lp-register-link" onClick={() => navigate('/register-interest')}>
