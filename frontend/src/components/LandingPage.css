@@ -2043,7 +2043,11 @@
 }
 
 .lp-signup-row {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.7);
   margin-top: 4px;
