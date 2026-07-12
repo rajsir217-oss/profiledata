@@ -209,13 +209,16 @@ async def admin_approve_user(
             }
         
         # Prepare update fields
+        approval_now = datetime.utcnow()
         update_fields = {
             "adminApprovalStatus": "approved",
             "adminApprovedBy": current_user.get("username"),
-            "adminApprovedAt": datetime.utcnow(),
+            "adminApprovedAt": approval_now,
             "accountStatus": "active",
             "onboardingCompleted": True,
-            "onboardingCompletedAt": datetime.utcnow()
+            "onboardingCompletedAt": approval_now,
+            # _sortFreshness must reflect the profile approval/join time so "newest" sort works.
+            "_sortFreshness": approval_now
         }
         
         # If email is not verified, admin approval automatically verifies it

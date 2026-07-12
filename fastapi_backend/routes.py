@@ -239,6 +239,13 @@ SEARCH_RESULT_PROJECTION = {
     "accountStatus": 1,
     "role_name": 1,
     "role": 1,
+    # Pre-computed sort fields (must be available for $sort in aggregation)
+    "_sortFreshness": 1,
+    "_sortHeightInches": 1,
+    "_sortFirstName": 1,
+    "_sortLocation": 1,
+    "_sortEducation": 1,
+    "_sortProfession": 1,
 }
 
 # Full projection for detailed profile view
@@ -289,6 +296,13 @@ DASHBOARD_USER_PROJECTION = {
     "updatedAt": 1,
     "adminApprovedAt": 1,
     "badges": 1,
+    # Pre-computed sort fields (must be available for $sort in aggregation)
+    "_sortFreshness": 1,
+    "_sortHeightInches": 1,
+    "_sortFirstName": 1,
+    "_sortLocation": 1,
+    "_sortEducation": 1,
+    "_sortProfession": 1,
     # All other fields automatically excluded (MongoDB inclusion projection)
 }
 
@@ -1440,7 +1454,8 @@ async def register_user(
         "createdAt": now,
         "updatedAt": now,
         # Pre-computed sort fields for search performance optimization
-        "_sortFreshness": now,  # Will be updated on profile updates
+        # _sortFreshness must reflect the profile's join/approval time, not edit time.
+        "_sortFreshness": now,  # Same as createdAt here; updated on admin approval
         "_sortHeightInches": parse_height_to_inches(height) if height else 0,
         "_sortFirstName": str(firstName or username).strip().lower(),
         "_sortLocation": str(location or state or "").strip().lower(),
@@ -3200,12 +3215,11 @@ async def update_user_profile(
     # Update timestamp
     update_data["updatedAt"] = datetime.utcnow().isoformat()
 
-    # Update pre-computed sort fields if relevant fields changed
+    # Update pre-computed sort fields if relevant fields changed.
+    # IMPORTANT: _sortFreshness is intentionally NOT updated here; it should
+    # reflect the profile's join/approval time (max of createdAt and adminApprovedAt),
+    # not the last edit time. Updating it on every profile change breaks "newest" sort.
     sort_fields_updated = False
-
-    # Update _sortFreshness (always update on any profile change)
-    update_data["_sortFreshness"] = datetime.utcnow().isoformat()
-    sort_fields_updated = True
 
     # Update _sortHeightInches if height changed
     if height is not None:
@@ -5659,48 +5673,48 @@ async def search_users(
     # Sort options - always include stable tie-breakers for deterministic pagination.
     sort_options = {
         "newest": {
-            "desc": [("_sortFreshness", -1), ("_id", -1)],
-            "asc": [("_sortFreshness", 1), ("_id", 1)],
+            "desc": [("_sortFreshness", -1), ("username", -1)],
+            "asc": [("_sortFreshness", 1), ("username", 1)],
         },
         "oldest": {
-            "desc": [("_sortFreshness", -1), ("_id", -1)],
-            "asc": [("_sortFreshness", 1), ("_id", 1)],
+            "desc": [("_sortFreshness", -1), ("username", -1)],
+            "asc": [("_sortFreshness", 1), ("username", 1)],
         },
         "firstName": {
-            "asc": [("_sortFirstName", 1), ("username", 1), ("_id", 1)],
-            "desc": [("_sortFirstName", -1), ("username", -1), ("_id", -1)],
+            "asc": [("_sortFirstName", 1), ("username", 1)],
+            "desc": [("_sortFirstName", -1), ("username", -1)],
         },
         "matchScore": {
-            "desc": [("matchScore", -1), ("_id", -1)],
-            "asc": [("matchScore", 1), ("_id", 1)],
+            "desc": [("matchScore", -1), ("username", -1)],
+            "asc": [("matchScore", 1), ("username", 1)],
         },
         "age": {
             # Desc = older first (smaller birthYear), Asc = younger first.
-            "desc": [("birthYear", 1), ("birthMonth", 1), ("_id", -1)],
-            "asc": [("birthYear", -1), ("birthMonth", -1), ("_id", 1)],
+            "desc": [("birthYear", 1), ("birthMonth", 1), ("username", -1)],
+            "asc": [("birthYear", -1), ("birthMonth", -1), ("username", 1)],
         },
         "height": {
-            "desc": [("_sortHeightInches", -1), ("_id", -1)],
-            "asc": [("_sortHeightInches", 1), ("_id", 1)],
+            "desc": [("_sortHeightInches", -1), ("username", -1)],
+            "asc": [("_sortHeightInches", 1), ("username", 1)],
         },
         "location": {
-            "asc": [("_sortLocation", 1), ("username", 1), ("_id", 1)],
-            "desc": [("_sortLocation", -1), ("username", -1), ("_id", -1)],
+            "asc": [("_sortLocation", 1), ("username", 1)],
+            "desc": [("_sortLocation", -1), ("username", -1)],
         },
         "education": {
-            "asc": [("_sortEducation", 1), ("username", 1), ("_id", 1)],
-            "desc": [("_sortEducation", -1), ("username", -1), ("_id", -1)],
+            "asc": [("_sortEducation", 1), ("username", 1)],
+            "desc": [("_sortEducation", -1), ("username", -1)],
         },
         "profession": {
-            "asc": [("_sortProfession", 1), ("username", 1), ("_id", 1)],
-            "desc": [("_sortProfession", -1), ("username", -1), ("_id", -1)],
+            "asc": [("_sortProfession", 1), ("username", 1)],
+            "desc": [("_sortProfession", -1), ("username", -1)],
         },
     }
     sort = sort_options.get(normalized_sort_by, sort_options["newest"])[normalized_sort_order]
 
     # OPTIMIZATION: Using pre-computed sort fields from database (_sortFreshness, _sortHeightInches, etc.)
-    # These fields are maintained by register_user and update_user_profile endpoints
-    # No need to compute them on-the-fly in aggregation pipeline
+    # _sortFreshness is the max of createdAt and adminApprovedAt, set at registration and on admin approval.
+    # It is intentionally NOT updated by normal profile edits, so "newest" sort reflects join/approval time.
     sort_computed_fields = {}
 
     logger.info(

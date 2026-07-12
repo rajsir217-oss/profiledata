@@ -16,22 +16,32 @@ SORT_FIELD_INDEXES = [
     ("_sortProfession", 1),
 ]
 
+def _parse_datetime(value):
+    """Parse a datetime string or object into a datetime."""
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace('Z', '+00:00'))
+        except Exception:
+            return None
+    return None
+
+
 def compute_sort_fields(user):
     """Compute pre-computed sort fields for a user document"""
-    # Compute _sortFreshness (max of updated_at, updatedAt, createdAt)
+    # _sortFreshness should reflect the newest profile in searches.
+    # It is the later of creation time and admin approval time.
+    # It must NOT be updated on normal profile edits, so we ignore updated_at here.
     freshness_values = []
-    
-    for field in ['updated_at', 'updatedAt', 'createdAt']:
-        value = user.get(field)
-        if value:
-            if isinstance(value, str):
-                try:
-                    value = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                except:
-                    pass
-            if isinstance(value, datetime):
-                freshness_values.append(value)
-    
+
+    for field in ['createdAt', 'adminApprovedAt']:
+        parsed = _parse_datetime(user.get(field))
+        if parsed:
+            freshness_values.append(parsed)
+
     _sortFreshness = max(freshness_values) if freshness_values else None
     
     # Compute _sortHeightInches

@@ -52,9 +52,13 @@ async def create_test_user(username="testuser1", password="test123"):
             "status": "active"
         },
         "accountStatus": "active",
+        "adminApprovalStatus": "approved",
+        "adminApprovedBy": "system",
+        "adminApprovedAt": datetime.now(timezone.utc),
         "profileCreatedBy": "self",
         "createdAt": datetime.now(timezone.utc),
         "updatedAt": datetime.now(timezone.utc),
+        "_sortFreshness": datetime.now(timezone.utc),
         "preferences": {
             "notifications": True,
             "privacy": "public"

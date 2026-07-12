@@ -693,7 +693,10 @@ async def update_user_status(
         if new_account_status == 'active':
             update_data["adminApprovalStatus"] = "approved"
             update_data["adminApprovedBy"] = current_user.get("username")
-            update_data["adminApprovedAt"] = now.isoformat()
+            update_data["adminApprovedAt"] = now
+            # _sortFreshness must reflect the profile approval/join time so "newest" sort works.
+            # Set it to the same datetime as adminApprovedAt.
+            update_data["_sortFreshness"] = now
             # Reset missing-photo enforcement markers so user isn't immediately blocked again on login
             update_data["noPhotoLoginCount"] = 0
             unset_fields.update({
