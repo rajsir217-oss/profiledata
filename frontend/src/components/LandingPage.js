@@ -23,11 +23,54 @@ const LandingPage = () => {
   const isDevelopment = process.env.NODE_ENV !== 'production';
   const canBypassCaptcha = captchaRetryCount >= 3;
 
+  // MFA state
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaChannel, setMfaChannel] = useState('');
+  const [contactMasked, setContactMasked] = useState('');
+  const [showBackupCodeInput, setShowBackupCodeInput] = useState(false);
+  const [resendingCode, setResendingCode] = useState(false);
+
   const handleLoginChange = (e) => {
     const { name, value } = e.target;
     setLoginForm(prev => ({ ...prev, [name]: value }));
     setLoginError('');
   };
+
+  const completeLogin = useCallback((data) => {
+    const user = data.user || {};
+    localStorage.setItem('token', data.access_token);
+    localStorage.setItem('username', user.username || loginForm.username.trim());
+    if (data.refresh_token) localStorage.setItem('refreshToken', data.refresh_token);
+    localStorage.setItem('userStatus', user.accountStatus || 'active');
+    localStorage.setItem('userRole', user.role_name || user.role || data.role || 'free_user');
+    localStorage.removeItem('appTheme');
+    sessionStorage.removeItem('photoReminderDismissed');
+    sessionManager.init();
+    socketService.connect(user.username || loginForm.username.trim());
+    window.dispatchEvent(new Event('loginStatusChanged'));
+    window.dispatchEvent(new Event('userLoggedIn'));
+    navigate('/dashboardv2');
+  }, [loginForm.username, navigate]);
+
+  const sendMfaCode = useCallback(async () => {
+    try {
+      setResendingCode(true);
+      const res = await fetch(`${getBackendUrl()}/api/auth/mfa/send-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: loginForm.username.trim() })
+      });
+      const data = await res.json();
+      if (data.mock_code) {
+        setLoginError(`DEV MODE: Use code ${data.mock_code}`);
+      }
+    } catch (err) {
+      setLoginError('Failed to send verification code');
+    } finally {
+      setResendingCode(false);
+    }
+  }, [loginForm.username]);
 
   const handleLoginSubmit = useCallback(async (e) => {
     if (e) e.preventDefault();
@@ -53,20 +96,17 @@ const LandingPage = () => {
       });
       const data = await res.json();
       if (res.ok && data.access_token) {
-        // Mirror exactly what Login.js stores
-        const user = data.user || {};
-        localStorage.setItem('token', data.access_token);
-        localStorage.setItem('username', user.username || loginForm.username.trim());
-        if (data.refresh_token) localStorage.setItem('refreshToken', data.refresh_token);
-        localStorage.setItem('userStatus', user.accountStatus || 'active');
-        localStorage.setItem('userRole', user.role_name || user.role || data.role || 'free_user');
-        localStorage.removeItem('appTheme');
-        sessionStorage.removeItem('photoReminderDismissed');
-        sessionManager.init();
-        socketService.connect(user.username || loginForm.username.trim());
-        window.dispatchEvent(new Event('loginStatusChanged'));
-        window.dispatchEvent(new Event('userLoggedIn'));
-        navigate('/dashboardv2');
+        completeLogin(data);
+      } else if (res.status === 403 && data.detail === 'MFA_REQUIRED') {
+        setMfaRequired(true);
+        setMfaChannel(data.mfa_channel || 'email');
+        setContactMasked(data.contact_masked || '');
+        setLoginError('');
+        try {
+          await sendMfaCode();
+        } catch (mfaErr) {
+          // sendMfaCode already sets error state
+        }
       } else {
         setLoginError(data.detail || 'Invalid username or password.');
         if (turnstileRef.current) { turnstileRef.current.reset(); setCaptchaToken(null); }
@@ -77,7 +117,46 @@ const LandingPage = () => {
     } finally {
       setLoginLoading(false);
     }
-  }, [loginForm, navigate, captchaToken, isDevelopment, canBypassCaptcha]);
+  }, [loginForm, captchaToken, isDevelopment, canBypassCaptcha, completeLogin, sendMfaCode]);
+
+  const handleMfaVerify = useCallback(async (e) => {
+    e.preventDefault();
+    if (!loginForm.username.trim() || !loginForm.password || !mfaCode.trim()) {
+      setLoginError('Please enter the verification code.');
+      return;
+    }
+    setLoginLoading(true);
+    setLoginError('');
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: loginForm.username.trim(),
+          password: loginForm.password,
+          mfa_code: mfaCode.trim(),
+          captchaToken: isDevelopment ? 'XXXX.DUMMY.TOKEN.XXXX' : (captchaToken || '')
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.access_token) {
+        completeLogin(data);
+      } else {
+        setLoginError(data.detail || 'Invalid verification code.');
+      }
+    } catch (_) {
+      setLoginError('Connection error. Please try again.');
+    } finally {
+      setLoginLoading(false);
+    }
+  }, [loginForm, mfaCode, captchaToken, isDevelopment, completeLogin]);
+
+  const handleBackToLogin = useCallback(() => {
+    setMfaRequired(false);
+    setMfaCode('');
+    setLoginError('');
+    setShowBackupCodeInput(false);
+  }, []);
 
   // Inject structured data for SEO
   useEffect(() => {
@@ -144,81 +223,167 @@ const LandingPage = () => {
         {/* Right: Inline Login Card */}
         <div className="lp-login-card">
           <div className="lp-login-card-header">
-            <h2>Welcome Back!</h2>
-            <p>Sign in to continue to your account</p>
+            <h2>{mfaRequired ? 'Verification Required' : 'Welcome Back!'}</h2>
+            <p>{mfaRequired ? `Enter the code sent to your ${mfaChannel}` : 'Sign in to continue to your account'}</p>
           </div>
           <div className="lp-login-divider" />
-          <form onSubmit={handleLoginSubmit} action="#" method="POST" autoComplete="on">
-            <div className="lp-form-group">
-              <label htmlFor="lp-username">USERNAME</label>
-              <input
-                id="lp-username"
-                name="username"
-                type="text"
-                placeholder="Enter your username"
-                value={loginForm.username}
-                onChange={handleLoginChange}
-                autoComplete="username"
-              />
-            </div>
-            <div className="lp-form-group">
-              <label htmlFor="lp-password">PASSWORD</label>
-              <div className="lp-password-wrap">
+          {!mfaRequired ? (
+            <form onSubmit={handleLoginSubmit} action="#" method="POST" autoComplete="on">
+              <div className="lp-form-group">
+                <label htmlFor="lp-username">USERNAME</label>
                 <input
-                  id="lp-password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••••"
-                  value={loginForm.password}
+                  id="lp-username"
+                  name="username"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={loginForm.username}
                   onChange={handleLoginChange}
-                  autoComplete="current-password"
+                  autoComplete="username"
                 />
-                <button type="button" className="lp-eye-btn" onClick={() => setShowPassword(p => !p)}>
-                  {showPassword ? '🙈' : '👁'}
+              </div>
+              <div className="lp-form-group">
+                <label htmlFor="lp-password">PASSWORD</label>
+                <div className="lp-password-wrap">
+                  <input
+                    id="lp-password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••••"
+                    value={loginForm.password}
+                    onChange={handleLoginChange}
+                    autoComplete="current-password"
+                  />
+                  <button type="button" className="lp-eye-btn" onClick={() => setShowPassword(p => !p)}>
+                    {showPassword ? '🙈' : '👁'}
+                  </button>
+                </div>
+              </div>
+              <div className="lp-forgot-row">
+                <button type="button" className="lp-forgot-link" onClick={() => navigate('/forgot-password')}>
+                  Forgot Password?
                 </button>
               </div>
-            </div>
-            <div className="lp-forgot-row">
-              <button type="button" className="lp-forgot-link" onClick={() => navigate('/forgot-password')}>
-                Forgot Password?
+              {/* Cloudflare Turnstile */}
+              {captchaError ? (
+                <div className="lp-captcha-error">
+                  {!canBypassCaptcha ? (
+                    <button type="button" className="lp-captcha-retry" onClick={() => { setCaptchaError(false); setCaptchaRetryCount(r => r + 1); }}>
+                      Retry CAPTCHA ({3 - captchaRetryCount} left)
+                    </button>
+                  ) : (
+                    <p className="lp-captcha-bypass">✓ Cloudflare issue — proceeding without captcha</p>
+                  )}
+                </div>
+              ) : (
+                <div className="lp-turnstile-wrap">
+                  <Turnstile
+                    ref={turnstileRef}
+                    sitekey={getTurnstileSiteKey()}
+                    onVerify={(token) => setCaptchaToken(token)}
+                    onLoad={() => {}}
+                    onError={() => { setCaptchaError(true); setCaptchaRetryCount(r => r + 1); }}
+                    onExpire={() => setCaptchaToken(null)}
+                    theme="light"
+                    size="flexible"
+                  />
+                </div>
+              )}
+              {loginError && <p className="lp-login-error">{loginError}</p>}
+              <button type="button" className="lp-signin-btn" onClick={handleLoginSubmit} disabled={loginLoading}>
+                {loginLoading ? 'Signing in…' : 'Sign In'}
               </button>
-            </div>
-            {/* Cloudflare Turnstile */}
-            {captchaError ? (
-              <div className="lp-captcha-error">
-                {!canBypassCaptcha ? (
-                  <button type="button" className="lp-captcha-retry" onClick={() => { setCaptchaError(false); setCaptchaRetryCount(r => r + 1); }}>
-                    Retry CAPTCHA ({3 - captchaRetryCount} left)
-                  </button>
-                ) : (
-                  <p className="lp-captcha-bypass">✓ Cloudflare issue — proceeding without captcha</p>
-                )}
+            </form>
+          ) : (
+            <form onSubmit={handleMfaVerify}>
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                padding: '16px',
+                borderRadius: '12px',
+                marginBottom: '24px',
+                textAlign: 'center'
+              }}>
+                <p style={{ fontSize: '14px', color: '#374151', margin: '0' }}>
+                  Code sent to: <strong>{contactMasked}</strong>
+                </p>
               </div>
-            ) : (
-              <div className="lp-turnstile-wrap">
-                <Turnstile
-                  ref={turnstileRef}
-                  sitekey={getTurnstileSiteKey()}
-                  onVerify={(token) => setCaptchaToken(token)}
-                  onLoad={() => {}}
-                  onError={() => { setCaptchaError(true); setCaptchaRetryCount(r => r + 1); }}
-                  onExpire={() => setCaptchaToken(null)}
-                  theme="light"
-                  size="flexible"
+
+              <div className="lp-form-group">
+                <label htmlFor="lp-mfa-code" style={{ display: 'block', textAlign: 'center', marginBottom: '8px' }}>
+                  {showBackupCodeInput ? 'Backup Code (XXXX-XXXX)' : 'Verification Code'}
+                </label>
+                <input
+                  id="lp-mfa-code"
+                  type="text"
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(showBackupCodeInput ? '' : /\D/g, ''))}
+                  placeholder={showBackupCodeInput ? 'XXXX-XXXX' : '000000'}
+                  maxLength={showBackupCodeInput ? 9 : 6}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '12px',
+                    fontSize: showBackupCodeInput ? '18px' : '32px',
+                    outline: 'none',
+                    textAlign: 'center',
+                    letterSpacing: showBackupCodeInput ? '0.2em' : '0.5em',
+                    fontFamily: 'monospace',
+                    backgroundColor: '#f9fafb',
+                    color: '#1f2937',
+                    fontWeight: '600'
+                  }}
                 />
               </div>
-            )}
-            {loginError && <p className="lp-login-error">{loginError}</p>}
-            <button type="button" className="lp-signin-btn" onClick={handleLoginSubmit} disabled={loginLoading}>
-              {loginLoading ? 'Signing in…' : 'Sign In'}
-            </button>
-          </form>
-          <p className="lp-signup-row">
-            Don't have an account?{' '}
-            <button type="button" className="lp-register-link" onClick={() => navigate('/register-interest')}>
-              Register
-            </button>
-          </p>
+
+              {loginError && <p className="lp-login-error">{loginError}</p>}
+
+              <button
+                type="submit"
+                className="lp-signin-btn"
+                disabled={loginLoading || (!showBackupCodeInput && mfaCode.length !== 6) || (showBackupCodeInput && mfaCode.length !== 9)}
+              >
+                {loginLoading ? 'Verifying…' : 'Verify & Sign In'}
+              </button>
+
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  className="lp-register-link"
+                  onClick={sendMfaCode}
+                  disabled={resendingCode}
+                  style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: '#fbbf24', fontWeight: '600' }}
+                >
+                  {resendingCode ? 'Sending…' : 'Resend Code'}
+                </button>
+                <button
+                  type="button"
+                  className="lp-register-link"
+                  onClick={() => setShowBackupCodeInput(!showBackupCodeInput)}
+                  style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: '#fbbf24', fontWeight: '600' }}
+                >
+                  {showBackupCodeInput ? 'Use Code' : 'Use Backup'}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="lp-forgot-link"
+                onClick={handleBackToLogin}
+                style={{ marginTop: '12px', width: '100%' }}
+              >
+                ← Back to Login
+              </button>
+            </form>
+          )}
+          {!mfaRequired && (
+            <p className="lp-signup-row">
+              Don't have an account?{' '}
+              <button type="button" className="lp-register-link" onClick={() => navigate('/register-interest')}>
+                Register
+              </button>
+            </p>
+          )}
         </div>
       </section>
 
