@@ -205,6 +205,29 @@ function AuthGuard({ children }) {
     tryAutoLogin();
   }, [isPublicRoute, navigate]);
 
+  useEffect(() => {
+    const handleLogin = () => {
+      const newToken = localStorage.getItem('token');
+      if (newToken) {
+        setToken(newToken);
+      }
+    };
+
+    const handleLogout = () => {
+      setToken(null);
+    };
+
+    window.addEventListener('userLoggedIn', handleLogin);
+    window.addEventListener('userLoggedOut', handleLogout);
+    window.addEventListener('storage', handleLogin);
+
+    return () => {
+      window.removeEventListener('userLoggedIn', handleLogin);
+      window.removeEventListener('userLoggedOut', handleLogout);
+      window.removeEventListener('storage', handleLogin);
+    };
+  }, []);
+
   if (isAuthChecking) {
     return (
       <div className="app-loading-screen">

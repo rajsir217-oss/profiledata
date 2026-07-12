@@ -30,7 +30,7 @@ const LandingPage = () => {
   };
 
   const handleLoginSubmit = useCallback(async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!loginForm.username.trim() || !loginForm.password) {
       setLoginError('Please enter username and password.');
       return;
@@ -148,7 +148,7 @@ const LandingPage = () => {
             <p>Sign in to continue to your account</p>
           </div>
           <div className="lp-login-divider" />
-          <form onSubmit={handleLoginSubmit} autoComplete="on">
+          <form onSubmit={handleLoginSubmit} action="#" method="POST" autoComplete="on">
             <div className="lp-form-group">
               <label htmlFor="lp-username">USERNAME</label>
               <input
@@ -209,7 +209,7 @@ const LandingPage = () => {
               </div>
             )}
             {loginError && <p className="lp-login-error">{loginError}</p>}
-            <button type="submit" className="lp-signin-btn" disabled={loginLoading}>
+            <button type="button" className="lp-signin-btn" onClick={handleLoginSubmit} disabled={loginLoading}>
               {loginLoading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
