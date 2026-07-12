@@ -181,24 +181,14 @@ const LandingPage = () => {
         type={pageSEO.type}
       />
     <div className="landing-page">
-      {/* Header */}
-      <header className="landing-header lp-dark-header" style={{ background: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)), url('/images/hands.jpeg') center/cover no-repeat fixed` }}>
-        <div className="landing-header-content">
-          <div className="app-logo">
-            <span className="butterfly-icon" aria-hidden="true">🦋</span>
-            <span className="logo-wordmark">
-              <span className="logo-text-full">L3V3L</span>
-              <span className="logo-tagline">MATCHES</span>
-            </span>
-          </div>
-          <img src="/images/hands.jpeg" alt="" className="lp-header-hands" />
-        </div>
-      </header>
-
-      {/* Hero Section — Split Layout */}
-      <section className="hero-section lp-hero-split" style={{ background: `linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.6)), url('/images/hands.jpeg') center/cover no-repeat fixed` }}>
+      {/* Hero Section — Split Layout with merged header */}
+      <section className="hero-section lp-hero-split" style={{ background: `linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.6)), url('/images/hands_color1.jpeg') center/cover no-repeat fixed` }}>
         {/* Left: Marketing */}
         <div className="lp-hero-left">
+          <div className="lp-brand-logo">
+            <span className="butterfly-icon" aria-hidden="true">🦋</span>
+            <span className="lp-brand-text">L3V3L Matches - a premier matrimonial platform</span>
+          </div>
           <div className="lp-trust-pill">
             <span className="lp-trust-check">✓</span>
             Search with confidence. Every profile on L3V3LMatches.com is genuine, verified, and community‑collected — supporting families in finding the right match

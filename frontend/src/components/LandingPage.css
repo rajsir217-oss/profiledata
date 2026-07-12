@@ -1,3 +1,8 @@
+/* Reset default body spacing for landing experience */
+body {
+  margin: 0;
+}
+
 /* Landing Page Styles */
 .landing-page {
   min-height: 100vh;
@@ -67,7 +72,7 @@
   font-weight: 700;
   color: rgba(255, 255, 255, 0.8);
   letter-spacing: 2px;
-  margin-top: 2px;
+  margin-top: 8px;
 }
 
 .logo-icon {
@@ -143,6 +148,7 @@
   padding: 80px 24px 100px;
   position: relative;
   overflow: hidden;
+  margin-top: 0;
 }
 
 .hero-section::before {
@@ -489,7 +495,7 @@
   font-size: 18px;
   color: #666;
   font-style: italic;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .philosophy-intro {
@@ -1618,14 +1624,40 @@
 
 /* Override hero background — set via inline style in JSX */
 .lp-hero-split {
+  --hero-top-offset: 10px;
   background: rgba(0,0,0,0.55);
   display: grid;
   grid-template-columns: 1fr 380px;
   gap: 24px;
-  align-items: center;
-  padding: 4px 24px 16px !important;
-  min-height: calc(100vh - 60px);
+  align-items: flex-start;
+  padding: var(--hero-top-offset) 24px 24px !important;
+  margin-top: 8px;
+  min-height: 600px;
   position: relative;
+}
+
+.lp-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 5px;
+  margin: 0 0 8px;
+}
+
+.lp-brand-logo .butterfly-icon {
+  font-size: 48px;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35));
+}
+
+.lp-brand-text {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(236, 72, 153, 0.5), 0 2px 8px rgba(0,0,0,0.4);
+  background: linear-gradient(135deg, #ffffff 0%, #fbbf24 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Kill the radial-gradient ::before overlay on dark hero */
@@ -2073,6 +2105,7 @@
   padding: 20px 48px;
   background: rgba(0,0,0,0.75);
   border-top: 1px solid rgba(255,255,255,0.1);
+  margin-top: 0;
 }
 
 .lp-stat {
