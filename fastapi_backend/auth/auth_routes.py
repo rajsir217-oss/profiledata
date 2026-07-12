@@ -368,6 +368,7 @@ async def register(
             },
             
             # Status
+            "accountStatus": "pending_email_verification" if security_settings.EMAIL_VERIFICATION_REQUIRED else "active",
             "status": {
                 "status": USER_STATUS["PENDING_VERIFICATION"] if security_settings.EMAIL_VERIFICATION_REQUIRED else USER_STATUS["ACTIVE"],
                 "email_verified": not security_settings.EMAIL_VERIFICATION_REQUIRED,
@@ -401,7 +402,16 @@ async def register(
             
             # Metadata
             "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.utcnow(),
+            # Normalized date fields used by search and sorting
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow(),
+            # _sortFreshness reflects join/approval time for "newest" sort.
+            "_sortFreshness": datetime.utcnow(),
+            # Admin approval tracking
+            "adminApprovalStatus": "pending" if security_settings.EMAIL_VERIFICATION_REQUIRED else "approved",
+            "adminApprovedBy": None,
+            "adminApprovedAt": None if security_settings.EMAIL_VERIFICATION_REQUIRED else datetime.utcnow(),
         }
         
         # Insert user

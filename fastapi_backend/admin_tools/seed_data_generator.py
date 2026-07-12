@@ -208,7 +208,9 @@ def generate_male_user(index: int) -> Dict:
         "phoneVerified": random.choice([True, False]),
         "createdAt": datetime.utcnow() - timedelta(days=random.randint(1, 365)),
         "updatedAt": datetime.utcnow() - timedelta(days=random.randint(0, 30)),
-        "lastActiveAt": datetime.utcnow() - timedelta(hours=random.randint(0, 48))
+        "lastActiveAt": datetime.utcnow() - timedelta(hours=random.randint(0, 48)),
+        "adminApprovedAt": datetime.utcnow() - timedelta(days=random.randint(0, 365)),
+        "_sortFreshness": datetime.utcnow() - timedelta(days=random.randint(0, 365))
     }
 
 def generate_female_user(index: int) -> Dict:
@@ -270,7 +272,9 @@ def generate_female_user(index: int) -> Dict:
         "phoneVerified": random.choice([True, False]),
         "createdAt": datetime.utcnow() - timedelta(days=random.randint(1, 365)),
         "updatedAt": datetime.utcnow() - timedelta(days=random.randint(0, 30)),
-        "lastActiveAt": datetime.utcnow() - timedelta(hours=random.randint(0, 48))
+        "lastActiveAt": datetime.utcnow() - timedelta(hours=random.randint(0, 48)),
+        "adminApprovedAt": datetime.utcnow() - timedelta(days=random.randint(0, 365)),
+        "_sortFreshness": datetime.utcnow() - timedelta(days=random.randint(0, 365))
     }
 
 def generate_all_users() -> List[Dict]:
