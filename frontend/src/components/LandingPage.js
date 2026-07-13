@@ -183,12 +183,14 @@ const LandingPage = () => {
     <div className="landing-page">
       {/* Hero Section — Split Layout with merged header */}
       <section className="hero-section lp-hero-split" style={{ background: `linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.6)), url('/images/hands_color1.jpeg') center/cover no-repeat fixed` }}>
-        {/* Left: Marketing */}
-        <div className="lp-hero-left">
+        <div className="lp-hero-brand-row">
           <div className="lp-brand-logo">
             <span className="butterfly-icon" aria-hidden="true">🦋</span>
             <span className="lp-brand-text">L3V3L Matches - a premier matrimonial platform</span>
           </div>
+        </div>
+        {/* Center: Marketing */}
+        <div className="lp-hero-left">
           <div className="lp-trust-pill">
             <span className="lp-trust-check">✓</span>
             Search with confidence. Every profile on L3V3LMatches.com is genuine, verified, and community‑collected — supporting families in finding the right match

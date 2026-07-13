@@ -1628,12 +1628,18 @@ body {
   background: rgba(0,0,0,0.55);
   display: grid;
   grid-template-columns: 1fr 380px;
-  gap: 24px;
+  grid-template-rows: auto 1fr;
+  gap: 3px;
   align-items: flex-start;
-  padding: var(--hero-top-offset) 24px 24px !important;
+  padding: var(--hero-top-offset) 24px 12px !important;
   margin-top: 8px;
   min-height: 600px;
   position: relative;
+}
+
+.lp-hero-brand-row {
+  grid-column: 1 / -1;
+  margin-bottom: 16px;
 }
 
 .lp-brand-logo {
@@ -1743,6 +1749,15 @@ body {
   align-items: flex-start;
   text-align: left;
   max-width: 680px;
+}
+
+.lp-hero-details {
+  grid-column: 1 / -1;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-self: start;
 }
 
 .lp-trust-pill {
@@ -2128,20 +2143,24 @@ body {
 @media (max-width: 900px) {
   .lp-hero-split {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
     padding: 24px 24px !important;
     min-height: unset;
   }
 
-  /* Login card first on mobile */
-  .lp-login-card {
-    order: -1;
-    max-width: 420px;
-    margin: 0 auto;
-    width: 100%;
+  .lp-hero-brand-row {
+    order: 1;
   }
 
   .lp-hero-left {
-    order: 1;
+    order: 2;
+  }
+
+  .lp-login-card {
+    order: 3;
+    max-width: 420px;
+    margin: 24px auto 0 auto;
+    width: 100%;
   }
 
   .lp-stats-bar {
