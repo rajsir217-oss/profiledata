@@ -379,8 +379,8 @@ const LandingPage = () => {
 
       {/* Stats Bar */}
       <div className="lp-stats-bar">
-        <div className="lp-stat"><div className="lp-stat-number">10,000+</div><div className="lp-stat-label">Verified Profiles</div></div>
-        <div className="lp-stat"><div className="lp-stat-number">2,400+</div><div className="lp-stat-label">Successful Matches</div></div>
+        <div className="lp-stat"><div className="lp-stat-number">1,000+</div><div className="lp-stat-label">Verified Profiles</div></div>
+        <div className="lp-stat"><div className="lp-stat-number">50+</div><div className="lp-stat-label">Successful Matches</div></div>
         <div className="lp-stat"><div className="lp-stat-number">50+</div><div className="lp-stat-label">Compatibility Factors</div></div>
         <div className="lp-stat"><div className="lp-stat-number">98%</div><div className="lp-stat-label">Profile Verification</div></div>
       </div>
