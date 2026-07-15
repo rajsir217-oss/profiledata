@@ -186,7 +186,7 @@ const LandingPage = () => {
         <div className="lp-hero-brand-row">
           <div className="lp-brand-logo">
             <span className="butterfly-icon" aria-hidden="true">🦋</span>
-            <span className="lp-brand-text">L3V3L Matches - a premier matrimonial platform</span>
+            <span className="lp-brand-text"><span className="lp-brand-purple">L3V3L Matches</span> - <span className="lp-brand-red">a premier matrimonial platform</span></span>
           </div>
         </div>
         {/* Center: Marketing */}
