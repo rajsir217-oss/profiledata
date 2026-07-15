@@ -1770,6 +1770,7 @@ body {
   align-items: flex-start;
   text-align: left;
   max-width: 680px;
+  padding-left: 30px;
 }
 
 .lp-hero-details {
