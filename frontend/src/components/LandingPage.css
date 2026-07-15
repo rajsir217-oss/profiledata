@@ -1627,7 +1627,7 @@ body {
   --hero-top-offset: 10px;
   background: rgba(0,0,0,0.55);
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 380px 1fr;
   grid-template-rows: auto 1fr;
   gap: 3px;
   align-items: flex-start;
@@ -1640,6 +1640,15 @@ body {
 .lp-hero-brand-row {
   grid-column: 1 / -1;
   margin-bottom: 16px;
+}
+
+/* Desktop: login card on the left, marketing on the right */
+.lp-hero-split .lp-login-card {
+  order: 1;
+}
+
+.lp-hero-split .lp-hero-left {
+  order: 2;
 }
 
 .lp-brand-logo {
