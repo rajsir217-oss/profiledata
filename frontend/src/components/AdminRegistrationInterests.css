@@ -2,24 +2,24 @@
 
 .ari-page {
   width: 100%;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
 }
 
 /* Header */
 .ari-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .ari-header h1 {
-  margin: 0 0 4px 0;
-  font-size: 22px;
+  margin: 0 0 2px 0;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-color);
 }
 
 .ari-header p {
   margin: 0;
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
@@ -27,22 +27,22 @@
 .ari-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  gap: 4px;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .ari-filter-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
+  gap: 3px;
+  padding: 3px 7px;
   border: 1px solid var(--border-color);
   border-radius: 20px;
   background: var(--surface-color);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -62,9 +62,9 @@
 
 .ari-filter-count {
   background: rgba(255, 255, 255, 0.2);
-  padding: 1px 7px;
+  padding: 0.5px 3.5px;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -76,9 +76,9 @@
 .ari-loading,
 .ari-empty {
   text-align: center;
-  padding: 3rem;
+  padding: 1.5rem;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 12px;
 }
 
 /* Card List */

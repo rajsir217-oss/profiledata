@@ -100,7 +100,7 @@
 
 /* Search Filters Container */
 .search-filters-container {
-  padding: 24px 0;
+  padding: 12px 0;
   background: var(--surface-color);
   border-bottom: 2px solid var(--border-color);
   margin-bottom: 0;
@@ -110,8 +110,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 0 12px;
+  margin-bottom: 10px;
+  padding: 0 8px;
 }
 
 .search-filters-header h3 {
@@ -150,19 +150,19 @@
 .search-filters-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
-  padding: 0 12px;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 0 8px;
 }
 
 .filter-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
 }
 
 .filter-item label {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-color);
 }
@@ -171,10 +171,10 @@
 .filter-item input[type="date"],
 .filter-item select {
   width: 100%;
-  padding: 10px 12px;
+  padding: 5px 8px;
   border: 2px solid var(--border-color);
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 12px;
   background: var(--input-bg, white);
   color: var(--text-color);
   transition: all 0.2s ease;
@@ -194,15 +194,15 @@
 
 /* Search Results Summary */
 .search-results-summary {
-  padding: 12px 16px;
+  padding: 6px 10px;
   background: var(--info-light, rgba(99, 102, 241, 0.1));
   border: 1px solid var(--info-color, var(--primary-color));
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-color);
   text-align: center;
-  margin: 0 12px;
+  margin: 0 8px;
 }
 
 /* Scroll hint for mobile - scoped to invitation-manager only */

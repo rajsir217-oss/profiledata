@@ -101,43 +101,43 @@
    COZY LIGHT THEME (Default)
    ======================================== */
 body.theme-light-blue {
-  /* Primary Colors - Light blue */
-  --primary-color: #3b82f6;
-  --secondary-color: #60a5fa;
-  --accent-color: #0ea5e9;
+  /* Primary Colors - Cozy lavender + peach accents */
+  --primary-color: #7c3aed;
+  --secondary-color: #c084fc;
+  --accent-color: #fdba74;
   
-  /* Backgrounds - Soft blue tones */
-  --background-color: #f0f7ff;
-  --surface-color: #e6f2ff;
-  --card-background: #f7fbff;
-  --card-bg: #f7fbff;
-  --input-bg: #ffffff;
+  /* Backgrounds - Warm cream gradient */
+  --background-color: #fff8ef;
+  --surface-color: #ffeeda;
+  --card-background: #fff6ed;
+  --card-bg: #fff6ed;
+  --input-bg: #fff2e1;
   --error-bg: #fee2e2;
   
   /* Bootstrap Modal Variables Override */
-  --bs-modal-bg: #f7fbff;
-  --bs-modal-color: #374151;
-  --bs-modal-border-color: #dbeafe;
+  --bs-modal-bg: #fff6ed;
+  --bs-modal-color: #3a2614;
+  --bs-modal-border-color: #fbc38d;
   
-  /* Text Colors - Soft contrast */
-  --text-color: #1f2937;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-on-gradient: #ffffff; /* Text color for gradient backgrounds */
+  /* Text Colors - Warm dark cocoa */
+  --text-color: #3a2614;
+  --text-secondary: #6b4b2a;
+  --text-muted: #a07956;
+  --text-on-gradient: #ffffff;
   
-  /* Borders & Dividers - Soft blue */
-  --border-color: #dbeafe;
-  --divider-color: #bfdbfe;
+  /* Borders & Dividers - Peach linen */
+  --border-color: #fbd6b4;
+  --divider-color: #ffe3c6;
   
-  /* Interactive States - Blue glow */
-  --hover-background: #dbeafe;
-  --active-background: #bfdbfe;
-  --selected-background: rgba(59, 130, 246, 0.08);
+  /* Interactive States - Cozy glow */
+  --hover-background: #ffe9d1;
+  --active-background: #ffd4a3;
+  --selected-background: rgba(253, 186, 116, 0.2);
 
   /* Shadow Variables */
-  --primary-shadow: rgba(59, 130, 246, 0.3);
-  --primary-shadow-hover: rgba(59, 130, 246, 0.4);
-  --primary-color-light: rgba(59, 130, 246, 0.25);
+  --primary-shadow: rgba(124, 58, 237, 0.22);
+  --primary-shadow-hover: rgba(124, 58, 237, 0.32);
+  --primary-color-light: rgba(124, 58, 237, 0.18);
   --danger-shadow: rgba(239, 68, 68, 0.4);
   
   background-color: var(--background-color);
@@ -149,7 +149,7 @@ body.theme-light-blue {
 .theme-light-blue .search-page,
 .theme-light-blue .profile-container,
 .theme-light-blue .preferences-container {
-  background: var(--background-color);
+  background: linear-gradient(180deg, #fff9f3 0%, #fff1e2 55%, #fff6ed 100%);
 }
 
 .theme-light-blue .user-card,
@@ -190,36 +190,42 @@ body.theme-light-blue {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 body.theme-sky-blue {
+  /* Primary Colors - Crisp cyan sky */
   --primary-color: #0ea5e9;
   --secondary-color: #7dd3fc;
   --accent-color: #38bdf8;
   
-  --background-color: #f0f9ff;
-  --surface-color: #e0f2fe;
-  --card-background: #f8fcff;
-  --card-bg: #f8fcff;
+  /* Backgrounds - Airy blue gradient */
+  --background-color: #e3f4ff;
+  --surface-color: #cfe8ff;
+  --card-background: #f7fbff;
+  --card-bg: #f7fbff;
   --input-bg: #ffffff;
   --error-bg: #fee2e2;
   
-  --bs-modal-bg: #f8fcff;
-  --bs-modal-color: #0f172a;
-  --bs-modal-border-color: #bae6fd;
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #f7fbff;
+  --bs-modal-color: #0f3d56;
+  --bs-modal-border-color: #b6e0ff;
   
-  --text-color: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #475569;
+  /* Text Colors - Deep teal ink */
+  --text-color: #0f3d56;
+  --text-secondary: #155979;
+  --text-muted: #4d7ea8;
   --text-on-gradient: #ffffff;
   
-  --border-color: #bae6fd;
-  --divider-color: #7dd3fc;
+  /* Borders & Dividers - Fresh sky */
+  --border-color: #b6e0ff;
+  --divider-color: #d7efff;
   
-  --hover-background: #e0f2fe;
-  --active-background: #bae6fd;
-  --selected-background: rgba(14, 165, 233, 0.1);
+  /* Interactive States - Misty blue glow */
+  --hover-background: #d7efff;
+  --active-background: #b6e0ff;
+  --selected-background: rgba(14, 165, 233, 0.15);
 
-  --primary-shadow: rgba(14, 165, 233, 0.3);
-  --primary-shadow-hover: rgba(14, 165, 233, 0.4);
-  --primary-color-light: rgba(14, 165, 233, 0.25);
+  --primary-shadow: rgba(14, 165, 233, 0.35);
+  --primary-shadow-hover: rgba(14, 165, 233, 0.45);
+  --primary-color-light: rgba(14, 165, 233, 0.28);
   --danger-shadow: rgba(239, 68, 68, 0.4);
   
   --dv2-hero-section-bg: linear-gradient(135deg, var(--surface-color) 0%, var(--card-background) 100%);
@@ -234,7 +240,7 @@ body.theme-sky-blue {
 .theme-sky-blue .search-page,
 .theme-sky-blue .profile-container,
 .theme-sky-blue .preferences-container {
-  background: var(--background-color);
+  background: linear-gradient(180deg, #e5f6ff 0%, #f4fbff 55%, #ffffff 100%);
 }
 
 .theme-sky-blue .user-card,
@@ -640,7 +646,7 @@ body.theme-light-gray {
   --success-color: #10b981;
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
-  --info-color: #3b82f6;
+  --info-color: #7fb4ff;
   
   /* Shadow Variables */
   --primary-shadow: rgba(100, 116, 139, 0.3);
@@ -1295,6 +1301,548 @@ body.theme-ultra-light-green {
 /* Buttons */
 .theme-ultra-light-green .channel-toggle input:checked + .channel-icon.email {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+/* ========================================
+   ULTRA BLACK (MIDNIGHT) THEME
+   ======================================== */
+body.theme-ultra-black {
+  /* Primary Colors - Deep blue with silver accents */
+  --primary-color: #1e3a5f;
+  --secondary-color: #264d73;
+  --accent-color: #c0c0c0;
+  
+  /* Backgrounds - Pure black OLED */
+  --background-color: #000000;
+  --surface-color: #0a0a0a;
+  --card-background: #111111;
+  --card-bg: #111111;
+  --input-bg: #0a0a0a;
+  --error-bg: #1a0a0a;
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #111111;
+  --bs-modal-color: #e5e5e5;
+  --bs-modal-border-color: #333333;
+  
+  /* Text Colors - Silver for OLED */
+  --text-color: #e5e5e5;
+  --text-secondary: #a0a0a0;
+  --text-muted: #707070;
+  --text-on-gradient: #ffffff;
+  
+  /* Borders & Dividers - Subtle gray */
+  --border-color: #333333;
+  --divider-color: #222222;
+  
+  /* Interactive States - Silver glow */
+  --hover-background: #1a1a1a;
+  --active-background: #2a2a2a;
+  --selected-background: rgba(30, 58, 95, 0.3);
+  
+  /* Status Colors */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #1e3a5f;
+  
+  /* Shadow Variables */
+  --primary-shadow: rgba(30, 58, 95, 0.5);
+  --primary-shadow-hover: rgba(30, 58, 95, 0.7);
+  --primary-color-light: rgba(30, 58, 95, 0.4);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+
+.theme-ultra-black .dashboard-container,
+.theme-ultra-black .search-page,
+.theme-ultra-black .profile-container,
+.theme-ultra-black .preferences-container {
+  background: var(--background-color);
+}
+
+.theme-ultra-black .user-card,
+.theme-ultra-black .dashboard-section,
+.theme-ultra-black .stat-card,
+.theme-ultra-black .search-filters,
+.theme-ultra-black .preferences-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-ultra-black .sidebar {
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-ultra-black .dashboard-header,
+.theme-ultra-black .preferences-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+
+.theme-ultra-black .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Exception: Card titles in gradient sections always use white */
+.theme-ultra-black .result-card .card-title-section .card-title,
+.theme-ultra-black .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Scrollbar styling for ultra black theme */
+.theme-ultra-black ::-webkit-scrollbar {
+  width: 12px;
+  background: #000000;
+}
+
+.theme-ultra-black ::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 6px;
+}
+
+.theme-ultra-black ::-webkit-scrollbar-thumb:hover {
+  background: #444444;
+}
+
+/* ========================================
+   INDIAN WEDDING THEME
+   ======================================== */
+body.theme-indian-wedding {
+  /* Primary Colors - Vibrant marigold and gold */
+  --primary-color: #ff6b35;
+  --secondary-color: #f7931e;
+  --accent-color: #d4a017;
+  
+  /* Backgrounds - Warm cream */
+  --background-color: #fffaf0;
+  --surface-color: #fff5e6;
+  --card-background: #fffbf5;
+  --card-bg: #fffbf5;
+  --input-bg: #ffffff;
+  --error-bg: #fee2e2;
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #fffbf5;
+  --bs-modal-color: #7c2d12;
+  --bs-modal-border-color: #fed7aa;
+  
+  /* Text Colors - Warm brown */
+  --text-color: #7c2d12;
+  --text-secondary: #9a3412;
+  --text-muted: #c2410c;
+  --text-on-gradient: #ffffff;
+  
+  /* Borders & Dividers - Warm orange */
+  --border-color: #fed7aa;
+  --divider-color: #fdba74;
+  
+  /* Interactive States - Warm glow */
+  --hover-background: #fff5e6;
+  --active-background: #fed7aa;
+  --selected-background: rgba(255, 107, 53, 0.1);
+  
+  /* Status Colors */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #ff6b35;
+  
+  /* Shadow Variables */
+  --primary-shadow: rgba(255, 107, 53, 0.3);
+  --primary-shadow-hover: rgba(255, 107, 53, 0.4);
+  --primary-color-light: rgba(255, 107, 53, 0.25);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+
+.theme-indian-wedding .dashboard-container,
+.theme-indian-wedding .search-page,
+.theme-indian-wedding .profile-container,
+.theme-indian-wedding .preferences-container {
+  background: var(--background-color);
+}
+
+.theme-indian-wedding .user-card,
+.theme-indian-wedding .dashboard-section,
+.theme-indian-wedding .stat-card,
+.theme-indian-wedding .search-filters,
+.theme-indian-wedding .preferences-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-indian-wedding .sidebar {
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-indian-wedding .dashboard-header,
+.theme-indian-wedding .preferences-header {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #d4a017 100%);
+}
+
+.theme-indian-wedding .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Exception: Card titles in gradient sections always use white */
+.theme-indian-wedding .result-card .card-title-section .card-title,
+.theme-indian-wedding .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Scrollbar styling for indian wedding theme */
+.theme-indian-wedding ::-webkit-scrollbar {
+  width: 12px;
+  background: #fffaf0;
+}
+
+.theme-indian-wedding ::-webkit-scrollbar-thumb {
+  background: #fdba74;
+  border-radius: 6px;
+}
+
+.theme-indian-wedding ::-webkit-scrollbar-thumb:hover {
+  background: #fb923c;
+}
+
+/* ========================================
+   NEWSPAPER THEME
+   ======================================== */
+body.theme-newspaper {
+  /* Primary Colors - Classic black and white */
+  --primary-color: #1a1a1a;
+  --secondary-color: #4a4a4a;
+  --accent-color: #8b4513;
+  
+  /* Backgrounds - Newsprint cream */
+  --background-color: #f4f1ea;
+  --surface-color: #e8e5dc;
+  --card-background: #faf8f3;
+  --card-bg: #faf8f3;
+  --input-bg: #ffffff;
+  --error-bg: #fee2e2;
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #faf8f3;
+  --bs-modal-color: #1a1a1a;
+  --bs-modal-border-color: #d4d0c0;
+  
+  /* Text Colors - Classic ink */
+  --text-color: #1a1a1a;
+  --text-secondary: #4a4a4a;
+  --text-muted: #6b6b6b;
+  --text-on-gradient: #ffffff;
+  
+  /* Borders & Dividers - Ink lines */
+  --border-color: #d4d0c0;
+  --divider-color: #c4c0b0;
+  
+  /* Interactive States - Ink effects */
+  --hover-background: #e8e5dc;
+  --active-background: #d4d0c0;
+  --selected-background: rgba(26, 26, 26, 0.08);
+  
+  /* Status Colors */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #1a1a1a;
+  
+  /* Shadow Variables */
+  --primary-shadow: rgba(26, 26, 26, 0.3);
+  --primary-shadow-hover: rgba(26, 26, 26, 0.4);
+  --primary-color-light: rgba(26, 26, 26, 0.25);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
+  
+  /* Editorial Fonts */
+  --font-family: 'Playfair Display', 'Lora', 'Georgia', serif;
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+
+.theme-newspaper .dashboard-container,
+.theme-newspaper .search-page,
+.theme-newspaper .profile-container,
+.theme-newspaper .preferences-container {
+  background: var(--background-color);
+}
+
+.theme-newspaper .user-card,
+.theme-newspaper .dashboard-section,
+.theme-newspaper .stat-card,
+.theme-newspaper .search-filters,
+.theme-newspaper .preferences-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+  border: 2px solid var(--border-color);
+}
+
+.theme-newspaper .sidebar {
+  background: var(--card-background);
+  border-right: 2px solid var(--border-color);
+}
+
+.theme-newspaper .dashboard-header,
+.theme-newspaper .preferences-header {
+  background: linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 100%);
+  border-bottom: 3px solid #8b4513;
+}
+
+.theme-newspaper .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
+  font-family: 'Playfair Display', serif;
+}
+
+/* Exception: Card titles in gradient sections always use white */
+.theme-newspaper .result-card .card-title-section .card-title,
+.theme-newspaper .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Scrollbar styling for newspaper theme */
+.theme-newspaper ::-webkit-scrollbar {
+  width: 12px;
+  background: #f4f1ea;
+}
+
+.theme-newspaper ::-webkit-scrollbar-thumb {
+  background: #c4c0b0;
+  border-radius: 6px;
+}
+
+.theme-newspaper ::-webkit-scrollbar-thumb:hover {
+  background: #a4a090;
+}
+
+/* ========================================
+   CUTE BUBBLE THEME
+   ======================================== */
+body.theme-cute-bubble {
+  /* Primary Colors - Playful purple-pink */
+  --primary-color: #8b5cf6;
+  --secondary-color: #ec4899;
+  --accent-color: #f472b6;
+  
+  /* Backgrounds - Soft lavender */
+  --background-color: #f8f7ff;
+  --surface-color: #f3e8ff;
+  --card-background: #faf5ff;
+  --card-bg: #faf5ff;
+  --input-bg: #ffffff;
+  --error-bg: #fee2e2;
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #faf5ff;
+  --bs-modal-color: #374151;
+  --bs-modal-border-color: #e9d5ff;
+  
+  /* Text Colors - Soft contrast */
+  --text-color: #374151;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --text-on-gradient: #ffffff;
+  
+  /* Borders & Dividers - Soft purple */
+  --border-color: #e9d5ff;
+  --divider-color: #f3e8ff;
+  
+  /* Interactive States - Bubble glow */
+  --hover-background: #f3e8ff;
+  --active-background: #e9d5ff;
+  --selected-background: rgba(139, 92, 246, 0.1);
+  
+  /* Status Colors */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #8b5cf6;
+  
+  /* Shadow Variables */
+  --primary-shadow: rgba(139, 92, 246, 0.3);
+  --primary-shadow-hover: rgba(139, 92, 246, 0.4);
+  --primary-color-light: rgba(139, 92, 246, 0.25);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+
+.theme-cute-bubble .dashboard-container,
+.theme-cute-bubble .search-page,
+.theme-cute-bubble .profile-container,
+.theme-cute-bubble .preferences-container {
+  background: var(--background-color);
+}
+
+.theme-cute-bubble .user-card,
+.theme-cute-bubble .dashboard-section,
+.theme-cute-bubble .stat-card,
+.theme-cute-bubble .search-filters,
+.theme-cute-bubble .preferences-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+  border-radius: 24px;
+}
+
+.theme-cute-bubble .sidebar {
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-cute-bubble .dashboard-header,
+.theme-cute-bubble .preferences-header {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+}
+
+.theme-cute-bubble .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Exception: Card titles in gradient sections always use white */
+.theme-cute-bubble .result-card .card-title-section .card-title,
+.theme-cute-bubble .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Scrollbar styling for cute bubble theme */
+.theme-cute-bubble ::-webkit-scrollbar {
+  width: 12px;
+  background: #f8f7ff;
+}
+
+.theme-cute-bubble ::-webkit-scrollbar-thumb {
+  background: #e9d5ff;
+  border-radius: 12px;
+}
+
+.theme-cute-bubble ::-webkit-scrollbar-thumb:hover {
+  background: #d8b4fe;
+}
+
+/* ========================================
+   WHITE THEME (Egg-White & Blue-White)
+   ======================================== */
+body.theme-white {
+  /* Primary Colors - Eggshell yolk with soft blue accent */
+  --primary-color: #f5c97a;
+  --secondary-color: #ffe3b3;
+  --accent-color: #7fb4ff;
+  
+  /* Backgrounds - Egg white with gentle yolk tint */
+  --background-color: #fffdf7;
+  --surface-color: #fff7e8;
+  --card-background: #fffef9;
+  --card-bg: #fffef9;
+  --input-bg: #ffffff;
+  --error-bg: #fee2e2;
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #fffef9;
+  --bs-modal-color: #1e3a5f;
+  --bs-modal-border-color: #f3e7c4;
+  
+  /* Text Colors - Neutral ink */
+  --text-color: #2f3445;
+  --text-secondary: #4b5160;
+  --text-muted: #7c869d;
+  --text-on-gradient: #ffffff;
+  
+  /* Borders & Dividers - Eggshell + blue mix */
+  --border-color: #f3e7c4;
+  --divider-color: #f7eed1;
+  
+  /* Interactive States - Soft egg glow */
+  --hover-background: #fff8e8;
+  --active-background: #f3e7c4;
+  --selected-background: rgba(245, 202, 21, 0.08);
+  
+  /* Status Colors */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #3b82f6;
+  
+  /* Shadow Variables */
+  --primary-shadow: rgba(59, 130, 246, 0.15);
+  --primary-shadow-hover: rgba(59, 130, 246, 0.25);
+  --primary-color-light: rgba(59, 130, 246, 0.15);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+
+.theme-white .dashboard-container,
+.theme-white .search-page,
+.theme-white .profile-container,
+.theme-white .preferences-container {
+  background: linear-gradient(180deg, #fffdf7 0%, #fff4dc 55%, #fffef9 100%);
+}
+
+.theme-white .user-card,
+.theme-white .dashboard-section,
+.theme-white .stat-card,
+.theme-white .search-filters,
+.theme-white .preferences-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-white .sidebar {
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-white .dashboard-header,
+.theme-white .preferences-header {
+  background: linear-gradient(135deg, #3b82f6 0%, #93c5fd 100%);
+}
+
+.theme-white .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Exception: Card titles in gradient sections always use white */
+.theme-white .result-card .card-title-section .card-title,
+.theme-white .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Scrollbar styling for white theme */
+.theme-white ::-webkit-scrollbar {
+  width: 12px;
+  background: #f8f8f0;
+}
+
+.theme-white ::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 6px;
+}
+
+.theme-white ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 
 .theme-ultra-light-green .channel-toggle input:checked + .channel-icon.sms {

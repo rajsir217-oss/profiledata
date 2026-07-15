@@ -277,37 +277,39 @@
    ======================================== */
 
 .variant-pills .tab-nav {
-  gap: 8px;
-  padding: 0;
-  background: transparent;
-  border-radius: 0;
+  gap: var(--spacing-sm);
+  padding: 4px;
+  background: var(--surface-color);
+  border-radius: 50px;
+  width: fit-content;
   border: none;
   justify-content: flex-start;
 }
 
 .variant-pills .tab-button {
-  padding: 8px 16px;
+  padding: 10px 24px;
   border-radius: 50px !important;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  font-size: 13px;
+  background: transparent;
+  border: none;
+  font-size: 15px;
   font-weight: 500;
   min-height: auto;
   height: auto;
   flex: 0 0 auto;
   width: auto;
+  color: var(--text-secondary);
 }
 
 .variant-pills .tab-button:hover {
-  background: var(--card-background);
-  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: var(--hover-background);
 }
 
 .variant-pills .tab-button.active {
-  background: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
-  border-color: var(--primary-color);
-  box-shadow: none;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 .variant-pills .tab-button.active .tab-badge {

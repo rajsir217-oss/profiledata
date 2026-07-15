@@ -8,15 +8,15 @@
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: 8px;
+  margin-bottom: 8px;
 }
 
 .admin-hub-controls-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px;
 }
 
 .admin-hub-controls-left {
@@ -32,9 +32,9 @@
 
 .admin-hub-label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   color: var(--text-color);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -47,8 +47,8 @@
   border: 1px solid var(--border-color);
   border-radius: 8px;
   color: var(--text-color);
-  padding: 10px 12px;
-  font-size: 14px;
+  padding: 5px 6px;
+  font-size: 12px;
 }
 
 .admin-hub-select:focus {
@@ -58,9 +58,9 @@
 }
 
 .admin-hub-subtitle {
-  margin: 10px 0 0;
+  margin: 5px 0 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .admin-hub-content {
