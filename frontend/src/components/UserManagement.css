@@ -73,10 +73,10 @@
 .search-input {
   flex: 2;
   min-width: 200px;
-  padding: 12px 16px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 11px;
   background: var(--input-bg);
   color: var(--text-color);
   transition: all 0.3s ease;
@@ -96,10 +96,10 @@
 .filter-select {
   flex: 1;
   min-width: 140px;
-  padding: 12px 16px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 11px;
   background: var(--card-bg);
   color: var(--text-color);
   cursor: pointer;
@@ -118,12 +118,12 @@
 
 .btn-refresh {
   flex-shrink: 0;
-  padding: 12px 24px;
+  padding: 6px 12px;
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 50px !important;
-  font-size: 1rem;
+  border-radius: 20px !important;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -197,10 +197,10 @@
 }
 
 .users-table th {
-  padding: 16px;
+  padding: 8px 12px;
   text-align: left;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   cursor: pointer;
@@ -228,8 +228,8 @@
 }
 
 .users-table td {
-  padding: 16px;
-  font-size: 0.95rem;
+  padding: 8px 12px;
+  font-size: 11px;
   color: var(--text-color);
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
@@ -300,7 +300,7 @@
   flex-direction: column;
   gap: 2px;
   align-items: flex-start;
-  font-size: 0.85rem;
+  font-size: 10px;
 }
 
 .updated-relative {
@@ -309,21 +309,21 @@
 }
 
 .updated-absolute {
-  font-size: 0.75rem;
+  font-size: 9px;
   color: var(--text-secondary);
 }
 
 .updated-none {
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 10px;
 }
 
 /* Badges */
 .role-badge, .status-badge {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 0.85rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 9px;
   font-weight: 600;
   text-transform: capitalize;
   white-space: nowrap;
@@ -368,9 +368,9 @@
 /* Promo Code Badge */
 .promo-code-badge {
   display: inline-block;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 9px;
   font-weight: 500;
   background: var(--info-light);
   color: var(--info-color);
