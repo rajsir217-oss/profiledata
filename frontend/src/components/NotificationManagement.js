@@ -95,7 +95,7 @@ const NotificationManagement = () => {
       </button>
 
       <UniversalTabContainer
-        variant="underlined"
+        variant="pills"
         defaultTab={defaultTab}
         tabs={[
           {

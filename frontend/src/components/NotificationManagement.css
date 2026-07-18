@@ -1,7 +1,7 @@
 /* NotificationManagement.css */
 
 .notification-management {
-  padding: 20px;
+  padding: 10px;
   width: 98% !important;
   max-width: 98% !important;
   margin: 0 auto;
@@ -102,8 +102,8 @@ html .notification-management,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 4px;
+  padding: 5px 7px;
   border-radius: var(--radius-md, 10px);
   border: 1px solid var(--border-color);
   background: var(--card-background);
@@ -112,6 +112,7 @@ html .notification-management,
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  font-size: 11px;
 }
 
 .notification-management-scheduler-link:hover {
