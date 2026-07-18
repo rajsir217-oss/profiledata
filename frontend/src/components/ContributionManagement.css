@@ -14,11 +14,11 @@
 }
 
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 2px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: 2px;
 }
 
 .page-header .header-content {
@@ -29,7 +29,7 @@
   font-size: 24px;
   font-weight: 600;
   color: var(--text-color);
-  margin: 0 0 8px 0;
+  margin: 0 0 2px 0;
 }
 
 .page-header p {
@@ -41,7 +41,7 @@
 
 .header-actions {
   display: flex;
-  gap: 8px;
+  gap: 2px;
   align-items: center;
 }
 
@@ -610,6 +610,20 @@
 @media (max-width: 768px) {
   .contribution-management {
     padding: 12px;
+  }
+
+  /* Main tabs - emoji only on mobile */
+  .main-tab .tab-label {
+    display: none;
+  }
+
+  .main-tab {
+    padding: 8px 12px;
+    font-size: 20px;
+  }
+
+  .main-tab .tab-icon {
+    font-size: 20px;
   }
 
   .page-header h1 {

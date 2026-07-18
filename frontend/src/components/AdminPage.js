@@ -824,7 +824,7 @@ const AdminPage = () => {
                   />
                   <div className="status-icon">📧</div>
                   <div className="status-info">
-                    <strong>Pending Email Verification</strong>
+                    <strong>Pending Verification</strong>
                   </div>
                 </label>
                 
@@ -838,7 +838,7 @@ const AdminPage = () => {
                   />
                   <div className="status-icon">⏳</div>
                   <div className="status-info">
-                    <strong>Pending Admin Approval</strong>
+                    <strong>Pending Approval</strong>
                   </div>
                 </label>
                 

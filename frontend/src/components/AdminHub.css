@@ -139,17 +139,17 @@
   align-items: center !important;
   justify-content: center !important;
   flex-direction: row !important;
-  gap: 4px !important;
+  gap: 2px !important;
   white-space: nowrap !important;
-  width: fit-content !important;
-  max-width: max-content !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  padding: 4px 8px !important;
-  font-size: 11px !important;
+  width: auto !important;
+  max-width: none !important;
+  min-width: auto !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 9px !important;
   font-weight: 600 !important;
-  line-height: 1.1 !important;
+  line-height: 1 !important;
   border-radius: 7px !important;
 }
 
@@ -165,6 +165,10 @@
   display: inline-flex !important;
   align-items: center !important;
   line-height: 1 !important;
+}
+
+.admin-hub .contribution-management .add-payment-btn .btn-icon {
+  font-size: 10px !important;
 }
 
 .admin-hub .contribution-management .main-tab .tab-label,
@@ -226,6 +230,21 @@
 @media (max-width: 768px) {
   .admin-hub {
     padding: 12px;
+  }
+
+  /* Main tabs - emoji only on mobile */
+  .admin-hub .contribution-management .main-tab .tab-label {
+    display: none !important;
+  }
+
+  .admin-hub .contribution-management .main-tab {
+    width: 32px !important;
+    max-width: 32px !important;
+    min-width: 32px !important;
+  }
+
+  .admin-hub .contribution-management .main-tab .tab-icon {
+    font-size: 16px !important;
   }
 
   .admin-hub-controls {
