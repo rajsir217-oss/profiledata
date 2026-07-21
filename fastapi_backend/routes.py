@@ -7098,6 +7098,12 @@ async def add_to_favorites(
     try:
         await db.favorites.insert_one(favorite)
         logger.info(f"✅ Added to favorites: {username} → {target_username}")
+
+        # Increment lifetime count for the user who was favorited
+        await db.users.update_one(
+            {"username": target_username},
+            {"$inc": {"lifetimeStats.favoritesReceived": 1}}
+        )
         
         # Dispatch event (handles notifications automatically - includes email + push)
         try:
@@ -7552,6 +7558,12 @@ async def add_to_shortlist(
     try:
         await db.shortlists.insert_one(shortlist_item)
         logger.info(f"✅ Added to shortlist: {username} → {target_username}")
+
+        # Increment lifetime count for the user who was shortlisted
+        await db.users.update_one(
+            {"username": target_username},
+            {"$inc": {"lifetimeStats.shortlistsReceived": 1}}
+        )
         
         # Dispatch event (handles notifications automatically)
         try:
@@ -9657,6 +9669,22 @@ async def send_message_enhanced(
             },
             upsert=True,
         )
+
+        # Track lifetime unique conversation partners. Only increment on the first ever message between two users.
+        partner_result = await db.conversation_partners.update_one(
+            {"participants": sorted_participants},
+            {"$setOnInsert": {"createdAt": datetime.utcnow()}},
+            upsert=True,
+        )
+        if partner_result.upserted_id:
+            await db.users.update_one(
+                {"username": username},
+                {"$inc": {"lifetimeStats.conversations": 1}}
+            )
+            await db.users.update_one(
+                {"username": message_data.toUsername},
+                {"$inc": {"lifetimeStats.conversations": 1}}
+            )
         
         # Send via Redis for real-time delivery (only if message is visible)
         if is_visible:
@@ -10544,15 +10572,18 @@ async def get_user_stats(
                     "profileViews": stats.get("profileViews", 0),
                     "favoritedBy": stats.get("favoritedBy", 0),
                     "shortlistedBy": stats.get("shortlistedBy", 0),
-                    "uniqueConversations": stats.get("uniqueConversations", 0)
+                    "uniqueConversations": stats.get("uniqueConversations", 0),
+                    "lifetimeFavoritesReceived": stats.get("lifetimeFavoritesReceived", 0),
+                    "lifetimeShortlistsReceived": stats.get("lifetimeShortlistsReceived", 0),
+                    "lifetimeConversations": stats.get("lifetimeConversations", 0)
                 }
             }
         else:
             # Fallback to live calculation
             logger.info(f"⚠️ No snapshot found for {username}, calculating live stats")
 
-            # Get user for days active
-            user = await db.users.find_one({"username": username}, {"createdAt": 1})
+            # Get user for days active and lifetime stats
+            user = await db.users.find_one({"username": username}, {"createdAt": 1, "lifetimeStats": 1})
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
 
@@ -10569,7 +10600,11 @@ async def get_user_stats(
             views_count = await db.profile_views.count_documents({"profileUsername": username})
             fav_by_count = await db.favorites.count_documents({"favoriteUsername": username})
             short_by_count = await db.shortlists.count_documents({"shortlistedUsername": username})
-            unique_conversations = len(await db.messages.distinct("to_username", {"from_username": username}))
+            sent_to = await db.messages.distinct("to_username", {"from_username": username})
+            received_from = await db.messages.distinct("from_username", {"to_username": username})
+            unique_conversations = len(set(sent_to + received_from))
+
+            lifetime_stats = user.get("lifetimeStats", {}) or {}
 
             return {
                 "success": True,
@@ -10581,7 +10616,10 @@ async def get_user_stats(
                     "profileViews": views_count,
                     "favoritedBy": fav_by_count,
                     "shortlistedBy": short_by_count,
-                    "uniqueConversations": unique_conversations
+                    "uniqueConversations": unique_conversations,
+                    "lifetimeFavoritesReceived": lifetime_stats.get("favoritesReceived", 0),
+                    "lifetimeShortlistsReceived": lifetime_stats.get("shortlistsReceived", 0),
+                    "lifetimeConversations": lifetime_stats.get("conversations", 0)
                 }
             }
 

@@ -39,14 +39,6 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [requiredDismissals, setRequiredDismissals] = useState(0);
   const [isDismissing, setIsDismissing] = useState(false);
 
-  const computeDaysActive = useCallback((createdAtValue) => {
-    if (!createdAtValue) return 0;
-    const createdAt = new Date(createdAtValue);
-    if (Number.isNaN(createdAt.getTime())) return 0;
-    const diffMs = Date.now() - createdAt.getTime();
-    return Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
-  }, []);
-
   const loadMemberStats = useCallback(async () => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -87,9 +79,9 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
       const nextStats = {
         daysActive: stats.daysActive || 0,
         profileViews: stats.profileViews || 0,
-        profileFavorites: stats.favoritedBy || 0,
-        profileShortlists: stats.shortlistedBy || 0,
-        conversations: stats.uniqueConversations || 0,
+        profileFavorites: stats.lifetimeFavoritesReceived || stats.favoritedBy || 0,
+        profileShortlists: stats.lifetimeShortlistsReceived || stats.shortlistedBy || 0,
+        conversations: stats.lifetimeConversations || stats.uniqueConversations || 0,
       };
 
       setMemberStats(nextStats);
@@ -105,49 +97,11 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         logger.debug('Contribution popup stats cache write failed', err);
       }
     } catch (err) {
-      logger.warn('Failed to load contribution member stats, falling back to live calculation', err);
-      // Fallback to live calculation if snapshot endpoint fails
-      try {
-        const headers = { Authorization: `Bearer ${token}` };
-        const [profileRes, viewsRes, favoritesRes, shortlistRes, conversationsRes] = await Promise.allSettled([
-          fetch(`${getBackendUrl()}/api/users/profile/${encodeURIComponent(username)}`, { headers }),
-          fetch(`${getBackendUrl()}/api/users/profile-views/${encodeURIComponent(username)}`, { headers }),
-          fetch(`${getBackendUrl()}/api/users/favorites/${encodeURIComponent(username)}`, { headers }),
-          fetch(`${getBackendUrl()}/api/users/shortlist/${encodeURIComponent(username)}`, { headers }),
-          fetch(`${getBackendUrl()}/api/users/messages/conversations?username=${encodeURIComponent(username)}`, { headers }),
-        ]);
-
-        const safeJson = async (res) => {
-          if (!res || !res.ok) return null;
-          try {
-            return await res.json();
-          } catch (err) {
-            return null;
-          }
-        };
-
-        const profileData = await safeJson(profileRes.status === 'fulfilled' ? profileRes.value : null);
-        const viewsData = await safeJson(viewsRes.status === 'fulfilled' ? viewsRes.value : null);
-        const favoritesData = await safeJson(favoritesRes.status === 'fulfilled' ? favoritesRes.value : null);
-        const shortlistData = await safeJson(shortlistRes.status === 'fulfilled' ? shortlistRes.value : null);
-        const conversationsData = await safeJson(conversationsRes.status === 'fulfilled' ? conversationsRes.value : null);
-
-        const fallbackStats = {
-          daysActive: computeDaysActive(profileData?.createdAt),
-          profileViews: Number(viewsData?.totalViews ?? viewsData?.uniqueViewers ?? viewsData?.views?.length ?? viewsData?.viewers?.length ?? 0) || 0,
-          profileFavorites: Array.isArray(favoritesData?.favorites) ? favoritesData.favorites.length : 0,
-          profileShortlists: Array.isArray(shortlistData?.shortlist) ? shortlistData.shortlist.length : 0,
-          conversations: Array.isArray(conversationsData?.conversations) ? conversationsData.conversations.length : 0,
-        };
-
-        setMemberStats(fallbackStats);
-      } catch (fallbackErr) {
-        logger.warn('Fallback stats calculation also failed', fallbackErr);
-      }
+      logger.warn('Failed to load contribution member stats', err);
     } finally {
       setMemberStatsLoading(false);
     }
-  }, [computeDaysActive]);
+  }, []);
 
   // Load dismiss count from localStorage
   const loadDismissCount = useCallback(() => {

@@ -50,7 +50,7 @@ class UserStatsDailySnapshotTemplate(JobTemplate):
         
         try:
             # Get all active users
-            users_cursor = db.users.find({"accountStatus": "active"}, {"username": 1, "createdAt": 1})
+            users_cursor = db.users.find({"accountStatus": "active"}, {"username": 1, "createdAt": 1, "lifetimeStats": 1})
             users = await users_cursor.to_list(length=None)
             
             total_users = len(users)
@@ -82,7 +82,15 @@ class UserStatsDailySnapshotTemplate(JobTemplate):
                     short_by_count = await db.shortlists.count_documents({"shortlistedUsername": username})
 
                     # 5. Unique Conversations (current count)
-                    unique_conversations = len(await db.messages.distinct("to_username", {"from_username": username}))
+                    sent_to = await db.messages.distinct("to_username", {"from_username": username})
+                    received_from = await db.messages.distinct("from_username", {"to_username": username})
+                    unique_conversations = len(set(sent_to + received_from))
+
+                    # 6. Lifetime stats (accumulated from user actions; never decrease)
+                    lifetime_stats = user.get("lifetimeStats", {}) or {}
+                    lifetime_fav = lifetime_stats.get("favoritesReceived", 0)
+                    lifetime_short = lifetime_stats.get("shortlistsReceived", 0)
+                    lifetime_conv = lifetime_stats.get("conversations", 0)
 
                     # Get previous snapshot to preserve historical maximums
                     prev_snapshot = await db.user_stats_daily.find_one(
@@ -96,6 +104,9 @@ class UserStatsDailySnapshotTemplate(JobTemplate):
                     max_fav = max(fav_by_count, prev_stats.get("favoritedBy", 0))
                     max_short = max(short_by_count, prev_stats.get("shortlistedBy", 0))
                     max_conv = max(unique_conversations, prev_stats.get("uniqueConversations", 0))
+                    max_lifetime_fav = max(lifetime_fav, prev_stats.get("lifetimeFavoritesReceived", 0))
+                    max_lifetime_short = max(lifetime_short, prev_stats.get("lifetimeShortlistsReceived", 0))
+                    max_lifetime_conv = max(lifetime_conv, prev_stats.get("lifetimeConversations", 0))
 
                     # Log detailed metrics for this user
                     logger.info(
@@ -104,7 +115,8 @@ class UserStatsDailySnapshotTemplate(JobTemplate):
                         f"profileViews={max_views} (current={views_count}), "
                         f"favoritedBy={max_fav} (current={fav_by_count}), "
                         f"shortlistedBy={max_short} (current={short_by_count}), "
-                        f"uniqueConversations={max_conv} (current={unique_conversations})"
+                        f"uniqueConversations={max_conv} (current={unique_conversations}), "
+                        f"lifetimeFav={max_lifetime_fav}, lifetimeShort={max_lifetime_short}, lifetimeConv={max_lifetime_conv}"
                     )
 
                     # Upsert to user_stats_daily with historical maximums
@@ -116,7 +128,10 @@ class UserStatsDailySnapshotTemplate(JobTemplate):
                             "profileViews": max_views,
                             "favoritedBy": max_fav,
                             "shortlistedBy": max_short,
-                            "uniqueConversations": max_conv
+                            "uniqueConversations": max_conv,
+                            "lifetimeFavoritesReceived": max_lifetime_fav,
+                            "lifetimeShortlistsReceived": max_lifetime_short,
+                            "lifetimeConversations": max_lifetime_conv
                         },
                         "createdAt": day_start,
                         "updatedAt": datetime.utcnow()
