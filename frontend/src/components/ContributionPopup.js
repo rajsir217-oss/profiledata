@@ -228,6 +228,36 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     .filter((n) => Number.isFinite(n) && n > 0)
     .sort((a, b) => b - a);
 
+  // Build engagement metrics list: numeric values as colored pills, or "no ... yet" if all zero.
+  const engagementMetrics = (() => {
+    const metrics = [];
+    if (memberStats.profileFavorites > 0) {
+      metrics.push({ value: memberStats.profileFavorites, label: 'favorites', className: 'metric-favorites' });
+    }
+    if (memberStats.profileShortlists > 0) {
+      metrics.push({ value: memberStats.profileShortlists, label: 'shortlists', className: 'metric-shortlists' });
+    }
+    if (memberStats.conversations > 0) {
+      metrics.push({ value: memberStats.conversations, label: 'messages', className: 'metric-messages' });
+    }
+
+    if (metrics.length === 0) {
+      return 'no favorites, shortlists, or messages yet';
+    }
+
+    return metrics.map((m, i) => {
+      const isFirst = i === 0;
+      const isLast = i === metrics.length - 1;
+      const connector = isFirst ? '' : (isLast ? ', and ' : ', ');
+      return (
+        <React.Fragment key={m.label}>
+          {connector}
+          <span className={`contribution-metric-pill ${m.className}`}>{m.value} {m.label}</span>
+        </React.Fragment>
+      );
+    });
+  })();
+
   // Log activity to backend (fire and forget)
   const logActivity = useCallback(async (action, amount = null, pType = null) => {
     try {
@@ -654,34 +684,18 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
       <div className="contribution-popup" onClick={(e) => e.stopPropagation()}>
         <div className="contribution-popup-body">
           <p className="contribution-message">
-            YOUR SUPPORT HELPS AND ENCOURAGE OUR TEAM TO CONTINUOUSLY IMPROVING THE L3V3L MATCHES PLATFORM FOR EVERYONE.
+            {memberStatsLoading
+              ? 'You’ve been part of L3V3L Matches. Behind the scenes, our admins provide real human help, quick responses, and a premium-grade application with features that go beyond commercial matrimonial sites. If you value this community and want to help us grow, we kindly invite you to contribute. Your support keeps the platform running and helps us build new features.'
+              : (
+                <>
+                  You’ve been part of L3V3L Matches for{' '}
+                  <span className="contribution-metric-pill metric-days">{memberStats.daysActive} days</span>. So far, your profile has had{' '}
+                  <span className="contribution-metric-pill metric-views">{memberStats.profileViews} views</span>, and {engagementMetrics}. 
+                  Behind the scenes, our admins provide real human help, quick responses, and a premium-grade application with features that go beyond commercial matrimonial sites.<br />
+                  If you value this community and want to help us grow, we kindly invite you to <span className="contribution-metric-pill metric-views">contribute</span>. Your support keeps the platform running and helps us build new features.
+                </>
+              )}
           </p>
-
-          <section className="contribution-member-stats" aria-label="Your member value stats">
-            <div className="contribution-member-stats-title">Your Value Snapshot ✨</div>
-            <div className="contribution-member-stats-grid">
-              <div className="contribution-member-stat-card">
-                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">📅</span> Days Active</span>
-                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.daysActive}</span>
-              </div>
-              <div className="contribution-member-stat-card">
-                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">👀</span> Views</span>
-                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.profileViews}</span>
-              </div>
-              <div className="contribution-member-stat-card">
-                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">⭐</span> Favorites</span>
-                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.profileFavorites}</span>
-              </div>
-              <div className="contribution-member-stat-card">
-                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">📝</span> Shortlists</span>
-                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.profileShortlists}</span>
-              </div>
-              <div className="contribution-member-stat-card">
-                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">💬</span> Messages</span>
-                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.conversations}</span>
-              </div>
-            </div>
-          </section>
 
           {error && <div className="contribution-error">{error}</div>}
 
@@ -754,12 +768,12 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                 PayPal
               </button>
               <button
-                className={`payment-method-btn ${paymentMethod === 'paypal-qr' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('paypal-qr')}
-                disabled={loading}
+                className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('clover')}
+                disabled={loading || cloverLoading}
               >
-                <span className="paypal-p">P</span>
-                PayPal QR
+                <span className="clover-icon">☘</span>
+                Card
               </button>
               <button
                 className={`payment-method-btn ${paymentMethod === 'venmo-qr' ? 'active' : ''}`}
@@ -770,12 +784,12 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                 Venmo QR
               </button>
               <button
-                className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('clover')}
-                disabled={loading || cloverLoading}
+                className={`payment-method-btn ${paymentMethod === 'paypal-qr' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('paypal-qr')}
+                disabled={loading}
               >
-                <span className="clover-icon">☘</span>
-                Card
+                <span className="paypal-p">P</span>
+                PayPal QR
               </button>
             </div>
           </section>
