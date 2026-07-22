@@ -7099,10 +7099,14 @@ async def add_to_favorites(
         await db.favorites.insert_one(favorite)
         logger.info(f"✅ Added to favorites: {username} → {target_username}")
 
-        # Increment lifetime count for the user who was favorited
+        # Increment lifetime favorite totals for both users
         await db.users.update_one(
             {"username": target_username},
-            {"$inc": {"lifetimeStats.favoritesReceived": 1}}
+            {"$inc": {"lifetimeStats.favorites": 1}}
+        )
+        await db.users.update_one(
+            {"username": username},
+            {"$inc": {"lifetimeStats.favorites": 1}}
         )
         
         # Dispatch event (handles notifications automatically - includes email + push)
@@ -7559,10 +7563,14 @@ async def add_to_shortlist(
         await db.shortlists.insert_one(shortlist_item)
         logger.info(f"✅ Added to shortlist: {username} → {target_username}")
 
-        # Increment lifetime count for the user who was shortlisted
+        # Increment lifetime shortlist totals for both users
         await db.users.update_one(
             {"username": target_username},
-            {"$inc": {"lifetimeStats.shortlistsReceived": 1}}
+            {"$inc": {"lifetimeStats.shortlists": 1}}
+        )
+        await db.users.update_one(
+            {"username": username},
+            {"$inc": {"lifetimeStats.shortlists": 1}}
         )
         
         # Dispatch event (handles notifications automatically)
@@ -9078,6 +9086,10 @@ async def send_message(
             },
             upsert=True,
         )
+
+        # Track lifetime messages for both sender and recipient
+        await db.users.update_one({"username": from_username}, {"$inc": {"lifetimeStats.messages": 1}})
+        await db.users.update_one({"username": to_username}, {"$inc": {"lifetimeStats.messages": 1}})
         
         # Send via Redis for real-time delivery
         from redis_manager import get_redis_manager
@@ -9670,21 +9682,15 @@ async def send_message_enhanced(
             upsert=True,
         )
 
-        # Track lifetime unique conversation partners. Only increment on the first ever message between two users.
-        partner_result = await db.conversation_partners.update_one(
-            {"participants": sorted_participants},
-            {"$setOnInsert": {"createdAt": datetime.utcnow()}},
-            upsert=True,
+        # Track lifetime messages for both sender and recipient
+        await db.users.update_one(
+            {"username": username},
+            {"$inc": {"lifetimeStats.messages": 1}}
         )
-        if partner_result.upserted_id:
-            await db.users.update_one(
-                {"username": username},
-                {"$inc": {"lifetimeStats.conversations": 1}}
-            )
-            await db.users.update_one(
-                {"username": message_data.toUsername},
-                {"$inc": {"lifetimeStats.conversations": 1}}
-            )
+        await db.users.update_one(
+            {"username": message_data.toUsername},
+            {"$inc": {"lifetimeStats.messages": 1}}
+        )
         
         # Send via Redis for real-time delivery (only if message is visible)
         if is_visible:
@@ -10559,8 +10565,10 @@ async def get_user_stats(
         logger.info(f"🔍 Snapshot lookup for {username} on {date_str}: found={snapshot is not None}")
 
         if snapshot:
-            # Return snapshot data
+            # Return snapshot data, augmented with stored lifetime totals
             stats = snapshot.get("stats", {})
+            user_snapshot = await db.users.find_one({"username": username}, {"lifetimeStats": 1})
+            lifetime_stats = (user_snapshot.get("lifetimeStats", {}) or {}) if user_snapshot else {}
             logger.info(f"✅ Found daily snapshot for {username} ({date_str})")
             return {
                 "success": True,
@@ -10573,9 +10581,10 @@ async def get_user_stats(
                     "favoritedBy": stats.get("favoritedBy", 0),
                     "shortlistedBy": stats.get("shortlistedBy", 0),
                     "uniqueConversations": stats.get("uniqueConversations", 0),
-                    "lifetimeFavoritesReceived": stats.get("lifetimeFavoritesReceived", 0),
-                    "lifetimeShortlistsReceived": stats.get("lifetimeShortlistsReceived", 0),
-                    "lifetimeConversations": stats.get("lifetimeConversations", 0)
+                    "lifetimeFavorites": lifetime_stats.get("favorites", 0),
+                    "lifetimeShortlists": lifetime_stats.get("shortlists", 0),
+                    "lifetimeMessages": lifetime_stats.get("messages", 0),
+                    "lifetimeViews": lifetime_stats.get("views", 0)
                 }
             }
         else:
@@ -10596,15 +10605,49 @@ async def get_user_stats(
             else:
                 days_active = 0
 
-            # Live calculation for other stats
+            # Live calculation for current stats
             views_count = await db.profile_views.count_documents({"profileUsername": username})
             fav_by_count = await db.favorites.count_documents({"favoriteUsername": username})
             short_by_count = await db.shortlists.count_documents({"shortlistedUsername": username})
-            sent_to = await db.messages.distinct("to_username", {"from_username": username})
-            received_from = await db.messages.distinct("from_username", {"to_username": username})
-            unique_conversations = len(set(sent_to + received_from))
+            # Messages collection has a mix of camelCase and snake_case field names
+            sent_to_snake = await db.messages.distinct("to_username", {"from_username": username})
+            received_from_snake = await db.messages.distinct("from_username", {"to_username": username})
+            sent_to_camel = await db.messages.distinct("toUsername", {"fromUsername": username})
+            received_from_camel = await db.messages.distinct("fromUsername", {"toUsername": username})
+            unique_conversations = len(set(sent_to_snake + received_from_snake + sent_to_camel + received_from_camel))
 
             lifetime_stats = user.get("lifetimeStats", {}) or {}
+
+            # Lifetime totals: received + sent (fall back to live counts if not yet backfilled)
+            lifetime_fav = lifetime_stats.get("favorites")
+            if lifetime_fav is None:
+                fav_received = await db.favorites.count_documents({"favoriteUsername": username})
+                fav_sent = await db.favorites.count_documents({"userUsername": username})
+                lifetime_fav = fav_received + fav_sent
+
+            lifetime_short = lifetime_stats.get("shortlists")
+            if lifetime_short is None:
+                short_received = await db.shortlists.count_documents({"shortlistedUsername": username})
+                short_sent = await db.shortlists.count_documents({"userUsername": username})
+                lifetime_short = short_received + short_sent
+
+            lifetime_messages = lifetime_stats.get("messages")
+            if lifetime_messages is None:
+                msg_sent = await db.messages.count_documents({"from_username": username}) + await db.messages.count_documents({"fromUsername": username})
+                msg_received = await db.messages.count_documents({"to_username": username}) + await db.messages.count_documents({"toUsername": username})
+                lifetime_messages = msg_sent + msg_received
+
+            lifetime_views = lifetime_stats.get("views")
+            if lifetime_views is None:
+                views_received_result = await db.profile_views.aggregate([
+                    {"$match": {"$or": [{"profileUsername": username}, {"viewedUsername": username}]}},
+                    {"$group": {"_id": None, "total": {"$sum": {"$ifNull": ["$viewCount", 1]}}}}
+                ]).to_list(1)
+                views_given_result = await db.profile_views.aggregate([
+                    {"$match": {"$or": [{"viewedByUsername": username}, {"viewerUsername": username}]}},
+                    {"$group": {"_id": None, "total": {"$sum": {"$ifNull": ["$viewCount", 1]}}}}
+                ]).to_list(1)
+                lifetime_views = (views_received_result[0]["total"] if views_received_result else 0) + (views_given_result[0]["total"] if views_given_result else 0)
 
             return {
                 "success": True,
@@ -10617,9 +10660,10 @@ async def get_user_stats(
                     "favoritedBy": fav_by_count,
                     "shortlistedBy": short_by_count,
                     "uniqueConversations": unique_conversations,
-                    "lifetimeFavoritesReceived": lifetime_stats.get("favoritesReceived", 0),
-                    "lifetimeShortlistsReceived": lifetime_stats.get("shortlistsReceived", 0),
-                    "lifetimeConversations": lifetime_stats.get("conversations", 0)
+                    "lifetimeFavorites": lifetime_fav,
+                    "lifetimeShortlists": lifetime_short,
+                    "lifetimeMessages": lifetime_messages,
+                    "lifetimeViews": lifetime_views
                 }
             }
 
@@ -10775,6 +10819,10 @@ async def track_profile_view(target_username: str, viewer_username: str, db = De
                 "viewerUsername": viewer_username,
                 "viewedAt": datetime.utcnow()
             })
+
+        # Track lifetime views for both the viewer and the viewed user
+        await db.users.update_one({"username": viewer_username}, {"$inc": {"lifetimeStats.views": 1}})
+        await db.users.update_one({"username": target_username}, {"$inc": {"lifetimeStats.views": 1}})
         
         logger.info(f"✅ Tracked view: {viewer_username} → {target_username}")
         return {"message": "Profile view tracked"}
@@ -11084,6 +11132,10 @@ async def track_profile_view(
             )
             new_count = existing_view.get("viewCount", 1) + 1
             logger.info(f"✅ Incremented profile view count to {new_count}")
+
+            # Track lifetime views for both the viewer and the viewed user
+            await db.users.update_one({"username": profile_view.viewedByUsername}, {"$inc": {"lifetimeStats.views": 1}})
+            await db.users.update_one({"username": profile_view.profileUsername}, {"$inc": {"lifetimeStats.views": 1}})
             
             # Log activity
             try:
@@ -11131,6 +11183,10 @@ async def track_profile_view(
             
             result = await db.profile_views.insert_one(view_data)
             logger.info(f"✅ Profile view tracked: {profile_view.viewedByUsername} → {profile_view.profileUsername}")
+
+            # Track lifetime views for both the viewer and the viewed user
+            await db.users.update_one({"username": profile_view.viewedByUsername}, {"$inc": {"lifetimeStats.views": 1}})
+            await db.users.update_one({"username": profile_view.profileUsername}, {"$inc": {"lifetimeStats.views": 1}})
             
             # Log activity
             try:

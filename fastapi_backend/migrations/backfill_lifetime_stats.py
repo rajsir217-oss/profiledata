@@ -9,17 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
 async def up(db: AsyncIOMotorDatabase):
-    """Backfill lifetime favorites, shortlists, and conversations for all users"""
-
-    # Ensure conversation_partners collection exists for immutable unique-pair tracking
-    try:
-        await db.create_collection("conversation_partners")
-        print("✅ Created conversation_partners collection")
-    except Exception as e:
-        if "already exists" in str(e):
-            print("ℹ️ conversation_partners already exists, skipping creation")
-        else:
-            raise
+    """Backfill lifetime totals for favorites, shortlists, messages, and views for all users"""
 
     users_cursor = db.users.find({}, {"username": 1})
     users = await users_cursor.to_list(length=None)
@@ -31,35 +21,43 @@ async def up(db: AsyncIOMotorDatabase):
         if not username:
             continue
 
-        # Lifetime distinct users who ever favorited/shortlisted this user
-        # (Current collections only hold active records; this is the best available historical proxy.)
-        lifetime_fav = len(await db.favorites.distinct("userUsername", {"favoriteUsername": username}))
-        lifetime_short = len(await db.shortlists.distinct("userUsername", {"shortlistedUsername": username}))
+        # Favorites: received + sent
+        fav_received = await db.favorites.count_documents({"favoriteUsername": username})
+        fav_sent = await db.favorites.count_documents({"userUsername": username})
+        lifetime_fav = fav_received + fav_sent
 
-        # Lifetime unique conversation partners from the messages collection
-        sent_to = await db.messages.distinct("to_username", {"from_username": username})
-        received_from = await db.messages.distinct("from_username", {"to_username": username})
-        partners = set(sent_to) | set(received_from)
-        lifetime_conv = len(partners)
+        # Shortlists: received + sent
+        short_received = await db.shortlists.count_documents({"shortlistedUsername": username})
+        short_sent = await db.shortlists.count_documents({"userUsername": username})
+        lifetime_short = short_received + short_sent
 
-        # Populate immutable conversation_partners records so future messages don't double-count
-        for partner in partners:
-            sorted_pair = sorted([username, partner])
-            pair_id = "|".join(sorted_pair)
-            await db.conversation_partners.update_one(
-                {"_id": pair_id},
-                {"$setOnInsert": {"participants": sorted_pair, "createdAt": datetime.utcnow()}},
-                upsert=True
-            )
+        # Messages: sent + received, supporting mixed camelCase and snake_case field names
+        msg_sent_snake = await db.messages.count_documents({"from_username": username})
+        msg_received_snake = await db.messages.count_documents({"to_username": username})
+        msg_sent_camel = await db.messages.count_documents({"fromUsername": username})
+        msg_received_camel = await db.messages.count_documents({"toUsername": username})
+        lifetime_messages = msg_sent_snake + msg_received_snake + msg_sent_camel + msg_received_camel
+
+        # Views: sum viewCount for both received and given
+        views_received_result = await db.profile_views.aggregate([
+            {"$match": {"profileUsername": username}},
+            {"$group": {"_id": None, "total": {"$sum": "$viewCount"}}}
+        ]).to_list(1)
+        views_given_result = await db.profile_views.aggregate([
+            {"$match": {"viewedByUsername": username}},
+            {"$group": {"_id": None, "total": {"$sum": "$viewCount"}}}
+        ]).to_list(1)
+        lifetime_views = (views_received_result[0]["total"] if views_received_result else 0) + (views_given_result[0]["total"] if views_given_result else 0)
 
         # Update user's lifetime stats
         await db.users.update_one(
             {"username": username},
             {"$set": {
                 "lifetimeStats": {
-                    "favoritesReceived": lifetime_fav,
-                    "shortlistsReceived": lifetime_short,
-                    "conversations": lifetime_conv
+                    "favorites": lifetime_fav,
+                    "shortlists": lifetime_short,
+                    "messages": lifetime_messages,
+                    "views": lifetime_views
                 }
             }}
         )

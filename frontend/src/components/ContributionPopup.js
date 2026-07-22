@@ -78,10 +78,10 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
       const nextStats = {
         daysActive: stats.daysActive || 0,
-        profileViews: stats.profileViews || 0,
-        profileFavorites: stats.lifetimeFavoritesReceived || stats.favoritedBy || 0,
-        profileShortlists: stats.lifetimeShortlistsReceived || stats.shortlistedBy || 0,
-        conversations: stats.lifetimeConversations || stats.uniqueConversations || 0,
+        profileViews: stats.lifetimeViews || stats.profileViews || 0,
+        profileFavorites: stats.lifetimeFavorites || stats.favoritedBy || 0,
+        profileShortlists: stats.lifetimeShortlists || stats.shortlistedBy || 0,
+        conversations: stats.lifetimeMessages || stats.uniqueConversations || 0,
       };
 
       setMemberStats(nextStats);
