@@ -1674,6 +1674,8 @@ body {
   border-radius: 50px;
   padding: 8px 20px;
   display: inline-block;
+  text-align: center;
+  line-height: 1.25;
   backdrop-filter: blur(10px);
 }
 
@@ -1685,6 +1687,16 @@ body {
 .lp-brand-red {
   color: #ef4444 !important;
   text-shadow: 0 0 10px rgba(239, 68, 68, 0.55), 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.lp-brand-tagline {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+  margin-top: 2px;
+  text-transform: none;
 }
 
 /* Kill the radial-gradient ::before overlay on dark hero */

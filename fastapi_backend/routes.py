@@ -7977,7 +7977,7 @@ async def preview_exclusion_cleanup(
 @router.post("/exclusions/{target_username}")
 async def add_to_exclusions(
     target_username: str,
-    reason: Optional[str] = Form(None),
+    reason: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
