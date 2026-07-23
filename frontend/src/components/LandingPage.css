@@ -1671,15 +1671,18 @@ body {
   text-shadow: 0 2px 8px rgba(0,0,0,0.4);
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50px;
+  border-radius: 24px;
   padding: 8px 20px;
   display: inline-block;
-  text-align: center;
+  width: min-content;
   line-height: 1.25;
   backdrop-filter: blur(10px);
 }
 
 .lp-brand-purple {
+  display: block;
+  white-space: nowrap;
+  text-align: center;
   color: #a855f7 !important;
   text-shadow: 0 0 10px rgba(168, 85, 247, 0.55), 0 2px 8px rgba(0,0,0,0.4);
 }
@@ -1691,6 +1694,9 @@ body {
 
 .lp-brand-tagline {
   display: block;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: break-word;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.4px;

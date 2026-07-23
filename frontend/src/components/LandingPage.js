@@ -185,11 +185,9 @@ const LandingPage = () => {
       <section className="hero-section lp-hero-split" style={{ background: `linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.6)), url('/images/hands_color1.jpeg') center/cover no-repeat fixed` }}>
         <div className="lp-hero-brand-row">
           <div className="lp-brand-logo">
-            <span className="butterfly-icon" aria-hidden="true">🦋</span>
             <span className="lp-brand-text">
-              <span className="lp-brand-purple">L3V3L Matches</span>
-              <br />
-              <span className="lp-brand-red lp-brand-tagline">- a premium matrimonial match making platform by community</span>
+              <span className="lp-brand-purple"><span aria-hidden="true">🦋</span> L3V3L Matches</span>
+              <span className="lp-brand-red lp-brand-tagline">a premium matrimonial match making platform by community</span>
             </span>
           </div>
         </div>
