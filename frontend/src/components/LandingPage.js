@@ -187,7 +187,7 @@ const LandingPage = () => {
           <div className="lp-brand-logo">
             <span className="lp-brand-text">
               <span className="lp-brand-purple"><span aria-hidden="true">🦋</span> L3V3L Matches</span>
-              <span className="lp-brand-red lp-brand-tagline">a premium matrimonial match making platform by community</span>
+              <span className="lp-brand-red lp-brand-tagline">a premium matrimonial platform by community</span>
             </span>
           </div>
         </div>
