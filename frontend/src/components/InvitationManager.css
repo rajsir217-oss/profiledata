@@ -124,6 +124,13 @@
   gap: 8px;
 }
 
+.filter-result-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 .btn-clear-filters {
   background: var(--danger-color);
   color: white;
@@ -148,17 +155,21 @@
 
 /* Search Filters Grid */
 .search-filters-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
   gap: 8px;
   margin-bottom: 10px;
   padding: 0 8px;
+  overflow-x: auto;
 }
 
 .filter-item {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 140px;
+  flex: 0 0 auto;
 }
 
 .filter-item label {
@@ -1244,9 +1255,15 @@ form {
   }
   
   .search-filters-grid {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
     gap: 12px;
     padding: 0 12px;
+    overflow-x: visible;
+  }
+
+  .search-filters-grid .filter-item {
+    flex: 0 0 100%;
+    min-width: 100%;
   }
   
   .search-results-summary {

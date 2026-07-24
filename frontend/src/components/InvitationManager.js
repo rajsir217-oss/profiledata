@@ -863,7 +863,13 @@ const InvitationManager = () => {
         {/* Search Filters Row */}
         <div className="search-filters-container">
           <div className="search-filters-header">
-            <h3>🔍 Search Filters</h3>
+            <h3>
+              🔍 Search Filters
+              <span className="filter-result-count">
+                {' | showing '}{displayedInvitations.length} of {sortedInvitations.length} invitation{sortedInvitations.length !== 1 ? 's' : ''}
+                {hasActiveFilters && ` (filtered from ${invitations.length} total)`}
+              </span>
+            </h3>
             {hasActiveFilters && (
               <button className="btn-clear-filters" onClick={handleClearFilters}>
                 ✕ Clear All Filters
@@ -890,30 +896,12 @@ const InvitationManager = () => {
               />
             </div>
             <div className="filter-item">
-              <label>Email Subject</label>
-              <input
-                type="text"
-                placeholder="Search subject..."
-                value={searchFilters.emailSubject}
-                onChange={(e) => setSearchFilters({...searchFilters, emailSubject: e.target.value})}
-              />
-            </div>
-            <div className="filter-item">
               <label>Phone</label>
               <input
                 type="text"
                 placeholder="Search phone..."
                 value={searchFilters.phone}
                 onChange={(e) => setSearchFilters({...searchFilters, phone: e.target.value})}
-              />
-            </div>
-            <div className="filter-item">
-              <label>Comments</label>
-              <input
-                type="text"
-                placeholder="Search comments..."
-                value={searchFilters.comments}
-                onChange={(e) => setSearchFilters({...searchFilters, comments: e.target.value})}
               />
             </div>
             <div className="filter-item">
@@ -971,10 +959,6 @@ const InvitationManager = () => {
                 onChange={(e) => setSearchFilters({...searchFilters, dateTo: e.target.value})}
               />
             </div>
-          </div>
-          <div className="search-results-summary">
-            Showing {displayedInvitations.length} of {sortedInvitations.length} invitation{sortedInvitations.length !== 1 ? 's' : ''}
-            {hasActiveFilters && ` (filtered from ${invitations.length} total)`}
           </div>
         </div>
 
