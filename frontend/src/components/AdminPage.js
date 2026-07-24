@@ -237,6 +237,30 @@ const AdminPage = () => {
     }
   };
 
+  const handleActivateUser = async (user) => {
+    try {
+      setError('');
+      setSuccessMsg('');
+      await adminApi.patch(`/api/admin/users/${user.username}/status`, {
+        status: 'active',
+        reason: 'Quick-activated via admin action panel'
+      });
+      setSuccessMsg(`✅ Activated ${user.username}`);
+      loadUsers({
+        status: statusFilter,
+        gender: genderFilter,
+        search: searchTerm,
+        emailSearch: emailSearch,
+        phoneSearch: phoneSearch,
+        updatedWithin: updatedWithinFilter
+      });
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error('Error activating user:', err);
+      setError('Failed to activate user. ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
   const handleDeleteClick = (user) => {
     setDeleteConfirm(user);
   };
@@ -631,6 +655,13 @@ const AdminPage = () => {
                         title="View Profile"
                       >
                         👁️
+                      </button>
+                      <button
+                        className="btn-micro btn-micro-success"
+                        onClick={() => handleActivateUser(user)}
+                        title="Activate User"
+                      >
+                        ✅
                       </button>
                       <button
                         className="btn-micro btn-micro-info"

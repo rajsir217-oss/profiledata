@@ -1337,3 +1337,12 @@
   background: var(--text-muted, #6b7280);
   color: #fff;
 }
+
+.btn-micro-success {
+  border-color: var(--success-color, #22c55e);
+  color: var(--success-color, #22c55e);
+}
+.btn-micro-success:hover {
+  background: var(--success-color, #22c55e);
+  color: #fff;
+}
