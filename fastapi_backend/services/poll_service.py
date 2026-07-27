@@ -20,6 +20,53 @@ from crypto_utils import get_encryptor
 logger = logging.getLogger(__name__)
 
 
+def _calculate_age(user: Dict[str, Any]) -> Optional[int]:
+    """Calculate age from user profile fields."""
+    age = user.get("age")
+    if age not in ("", None):
+        try:
+            return int(age)
+        except Exception:
+            pass
+
+    birth_year = user.get("birthYear")
+    birth_month = user.get("birthMonth")
+    if birth_year not in ("", None):
+        try:
+            year = int(birth_year)
+            month = int(birth_month) if birth_month not in ("", None) else None
+            today = datetime.now()
+            calculated_age = today.year - year
+            if month and today.month < month:
+                calculated_age -= 1
+            return calculated_age
+        except Exception:
+            pass
+
+    dob = user.get("dateOfBirth")
+    if dob:
+        try:
+            if isinstance(dob, str):
+                dob = datetime.fromisoformat(dob.replace("Z", "+00:00"))
+            today = datetime.now()
+            return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        except Exception:
+            pass
+    return None
+
+
+def _get_location(user: Dict[str, Any]) -> str:
+    """Get city/state location string from user profile."""
+    parts = []
+    if user.get("city"):
+        parts.append(user["city"])
+    if user.get("state"):
+        parts.append(user["state"])
+    if not parts and user.get("country"):
+        parts.append(user["country"])
+    return ", ".join(parts)
+
+
 class PollService:
     """Service for managing polls and responses"""
 
@@ -511,6 +558,8 @@ class PollService:
             user_full_name = None
             user_email = None
             user_phone = None
+            user_age = None
+            user_location = None
             
             if poll.get("collect_contact_info", True):
                 user = await self.users_collection.find_one({"username": username})
@@ -550,6 +599,8 @@ class PollService:
                         except:
                             pass
                     user_phone = phone
+                    user_age = _calculate_age(user)
+                    user_location = _get_location(user)
             
             # Determine RSVP response from selected options
             rsvp_response = response_data.rsvp_response
@@ -604,6 +655,8 @@ class PollService:
                 "user_full_name": user_full_name,
                 "user_email": user_email,
                 "user_phone": user_phone,
+                "user_age": user_age,
+                "user_location": user_location,
                 
                 "selected_options": response_data.selected_options,
                 "rsvp_response": rsvp_response,
@@ -797,6 +850,8 @@ class PollService:
             user_full_name = None
             user_email = None
             user_phone = None
+            user_age = None
+            user_location = None
             if poll.get("collect_contact_info", True):
                 encryptor = get_encryptor()
 
@@ -829,6 +884,8 @@ class PollService:
                     except Exception:
                         pass
                 user_phone = phone
+                user_age = _calculate_age(user)
+                user_location = _get_location(user)
 
             payment_required = False
             effective_payment_status = "not_required"
@@ -897,6 +954,8 @@ class PollService:
                 "user_full_name": user_full_name,
                 "user_email": user_email,
                 "user_phone": user_phone,
+                "user_age": user_age,
+                "user_location": user_location,
                 "selected_options": [option_id],
                 "rsvp_response": normalized,
                 "text_response": None,
@@ -1001,6 +1060,8 @@ class PollService:
                     "Full Name": resp.get("user_full_name", ""),
                     "Email": resp.get("user_email", ""),
                     "Phone": resp.get("user_phone", ""),
+                    "Age": resp.get("user_age", ""),
+                    "Location": resp.get("user_location", ""),
                     "Response": resp.get("rsvp_response") or ", ".join(selected_texts),
                     "Comment": resp.get("comment", ""),
                     "Responded At": resp.get("responded_at").isoformat() if resp.get("responded_at") else "",
