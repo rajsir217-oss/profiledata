@@ -110,30 +110,14 @@ import sessionManager from './services/sessionManager';
 import { biometricLogin, isCredentialSaved, isNativePlatform } from './services/biometricAuth';
 
 // Theme configuration
-const themes = {
-  'light-blue': { primary: '#3b82f6', secondary: '#60a5fa', background: '#f0f7ff', text: '#1f2937' },
-  'sky-blue': { primary: '#0ea5e9', secondary: '#7dd3fc', background: '#f0f9ff', text: '#0f172a' },
-  'dark': { primary: '#a78bfa', secondary: '#c4b5fd', background: '#1a1625', text: '#e5e7eb' },
-  'light-pink': { primary: '#ec4899', secondary: '#f9a8d4', background: '#fff5f7', text: '#374151' },
-  'light-gray': { primary: '#64748b', secondary: '#94a3b8', background: '#f9fafb', text: '#1f2937' },
-  'ultra-light-gray': { primary: '#475569', secondary: '#64748b', background: '#fcfcfd', text: '#0f172a' },
-  'ultra-light-green': { primary: '#10b981', secondary: '#34d399', background: '#f0fdf4', text: '#064e3b' },
-  'indian-wedding': { primary: '#ff6b35', secondary: '#f7931e', background: '#fffaf0', text: '#7c2d12' },
-  'newspaper': { primary: '#1a1a1a', secondary: '#4a4a4a', background: '#f4f1ea', text: '#1a1a1a' },
-  'ultra-black': { primary: '#1e3a5f', secondary: '#264d73', background: '#000000', text: '#e5e5e5' },
-  'cute-bubble': { primary: '#8b5cf6', secondary: '#ec4899', background: '#f8f7ff', text: '#374151' }
-};
-
+// NOTE: All theme colors are defined via CSS classes in themes/themes.css
+// (body.theme-<id> { --primary-color: ...; }). We only need to toggle the
+// body className here. Do NOT set inline CSS variable overrides on
+// document.documentElement — inline styles win over class-based CSS
+// variables and will "leak" into any theme that doesn't also set an
+// inline override, making unrelated themes appear identical.
 const applyTheme = (themeId) => {
   document.body.className = `theme-${themeId}`;
-  const theme = themes[themeId];
-  if (theme) {
-    const root = document.documentElement;
-    root.style.setProperty('--primary-color', theme.primary);
-    root.style.setProperty('--secondary-color', theme.secondary);
-    root.style.setProperty('--background-color', theme.background);
-    root.style.setProperty('--text-color', theme.text);
-  }
 };
 
 // Auth Guard Component - checks token before rendering protected content

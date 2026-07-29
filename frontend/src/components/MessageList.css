@@ -103,14 +103,14 @@
 
 .conversation-item.active .view-profile-btn {
   background: var(--primary-color, #667eea);
-  border-color: var(--primary-color, #667eea);
-  color: var(--text-on-primary, #ffffff);
+  border-color: var(--text-color, #667eea);
+  color: var(--text-color, #ffffff);
 }
 
 .conversation-item.active .view-profile-btn:hover {
   background: var(--primary-hover, var(--secondary-color, #5a67d8));
   border-color: var(--primary-hover, var(--secondary-color, #5a67d8));
-  color: var(--text-on-primary, #ffffff);
+  color: var(--text-color, #ffffff);
 }
 
 .conversation-item.active .archive-conversation-btn {
@@ -120,8 +120,8 @@
 }
 
 .conversation-item.active .archive-conversation-btn:hover {
-  border-color: var(--primary-color, #667eea);
-  color: var(--primary-color, #667eea);
+  border-color: var(--text-color, #667eea);
+  color: var(--text-color, #667eea);
   background: var(--selected-background, #eef2ff);
 }
 
@@ -190,7 +190,7 @@
   height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
-  color: white;
+  color: var(--text-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -210,7 +210,7 @@
   top: -5px;
   right: -5px;
   background: var(--danger-color, #f44336);
-  color: white;
+  color: var(--text-color);
   border-radius: 10px;
   padding: 2px 6px;
   font-size: 10px;
@@ -224,7 +224,7 @@
 .view-profile-btn {
   background: var(--primary-color, #667eea);
   border: 1px solid var(--primary-color, #667eea);
-  color: var(--text-on-primary, #ffffff);
+  color: var(--text-color, #ffffff);
   border-radius: 4px;
   width: auto;
   height: 18px;
@@ -247,7 +247,7 @@
 .view-profile-btn:hover {
   background: var(--primary-hover, var(--secondary-color, #5a67d8));
   border-color: var(--primary-hover, var(--secondary-color, #5a67d8));
-  color: var(--text-on-primary, #ffffff);
+  color: var(--text-color, #ffffff);
   transform: scale(1.05);
 }
 
@@ -280,8 +280,8 @@
 }
 
 .archive-conversation-btn:hover {
-  border-color: var(--primary-color, #667eea);
-  color: var(--primary-color, #667eea);
+  border-color: var(--text-color, #667eea);
+  color: var(--text-color, #667eea);
   background: var(--selected-background, #eef2ff);
 }
 
@@ -323,7 +323,7 @@
   justify-content: center;
   font-size: 11px;
   background: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
+  color: var(--text-color);
   padding: 2px 8px;
   border-radius: 10px;
   font-weight: 600;
@@ -368,7 +368,7 @@
 
 .urgency-badge.urgency-critical {
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  color: white;
+  color: var(--text-color);
   animation: criticalPulse 1.5s ease-in-out infinite;
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -399,7 +399,7 @@
 
 .urgency-badge.urgency-high {
   background: linear-gradient(135deg, var(--warning-color, #f59e0b) 0%, #d97706 100%);
-  color: white;
+  color: var(--text-color);
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.5);
   animation: highPulse 3s ease-in-out infinite;
 }
@@ -411,13 +411,13 @@
 
 .urgency-badge.urgency-medium {
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  color: #1f2937;
+  color: var(--text-color);
   box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4);
 }
 
 .urgency-badge.urgency-pending {
   background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
-  color: white;
+  color: var(--text-color);
   box-shadow: 0 2px 4px rgba(148, 163, 184, 0.3);
 }
 

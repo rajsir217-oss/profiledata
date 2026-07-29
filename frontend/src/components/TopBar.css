@@ -160,7 +160,7 @@
   letter-spacing: 0.8px;
   font-family: 'Space Grotesk', 'Arial Black', 'Arial Bold', sans-serif;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--card-background, #ffffff) 80%, white 20%);
+  color: var(--text-color);
 }
 
 .logo-tagline {
@@ -168,7 +168,7 @@
   font-size: 9px;
   letter-spacing: 3px;
   font-weight: 600;
-  color: color-mix(in srgb, var(--text-color, #111) 80%, var(--secondary-color) 20%);
+  color: var(--text-color);
   text-transform: uppercase;
 }
 
@@ -192,14 +192,14 @@
 }
 
 .topbar-brand-name {
-  color: white;
+  color: var(--text-color);
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.5px;
 }
 
 .topbar-brand-tagline {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-color);
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;

@@ -1413,7 +1413,7 @@ const RoleModal = ({ user, onClose, onAssign }) => {
                   checked={selectedRole === role.value}
                   onChange={(e) => setSelectedRole(e.target.value)}
                 />
-                <div className="role-icon" style={{ color: role.color }}>
+                <div className="role-icon" style={{ color: 'var(--text-color)' }}>
                   {role.icon}
                 </div>
                 <div className="role-info">
@@ -1503,7 +1503,7 @@ const ActionModal = ({ user, action, onClose, onConfirm }) => {
         {/* Modal Content */}
         <div className="action-modal-body">
           <div className="action-modal-title">
-            <span className="action-icon" style={{ color: actionInfo.color }}>
+            <span className="action-icon" style={{ color: 'var(--text-color)' }}>
               {actionInfo.icon}
             </span>
             <h2>{actionInfo.title}</h2>
@@ -1517,7 +1517,7 @@ const ActionModal = ({ user, action, onClose, onConfirm }) => {
             borderLeftColor: actionInfo.color,
             background: `${actionInfo.color}15`
           }}>
-            <strong style={{ color: actionInfo.color }}>⚠️ Confirmation Required</strong>
+            <strong style={{ color: 'var(--text-color)' }}>⚠️ Confirmation Required</strong>
             <p>Are you sure you want to <strong>{action}</strong> this user?</p>
           </div>
 
@@ -1617,7 +1617,7 @@ const BulkRoleModal = ({ userCount, onClose, onAssign }) => {
                   checked={selectedRole === role.value}
                   onChange={(e) => setSelectedRole(e.target.value)}
                 />
-                <div className="role-icon" style={{ color: role.color }}>
+                <div className="role-icon" style={{ color: 'var(--text-color)' }}>
                   {role.icon}
                 </div>
                 <div className="role-info">

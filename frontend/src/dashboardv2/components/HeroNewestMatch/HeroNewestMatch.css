@@ -55,7 +55,7 @@
   left: 10px;
   bottom: 10px;
   background: var(--dv2-accent, var(--primary-color));
-  color: white;
+  color: var(--text-color);
   font-size: 11px;
   font-weight: 800;
   padding: 4px 10px;
@@ -223,7 +223,7 @@
 .dv2-btn-primary {
   background: var(--primary-color, #d4736a);
   border-color: var(--primary-color, #d4736a);
-  color: white;
+  color: var(--text-color);
 }
 
 .dv2-btn-primary:hover:not(:disabled) {
@@ -239,7 +239,7 @@
   border: none;
   padding: 0;
   text-decoration: underline;
-  color: var(--primary-color, #d4736a);
+  color: var(--text-color);
 }
 
 .dv2-hero-card-loading {

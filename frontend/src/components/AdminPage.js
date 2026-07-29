@@ -715,7 +715,7 @@ const AdminPage = () => {
                       <span
                         className="invited-by-link"
                         style={{ 
-                          color: '#667eea', 
+                          color: 'var(--text-color)', 
                           cursor: 'pointer',
                           textDecoration: 'underline',
                           fontWeight: '500'
@@ -726,7 +726,7 @@ const AdminPage = () => {
                         {user.invitedBy}
                       </span>
                     ) : (
-                      <span style={{ color: '#999', fontStyle: 'italic' }}>system</span>
+                      <span style={{ color: 'var(--text-color)', fontStyle: 'italic' }}>system</span>
                     )}
                   </td>
                   <td>
@@ -740,14 +740,14 @@ const AdminPage = () => {
                         {new Date(user.adminApprovedAt).toLocaleDateString()}
                       </span>
                     ) : (
-                      <span style={{ color: '#999', fontStyle: 'italic', fontSize: '12px' }}>—</span>
+                      <span style={{ color: 'var(--text-color)', fontStyle: 'italic', fontSize: '12px' }}>—</span>
                     )}
                   </td>
                   <td>
                     {user.adminApprovedBy ? (
                       <span style={{ fontSize: '12px' }}>{user.adminApprovedBy}</span>
                     ) : (
-                      <span style={{ color: '#999', fontStyle: 'italic', fontSize: '12px' }}>—</span>
+                      <span style={{ color: 'var(--text-color)', fontStyle: 'italic', fontSize: '12px' }}>—</span>
                     )}
                   </td>
                   <td>

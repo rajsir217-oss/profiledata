@@ -2429,7 +2429,7 @@ const SearchPage2 = () => {
                           borderRadius: 'var(--radius-sm)',
                           border: isActive ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
                           background: isActive ? 'var(--primary-color)' : 'var(--surface-color)',
-                          color: isActive ? 'white' : 'var(--text-color)',
+                          color: 'var(--text-color)',
                           cursor: 'pointer',
                           fontWeight: isActive ? 600 : 400,
                           transition: 'all 0.2s ease'

@@ -100,7 +100,7 @@
   align-self: flex-end;
   width: fit-content;
   font-size: 9px;
-  color: var(--text-muted, #888);
+  color: var(--text-color);
   opacity: 0.6;
   text-decoration: none;
   text-underline-offset: 2px;
@@ -108,7 +108,7 @@
 }
 
 .dv2-hero-meta .dv2-link:hover {
-  color: var(--primary-color, #d4736a);
+  color: var(--text-color);
   opacity: 1;
 }
 
@@ -130,7 +130,7 @@
   overflow-wrap: anywhere;
 }
 .dv2-name {
-  color: var(--primary-color, #d4736a);
+  color: var(--text-color);
 }
 
 @media (max-width: 768px) {
@@ -442,7 +442,7 @@
 .dv2-link-btn {
   background: none;
   border: none;
-  color: var(--primary-color, #d4736a);
+  color: var(--text-color);
   cursor: pointer;
   font: inherit;
   padding: 0;

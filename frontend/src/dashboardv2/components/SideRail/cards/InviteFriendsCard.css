@@ -31,7 +31,7 @@
 
 .dv2-invite-cta.primary {
   background: var(--primary-color, #d4736a);
-  color: #fff;
+  color: var(--text-color);
   border-color: var(--primary-color, #d4736a);
 }
 

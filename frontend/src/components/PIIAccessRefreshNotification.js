@@ -46,7 +46,7 @@ const PIIAccessRefreshNotification = () => {
       top: '20px',
       right: '20px',
       backgroundColor: '#4CAF50',
-      color: 'white',
+      color: 'var(--text-color)',
       padding: '16px 20px',
       borderRadius: '12px',
       boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
@@ -70,7 +70,7 @@ const PIIAccessRefreshNotification = () => {
         onClick={handleRefresh}
         style={{
           background: 'white',
-          color: '#4CAF50',
+          color: 'var(--text-color)',
           border: 'none',
           padding: '8px 16px',
           borderRadius: '6px',
@@ -86,7 +86,7 @@ const PIIAccessRefreshNotification = () => {
         onClick={handleDismiss}
         style={{
           background: 'transparent',
-          color: 'white',
+          color: 'var(--text-color)',
           border: 'none',
           cursor: 'pointer',
           fontSize: '20px',

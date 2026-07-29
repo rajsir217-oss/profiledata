@@ -62,7 +62,7 @@
   padding: 24px;
   border-bottom: 2px solid var(--border-color, #f0f0f0);
   background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
-  color: white;
+  color: var(--text-color);
   border-radius: 16px 16px 0 0;
   flex-shrink: 0; /* Don't shrink header */
 }
@@ -93,7 +93,7 @@
   right: 20px;
   background: rgba(255, 255, 255, 0.2);
   border: none;
-  color: white;
+  color: var(--text-color);
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -161,7 +161,7 @@
 
 .btn-select-all:hover {
   background: var(--primary-color, #667eea);
-  color: white;
+  color: var(--text-color);
   border-color: var(--primary-color, #667eea);
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
@@ -169,7 +169,7 @@
 
 .btn-deselect-all:hover {
   background: var(--danger-color, #dc3545);
-  color: white;
+  color: var(--text-color);
   border-color: var(--danger-color, #dc3545);
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
@@ -256,7 +256,7 @@
 .access-badge {
   font-size: 11px;
   font-weight: 600;
-  color: white;
+  color: var(--text-color);
   background: var(--success-color, #10b981);
   padding: 4px 10px;
   border-radius: 12px;
@@ -446,7 +446,7 @@
 
 .pii-modal-footer .pii-modal-actions .btn-cancel {
   background: var(--text-secondary, #6b7280) !important;
-  color: white !important;
+  color: var(--text-color) !important;
   border: none !important;
 }
 
@@ -458,7 +458,7 @@
 
 .pii-modal-footer .pii-modal-actions .btn-submit {
   background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%) !important;
-  color: white !important;
+  color: var(--text-color) !important;
   border: none !important;
 }
 

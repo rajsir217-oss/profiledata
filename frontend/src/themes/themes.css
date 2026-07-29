@@ -1255,7 +1255,7 @@ body.theme-ultra-light-green {
 
 /* Tab buttons */
 .theme-ultra-light-green .tab-button.active {
-  color: var(--primary-color);
+  color: var(--text-color);
   border-bottom-color: var(--primary-color);
 }
 
@@ -2015,11 +2015,11 @@ body.theme-ultra-black {
 .theme-ultra-black .tab-button.active {
   background: #1e3a5f !important;
   border-color: #1e3a5f !important;
-  color: #e5e5e5 !important;
+  color: var(--text-color) !important;
 }
 
 .theme-ultra-black .tab-button.active .tab-label {
-  color: #e5e5e5 !important;
+  color: var(--text-color) !important;
 }
 
 .theme-ultra-black .tab-button:hover {
@@ -2840,4 +2840,161 @@ body.theme-cute-bubble {
 
 .theme-cute-bubble .stat-card:nth-child(3) {
   animation-delay: 1s;
+}
+
+/* ========================================
+   CLEAN CONNECT THEME
+   Inspired by clean matrimony-style UI:
+   crisp white cards, soft gray page bg,
+   monochrome gray accents throughout
+   ======================================== */
+body.theme-clean-connect {
+  /* Primary Colors - Monochrome gray */
+  --primary-color: #F8FCFF;
+  --secondary-color: #9ca3af;
+  --accent-color: #374151;
+
+  /* Backgrounds - Crisp white cards on soft gray page */
+  --background-color: #f4f5f7;
+  --surface-color: #eceef1;
+  --card-background: #ffffff;
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+  --error-bg: #fdecea;
+
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #ffffff;
+  --bs-modal-color: #1f2937;
+  --bs-modal-border-color: #e5e7eb;
+
+  /* Text Colors - Crisp, high readability */
+  --text-color: #1f2937;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --text-on-gradient: #ffffff;
+
+  /* Borders & Dividers - Subtle, clean */
+  --border-color: #e5e7eb;
+  --divider-color: #f1f5f9;
+
+  /* Interactive States */
+  --hover-background: #f3f4f6;
+  --active-background: #e5e7eb;
+  --selected-background: rgba(107, 114, 128, 0.1);
+
+  /* Status Colors */
+  --success-color: #2e7d32;
+  --danger-color: #e53935;
+  --warning-color: #b45309;
+  --info-color: #374151;
+
+  /* Button State Colors */
+  --success-light: #e8f5e9;
+  --success-hover: #c8e6c9;
+  --info-light: #f3f4f6;
+  --info-hover: #e5e7eb;
+  --info-background: #f9fafb;
+  --info-border: #e5e7eb;
+  --danger-light: #fdecea;
+  --danger-hover: #fbc8c4;
+  --warning-light: #fef3c7;
+  --warning-background: #fffbeb;
+  --warning-dark: #92400e;
+
+  /* Shadow Variables */
+  --primary-shadow: rgba(107, 114, 128, 0.25);
+  --primary-shadow-hover: rgba(107, 114, 128, 0.35);
+  --primary-color-light: rgba(107, 114, 128, 0.18);
+  --danger-shadow: rgba(229, 57, 53, 0.4);
+
+  --dv2-hero-section-bg: linear-gradient(135deg, var(--surface-color) 0%, var(--card-background) 100%);
+  --dv2-hero-card-bg: var(--card-background);
+
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+
+.theme-clean-connect .dashboard-container,
+.theme-clean-connect .search-page,
+.theme-clean-connect .profile-container,
+.theme-clean-connect .preferences-container {
+  background: var(--background-color);
+}
+
+.theme-clean-connect .user-card,
+.theme-clean-connect .dashboard-section,
+.theme-clean-connect .stat-card,
+.theme-clean-connect .search-filters,
+.theme-clean-connect .preferences-section,
+.theme-clean-connect .card {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.theme-clean-connect .sidebar {
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+  box-shadow: none;
+}
+
+.theme-clean-connect .dashboard-header,
+.theme-clean-connect .preferences-header {
+  background: var(--card-background);
+  color: var(--text-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.theme-clean-connect .section-header {
+  background: transparent;
+  border-bottom: 2px solid var(--accent-color);
+  color: var(--text-color);
+  padding: 12px 0;
+}
+
+.theme-clean-connect .stat-value {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.theme-clean-connect .sidebar-item:hover {
+  background: var(--hover-background);
+  color: var(--accent-color);
+}
+
+.theme-clean-connect input,
+.theme-clean-connect select,
+.theme-clean-connect textarea {
+  background: var(--input-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.theme-clean-connect input:focus,
+.theme-clean-connect select:focus,
+.theme-clean-connect textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--selected-background);
+}
+
+/* Exception: Card titles in gradient sections always use white */
+.theme-clean-connect .result-card .card-title-section .card-title,
+.theme-clean-connect .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.theme-clean-connect ::-webkit-scrollbar {
+  width: 10px;
+  background: var(--surface-color);
+}
+
+.theme-clean-connect ::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 6px;
+}
+
+.theme-clean-connect ::-webkit-scrollbar-thumb:hover {
+  background: #b0b7c1;
 }

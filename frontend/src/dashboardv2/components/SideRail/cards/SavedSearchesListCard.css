@@ -1,7 +1,7 @@
 .dv2-ss-manage {
   background: transparent;
   border: none;
-  color: var(--primary-color, #d4736a);
+  color: var(--text-color);
   cursor: pointer;
   font: inherit;
   font-weight: 800;
@@ -78,7 +78,7 @@
 
 .dv2-ss-new {
   background: var(--primary-color, #d4736a);
-  color: white;
+  color: var(--text-color);
   font-size: 11px;
   font-weight: 900;
   padding: 3px 8px;
@@ -90,7 +90,7 @@
   margin-top: 2px;
   background: transparent;
   border: none;
-  color: var(--primary-color, #d4736a);
+  color: var(--text-color);
   cursor: pointer;
   font: inherit;
   font-weight: 800;

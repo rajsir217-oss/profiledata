@@ -239,6 +239,13 @@ const UnifiedPreferences = () => {
       preview: { primary: '#8b5cf6', secondary: '#ec4899', background: '#f8f7ff', text: '#374151' }
     },
     {
+      id: 'clean-connect',
+      name: 'Clean Connect',
+      icon: '🕊️',
+      description: 'Crisp white and gray minimal theme',
+      preview: { primary: '#F8FCFF', secondary: '#9ca3af', background: '#f4f5f7', text: '#1f2937' }
+    },
+    {
       id: 'white',
       name: 'Egg White',
       icon: '🥚',
