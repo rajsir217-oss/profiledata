@@ -1201,7 +1201,7 @@ const ContributionManagement = () => {
                         <li>Security & privacy enhancements</li>
                         <li>New matching features & improvements</li>
                       </ul>
-                      <p><a href={reminderContributionUrl} style={{color: '#667eea'}}>Make a Contribution →</a></p>
+                      <p><a href={reminderContributionUrl} style={{ color: 'var(--text-color)' }}>Make a Contribution →</a></p>
                       <p>— The L3V3L Team</p>
                     </div>
                   </div>
