@@ -2404,11 +2404,11 @@ const SearchPage2 = () => {
           {initialSearchComplete && currentRecords.length > 0 && (
             <div className="sort-controls-top">
               {/* Layout Toggle Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '9px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                   Layout:
                 </span>
-                <div className="layout-toggle-buttons" style={{ display: 'flex', gap: '6px' }}>
+                <div className="layout-toggle-buttons" style={{ display: 'flex', gap: '2px', height: '20px' }}>
                   {[
                     { mode: 'split', icon: '⚏', label: 'Split', title: 'Split view - List with detail panel' },
                     { mode: 'cards', icon: '▦', label: 'Cards', title: 'Card view - Grid layout' },
@@ -2424,26 +2424,28 @@ const SearchPage2 = () => {
                         className={`layout-toggle-btn ${isActive ? 'active' : ''}`}
                         title={title}
                         style={{
-                          padding: '6px 12px',
-                          fontSize: '14px',
-                          borderRadius: 'var(--radius-sm)',
+                          padding: '1px 3px',
+                          fontSize: '7px',
+                          borderRadius: '3px',
                           border: isActive ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
                           background: isActive ? 'var(--primary-color)' : 'var(--surface-color)',
                           color: 'var(--text-color)',
                           cursor: 'pointer',
                           fontWeight: isActive ? 600 : 400,
-                          transition: 'all 0.2s ease'
+                          transition: 'all 0.2s ease',
+                          height: '18px',
+                          minWidth: 'fit-content'
                         }}
                       >
-                        <span className="layout-toggle-btn-icon">{icon}</span><span className="layout-toggle-btn-text"> {label}</span>
+                        <span className="layout-toggle-btn-icon" style={{ fontSize: '14px', width: '16px', height: '20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span><span className="layout-toggle-btn-text" style={{ fontSize: '6px' }}> {label}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap' }}>
-                <span className="sort-by-label" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'nowrap', height: '20px' }}>
+                <span className="sort-by-label" style={{ fontSize: '9px', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                   Sort by:
                 </span>
                 <select
@@ -2451,14 +2453,15 @@ const SearchPage2 = () => {
                   onChange={handleSortChange}
                   className="form-select form-select-sm"
                   style={{
-                    minWidth: '180px',
-                    fontSize: '14px',
-                    padding: '6px 12px',
+                    minWidth: '100px',
+                    fontSize: '9px',
+                    padding: '2px 5px',
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-color)',
                     background: 'var(--input-bg)',
                     color: 'var(--text-color)',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    height: '18px'
                   }}
                 >
                   <option value="matchScore">🎯 Compatibility Score</option>
@@ -2474,9 +2477,9 @@ const SearchPage2 = () => {
                   onClick={toggleSortOrder}
                   className="layout-toggle-btn sort-order-btn"
                   style={{
-                    padding: '6px 10px',
-                    fontSize: '14px',
-                    borderRadius: 'var(--radius-sm)',
+                    padding: '1px 3px',
+                    fontSize: '7px',
+                    borderRadius: '3px',
                     border: '1px solid var(--border-color)',
                     background: 'var(--surface-color)',
                     color: 'var(--text-color)',
@@ -2486,8 +2489,8 @@ const SearchPage2 = () => {
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '36px',
-                    height: '36px',
+                    width: '18px',
+                    height: '18px',
                     flexShrink: 0
                   }}
                   title={`Sort order: ${sortOrder === 'desc' ? 'Descending' : 'Ascending'}`}
@@ -2495,16 +2498,16 @@ const SearchPage2 = () => {
                   <span className="layout-toggle-btn-icon">{sortOrder === 'desc' ? '↓' : '↑'}</span>
                 </button>
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px', height: '20px' }}>
                 <span style={{ fontWeight: 600 }}>Profiles:</span>
                 <span 
                   style={{ 
                     background: 'var(--primary-color)', 
-                    color: 'white', 
-                    padding: '2px 8px', 
-                    borderRadius: '12px',
+                    color: 'var(--text-on-primary, white)', 
+                    padding: '1px 4px', 
+                    borderRadius: '8px',
                     fontWeight: 600,
-                    fontSize: '12px',
+                    fontSize: '8px',
                     cursor: 'help'
                   }}
                   title="Total matches found by search"
@@ -2515,11 +2518,11 @@ const SearchPage2 = () => {
                 <span 
                   style={{ 
                     background: 'var(--success-color)', 
-                    color: 'white', 
-                    padding: '2px 8px', 
-                    borderRadius: '12px',
+                    color: 'var(--text-on-primary, white)', 
+                    padding: '1px 4px', 
+                    borderRadius: '8px',
                     fontWeight: 600,
-                    fontSize: '12px',
+                    fontSize: '8px',
                     cursor: 'help'
                   }}
                   title="Profiles currently loaded (unique)"
@@ -2530,11 +2533,11 @@ const SearchPage2 = () => {
                 <span 
                   style={{ 
                     background: 'var(--danger-color)', 
-                    color: 'white', 
-                    padding: '2px 8px', 
-                    borderRadius: '12px',
+                    color: 'var(--text-on-primary, white)', 
+                    padding: '1px 4px', 
+                    borderRadius: '8px',
                     fontWeight: 600,
-                    fontSize: '12px',
+                    fontSize: '8px',
                     cursor: 'help'
                   }}
                   title={`You have blocked ${excludedUsers.size} user(s) total`}
@@ -2852,7 +2855,7 @@ const SearchPage2 = () => {
                         marginTop: '20px',
                         padding: '10px 24px',
                         background: 'var(--primary-color)',
-                        color: 'white',
+                        color: 'var(--text-on-primary, white)',
                         border: 'none',
                         borderRadius: '8px',
                         cursor: 'pointer',
@@ -2939,7 +2942,7 @@ const SearchPage2 = () => {
                     gap: '0',
                     padding: '8px 12px',
                     background: 'var(--primary-color)',
-                    color: 'white',
+                    color: 'var(--text-on-primary, white)',
                     fontSize: '10px',
                     fontWeight: 600,
                     textTransform: 'uppercase',
@@ -3208,14 +3211,14 @@ const SearchPage2 = () => {
       {showExclusionPreview && exclusionPreviewData && (
         <div className="modal-overlay" onClick={() => setShowExclusionPreview(false)}>
           <div className="exclusion-preview-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', padding: '20px', borderRadius: '16px 16px 0 0' }}>
+            <div className="modal-header" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'var(--text-on-primary, white)', padding: '20px', borderRadius: '16px 16px 0 0' }}>
               <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
                 🙈 Confirm Hide
               </h2>
               <button 
                 className="modal-close" 
                 onClick={() => setShowExclusionPreview(false)}
-                style={{ background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: 'white', cursor: 'pointer' }}
+                style={{ background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: 'var(--text-on-primary, white)', cursor: 'pointer' }}
               >
                 ✕
               </button>
@@ -3283,7 +3286,7 @@ const SearchPage2 = () => {
               <button 
                 onClick={confirmExclusion}
                 disabled={exclusionLoading}
-                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', cursor: 'pointer', fontWeight: '600' }}
+                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'var(--text-on-primary, white)', cursor: 'pointer', fontWeight: '600' }}
               >
                 {exclusionLoading ? '⏳ Processing...' : '🙈 Confirm Hide'}
               </button>
