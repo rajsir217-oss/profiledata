@@ -1626,19 +1626,31 @@ body {
 .lp-hero-split {
   --hero-top-offset: 10px;
   background: rgba(0,0,0,0.55);
-  display: grid;
-  grid-template-columns: 380px 1fr;
-  grid-template-rows: auto 1fr;
-  gap: 3px;
-  align-items: flex-start;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   padding: var(--hero-top-offset) 24px 12px !important;
   margin-top: 8px;
   min-height: 600px;
   position: relative;
 }
 
+.lp-hero-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  position: relative;
+}
+
 .lp-hero-brand-row {
-  grid-column: 1 / -1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
   margin-bottom: 16px;
 }
 
@@ -1788,8 +1800,8 @@ body {
   gap: 12px;
   align-items: flex-start;
   text-align: left;
+  width: 100%;
   max-width: 680px;
-  padding-left: 30px;
 }
 
 .lp-hero-details {
@@ -1850,6 +1862,9 @@ body {
   font-size: 0.9rem;
   line-height: 1.4;
   max-width: 580px;
+  text-align: left;
+  margin-left: 0;
+  margin-right: auto;
 }
 
 .hero-cta {
@@ -1926,6 +1941,8 @@ body {
   padding: 10px 14px;
   box-shadow: 0 8px 40px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.15);
   overflow: hidden;
+  width: 100%;
+  max-width: 380px;
 }
 
 .lp-login-card form {
@@ -2183,10 +2200,12 @@ body {
 /* ── RESPONSIVE ──────────────────────────────────────── */
 @media (max-width: 900px) {
   .lp-hero-split {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
     padding: 24px 24px !important;
     min-height: unset;
+  }
+
+  .lp-hero-container {
+    flex-direction: column;
   }
 
   .lp-hero-brand-row {
@@ -2195,6 +2214,7 @@ body {
 
   .lp-hero-left {
     order: 2;
+    width: 100%;
   }
 
   .lp-login-card {

@@ -183,6 +183,7 @@ const LandingPage = () => {
     <div className="landing-page">
       {/* Hero Section — Split Layout with merged header */}
       <section className="hero-section lp-hero-split" style={{ background: `linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.6)), url('/images/hands_color1.jpeg') center/cover no-repeat fixed` }}>
+        <div className="lp-hero-container">
         <div className="lp-hero-brand-row">
           <div className="lp-brand-logo">
             <span className="lp-brand-text">
@@ -378,6 +379,7 @@ const LandingPage = () => {
               </button>
             </p>
           )}
+        </div>
         </div>
       </section>
 
