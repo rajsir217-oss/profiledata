@@ -2408,7 +2408,7 @@ const SearchPage2 = () => {
                 <span style={{ fontSize: '9px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                   Layout:
                 </span>
-                <div className="layout-toggle-buttons" style={{ display: 'flex', gap: '2px', height: '20px' }}>
+                <div className="layout-toggle-buttons">
                   {[
                     { mode: 'split', icon: '⚏', label: 'Split', title: 'Split view - List with detail panel' },
                     { mode: 'cards', icon: '▦', label: 'Cards', title: 'Card view - Grid layout' },
@@ -2423,21 +2423,8 @@ const SearchPage2 = () => {
                         onClick={() => handleViewModeChange(mode)}
                         className={`layout-toggle-btn ${isActive ? 'active' : ''}`}
                         title={title}
-                        style={{
-                          padding: '1px 3px',
-                          fontSize: '7px',
-                          borderRadius: '3px',
-                          border: isActive ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
-                          background: isActive ? 'var(--primary-color)' : 'var(--surface-color)',
-                          color: 'var(--text-color)',
-                          cursor: 'pointer',
-                          fontWeight: isActive ? 600 : 400,
-                          transition: 'all 0.2s ease',
-                          height: '18px',
-                          minWidth: 'fit-content'
-                        }}
                       >
-                        <span className="layout-toggle-btn-icon" style={{ fontSize: '12px', width: '14px', height: '18px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span><span className="layout-toggle-btn-text" style={{ fontSize: '6px' }}> {label}</span>
+                        <span className="layout-toggle-btn-icon">{icon}</span><span className="layout-toggle-btn-text">{label}</span>
                       </button>
                     );
                   })}
@@ -2445,24 +2432,13 @@ const SearchPage2 = () => {
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'nowrap', height: '20px' }}>
-                <span className="sort-by-label" style={{ fontSize: '9px', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                <span className="sort-by-label">
                   Sort by:
                 </span>
                 <select
                   value={normalizeSortBy(sortBy)}
                   onChange={handleSortChange}
                   className="form-select form-select-sm"
-                  style={{
-                    minWidth: '100px',
-                    fontSize: '9px',
-                    padding: '2px 5px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--input-bg)',
-                    color: 'var(--text-color)',
-                    cursor: 'pointer',
-                    height: '18px'
-                  }}
                 >
                   <option value="matchScore">🎯 Compatibility Score</option>
                   <option value="newest">🆕 Newest Members</option>
@@ -2476,70 +2452,29 @@ const SearchPage2 = () => {
                 <button
                   onClick={toggleSortOrder}
                   className="layout-toggle-btn sort-order-btn"
-                  style={{
-                    padding: '1px 3px',
-                    fontSize: '7px',
-                    borderRadius: '3px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--surface-color)',
-                    color: 'var(--text-color)',
-                    cursor: 'pointer',
-                    fontWeight: 400,
-                    transition: 'all 0.2s ease',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '18px',
-                    height: '18px',
-                    flexShrink: 0
-                  }}
                   title={`Sort order: ${sortOrder === 'desc' ? 'Descending' : 'Ascending'}`}
                 >
                   <span className="layout-toggle-btn-icon">{sortOrder === 'desc' ? '↓' : '↑'}</span>
                 </button>
               </div>
-              <div style={{ fontSize: '9px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px', height: '20px' }}>
+              <div className="sort-controls-profiles">
                 <span style={{ fontWeight: 600 }}>Profiles:</span>
                 <span 
-                  style={{ 
-                    background: 'var(--primary-color)', 
-                    color: 'var(--text-on-primary, white)', 
-                    padding: '1px 4px', 
-                    borderRadius: '8px',
-                    fontWeight: 600,
-                    fontSize: '8px',
-                    cursor: 'help'
-                  }}
+                  className="sort-controls-profiles-badge primary"
                   title="Total matches found by search"
                 >
                   {totalResults}
                 </span>
                 <span>|</span>
                 <span 
-                  style={{ 
-                    background: 'var(--success-color)', 
-                    color: 'var(--text-on-primary, white)', 
-                    padding: '1px 4px', 
-                    borderRadius: '8px',
-                    fontWeight: 600,
-                    fontSize: '8px',
-                    cursor: 'help'
-                  }}
+                  className="sort-controls-profiles-badge success"
                   title="Profiles currently loaded (unique)"
                 >
                   {currentRecords.length}
                 </span>
                 <span>|</span>
                 <span 
-                  style={{ 
-                    background: 'var(--danger-color)', 
-                    color: 'var(--text-on-primary, white)', 
-                    padding: '1px 4px', 
-                    borderRadius: '8px',
-                    fontWeight: 600,
-                    fontSize: '8px',
-                    cursor: 'help'
-                  }}
+                  className="sort-controls-profiles-badge danger"
                   title={`You have blocked ${excludedUsers.size} user(s) total`}
                 >
                   {excludedUsers.size}
@@ -2954,12 +2889,12 @@ const SearchPage2 = () => {
                     zIndex: 10
                   }}
                 >
-                  <span style={{ paddingRight: '6px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}>#</span>
-                  <span style={{ paddingRight: '6px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}></span>
+                  <span style={{ paddingRight: '6px', borderRight: '1px solid var(--border-color)', height: '100%', display: 'flex', alignItems: 'center' }}>#</span>
+                  <span style={{ paddingRight: '6px', borderRight: '1px solid var(--border-color)', height: '100%', display: 'flex', alignItems: 'center' }}></span>
                   <span 
                     className="resizable-header"
                     onClick={() => handleColumnSort('firstName', 'asc')}
-                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%' }}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', position: 'relative', paddingRight: '10px', borderRight: '1px solid var(--border-color)', height: '100%' }}
                     title="Sort by name"
                   >
                     Name {normalizeSortBy(sortBy) === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -2968,7 +2903,7 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => handleColumnSort('matchScore', 'desc')}
-                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid var(--border-color)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="Sort by L3V3L compatibility score"
                   >
                     🎯 {normalizeSortBy(sortBy) === 'matchScore' && (sortOrder === 'desc' ? '↓' : '↑')}
@@ -2977,7 +2912,7 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => handleColumnSort('age', 'desc')}
-                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid var(--border-color)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="Sort by age"
                   >
                     Age {normalizeSortBy(sortBy) === 'age' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -2986,7 +2921,7 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => handleColumnSort('height', 'desc')}
-                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid var(--border-color)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="Sort by height"
                   >
                     Height {normalizeSortBy(sortBy) === 'height' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -2995,7 +2930,7 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => handleColumnSort('location', 'asc')}
-                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}
+                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid var(--border-color)', height: '100%', display: 'flex', alignItems: 'center' }}
                     title="Sort by location"
                   >
                     Location {normalizeSortBy(sortBy) === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -3004,7 +2939,7 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => handleColumnSort('education', 'asc')}
-                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}
+                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid var(--border-color)', height: '100%', display: 'flex', alignItems: 'center' }}
                     title="Sort by education"
                   >
                     Education {normalizeSortBy(sortBy) === 'education' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -3013,13 +2948,13 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => handleColumnSort('profession', 'asc')}
-                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}
+                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid var(--border-color)', height: '100%', display: 'flex', alignItems: 'center' }}
                     title="Sort by occupation"
                   >
                     Occupati... {normalizeSortBy(sortBy) === 'profession' && (sortOrder === 'asc' ? '↑' : '↓')}
                     <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'occupation')} />
                   </span>
-                  <span style={{ borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}>Tags</span>
+                  <span style={{ borderRight: '1px solid var(--border-color)', height: '100%', display: 'flex', alignItems: 'center' }}>Tags</span>
                   <span style={{ textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Actions</span>
                 </div>
               )}
@@ -3211,7 +3146,7 @@ const SearchPage2 = () => {
       {showExclusionPreview && exclusionPreviewData && (
         <div className="modal-overlay" onClick={() => setShowExclusionPreview(false)}>
           <div className="exclusion-preview-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'var(--text-on-primary, white)', padding: '20px', borderRadius: '16px 16px 0 0' }}>
+            <div className="modal-header" style={{ background: 'linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%)', color: 'var(--text-on-primary, white)', padding: '20px', borderRadius: '16px 16px 0 0' }}>
               <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
                 🙈 Confirm Hide
               </h2>
@@ -3286,7 +3221,7 @@ const SearchPage2 = () => {
               <button 
                 onClick={confirmExclusion}
                 disabled={exclusionLoading}
-                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'var(--text-on-primary, white)', cursor: 'pointer', fontWeight: '600' }}
+                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%)', color: 'var(--text-on-primary, white)', cursor: 'pointer', fontWeight: '600' }}
               >
                 {exclusionLoading ? '⏳ Processing...' : '🙈 Confirm Hide'}
               </button>

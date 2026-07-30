@@ -1127,6 +1127,132 @@
   color: var(--text-color);
 }
 
+/* Sort Controls Top */
+.sort-controls-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.layout-toggle-buttons {
+  display: flex;
+  gap: 4px;
+  height: 20px;
+}
+
+.layout-toggle-btn {
+  padding: 1px 3px;
+  font-size: 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+  background: var(--surface-color);
+  color: var(--text-color);
+  cursor: pointer;
+  font-weight: 400;
+  transition: all 0.2s ease;
+  height: 18px;
+  min-width: fit-content;
+  display: flex;
+  align-items: center;
+  margin-right: 0.75px;
+  gap: 0;
+}
+
+.layout-toggle-btn.active {
+  border: 2px solid var(--primary-color);
+  background: var(--primary-color);
+  font-weight: 600;
+}
+
+.layout-toggle-btn-icon {
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1px;
+}
+
+.layout-toggle-btn-text {
+  font-size: 6px;
+}
+
+.sort-by-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.sort-controls-top .form-select {
+  min-width: 100px;
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-color);
+  cursor: pointer;
+  height: 18px;
+}
+
+.sort-order-btn {
+  padding: 1px 3px;
+  font-size: 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+  background: var(--surface-color);
+  color: var(--text-color);
+  cursor: pointer;
+  font-weight: 400;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.sort-order-btn .layout-toggle-btn-icon {
+  font-size: 10px;
+  width: 12px;
+  height: 16px;
+}
+
+.sort-controls-profiles {
+  font-size: 9px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+}
+
+.sort-controls-profiles-badge {
+  padding: 1px 4px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 8px;
+  cursor: help;
+}
+
+.sort-controls-profiles-badge.primary {
+  background: var(--primary-color);
+  color: var(--text-on-primary, white);
+}
+
+.sort-controls-profiles-badge.success {
+  background: var(--success-color);
+  color: var(--text-on-primary, white);
+}
+
+.sort-controls-profiles-badge.danger {
+  background: var(--danger-color);
+  color: var(--text-on-primary, white);
+}
+
 @media (max-width: 768px) {
   .floating-search-trigger {
     bottom: 20px;
