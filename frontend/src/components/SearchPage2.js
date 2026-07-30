@@ -2437,7 +2437,7 @@ const SearchPage2 = () => {
                           minWidth: 'fit-content'
                         }}
                       >
-                        <span className="layout-toggle-btn-icon" style={{ fontSize: '14px', width: '16px', height: '20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span><span className="layout-toggle-btn-text" style={{ fontSize: '6px' }}> {label}</span>
+                        <span className="layout-toggle-btn-icon" style={{ fontSize: '12px', width: '14px', height: '18px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span><span className="layout-toggle-btn-text" style={{ fontSize: '6px' }}> {label}</span>
                       </button>
                     );
                   })}
