@@ -681,40 +681,17 @@ const DynamicScheduler = ({ currentUser }) => {
             )}
           </div>
         </div>
-        <div className="filter-group">
+        <div className="filter-group status-filter-group">
           <label>Status:</label>
-          <div className="status-radio-group">
-            <label className="status-radio-label">
-              <input
-                type="radio"
-                name="status"
-                value="all"
-                checked={filterEnabled === 'all'}
-                onChange={(e) => { setFilterEnabled(e.target.value); setDisplayCount(recordsPerPage); }}
-              />
-              <span>all</span>
-            </label>
-            <label className="status-radio-label">
-              <input
-                type="radio"
-                name="status"
-                value="active"
-                checked={filterEnabled === 'active'}
-                onChange={(e) => { setFilterEnabled(e.target.value); setDisplayCount(recordsPerPage); }}
-              />
-              <span>active</span>
-            </label>
-            <label className="status-radio-label">
-              <input
-                type="radio"
-                name="status"
-                value="inactive"
-                checked={filterEnabled === 'inactive'}
-                onChange={(e) => { setFilterEnabled(e.target.value); setDisplayCount(recordsPerPage); }}
-              />
-              <span>inactive</span>
-            </label>
-          </div>
+          <select
+            className="status-select"
+            value={filterEnabled}
+            onChange={(e) => { setFilterEnabled(e.target.value); setDisplayCount(recordsPerPage); }}
+          >
+            <option value="all">all</option>
+            <option value="active">active</option>
+            <option value="inactive">inactive</option>
+          </select>
           <button 
             className="btn btn-primary"
             onClick={() => setRefreshTrigger(prev => prev + 1)}

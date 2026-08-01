@@ -94,7 +94,7 @@
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 0.5rem 1rem;
+  padding: 0.35rem 0.85rem;
 }
 
 /* Status Cards */
@@ -212,35 +212,6 @@
   color: var(--text-secondary);
 }
 
-/* Status radio group styling */
-.status-radio-group {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: nowrap;
-}
-
-.status-radio-label {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: var(--text-color);
-  user-select: none;
-}
-
-.status-radio-label input[type="radio"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--primary-color);
-}
-
-.status-radio-label:hover {
-  color: var(--primary-color);
-}
-
 .filter-group select {
   padding: 8px 12px;
   border: 1px solid var(--border-color);
@@ -252,6 +223,28 @@
   transition: all 0.3s ease;
   height: 32px;
   box-sizing: border-box;
+}
+
+.status-filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.status-filter-group .status-select {
+  width: 96px !important;
+  min-width: 96px;
+  max-width: 96px;
+  flex: 0 0 auto !important;
+  height: 32px;
+  line-height: 32px;
+  padding: 0 26px 0 10px;
+}
+
+.status-filter-group .btn {
+  margin-left: 0;
 }
 
 .filter-group select:hover {
@@ -645,7 +638,7 @@
 
   .scheduler-toolbar {
     flex-direction: column;
-    gap: 1rem;
+    /* gap: 1rem; */
   }
 
   .status-cards {
