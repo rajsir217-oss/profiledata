@@ -203,7 +203,7 @@ const DynamicScheduler = ({ currentUser }) => {
       }
       
       if (filterEnabled !== 'all') {
-        params.append('enabled', filterEnabled === 'enabled');
+        params.append('enabled', filterEnabled === 'active');
       }
       
       const token = localStorage.getItem('token');
@@ -586,9 +586,47 @@ const DynamicScheduler = ({ currentUser }) => {
         >
           ➕ Create New Job
         </button>
+        
+        {/* Status Cards in header */}
+        {status && status.jobs && status.scheduler && status.executions && (
+          <div className="header-status-cards">
+            <div className="status-card">
+              <div className="status-icon">📊</div>
+              <div className="status-info">
+                <div className="status-value">{status.jobs.total || 0}</div>
+                <div className="status-label">Total Jobs</div>
+              </div>
+            </div>
+            <div className="status-card success">
+              <div className="status-icon">✅</div>
+              <div className="status-info">
+                <div className="status-value">{status.jobs.enabled || 0}</div>
+                <div className="status-label">Active Jobs</div>
+              </div>
+            </div>
+            <div 
+              className="status-card clickable" 
+              onClick={() => navigate('/notification-management?tab=templates')}
+              title="Click to manage templates"
+            >
+              <div className="status-icon">📋</div>
+              <div className="status-info">
+                <div className="status-value">{status.scheduler.template_count || 0}</div>
+                <div className="status-label">Templates</div>
+              </div>
+            </div>
+            <div className="status-card">
+              <div className="status-icon">📈</div>
+              <div className="status-info">
+                <div className="status-value">{status.executions.success_rate || 'N/A'}</div>
+                <div className="status-label">Success Rate</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Filters + Status Cards in one bar */}
+      {/* Filters bar (no status cards) */}
       <div className="scheduler-toolbar">
         <div className="filter-group template-filter">
           <label>Template Type:</label>
@@ -645,14 +683,38 @@ const DynamicScheduler = ({ currentUser }) => {
         </div>
         <div className="filter-group">
           <label>Status:</label>
-          <select 
-            value={filterEnabled} 
-            onChange={(e) => { setFilterEnabled(e.target.value); setDisplayCount(recordsPerPage); }}
-          >
-            <option value="all">All</option>
-            <option value="enabled">Enabled</option>
-            <option value="disabled">Disabled</option>
-          </select>
+          <div className="status-radio-group">
+            <label className="status-radio-label">
+              <input
+                type="radio"
+                name="status"
+                value="all"
+                checked={filterEnabled === 'all'}
+                onChange={(e) => { setFilterEnabled(e.target.value); setDisplayCount(recordsPerPage); }}
+              />
+              <span>all</span>
+            </label>
+            <label className="status-radio-label">
+              <input
+                type="radio"
+                name="status"
+                value="active"
+                checked={filterEnabled === 'active'}
+                onChange={(e) => { setFilterEnabled(e.target.value); setDisplayCount(recordsPerPage); }}
+              />
+              <span>active</span>
+            </label>
+            <label className="status-radio-label">
+              <input
+                type="radio"
+                name="status"
+                value="inactive"
+                checked={filterEnabled === 'inactive'}
+                onChange={(e) => { setFilterEnabled(e.target.value); setDisplayCount(recordsPerPage); }}
+              />
+              <span>inactive</span>
+            </label>
+          </div>
           <button 
             className="btn btn-primary"
             onClick={() => setRefreshTrigger(prev => prev + 1)}
@@ -660,44 +722,6 @@ const DynamicScheduler = ({ currentUser }) => {
             🔄 Refresh
           </button>
         </div>
-
-        {/* Status Cards (right) */}
-        {status && status.jobs && status.scheduler && status.executions && (
-          <div className="status-cards">
-            <div className="status-card">
-              <div className="status-icon">📊</div>
-              <div className="status-info">
-                <div className="status-value">{status.jobs.total || 0}</div>
-                <div className="status-label">Total Jobs</div>
-              </div>
-            </div>
-            <div className="status-card success">
-              <div className="status-icon">✅</div>
-              <div className="status-info">
-                <div className="status-value">{status.jobs.enabled || 0}</div>
-                <div className="status-label">Active Jobs</div>
-              </div>
-            </div>
-            <div 
-              className="status-card clickable" 
-              onClick={() => navigate('/notification-management?tab=templates')}
-              title="Click to manage templates"
-            >
-              <div className="status-icon">📋</div>
-              <div className="status-info">
-                <div className="status-value">{status.scheduler.template_count || 0}</div>
-                <div className="status-label">Templates</div>
-              </div>
-            </div>
-            <div className="status-card">
-              <div className="status-icon">📈</div>
-              <div className="status-info">
-                <div className="status-value">{status.executions.success_rate || 'N/A'}</div>
-                <div className="status-label">Success Rate</div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Jobs Table */}
