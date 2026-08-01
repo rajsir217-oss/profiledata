@@ -53,3 +53,9 @@ fastapi_backend/backups/*.json
 # Terraform
 *.tf
 *.tfvars
+
+# OAuth credentials and tokens (Google Photos clicker)
+photo_utilities/parse_files_orgnaize/clicker/credentials.json
+photo_utilities/parse_files_orgnaize/clicker/token_combined.pickle
+photo_utilities/parse_files_orgnaize/clicker/*.pickle
+photo_utilities/parse_files_orgnaize/clicker/*.json
