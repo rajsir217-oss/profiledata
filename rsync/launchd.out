@@ -45,3 +45,14 @@
 2026-08-02 16:21:57 [INFO] sync2NAS Finished
 2026-08-02 16:21:57 [INFO] ========================================================
 2026-08-02 16:21:57 [INFO] Status: FAILED
+2026-08-02 16:24:43 [INFO] ========================================================
+2026-08-02 16:24:43 [INFO] sync2NAS Started
+2026-08-02 16:24:43 [INFO] ========================================================
+2026-08-02 16:24:43 [INFO] Source: /Users/rajsiripuram02/SyncSources/sync2NAS
+2026-08-02 16:24:43 [INFO] Destination: /Volumes/wdc_home_share/sync2NAS
+2026-08-02 16:24:43 [INFO] Sync policy: relax_metadata=True, modify_window_seconds=2, exclude_patterns=['.DS_Store', '._*', '.Spotlight-V100', '.Trashes', '.fseventsd', 'Thumbs.db']
+2026-08-02 16:24:43 [INFO] SMB already mounted at /Volumes/wdc_home_share
+2026-08-02 16:24:46 [INFO] Using rsync append mode: --append (compat mode)
+2026-08-02 16:24:46 [INFO] Running rsync...
+2026-08-02 16:25:43 [INFO] Heartbeat... phase=Run rsync; elapsed=1m 0s
+2026-08-02 16:26:43 [INFO] Heartbeat... phase=Run rsync; elapsed=2m 0s
