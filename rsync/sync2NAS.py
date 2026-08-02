@@ -325,3 +325,28 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+
+# TODO:
+# For your setup, the safest practical unattended option is:
+
+# Keep it as a user LaunchAgent (not daemon/root).
+# Run it under a dedicated non-admin macOS account just for backups.
+# Keep that account logged in with screen locked during backup windows.
+# Keep source/destination permissions minimal (read source, write NAS only).
+# Store SMB creds in the user keychain (avoid plain-text secrets if possible).
+# Why this is safest:
+
+# Avoids running backup as root/system daemon.
+# Avoids macOS TCC/privacy breakage you get with Desktop paths in daemon mode.
+# Limits blast radius if that account is compromised.
+# What to avoid:
+
+# LaunchDaemon as root against Desktop/Documents
+# Auto-login of your main daily account
+# If you want true “runs even after reboot with nobody logged in,” I can help you design a hardened daemon setup, but it requires moving source out of protected folders and using a service-account model.
+
+
+
+# Feedback submitted
