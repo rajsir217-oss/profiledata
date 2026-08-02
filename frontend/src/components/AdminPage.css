@@ -115,22 +115,27 @@
   border-radius: 10px;
   border: 1px solid var(--border-color);
   margin-bottom: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
 
 .admin-filter-input {
-  flex: 1 1 260px;
+  flex: 1 1 220px;
   max-width: none;
-  min-width: 180px;
+  min-width: 140px;
   padding: 10px 14px;
   border-radius: 8px;
   border: 1px solid var(--border-color);
   background: var(--input-bg);
   color: var(--text-color);
   font-size: 14px;
+}
+
+.admin-username-input {
+  flex: 1 1 200px;
+  min-width: 120px;
 }
 
 .admin-phone-input {
@@ -167,7 +172,7 @@
 
 .admin-search-btn {
   flex: 0 0 auto;
-  margin-left: auto;
+  margin-left: 0;
   padding: 10px 16px;
   border-radius: 50px;
   font-weight: 600;
@@ -187,19 +192,27 @@
 /* Responsive: Tablet - wrap into 2 rows */
 @media (max-width: 900px) {
   .admin-filter-row {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     width: 100%;
     gap: 8px;
   }
   
   .admin-filter-input {
-    flex: 1 1 calc(50% - 8px);
+    flex: 1 1 180px;
     max-width: none;
+    min-width: 110px;
+  }
+
+  .admin-username-input {
+    flex: 1 1 160px;
+    min-width: 100px;
   }
   
   .admin-filter-select {
-    flex: 1 1 calc(33% - 8px);
-    max-width: none;
+    flex: 0 1 140px;
+    width: 140px;
+    min-width: 110px;
+    max-width: 160px;
   }
   
   .admin-search-btn {
@@ -207,29 +220,54 @@
   }
 }
 
-/* Responsive: Mobile - stack vertically */
+/* Responsive: Mobile - stack fields vertically */
 @media (max-width: 600px) {
   .admin-filter-row {
     flex-direction: column;
     align-items: stretch;
+    flex-wrap: wrap;
     width: 100%;
     gap: 10px;
     padding: 12px;
+    overflow-x: visible;
   }
   
-  .admin-filter-input,
-  .admin-filter-select {
+  .admin-filter-input {
+    flex: 1 1 auto;
     width: 100%;
-    max-width: none;
     min-width: unset;
-    padding: 12px 14px;
+    max-width: none;
+    padding: 10px 12px;
+    font-size: 16px; /* Prevent iOS zoom on focus */
+  }
+
+  .admin-username-input {
+    width: 100%;
+    min-width: unset;
+    max-width: none;
+  }
+
+  .admin-phone-input {
+    width: 100%;
+    min-width: unset;
+    max-width: none;
+  }
+
+  .admin-filter-select {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: unset;
+    max-width: none;
+    padding: 10px 12px;
     font-size: 16px; /* Prevent iOS zoom on focus */
   }
   
   .admin-search-btn {
+    flex: 1 1 auto;
     width: 100%;
-    padding: 14px 16px;
+    padding: 10px 14px;
     font-size: 16px;
+    white-space: nowrap;
   }
   
   /* Mobile: Compact header */

@@ -509,7 +509,7 @@ const AdminPage = () => {
         <div className="admin-filter-row">
           <input
             type="text"
-            className="form-control admin-filter-input"
+            className="form-control admin-filter-input admin-username-input"
             placeholder="🔍 Username, first name, or last name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
