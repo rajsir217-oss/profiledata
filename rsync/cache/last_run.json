@@ -1,9 +1,9 @@
 {
-  "duration_seconds": 0.056,
+  "duration_seconds": 0.048,
   "exit_code": 1,
-  "finished_at": "2026-08-02T16:20:25.628706",
+  "finished_at": "2026-08-02T16:21:57.526627",
   "mode": "sync",
-  "started_at": "2026-08-02T16:20:25.572377",
+  "started_at": "2026-08-02T16:21:57.478828",
   "status": "failed",
   "summary": {
     "bytes_received": 0,
@@ -25,7 +25,7 @@
     "source_missing_folders": 0
   },
   "timings": {
-    "mount": 0.01314579199999999
+    "mount": 0.005560665999999999
   },
   "verification": "skipped"
 }
