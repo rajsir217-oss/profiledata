@@ -1,32 +1,31 @@
 {
-  "duration_seconds": 720.006,
-  "exit_code": 2,
-  "finished_at": "2026-08-02T15:11:12.709858",
+  "duration_seconds": 0.056,
+  "exit_code": 1,
+  "finished_at": "2026-08-02T16:20:25.628706",
   "mode": "sync",
-  "started_at": "2026-08-02T14:59:12.704247",
+  "started_at": "2026-08-02T16:20:25.572377",
   "status": "failed",
   "summary": {
-    "bytes_received": 744,
-    "bytes_sent": 79362,
-    "destination_bytes": 217121927634,
-    "destination_directories": 601,
-    "destination_files": 33477,
-    "file_count_mismatches": 1,
+    "bytes_received": 0,
+    "bytes_sent": 0,
+    "destination_bytes": 0,
+    "destination_directories": 0,
+    "destination_extra_files": 0,
+    "destination_extra_folders": 0,
+    "destination_files": 0,
+    "file_count_mismatches": 0,
     "files_deleted": 0,
     "files_transferred": 0,
-    "folder_mismatches": 1,
-    "folders_checked": 601,
-    "source_bytes": 217119489556,
-    "source_directories": 601,
-    "source_files": 33476
+    "folder_mismatches": 0,
+    "folders_checked": 0,
+    "source_bytes": 0,
+    "source_directories": 0,
+    "source_files": 0,
+    "source_missing_files": 0,
+    "source_missing_folders": 0
   },
   "timings": {
-    "inventory_dest": 243.6203754579983,
-    "inventory_source": 0.3406013330022688,
-    "mount": 0.005812499999592546,
-    "reconcile": 0.0015850000054342672,
-    "sync": 245.52103479200014,
-    "verify": 230.11351950000244
+    "mount": 0.01314579199999999
   },
-  "verification": "passed"
+  "verification": "skipped"
 }
