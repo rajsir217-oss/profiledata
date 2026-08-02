@@ -256,7 +256,12 @@ def main(argv: list[str] | None = None) -> int:
         )
         write_report(report, settings.report_file)
         for line in report.splitlines():
-            logger.info(line)
+            if line.startswith("Destination Extra Folders:") or line.startswith(
+                "Destination Extra Files:"
+            ):
+                logger.success(line)
+            else:
+                logger.info(line)
 
     except Exception as exc:
         logger.error(f"sync2NAS failed: {exc}")

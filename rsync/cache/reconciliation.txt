@@ -6,7 +6,7 @@ Pictures|0|0|OK
 Pictures/.thumbnails|2|2|OK
 Pictures/Camera|88|88|OK
 Seattle safari|205|205|OK
-Voice Recorder|1|1|OK
+Voice Recorder|0|1|EXTRA_DEST_FOLDER
 _pics_|0|0|OK
 _pics_/1980|0|0|OK
 _pics_/1980/01|0|0|OK
@@ -197,7 +197,7 @@ _pics_/2007/12/20071211|32|32|OK
 _pics_/2007/12/20071212|2|2|OK
 _pics_/2007/12/20071213|15|15|OK
 _pics_/2007/12/20071214|7|7|OK
-_pics_/2007/12/20071222|3|4|MISMATCH
+_pics_/2007/12/20071222|3|4|EXTRA_DEST_FILES
 _pics_/2008|0|0|OK
 _pics_/2008/02|0|0|OK
 _pics_/2008/02/20080228|10|10|OK
