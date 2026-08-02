@@ -195,24 +195,24 @@
 }
 
 
-.filter-group {
+.scheduler-filter-group {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: nowrap;
 }
 
-.filter-group .btn {
+.scheduler-filter-group .btn {
   white-space: nowrap;
 }
 
-.filter-group label {
+.scheduler-filter-group label {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
-.filter-group select {
+.scheduler-filter-group select {
   padding: 8px 12px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -244,14 +244,21 @@
 }
 
 .status-filter-group .btn {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-left: 0;
 }
 
-.filter-group select:hover {
+.scheduler-filter-group select:hover {
   border-color: var(--primary-color);
 }
 
-.filter-group select:focus {
+.scheduler-filter-group select:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
@@ -656,7 +663,7 @@
     font-size: 1.1rem;
   }
 
-  .filter-group {
+  .scheduler-filter-group {
     flex-wrap: wrap;
   }
 

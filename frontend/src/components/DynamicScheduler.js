@@ -628,7 +628,7 @@ const DynamicScheduler = ({ currentUser }) => {
 
       {/* Filters bar (no status cards) */}
       <div className="scheduler-toolbar">
-        <div className="filter-group template-filter">
+        <div className="scheduler-filter-group template-filter">
           <label>Template Type:</label>
           <div className="multi-select-container">
             <button 
@@ -681,7 +681,7 @@ const DynamicScheduler = ({ currentUser }) => {
             )}
           </div>
         </div>
-        <div className="filter-group status-filter-group">
+        <div className="scheduler-filter-group status-filter-group">
           <label>Status:</label>
           <select
             className="status-select"
