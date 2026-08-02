@@ -119,13 +119,13 @@ export const useSearchPagination = (searchState, handleSearch) => {
   // Calculate pagination progress
   const getPaginationProgress = useCallback(() => {
     if (!users.length) return 0;
-    return Math.min((users.length / (users.length + (hasMoreResults ? 20 : 0))) * 100, 100);
+    return Math.min((users.length / (users.length + (hasMoreResults ? 24 : 0))) * 100, 100);
   }, [users.length, hasMoreResults]);
 
   // Get estimated total (current + estimated remaining)
   const getEstimatedTotal = useCallback(() => {
     if (!hasMoreResults) return users.length;
-    return users.length + 20; // Assume one more page of 20 items
+    return users.length + 24; // Assume one more page of 24 items
   }, [users.length, hasMoreResults]);
 
   return {

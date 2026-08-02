@@ -1538,7 +1538,7 @@ const SearchPage2 = () => {
     };
   }, []);
 
-  const buildNearMeSearchParams = useCallback((criteria, page = 1, limit = 20) => {
+  const buildNearMeSearchParams = useCallback((criteria, page = 1, limit = 24) => {
     const query = new URLSearchParams();
     const payload = { ...criteria };
 
@@ -3026,7 +3026,7 @@ const SearchPage2 = () => {
               totalCount={totalResults}
               onLoadMore={handleLoadMore}
               loading={loadingMore}
-              itemsPerLoad={20}
+              itemsPerLoad={24}
               itemLabel="profiles"
               buttonText={hasMoreResults ? "Load more" : "All loaded"}
             />

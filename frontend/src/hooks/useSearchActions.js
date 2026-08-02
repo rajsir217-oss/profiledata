@@ -266,7 +266,7 @@ export const useSearchActions = (searchState, userState, filterState) => {
 
       // Add pagination and sorting
       query.append('page', page);
-      query.append('limit', '20');
+      query.append('limit', '24');
       query.append('sortBy', sortByToUse);
       query.append('sortOrder', sortOrderToUse);
 
