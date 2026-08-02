@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.rajsiripuram.sync2NAS</string>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/usr/bin/env</string>
+      <string>python3</string>
+      <string>/Users/rajsiripuram02/opt/appsrc/profiledata/rsync/sync2NAS.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/rajsiripuram02/opt/appsrc/profiledata/rsync</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+      <key>Hour</key>
+      <integer>2</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/rajsiripuram02/opt/appsrc/profiledata/rsync/launchd.out</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/rajsiripuram02/opt/appsrc/profiledata/rsync/launchd.err</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+  </dict>
+</plist>

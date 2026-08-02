@@ -1,0 +1,25 @@
+====================================================
+SUMMARY
+====================================================
+Source Directories: 601
+Destination Directories: 601
+Source Files: 33476
+Destination Files: 33477
+Source Size: 202.21 GB
+Destination Size: 202.21 GB
+Transferred Files: 0
+Deleted Files: 0
+Bytes Sent: 77.50 KB
+Bytes Received: 744 B
+Folder Mismatches: 1
+File Count Mismatches: 1
+Verification: PASSED
+
+Mount Time: 0s
+Sync Time: 4m 5s
+Source Inventory Time: 0s
+Destination Inventory Time: 4m 3s
+Reconciliation Time: 0s
+Verification Time: 3m 50s
+Total Runtime: 12m 0s
+====================================================
