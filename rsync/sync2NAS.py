@@ -116,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
 
     exit_code = 1
     final_status = "failed"
+    user_status = "ACTION_REQUIRED"
 
     try:
         logger.header(
@@ -227,6 +228,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         verify_ok = verify_result.passed if verify_result is not None else True
 
+        if not reconcile_ok:
+            user_status = "ACTION_REQUIRED"
+        elif destination_has_extras or not verify_ok:
+            user_status = "SUCCESS_WITH_WARNINGS"
+        else:
+            user_status = "SUCCESS"
+
         if reconcile_ok and verify_ok:
             final_status = "success"
             exit_code = 0
@@ -240,11 +248,14 @@ def main(argv: list[str] | None = None) -> int:
         else:
             final_status = "failed"
             exit_code = 2
-            logger.error(
-                "RECONCILIATION FAILED "
-                f"(missing_folders={reconcile_summary.source_missing_folders}, "
-                f"missing_files={reconcile_summary.source_missing_files})"
-            )
+            if not reconcile_ok:
+                logger.error(
+                    "RECONCILIATION FAILED "
+                    f"(missing_folders={reconcile_summary.source_missing_folders}, "
+                    f"missing_files={reconcile_summary.source_missing_files})"
+                )
+            else:
+                logger.error("PROCESS FAILED due verification differences")
 
         report = build_report(
             source_summary=source_summary,
@@ -253,6 +264,8 @@ def main(argv: list[str] | None = None) -> int:
             reconcile_summary=reconcile_summary,
             verify_result=verify_result,
             timers=timers,
+            user_status=user_status,
+            process_status=final_status.upper(),
         )
         write_report(report, settings.report_file)
         for line in report.splitlines():
@@ -267,6 +280,7 @@ def main(argv: list[str] | None = None) -> int:
         logger.error(f"sync2NAS failed: {exc}")
         final_status = "failed"
         exit_code = 1
+        user_status = "ACTION_REQUIRED"
     finally:
         heartbeat.stop()
         if settings.unmount_after_run and smb.mounted_by_script:
@@ -283,6 +297,8 @@ def main(argv: list[str] | None = None) -> int:
 
         state["finished_at"] = finished.isoformat()
         state["status"] = final_status
+        state["user_status"] = user_status
+        state["process_status"] = final_status.upper()
         state["exit_code"] = exit_code
         state["duration_seconds"] = round(duration, 3)
         state["verification"] = (
@@ -323,7 +339,12 @@ def main(argv: list[str] | None = None) -> int:
         state_writer.write(state)
 
         logger.header("sync2NAS Finished")
-        logger.info(f"Status: {final_status.upper()}")
+        if user_status.startswith("SUCCESS"):
+            logger.success(f"User Status: {user_status}")
+        else:
+            logger.error(f"User Status: {user_status}")
+        logger.info(f"Process Status: {final_status.upper()} (exit_code={exit_code})")
+        logger.info(f"Status: {user_status}")
 
     return exit_code
 

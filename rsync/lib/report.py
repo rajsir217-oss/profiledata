@@ -17,6 +17,8 @@ def build_report(
     reconcile_summary: ReconcileSummary,
     verify_result: VerifyResult | None,
     timers: TimerManager,
+    user_status: str,
+    process_status: str,
 ) -> str:
     verify_text = "SKIPPED"
     if verify_result is not None:
@@ -43,6 +45,8 @@ def build_report(
         f"Destination Extra Folders: {reconcile_summary.destination_extra_folders}",
         f"Destination Extra Files: {reconcile_summary.destination_extra_files}",
         f"Verification: {verify_text}",
+        f"User Status: {user_status}",
+        f"Process Status: {process_status}",
         "",
         f"Mount Time: {format_duration(timers.durations.get('mount', 0))}",
         f"Sync Time: {format_duration(timers.durations.get('sync', 0))}",
