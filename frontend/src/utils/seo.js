@@ -3,6 +3,8 @@
  * Helper functions for SEO optimization
  */
 
+import { SEO_KEYWORD_UNIVERSE, createKeywordString } from '../config/seoBrandKit';
+
 const DEFAULT_SITE_URL = 'https://l3v3lmatches.com';
 
 const normalizeSiteUrl = (value) => {
@@ -27,17 +29,24 @@ const getSiteUrl = () => {
 const BASE_URL = getSiteUrl();
 const DEFAULT_OG_IMAGE = `${BASE_URL}/android-chrome-512x512.png`;
 const KEYWORD_GROUPS = {
-  brand: ['l3v3l matches', 'level matches', 'l3v3l matrimony', 'level matrimony'],
-  coreServices: ['matrimony', 'matrimonial services', 'indian matchmaking', 'indian origin matchmaking', 'indian origins match making'],
-  diaspora: ['us citizens indians matrimony', 'us citizen indians matchmaking', 'indian americans matrimony', 'nri matrimony usa', 'usa indian matchmaking', 'indian marriage bureau usa'],
-  relationship: ['marriage', 'wedding', 'life partner', 'serious relationship', 'shaadi', 'vivah'],
+  brand: SEO_KEYWORD_UNIVERSE.coreBrandKeywords,
+  coreServices: SEO_KEYWORD_UNIVERSE.matrimonyAndMatchmakingKeywords,
+  diaspora: SEO_KEYWORD_UNIVERSE.indianOriginAndCulturalKeywords,
+  usEligibility: SEO_KEYWORD_UNIVERSE.usBasedEligibilityKeywords,
+  trust: SEO_KEYWORD_UNIVERSE.safetyTrustVerificationKeywords,
+  compatibility: SEO_KEYWORD_UNIVERSE.lifestyleCompatibilityKeywords,
+  premium: SEO_KEYWORD_UNIVERSE.premiumPositioningKeywords,
+  discovery: SEO_KEYWORD_UNIVERSE.searchAndDiscoveryKeywords,
+  community: SEO_KEYWORD_UNIVERSE.eventAndCommunityKeywords,
+  marketing: SEO_KEYWORD_UNIVERSE.marketingAndMessagingKeywords,
+  longTail: SEO_KEYWORD_UNIVERSE.longTailKeywords,
   registration: ['register matrimony profile', 'free matrimony registration', 'join indian matrimony'],
-  algorithm: ['l3v3l algorithm', 'compatibility matching', 'ai matchmaking', 'indian matrimony compatibility'],
+  algorithm: ['l3v3l algorithm', 'ai compatibility scoring', 'level compatibility score', 'level match engine', 'indian matrimony compatibility'],
   support: ['help center', 'matrimony support', 'matchmaking faq']
 };
 
 const createKeywords = (...keywordGroups) => {
-  return [...new Set(keywordGroups.flat().filter(Boolean))].join(', ');
+  return createKeywordString(...keywordGroups);
 };
 // eslint-disable-next-line no-unused-vars
 const SITE_NAME = '🦋 L3V3L Matches'; // Reserved for future SEO enhancements
@@ -168,12 +177,14 @@ export const getPageSEO = (pageName) => {
   const seoData = {
     home: {
       title: '🦋 L3V3L Matches - Find Your Perfect Life Partner',
-      description: 'Join L3V3L Matches, the modern matchmaking platform. Connect with thousands of verified profiles for meaningful relationships and marriage.',
+      description: 'L3V3L Matches is a premium, verified matrimonial platform for US-based Indian-origin families and professionals seeking meaningful, marriage-ready connections.',
       keywords: createKeywords(
-        KEYWORD_GROUPS.brand,
-        KEYWORD_GROUPS.coreServices,
-        KEYWORD_GROUPS.diaspora,
-        KEYWORD_GROUPS.relationship
+        KEYWORD_GROUPS.brand.slice(0, 8),
+        KEYWORD_GROUPS.coreServices.slice(0, 10),
+        KEYWORD_GROUPS.diaspora.slice(0, 8),
+        KEYWORD_GROUPS.usEligibility.slice(0, 6),
+        KEYWORD_GROUPS.trust.slice(0, 6),
+        KEYWORD_GROUPS.marketing.slice(0, 6)
       ),
       url: BASE_URL,
       type: 'website'
@@ -188,12 +199,14 @@ export const getPageSEO = (pageName) => {
     },
     register: {
       title: '🦋 Create Your Free Profile | L3V3L Matches',
-      description: 'Join L3V3L Matches for free. Create your profile in minutes and start connecting with verified matches today.',
+      description: 'Create your L3V3L Matches profile and connect with verified Indian-origin matches in the USA through premium, trust-first matrimonial discovery.',
       keywords: createKeywords(
-        KEYWORD_GROUPS.brand,
-        KEYWORD_GROUPS.coreServices,
+        KEYWORD_GROUPS.brand.slice(0, 8),
+        KEYWORD_GROUPS.coreServices.slice(0, 8),
         KEYWORD_GROUPS.registration,
-        KEYWORD_GROUPS.diaspora
+        KEYWORD_GROUPS.diaspora.slice(0, 6),
+        KEYWORD_GROUPS.usEligibility.slice(0, 5),
+        KEYWORD_GROUPS.premium.slice(0, 5)
       ),
       url: `${BASE_URL}/register3`,
       type: 'website'
@@ -202,9 +215,10 @@ export const getPageSEO = (pageName) => {
       title: '🦋 About L3V3L Matchmaking Algorithm | L3V3L Matches',
       description: 'Learn about the L3V3L algorithm - our advanced 3-level matching system that finds you the most compatible life partner.',
       keywords: createKeywords(
-        KEYWORD_GROUPS.brand,
+        KEYWORD_GROUPS.brand.slice(0, 6),
         KEYWORD_GROUPS.algorithm,
-        KEYWORD_GROUPS.coreServices
+        KEYWORD_GROUPS.compatibility.slice(0, 8),
+        KEYWORD_GROUPS.discovery.slice(0, 6)
       ),
       url: `${BASE_URL}/l3v3l-info`,
       type: 'article'
@@ -255,7 +269,12 @@ export const getPageSEO = (pageName) => {
     help: {
       title: '🦋 Help Center | L3V3L Matches',
       description: 'Find answers to common questions and get support for your L3V3L Matches account.',
-      keywords: createKeywords(KEYWORD_GROUPS.brand, KEYWORD_GROUPS.support, KEYWORD_GROUPS.coreServices),
+      keywords: createKeywords(
+        KEYWORD_GROUPS.brand.slice(0, 5),
+        KEYWORD_GROUPS.support,
+        KEYWORD_GROUPS.trust.slice(0, 6),
+        KEYWORD_GROUPS.community.slice(0, 4)
+      ),
       url: `${BASE_URL}/help`,
       type: 'website'
     },

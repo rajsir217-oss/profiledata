@@ -637,6 +637,7 @@ function AppContent() {
               <Route path="/poll-management" element={<Navigate to="/admin-hub?section=announcements&tab=polls" replace />} />
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/whatsapp-verification" element={<Navigate to="/admin-utilities?tab=whatsapp" replace />} />
+              <Route path="/seo-brand-kit-export" element={<Navigate to="/admin-utilities?tab=seo-brand-kit" replace />} />
               <Route path="/admin-reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
               {/* Legacy routes - redirect to unified page */}
               <Route path="/template-manager" element={<Navigate to="/notification-management" replace />} />

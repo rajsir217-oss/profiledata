@@ -1,20 +1,13 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import { SEO_KEYWORD_UNIVERSE, createKeywordString } from '../config/seoBrandKit';
 
 const DEFAULT_SITE_URL = (process.env.REACT_APP_SITE_URL || 'https://l3v3lmatches.com').replace(/\/+$/, '');
-const DEFAULT_BUSINESS_KEYWORDS = [
-  'l3v3l matches',
-  'level matches',
-  'l3v3l matrimony',
-  'matrimony',
-  'matrimonial services',
-  'indian matchmaking',
-  'indian origin matchmaking',
-  'indian americans matrimony',
-  'nri matrimony usa',
-  'shaadi',
-  'vivah'
-].join(', ');
+const DEFAULT_BUSINESS_KEYWORDS = createKeywordString(
+  SEO_KEYWORD_UNIVERSE.coreBrandKeywords.slice(0, 6),
+  SEO_KEYWORD_UNIVERSE.matrimonyAndMatchmakingKeywords.slice(0, 6),
+  SEO_KEYWORD_UNIVERSE.indianOriginAndCulturalKeywords.slice(0, 4)
+);
 
 const toAbsoluteUrl = (value) => {
   if (!value) {
