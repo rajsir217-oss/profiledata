@@ -50,6 +50,9 @@ fastapi_backend/backups/*.archive.gz
 fastapi_backend/backups/*.tar.gz
 fastapi_backend/backups/*.json
 
+# Local archive staging for deferred deletion review
+safe2delete/
+
 # Terraform
 *.tf
 *.tfvars
