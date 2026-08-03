@@ -59,7 +59,10 @@ const BlogView = () => {
   if (error || !post) {
     return (
       <div className="blog-view">
-        <SEO title="Blog Post Not Found" />
+        <SEO
+          title="Blog Post Not Found"
+          keywords="l3v3l matches blog, level matches blog, matrimony blog"
+        />
         <div className="blog-view-error">
           <h1>Post Not Found</h1>
           <p>{error || 'The blog post you are looking for does not exist.'}</p>
@@ -74,6 +77,13 @@ const BlogView = () => {
       <SEO
         title={post.title}
         description={post.metaDescription || post.excerpt || ''}
+        keywords={[
+          'l3v3l matches',
+          'level matches',
+          'matrimony',
+          'matrimonial services',
+          ...(post.tags || [])
+        ].join(', ')}
         url={`/blog/${post.slug}`}
         type="article"
       />

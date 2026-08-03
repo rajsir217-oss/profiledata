@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
+import SEO from './SEO';
+import { getPageSEO } from '../utils/seo';
 import './HelpPage.css';
 
 const HelpTips = ({ category }) => {
@@ -41,6 +43,7 @@ const HelpTips = ({ category }) => {
 const HelpPage = () => {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('getting-started');
+  const pageSEO = getPageSEO('help');
 
   const sections = [
     { id: 'getting-started', icon: '🚀', title: 'Getting Started' },
@@ -818,37 +821,46 @@ const HelpPage = () => {
   };
 
   return (
-    <div className="help-page">
-      <div className="help-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
-          ← Back
-        </button>
-        <h1>📚 Help Center</h1>
-        <p>Learn how to make the most of L3V3L Matches</p>
-      </div>
-
-      <div className="help-container">
-        <div className="help-sidebar">
-          <nav className="help-nav">
-            {sections.map(section => (
-              <button
-                key={section.id}
-                className={`help-nav-item ${activeSection === section.id ? 'active' : ''}`}
-                onClick={() => setActiveSection(section.id)}
-              >
-                <span className="nav-icon">{section.icon}</span>
-                <span className="nav-title">{section.title}</span>
-              </button>
-            ))}
-          </nav>
+    <>
+      <SEO
+        title={pageSEO.title}
+        description={pageSEO.description}
+        keywords={pageSEO.keywords}
+        url={pageSEO.url}
+        type={pageSEO.type}
+      />
+      <div className="help-page">
+        <div className="help-header">
+          <button className="back-button" onClick={() => navigate(-1)}>
+            ← Back
+          </button>
+          <h1>📚 Help Center</h1>
+          <p>Learn how to make the most of L3V3L Matches</p>
         </div>
 
-        <div className="help-main">
-          {renderContent()}
-          <HelpTips category={activeSection} />
+        <div className="help-container">
+          <div className="help-sidebar">
+            <nav className="help-nav">
+              {sections.map(section => (
+                <button
+                  key={section.id}
+                  className={`help-nav-item ${activeSection === section.id ? 'active' : ''}`}
+                  onClick={() => setActiveSection(section.id)}
+                >
+                  <span className="nav-icon">{section.icon}</span>
+                  <span className="nav-title">{section.title}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="help-main">
+            {renderContent()}
+            <HelpTips category={activeSection} />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
