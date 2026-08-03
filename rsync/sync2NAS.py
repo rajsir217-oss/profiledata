@@ -3,17 +3,20 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import os
 import sys
+from fnmatch import fnmatch
+from hashlib import blake2b
 from pathlib import Path
 
 from config import load_settings
 from lib.common import ensure_dir
 from lib.heartbeat import Heartbeat
-from lib.inventory import build_inventory, read_inventory
+from lib.inventory import InventorySummary, build_inventory, read_inventory
 from lib.lock import PidLock
 from lib.logging import Logger, rotate_logs
-from lib.reconcile import reconcile
+from lib.reconcile import ReconcileSummary, reconcile
 from lib.report import build_report, write_report
 from lib.rsync import RsyncSummary, run_rsync
 from lib.smb import SmbManager
@@ -30,6 +33,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--check",
         action="store_true",
         help="Run preflight checks only (source/destination access + SMB mount), then exit.",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Run sync even if source fingerprint indicates no changes.",
     )
     return parser.parse_args(argv)
 
@@ -68,6 +76,86 @@ def _assert_dir_access(path: Path, label: str, needs_write: bool) -> None:
             raise PermissionError(
                 f"{label} is not writable: {path}. macOS launchd context may not have write access."
             ) from exc
+
+
+def _is_excluded(name: str, exclude_patterns: list[str]) -> bool:
+    return any(fnmatch(name, pattern) for pattern in exclude_patterns)
+
+
+def _build_source_fingerprint(
+    root: Path,
+    exclude_patterns: list[str],
+) -> dict[str, int | str]:
+    hasher = blake2b(digest_size=16)
+    hasher.update(
+        f"EXCLUDE|{','.join(sorted(exclude_patterns))}\n".encode("utf-8")
+    )
+
+    directories = 0
+    files = 0
+    total_bytes = 0
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(
+            name for name in dirnames if not _is_excluded(name, exclude_patterns)
+        )
+        filenames = sorted(
+            name for name in filenames if not _is_excluded(name, exclude_patterns)
+        )
+
+        rel_dir = os.path.relpath(dirpath, root)
+        rel_dir = "." if rel_dir == "." else rel_dir.lstrip("./")
+
+        directories += 1
+        hasher.update(f"D|{rel_dir}\n".encode("utf-8"))
+
+        for name in filenames:
+            full_path = Path(dirpath) / name
+            try:
+                st = full_path.stat()
+            except OSError:
+                continue
+            if not full_path.is_file():
+                continue
+
+            rel_file = name if rel_dir == "." else f"{rel_dir}/{name}"
+            size = int(st.st_size)
+            mtime_ns = int(st.st_mtime_ns)
+
+            files += 1
+            total_bytes += size
+            hasher.update(f"F|{rel_file}|{size}|{mtime_ns}\n".encode("utf-8"))
+
+    return {
+        "signature": hasher.hexdigest(),
+        "directories": directories,
+        "files": files,
+        "bytes": total_bytes,
+        "scanned_at": dt.datetime.now().isoformat(),
+    }
+
+
+def _read_source_fingerprint(path: Path) -> dict[str, int | str] | None:
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    signature = payload.get("signature")
+    if not isinstance(signature, str) or not signature:
+        return None
+    return payload
+
+
+def _write_source_fingerprint(path: Path, payload: dict[str, int | str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -113,6 +201,7 @@ def main(argv: list[str] | None = None) -> int:
     rsync_summary = RsyncSummary()
     reconcile_summary = None
     verify_result: VerifyResult | None = None
+    source_fingerprint: dict[str, int | str] | None = None
 
     exit_code = 1
     final_status = "failed"
@@ -131,9 +220,84 @@ def main(argv: list[str] | None = None) -> int:
             f"exclude_patterns={settings.exclude_patterns}"
         )
 
+        source_fingerprint_path = settings.cache_dir / "source_fingerprint.json"
+        logger.info(f"Source fingerprint cache: {source_fingerprint_path}")
+
         if not settings.source.exists() or not settings.source.is_dir():
             raise RuntimeError(f"Source path is missing or invalid: {settings.source}")
         _assert_dir_access(settings.source, label="Source", needs_write=False)
+
+        if not args.check:
+            heartbeat.update_phase("Scan source changes")
+            timers.start("source_scan")
+            source_fingerprint = _build_source_fingerprint(
+                root=settings.source,
+                exclude_patterns=settings.exclude_patterns,
+            )
+            timers.stop("source_scan")
+
+            current_signature = str(source_fingerprint.get("signature", ""))
+            logger.info(
+                "Current source fingerprint: "
+                f"{current_signature[:12]} "
+                f"(dirs={source_fingerprint.get('directories', 0)}, "
+                f"files={source_fingerprint.get('files', 0)}, "
+                f"bytes={source_fingerprint.get('bytes', 0)})"
+            )
+
+            if args.force:
+                logger.info(
+                    "Force mode enabled: running sync regardless of source fingerprint."
+                )
+            else:
+                previous_fingerprint = _read_source_fingerprint(source_fingerprint_path)
+                if previous_fingerprint is None:
+                    logger.info(
+                        "No previous source fingerprint found; running full sync."
+                    )
+                else:
+                    previous_signature = str(previous_fingerprint.get("signature", ""))
+                    logger.info(
+                        "Previous source fingerprint: " f"{previous_signature[:12]}"
+                    )
+                if (
+                    previous_fingerprint is not None
+                    and previous_fingerprint.get("signature")
+                    == source_fingerprint.get("signature")
+                ):
+                    source_summary = InventorySummary(
+                        directories=int(source_fingerprint.get("directories", 0)),
+                        files=int(source_fingerprint.get("files", 0)),
+                        bytes=int(source_fingerprint.get("bytes", 0)),
+                    )
+                    dest_summary = InventorySummary()
+                    reconcile_summary = ReconcileSummary()
+                    final_status = "success"
+                    exit_code = 0
+                    user_status = "SUCCESS_SKIPPED_NO_CHANGES"
+                    logger.success(
+                        "No source changes detected since last successful run; skipping sync."
+                    )
+                    logger.info("Use --force to run sync anyway.")
+                    report = build_report(
+                        source_summary=source_summary,
+                        dest_summary=dest_summary,
+                        rsync_summary=rsync_summary,
+                        reconcile_summary=reconcile_summary,
+                        verify_result=None,
+                        timers=timers,
+                        user_status=user_status,
+                        process_status=final_status.upper(),
+                    )
+                    write_report(report, settings.report_file)
+                    for line in report.splitlines():
+                        logger.info(line)
+                    return exit_code
+
+                if previous_fingerprint is not None:
+                    logger.info(
+                        "Source changes detected; fingerprints differ. Proceeding with sync."
+                    )
 
         heartbeat.update_phase("Mount SMB")
         timers.start("mount")
@@ -275,6 +439,14 @@ def main(argv: list[str] | None = None) -> int:
                 logger.success(line)
             else:
                 logger.info(line)
+
+        if final_status == "success" and source_fingerprint is not None:
+            _write_source_fingerprint(source_fingerprint_path, source_fingerprint)
+            logger.info(
+                "Updated source fingerprint cache: "
+                f"{source_fingerprint_path} "
+                f"({str(source_fingerprint.get('signature', ''))[:12]})"
+            )
 
     except Exception as exc:
         logger.error(f"sync2NAS failed: {exc}")

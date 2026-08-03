@@ -37,9 +37,31 @@ class SmbManager:
             self.logger.info(f"SMB already mounted at {self.mount_point}")
             return
 
-        self.mount_point.mkdir(parents=True, exist_ok=True)
+        try:
+            self.mount_point.mkdir(parents=True, exist_ok=True)
+        except PermissionError as exc:
+            hint = (
+                f"Cannot create mount point {self.mount_point}. "
+                "Current user does not have write permission. "
+            )
+            if str(self.mount_point).startswith("/Volumes/"):
+                hint += (
+                    "For /Volumes mount points, pre-create it with sudo "
+                    "or configure a user-writable mount_point in rsync/config.local.json "
+                    "(for example: /Users/<user>/.mounts/<share>)."
+                )
+            else:
+                hint += (
+                    "Configure a user-writable mount_point in rsync/config.local.json."
+                )
+            raise RuntimeError(hint) from exc
+        except OSError as exc:
+            raise RuntimeError(
+                f"Unable to prepare mount point {self.mount_point}: {exc}"
+            ) from exc
 
         target = f"//{self.smb_user}@{self.server}/{self.share}"
+        last_error = ""
         for attempt in range(1, self.max_retries + 1):
             self.logger.info(f"Mounting SMB ({attempt}/{self.max_retries})...")
             rc = subprocess.run(
@@ -55,11 +77,16 @@ class SmbManager:
 
             stderr = (rc.stderr or "").strip()
             if stderr:
+                last_error = stderr
                 self.logger.warn(f"mount_smbfs error: {stderr}")
 
             if attempt < self.max_retries:
                 time.sleep(self.retry_delay_seconds)
 
+        if last_error:
+            raise RuntimeError(
+                f"Unable to mount SMB share at {self.mount_point}. Last error: {last_error}"
+            )
         raise RuntimeError(f"Unable to mount SMB share at {self.mount_point}")
 
     def unmount(self) -> None:
