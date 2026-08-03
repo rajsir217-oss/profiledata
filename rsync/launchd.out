@@ -85,3 +85,115 @@
 2026-08-03 16:15:00 [SUCCESS] User Status: SUCCESS_WITH_WARNINGS
 2026-08-03 16:15:00 [INFO] Process Status: FAILED (exit_code=2)
 2026-08-03 16:15:00 [INFO] Status: SUCCESS_WITH_WARNINGS
+2026-08-03 16:17:58 [INFO] ========================================================
+2026-08-03 16:17:58 [INFO] sync2NAS Started
+2026-08-03 16:17:58 [INFO] ========================================================
+2026-08-03 16:17:58 [INFO] Source: /Users/rajsiripuram02/SyncSources/sync2NAS
+2026-08-03 16:17:58 [INFO] Destination: /Volumes/wdc_home_share/sync2NAS
+2026-08-03 16:17:58 [INFO] Sync policy: relax_metadata=True, modify_window_seconds=2, exclude_patterns=['.DS_Store', '._*', '.Spotlight-V100', '.Trashes', '.fseventsd', 'Thumbs.db']
+2026-08-03 16:17:58 [INFO] Source fingerprint cache: /Users/rajsiripuram02/opt/appsrc/profiledata/rsync/cache/source_fingerprint.json
+2026-08-03 16:17:58 [INFO] Current source fingerprint: 6600ddaee618 (dirs=600, files=33475, bytes=217113842854)
+2026-08-03 16:17:58 [INFO] No previous source fingerprint found; running full sync.
+2026-08-03 16:17:58 [INFO] SMB already mounted at /Volumes/wdc_home_share
+2026-08-03 16:17:58 [INFO] Using rsync append mode: --append (compat mode)
+2026-08-03 16:17:58 [INFO] Running rsync...
+2026-08-03 16:18:58 [INFO] Heartbeat... phase=Run rsync; elapsed=1m 0s
+2026-08-03 16:19:58 [INFO] Heartbeat... phase=Run rsync; elapsed=2m 0s
+2026-08-03 16:20:58 [INFO] Heartbeat... phase=Run rsync; elapsed=3m 0s
+2026-08-03 16:21:49 [INFO] rsync complete: files_transferred=0, files_deleted=0, bytes_sent=0, bytes_received=0
+2026-08-03 16:21:58 [INFO] Heartbeat... phase=Build destination inventory; elapsed=4m 0s; folders=600/600
+2026-08-03 16:22:58 [INFO] Heartbeat... phase=Build destination inventory; elapsed=5m 0s; folders=600/600
+2026-08-03 16:23:58 [INFO] Heartbeat... phase=Build destination inventory; elapsed=6m 0s; folders=600/600
+2026-08-03 16:24:58 [INFO] Heartbeat... phase=Build destination inventory; elapsed=7m 0s; folders=600/600
+2026-08-03 16:25:58 [INFO] Heartbeat... phase=Verify; elapsed=8m 0s; folders=601/601
+2026-08-03 16:26:58 [INFO] Heartbeat... phase=Verify; elapsed=9m 0s; folders=601/601
+2026-08-03 16:27:58 [INFO] Heartbeat... phase=Verify; elapsed=10m 0s; folders=601/601
+2026-08-03 16:28:58 [INFO] Heartbeat... phase=Verify; elapsed=11m 0s; folders=601/601
+2026-08-03 16:29:40 [SUCCESS] Verification PASSED
+2026-08-03 16:29:40 [WARN] RECONCILIATION PASSED with destination extras (allowed for one-way sync policy)
+2026-08-03 16:29:40 [INFO] ====================================================
+2026-08-03 16:29:40 [INFO] SUMMARY
+2026-08-03 16:29:40 [INFO] ====================================================
+2026-08-03 16:29:40 [INFO] Source Directories: 600
+2026-08-03 16:29:40 [INFO] Destination Directories: 601
+2026-08-03 16:29:40 [INFO] Source Files: 33475
+2026-08-03 16:29:40 [INFO] Destination Files: 33477
+2026-08-03 16:29:40 [INFO] Source Size: 202.20 GB
+2026-08-03 16:29:40 [INFO] Destination Size: 202.21 GB
+2026-08-03 16:29:40 [INFO] Transferred Files: 0
+2026-08-03 16:29:40 [INFO] Deleted Files: 0
+2026-08-03 16:29:40 [INFO] Bytes Sent: 0 B
+2026-08-03 16:29:40 [INFO] Bytes Received: 0 B
+2026-08-03 16:29:40 [INFO] Folder Mismatches: 2
+2026-08-03 16:29:40 [INFO] File Count Mismatches: 2
+2026-08-03 16:29:40 [INFO] Missing Destination Folders: 0
+2026-08-03 16:29:40 [INFO] Missing Destination Files: 0
+2026-08-03 16:29:40 [SUCCESS] Destination Extra Folders: 1
+2026-08-03 16:29:40 [SUCCESS] Destination Extra Files: 2
+2026-08-03 16:29:40 [INFO] Verification: PASSED
+2026-08-03 16:29:40 [INFO] User Status: SUCCESS_WITH_WARNINGS
+2026-08-03 16:29:40 [INFO] Process Status: SUCCESS
+2026-08-03 16:29:40 [INFO] 
+2026-08-03 16:29:40 [INFO] Mount Time: 0s
+2026-08-03 16:29:40 [INFO] Sync Time: 3m 50s
+2026-08-03 16:29:40 [INFO] Source Inventory Time: 0s
+2026-08-03 16:29:40 [INFO] Destination Inventory Time: 4m 3s
+2026-08-03 16:29:40 [INFO] Reconciliation Time: 0s
+2026-08-03 16:29:40 [INFO] Verification Time: 3m 48s
+2026-08-03 16:29:40 [INFO] Total Runtime: 11m 42s
+2026-08-03 16:29:40 [INFO] ====================================================
+2026-08-03 16:29:40 [INFO] Updated source fingerprint cache: /Users/rajsiripuram02/opt/appsrc/profiledata/rsync/cache/source_fingerprint.json (6600ddaee618)
+2026-08-03 16:29:40 [INFO] ========================================================
+2026-08-03 16:29:40 [INFO] sync2NAS Finished
+2026-08-03 16:29:40 [INFO] ========================================================
+2026-08-03 16:29:40 [SUCCESS] User Status: SUCCESS_WITH_WARNINGS
+2026-08-03 16:29:40 [INFO] Process Status: SUCCESS (exit_code=0)
+2026-08-03 16:29:40 [INFO] Status: SUCCESS_WITH_WARNINGS
+2026-08-03 16:31:01 [INFO] ========================================================
+2026-08-03 16:31:01 [INFO] sync2NAS Started
+2026-08-03 16:31:01 [INFO] ========================================================
+2026-08-03 16:31:01 [INFO] Source: /Users/rajsiripuram02/SyncSources/sync2NAS
+2026-08-03 16:31:01 [INFO] Destination: /Volumes/wdc_home_share/sync2NAS
+2026-08-03 16:31:01 [INFO] Sync policy: relax_metadata=True, modify_window_seconds=2, exclude_patterns=['.DS_Store', '._*', '.Spotlight-V100', '.Trashes', '.fseventsd', 'Thumbs.db']
+2026-08-03 16:31:01 [INFO] Source fingerprint cache: /Users/rajsiripuram02/opt/appsrc/profiledata/rsync/cache/source_fingerprint.json
+2026-08-03 16:31:01 [INFO] Current source fingerprint: 6600ddaee618 (dirs=600, files=33475, bytes=217113842854)
+2026-08-03 16:31:01 [INFO] Previous source fingerprint: 6600ddaee618
+2026-08-03 16:31:01 [SUCCESS] No source changes detected since last successful run; skipping sync.
+2026-08-03 16:31:01 [INFO] Use --force to run sync anyway.
+2026-08-03 16:31:01 [INFO] ====================================================
+2026-08-03 16:31:01 [INFO] SUMMARY
+2026-08-03 16:31:01 [INFO] ====================================================
+2026-08-03 16:31:01 [INFO] Source Directories: 600
+2026-08-03 16:31:01 [INFO] Destination Directories: 0
+2026-08-03 16:31:01 [INFO] Source Files: 33475
+2026-08-03 16:31:01 [INFO] Destination Files: 0
+2026-08-03 16:31:01 [INFO] Source Size: 202.20 GB
+2026-08-03 16:31:01 [INFO] Destination Size: 0 B
+2026-08-03 16:31:01 [INFO] Transferred Files: 0
+2026-08-03 16:31:01 [INFO] Deleted Files: 0
+2026-08-03 16:31:01 [INFO] Bytes Sent: 0 B
+2026-08-03 16:31:01 [INFO] Bytes Received: 0 B
+2026-08-03 16:31:01 [INFO] Folder Mismatches: 0
+2026-08-03 16:31:01 [INFO] File Count Mismatches: 0
+2026-08-03 16:31:01 [INFO] Missing Destination Folders: 0
+2026-08-03 16:31:01 [INFO] Missing Destination Files: 0
+2026-08-03 16:31:01 [INFO] Destination Extra Folders: 0
+2026-08-03 16:31:01 [INFO] Destination Extra Files: 0
+2026-08-03 16:31:01 [INFO] Verification: SKIPPED
+2026-08-03 16:31:01 [INFO] User Status: SUCCESS_SKIPPED_NO_CHANGES
+2026-08-03 16:31:01 [INFO] Process Status: SUCCESS
+2026-08-03 16:31:01 [INFO] 
+2026-08-03 16:31:01 [INFO] Mount Time: 0s
+2026-08-03 16:31:01 [INFO] Sync Time: 0s
+2026-08-03 16:31:01 [INFO] Source Inventory Time: 0s
+2026-08-03 16:31:01 [INFO] Destination Inventory Time: 0s
+2026-08-03 16:31:01 [INFO] Reconciliation Time: 0s
+2026-08-03 16:31:01 [INFO] Verification Time: 0s
+2026-08-03 16:31:01 [INFO] Total Runtime: 0s
+2026-08-03 16:31:01 [INFO] ====================================================
+2026-08-03 16:31:01 [INFO] ========================================================
+2026-08-03 16:31:01 [INFO] sync2NAS Finished
+2026-08-03 16:31:01 [INFO] ========================================================
+2026-08-03 16:31:01 [SUCCESS] User Status: SUCCESS_SKIPPED_NO_CHANGES
+2026-08-03 16:31:01 [INFO] Process Status: SUCCESS (exit_code=0)
+2026-08-03 16:31:01 [INFO] Status: SUCCESS_SKIPPED_NO_CHANGES
