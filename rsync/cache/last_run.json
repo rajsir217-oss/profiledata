@@ -1,9 +1,10 @@
 {
-  "duration_seconds": 703.425,
+  "duration_seconds": 705.796,
   "exit_code": 2,
-  "finished_at": "2026-08-02T16:36:26.817992",
+  "finished_at": "2026-08-02T16:55:44.502680",
   "mode": "sync",
-  "started_at": "2026-08-02T16:24:43.392739",
+  "process_status": "FAILED",
+  "started_at": "2026-08-02T16:43:58.706669",
   "status": "failed",
   "summary": {
     "bytes_received": 0,
@@ -25,12 +26,13 @@
     "source_missing_folders": 0
   },
   "timings": {
-    "inventory_dest": 241.70327912500215,
-    "inventory_source": 0.32715133300371235,
-    "mount": 0.005470750002132263,
-    "reconcile": 0.00410662499780301,
-    "sync": 229.7226924159986,
-    "verify": 228.60452516700025
+    "inventory_dest": 243.84040612499666,
+    "inventory_source": 0.38180820800334914,
+    "mount": 0.005626582998957019,
+    "reconcile": 0.004123749997233972,
+    "sync": 233.33423295900138,
+    "verify": 228.07687816699763
   },
+  "user_status": "SUCCESS_WITH_WARNINGS",
   "verification": "failed"
 }
