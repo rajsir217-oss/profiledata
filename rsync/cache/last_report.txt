@@ -22,10 +22,10 @@ User Status: SUCCESS_WITH_WARNINGS
 Process Status: FAILED
 
 Mount Time: 0s
-Sync Time: 3m 47s
+Sync Time: 3m 49s
 Source Inventory Time: 0s
-Destination Inventory Time: 4m 1s
+Destination Inventory Time: 4m 6s
 Reconciliation Time: 0s
-Verification Time: 3m 46s
-Total Runtime: 11m 36s
+Verification Time: 3m 49s
+Total Runtime: 11m 46s
 ====================================================
