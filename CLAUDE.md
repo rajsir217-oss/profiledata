@@ -312,6 +312,7 @@ Skip → call same endpoint with page=2, 3, ...
 | Action: Contact requests | Existing PII requests endpoint |
 | Action: Reply to messages | `messenger_service.get_conversations()` |
 | Action: Favorited you | `GET /api/their-favorites/{username}` (`routes.py:9495`) |
+| Action: People who shortlisted you | `GET /api/their-shortlists/{username}` (`routes.py:10994`) |
 | Action: Who viewed you | `GET /api/views/{username}` (`routes.py:9433`) |
 | Action: Run saved search | `GET /api/search` (existing) |
 | Action: Follow up on chats | Derive client-side from conversations list. Verify `lastMessageBy` field is in response — if missing, 5-line addition to `messenger_service.get_conversations()`, NOT a new endpoint. |

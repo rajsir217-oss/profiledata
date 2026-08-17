@@ -20,6 +20,7 @@ import {
   fetchNotes,
   fetchConversations,
   fetchTheirFavorites,
+  fetchTheirShortlist,
   fetchIncomingPiiRequests,
   fetchActivePolls,
   fetchCurrentUserProfile,
@@ -40,6 +41,7 @@ const initialData = {
   notes: [],
   conversations: [],
   theirFavorites: [],
+  theirShortlist: [],
   incomingPiiRequests: [],
   activePolls: [],
   searchCriteriaBreakdown: null,
@@ -252,6 +254,7 @@ export function useDashboardData() {
         notes,
         conversations,
         theirFavorites,
+        theirShortlist,
         incomingPiiRequests,
       ] = await Promise.all([
         fetchProfileViews(),
@@ -261,6 +264,7 @@ export function useDashboardData() {
         fetchNotes(),
         fetchConversations(),
         fetchTheirFavorites(),
+        fetchTheirShortlist(),
         fetchIncomingPiiRequests(getCurrentUsername()),
       ]);
 
@@ -273,6 +277,7 @@ export function useDashboardData() {
         notes,
         conversations,
         theirFavorites,
+        theirShortlist,
         incomingPiiRequests,
       }));
 

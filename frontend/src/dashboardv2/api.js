@@ -218,6 +218,20 @@ export async function fetchTheirFavorites() {
   }
 }
 
+export async function fetchTheirShortlist() {
+  const username = getCurrentUsername();
+  if (!username) return [];
+  try {
+    const { data } = await api.get(`/their-shortlists/${username}`);
+    if (Array.isArray(data?.users)) return data.users;
+    if (Array.isArray(data)) return data;
+    return [];
+  } catch (err) {
+    logger.error('fetchTheirShortlist failed:', err);
+    return [];
+  }
+}
+
 export async function fetchIncomingPiiRequests(username) {
   try {
     const { data } = await axios.get(`${getBackendUrl()}/api/users/pii-requests/${username}/incoming`, {

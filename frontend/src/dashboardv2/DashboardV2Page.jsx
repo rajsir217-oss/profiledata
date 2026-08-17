@@ -1,5 +1,13 @@
 // frontend/src/dashboardv2/DashboardV2Page.jsx
 //
+// Business Requirements:
+// - /dashboardv2 is an action-first dashboard; every attention card must surface a concrete user action.
+// - Avoid duplicate conversation cards; only one message/reply card is needed.
+// - "People who shortlisted you" must show the count of users who added this user to their shortlist.
+// - Clicking that card opens a modal to inspect those users and reach out to them.
+//
+// Checkpoint: 2026-08-17 - Replaced "Follow up on chats" attention card with "People who shortlisted you".
+//
 // Top-level page for the new "action-first" dashboard (Mockup A).
 //
 // This file is the ROUTE HANDLER for /dashboardv2. It composes the page
@@ -27,6 +35,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileViewsModal from '../components/ProfileViewsModal';
 import FavoritedByModal from '../components/FavoritedByModal';
+import ShortlistedByModal from '../components/ShortlistedByModal';
 import ProfileNotes from '../components/ProfileNotes';
 import PollWidget from '../components/PollWidget';
 import { formatShortDateTime } from '../utils/timeFormatter';
@@ -61,6 +70,7 @@ const DashboardV2Page = () => {
 
   const [showProfileViews, setShowProfileViews] = useState(false);
   const [showFavoritedBy, setShowFavoritedBy] = useState(false);
+  const [showShortlistedBy, setShowShortlistedBy] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
 
   const currentUsername = localStorage.getItem('username');
@@ -138,6 +148,7 @@ const DashboardV2Page = () => {
     notes: data.notes?.length ?? 0,
     exclusions: data.exclusions?.length ?? 0,
     favoritedYou: data.theirFavorites?.length ?? 0,
+    shortlistedYou: data.theirShortlist?.length ?? 0,
     incomingPiiRequests: data.incomingPiiRequests?.length ?? 0,
     unreadConversations: (data.conversations || []).filter(
       (c) => getConversationUnreadCount(c) > 0
@@ -284,12 +295,12 @@ const DashboardV2Page = () => {
             onClick: () => setShowFavoritedBy(true),
           },
           {
-            key: 'followUp',
-            icon: '⏭',
-            title: 'Follow up on chats',
-            count: counts.openConversations,
+            key: 'shortlistedYou',
+            icon: '⭐',
+            title: 'People who shortlisted you',
+            count: counts.shortlistedYou,
             variant: 'success',
-            onClick: () => navigate('/messages'),
+            onClick: () => setShowShortlistedBy(true),
           },
           {
             key: 'contactRequests',
@@ -398,6 +409,12 @@ const DashboardV2Page = () => {
       <FavoritedByModal
         isOpen={showFavoritedBy}
         onClose={() => setShowFavoritedBy(false)}
+        username={currentUsername}
+      />
+
+      <ShortlistedByModal
+        isOpen={showShortlistedBy}
+        onClose={() => setShowShortlistedBy(false)}
         username={currentUsername}
       />
 
