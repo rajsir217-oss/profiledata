@@ -191,7 +191,7 @@ export async function fetchConversations() {
   const username = getCurrentUsername();
   if (!username) return [];
   try {
-    const { data } = await api.get(`/messages/conversations?username=${username}`);
+    const { data } = await api.get('/messages/conversations');
     return data.conversations || [];
   } catch (err) {
     logger.error('fetchConversations failed:', err);

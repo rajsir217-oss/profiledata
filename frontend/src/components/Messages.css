@@ -263,6 +263,19 @@
   font-weight: 600;
 }
 
+/* Sticky global banner wrapper used in ProtectedRoute to keep banner visible across pages */
+.global-unattended-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.global-unattended-banner .unattended-banner,
+.global-unattended-banner .pending-warning-banner {
+  border-radius: 0;
+  margin: 0;
+}
+
 /* Override Bootstrap container max-width for messages page parent */
 .container:has(.messages-page) {
   max-width: 98% !important;

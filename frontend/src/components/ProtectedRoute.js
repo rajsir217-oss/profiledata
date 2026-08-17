@@ -1,6 +1,15 @@
 // frontend/src/components/ProtectedRoute.js
+//
+// Business Requirements:
+// - Protected routes must allow navigation even when the user has critical messages.
+// - A persistent (locked) critical/warning banner is shown across all protected pages.
+// - Critical banner is non-dismissible; warning banner can be dismissed for the session.
+// - The /messages page has its own local banner; the route guard banner appears on all other pages.
+//
+// Checkpoint: 2026-08-17 - Replaced critical-message navigation lock with a persistent banner.
 import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import './Messages.css';
 import api from '../api';
 
 const ProtectedRoute = ({ children }) => {
@@ -9,7 +18,9 @@ const ProtectedRoute = ({ children }) => {
   const [userStatus, setUserStatus] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
   const [shouldRedirectToLogin, setShouldRedirectToLogin] = useState(false);
-  const [hasUnattendedChats, setHasUnattendedChats] = useState(false);
+  const [unattendedData, setUnattendedData] = useState(null);
+  const [warningDismissed, setWarningDismissed] = useState(() => sessionStorage.getItem('unattendedWarningDismissed') === 'true');
+  const navigate = useNavigate();
   const location = useLocation();
   
   // Check token synchronously on initial render
@@ -76,27 +87,19 @@ const ProtectedRoute = ({ children }) => {
 
     checkUserStatus();
     
-    // Check for unattended chats (only if not on messages page)
+    // Check for unattended chats (only if not on messages page - messages page has its own banner)
     const checkUnattendedChats = async () => {
       if (location.pathname === '/messages') {
-        setHasUnattendedChats(false);
+        setUnattendedData(null);
         return;
       }
       
       try {
         const response = await api.get('/messages/unattended');
-        const data = response.data;
-        // Only block navigation for CRITICAL messages (10+ days)
-        // High/Medium/Pending are warnings only, don't block
-        if (data.criticalCount > 0) {
-          console.log(`🔴 User has ${data.criticalCount} critical chats (10+ days) - blocking navigation`);
-          setHasUnattendedChats(true);
-        } else {
-          setHasUnattendedChats(false);
-        }
+        setUnattendedData(response.data);
       } catch (error) {
         console.warn('Could not check unattended chats:', error);
-        setHasUnattendedChats(false);
+        setUnattendedData(null);
       }
     };
     
@@ -150,15 +153,64 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to={`/profile/${currentUsername}`} replace />;
   }
 
-  // If user has unattended chats and is not on messages page, redirect to messages
-  if (hasUnattendedChats && location.pathname !== '/messages') {
-    console.log('🚫 Blocking navigation - user has unattended chats');
-    sessionStorage.setItem('unattendedChatsBlock', 'true');
-    return <Navigate to="/messages" replace />;
-  }
-
   // User is active, allow access
-  return children;
+  const onMessagesPage = location.pathname === '/messages';
+  const hasCritical = !onMessagesPage && unattendedData && unattendedData.criticalCount > 0;
+  const hasWarning = !onMessagesPage && unattendedData && unattendedData.warningCount > 0 && unattendedData.criticalCount === 0 && !warningDismissed;
+
+  return (
+    <>
+      {hasCritical && (
+        <div className="global-unattended-banner">
+          <div className="unattended-banner">
+            <div className="unattended-banner-content">
+              <span className="unattended-icon">🚨</span>
+              <div className="unattended-text">
+                <strong>You have {unattendedData.criticalCount} critical message{unattendedData.criticalCount > 1 ? 's' : ''} (10+ days) requiring your response</strong>
+                <p className="unattended-explanation">
+                  Please respond or decline from the <strong>Messages</strong> page. This banner remains visible on all pages until the conversation is addressed.
+                </p>
+              </div>
+              <button className="pending-action-btn" onClick={() => navigate('/messages')}>
+                Go to Messages
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {hasWarning && (
+        <div className="global-unattended-banner">
+          <div className="pending-warning-banner">
+            <div className="pending-warning-content">
+              <span className="pending-icon">�</span>
+              <div className="pending-text">
+                <strong>You have {unattendedData.warningCount} message{unattendedData.warningCount > 1 ? 's' : ''} waiting for a response</strong>
+                <span className="pending-subtext">
+                  {unattendedData.highCount > 0 && `🟠 ${unattendedData.highCount} high (6-9 days) `}
+                  {unattendedData.mediumCount > 0 && `🟡 ${unattendedData.mediumCount} medium (3-5 days) `}
+                  {unattendedData.pendingCount > 0 && `💬 ${unattendedData.pendingCount} pending (1-2 days)`}
+                </span>
+              </div>
+              <button className="pending-action-btn" onClick={() => navigate('/messages')}>
+                View Messages
+              </button>
+              <button
+                className="pending-dismiss-btn"
+                onClick={() => {
+                  setWarningDismissed(true);
+                  sessionStorage.setItem('unattendedWarningDismissed', 'true');
+                }}
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {children}
+    </>
+  );
 };
 
 export default ProtectedRoute;
