@@ -1,10 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api, { createApiInstance } from '../api';
+import api, { createApiInstance, revokeTrustedDevice } from '../api';
 import socketService from '../services/socketService';
+import { clearCredential } from '../services/biometricAuth';
 import { getApiUrl, getMessengerUrl } from '../config/apiConfig';
 // eslint-disable-next-line no-unused-vars
 import { getImageUrl, getProfilePicUrl } from '../utils/urlHelper';
+import {
+  clearAllTrustedDeviceTokens,
+  getOrCreateTrustedDeviceId,
+  getTrustedDeviceAppId,
+} from '../utils/trustedDevice';
 import Logo from './Logo';
 import InfoTicker from './InfoTicker';
 import EventCountdown from './EventCountdown';
@@ -284,6 +290,53 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     // Dispatch custom event for sidebar to update
     window.dispatchEvent(new Event('loginStatusChanged'));
     
+    navigate('/');
+  };
+
+  const handleLogoutAndForgetDevice = async () => {
+    const username = currentUser;
+
+    // Disconnect WebSocket
+    logger.info('Disconnecting WebSocket and forgetting device');
+    socketService.disconnect();
+
+    // Mark user as offline (non-blocking beacon)
+    if (username) {
+      navigator.sendBeacon(
+        `${getApiUrl()}/online-status/${username}/offline`,
+        ''
+      );
+    }
+
+    // Revoke this specific trusted device on the backend before clearing storage.
+    try {
+      const deviceId = getOrCreateTrustedDeviceId();
+      await revokeTrustedDevice(deviceId, getTrustedDeviceAppId());
+    } catch (revokeError) {
+      logger.warn('Failed to revoke trusted device on backend:', revokeError);
+    }
+
+    // Clear all local trusted-device and biometric credentials.
+    clearAllTrustedDeviceTokens();
+    try {
+      await clearCredential();
+    } catch (_) {
+      // Native credential may not exist; ignore.
+    }
+
+    localStorage.removeItem('username');
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userStatus');
+    localStorage.removeItem('homePage');
+    localStorage.removeItem('appTheme');
+    sessionStorage.removeItem('urgencyModalShown');
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+
+    window.dispatchEvent(new Event('loginStatusChanged'));
+
     navigate('/');
   };
 
@@ -969,6 +1022,13 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
                   >
                     <span className="user-menu-icon">🚪</span>
                     <span className="user-menu-item-label">Logout</span>
+                  </button>
+                  <button
+                    className="user-menu-item logout"
+                    onClick={() => { handleLogoutAndForgetDevice(); setShowUserMenu(false); }}
+                  >
+                    <span className="user-menu-icon">🧹</span>
+                    <span className="user-menu-item-label">Logout &amp; forget</span>
                   </button>
                 </div>
               )}
