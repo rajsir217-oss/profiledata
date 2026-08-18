@@ -987,8 +987,12 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
       const api = useAuthStore.getState().getApi();
       let res;
       if (isLegacy) {
+        const targetUsername = (username || name || '').trim();
+        if (!targetUsername) {
+          throw new Error('Missing conversation username');
+        }
         res = await api.post('/api/users/messages/send', {
-          toUsername: name,
+          toUsername: targetUsername,
           content: newMessage.trim(),
         });
       } else {

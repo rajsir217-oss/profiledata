@@ -508,6 +508,44 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         console.warn('⚠️ Failed to load messenger conversations:', messengerRes.reason?.message);
       }
 
+      // Enrich modern direct conversations with profile gender so pending-status
+      // borders can be colored correctly (pink for female sender, blue for male).
+      try {
+        const usernamesToFetch = messengerConvs
+          .filter((c) => c && c.type !== 'group' && !c.isSystemBot)
+          .map((c) => c.participants?.find((p) => p?.username !== user?.username)?.username)
+          .filter(Boolean);
+        if (usernamesToFetch.length > 0) {
+          const bulkRes = await api.post('/api/users/profiles/bulk', {
+            usernames: Array.from(new Set(usernamesToFetch)),
+          });
+          const profiles = bulkRes.data?.profiles || {};
+          messengerConvs = messengerConvs.map((conv) => {
+            if (!conv || conv.type === 'group' || conv.isSystemBot) return conv;
+            const otherUsername = conv.participants?.find((p) => p?.username !== user?.username)?.username;
+            if (!otherUsername) return conv;
+            const p = profiles[otherUsername];
+            if (!p) return conv;
+            const enrichedParticipants = (conv.participants || []).map((participant) => (
+              participant?.username === otherUsername
+                ? { ...participant, gender: participant.gender || participant.sex || p.gender || p.sex }
+                : participant
+            ));
+            return {
+              ...conv,
+              participants: enrichedParticipants,
+              profile: {
+                ...(conv.profile || {}),
+                gender: (conv.profile && (conv.profile.gender || conv.profile.sex)) || p.gender || p.sex,
+              },
+              otherGender: conv.otherGender || p.gender || p.sex,
+            };
+          });
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to enrich messenger conversation genders:', e.message);
+      }
+
       // Fetch main app 1:1 conversations (legacy direct messages)
       console.log('📬 Fetching main app 1:1 conversations...');
       let directConvs = [];
@@ -783,9 +821,29 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     const isPending = (conv.unreadCount || 0) > 0;
     if (!isPending) return null;
     const otherGender = normalizeGender(getOtherGender(conv));
-    if (otherGender === 'female') return { borderLeftWidth: 4, borderLeftColor: '#ec4899' };
-    if (otherGender === 'male') return { borderLeftWidth: 4, borderLeftColor: '#3b82f6' };
+    if (otherGender === 'female') return { borderWidth: 2, borderColor: '#ec4899' };
+    if (otherGender === 'male') return { borderWidth: 2, borderColor: '#3b82f6' };
     return null;
+  };
+
+  // Search-stamp status:
+  // - Blue glow: you sent the last message and are awaiting their reply.
+  // - Pink glow: they sent the last message and you have unread messages.
+  const getSearchStampStatusStyle = (result) => {
+    const targetUsername = result?.username;
+    if (!targetUsername) return null;
+    const conv = allConversations.find((c) => {
+      if (targetUsername && c?.otherUsername === targetUsername) return true;
+      const other = c?.participants?.find((p) => p?.username !== user?.username);
+      if (targetUsername && other?.username === targetUsername) return true;
+      return false;
+    });
+    if (!conv) return null;
+    const hasConversationHistory = Boolean(conv.lastMessageAt) || Boolean(String(conv.lastMessagePreview || '').trim()) || Number(conv.unreadCount || 0) > 0;
+    if (!hasConversationHistory) return null;
+    const unread = Number(conv.unreadCount || 0);
+    if (unread > 0) return styles.stampCardNeedsReplyPink;
+    return styles.stampCardAwaitingReplyBlue;
   };
 
   const matchesSearch = (conv) => {
@@ -1506,7 +1564,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                   return (
                     <TouchableOpacity
                       key={result.username || result._id || result.profileId}
-                      style={styles.stampCard}
+                      style={[styles.stampCard, getSearchStampStatusStyle(result)]}
                       onPress={() => openChatFromSearch(result)}
                       activeOpacity={0.7}
                     >
@@ -1564,7 +1622,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           {profilePicUrl ? (
             <Image source={{ uri: profilePicUrl }} style={styles.topNavProfilePic} />
           ) : (
-            <Text style={styles.topNavIcon}>�</Text>
+            <Text style={styles.topNavIcon}>{'\uD83D\uDC64'}</Text>
           )}
         </TouchableOpacity>
 
@@ -1573,7 +1631,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           onPress={() => handleMenuClick('search')}
           activeOpacity={0.7}
         >
-          <Text style={styles.topNavIcon}>�</Text>
+          <Text style={styles.topNavIcon}>🔍</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -2411,10 +2469,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1f2a4d',
   },
+  stampCardAwaitingReplyBlue: {
+    borderWidth: 3,
+    borderColor: '#60a5fa',
+    backgroundColor: '#1a2b4f',
+    boxShadow: '0 0 14px rgba(96, 165, 250, 0.75)',
+    shadowColor: '#3b82f6',
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  stampCardNeedsReplyPink: {
+    borderWidth: 3,
+    borderColor: '#f472b6',
+    backgroundColor: '#3a1d33',
+    boxShadow: '0 0 14px rgba(244, 114, 182, 0.75)',
+    shadowColor: '#ec4899',
+    shadowOpacity: 0.65,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+  },
   stampAvatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 8,
     marginBottom: 8,
     backgroundColor: '#0f3460',
     overflow: 'hidden',
@@ -2422,6 +2500,7 @@ const styles = StyleSheet.create({
   stampImage: {
     width: 56,
     height: 56,
+    borderRadius: 8,
   },
   stampAvatarFallback: {
     justifyContent: 'center',
