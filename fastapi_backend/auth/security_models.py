@@ -198,6 +198,23 @@ class LoginRequest(BaseModel):
     remember_me: bool = False
     mfa_code: Optional[str] = None
     captchaToken: Optional[str] = None
+    device_id: Optional[str] = None
+    app_id: Optional[str] = None
+
+
+class TrustedDeviceEnrollRequest(BaseModel):
+    """Enroll current device for passwordless login"""
+    device_id: str
+    device_name: Optional[str] = None
+    platform: Optional[str] = None
+    app_id: Optional[str] = None
+
+
+class TrustedDeviceAutoLoginRequest(BaseModel):
+    """Authenticate using trusted-device token"""
+    trusted_device_token: str
+    device_id: str
+    app_id: Optional[str] = None
 
 
 class PhoneLoginSendCodeRequest(BaseModel):
@@ -261,6 +278,7 @@ class LoginResponse(BaseModel):
     password_expires_in_days: Optional[int] = None
     force_password_change: bool = False
     mfa_warning: Optional[dict] = None  # Warning if MFA requirements not met
+    show_trusted_device_prompt: bool = False
 
 class PasswordChangeRequest(BaseModel):
     """Password change request"""

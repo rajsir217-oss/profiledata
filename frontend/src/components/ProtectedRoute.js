@@ -10,7 +10,15 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import './Messages.css';
-import api from '../api';
+import api, { trustedDeviceAutoLogin } from '../api';
+import logger from '../utils/logger';
+import sessionManager from '../services/sessionManager';
+import socketService from '../services/socketService';
+import {
+  clearTrustedDeviceToken,
+  getTrustedDeviceContext,
+  getTrustedDeviceToken,
+} from '../utils/trustedDevice';
 
 const ProtectedRoute = ({ children }) => {
   // All hooks MUST be called before any conditional returns
@@ -18,47 +26,82 @@ const ProtectedRoute = ({ children }) => {
   const [userStatus, setUserStatus] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
   const [shouldRedirectToLogin, setShouldRedirectToLogin] = useState(false);
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
   const [unattendedData, setUnattendedData] = useState(null);
   const [warningDismissed, setWarningDismissed] = useState(() => sessionStorage.getItem('unattendedWarningDismissed') === 'true');
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Check token synchronously on initial render
-  const initialToken = localStorage.getItem('token');
-
-  useEffect(() => {
-    // Check for missing token - redirect to login
-    if (!initialToken) {
-      console.warn('🔒 ProtectedRoute: No token found - redirecting to login');
-      setShouldRedirectToLogin(true);
-      setLoading(false);
-      return;
-    }
-  }, [initialToken]);
 
   useEffect(() => {
     const checkUserStatus = async () => {
       const username = localStorage.getItem('username');
-      const token = localStorage.getItem('token');
+      let token = localStorage.getItem('token');
       
-      // Check for missing token - redirect to login
       if (!token) {
-        console.warn('🔒 ProtectedRoute useEffect: No token - redirecting to login');
-        setShouldRedirectToLogin(true);
-        setLoading(false);
-        return;
+        if (autoLoginAttempted) {
+          logger.warn('ProtectedRoute: No token after trusted-device attempt; redirecting to login');
+          setShouldRedirectToLogin(true);
+          setLoading(false);
+          return;
+        }
+
+        const trustedToken = getTrustedDeviceToken();
+        if (!trustedToken) {
+          setAutoLoginAttempted(true);
+          setShouldRedirectToLogin(true);
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const deviceContext = getTrustedDeviceContext();
+          const autoLoginResponse = await trustedDeviceAutoLogin({
+            trusted_device_token: trustedToken,
+            device_id: deviceContext.deviceId,
+            app_id: deviceContext.appId,
+          });
+
+          if (autoLoginResponse?.access_token && autoLoginResponse?.user?.username) {
+            localStorage.setItem('token', autoLoginResponse.access_token);
+            localStorage.setItem('username', autoLoginResponse.user.username);
+            if (autoLoginResponse.refresh_token) {
+              localStorage.setItem('refreshToken', autoLoginResponse.refresh_token);
+            }
+            localStorage.setItem('userStatus', autoLoginResponse.user.accountStatus || 'active');
+            localStorage.setItem('userRole', autoLoginResponse.user.role_name || autoLoginResponse.user.role || 'free_user');
+
+            sessionManager.init();
+            socketService.connect(autoLoginResponse.user.username);
+            window.dispatchEvent(new Event('loginStatusChanged'));
+            window.dispatchEvent(new Event('userLoggedIn'));
+            token = autoLoginResponse.access_token;
+          }
+        } catch (autoLoginError) {
+          logger.warn('Trusted-device auto-login failed', autoLoginError);
+          clearTrustedDeviceToken();
+        } finally {
+          setAutoLoginAttempted(true);
+        }
+
+        if (!token) {
+          setShouldRedirectToLogin(true);
+          setLoading(false);
+          return;
+        }
       }
+
+      const resolvedUsername = localStorage.getItem('username');
       
-      if (!username) {
+      if (!resolvedUsername) {
         setLoading(false);
         return;
       }
 
-      setCurrentUsername(username);
+      setCurrentUsername(resolvedUsername);
 
       try {
         // Fetch user profile to get status (pass requester to avoid PII masking)
-        const response = await api.get(`/profile/${username}?requester=${username}`);
+        const response = await api.get(`/profile/${resolvedUsername}?requester=${resolvedUsername}`);
         
         // CRITICAL FIX: Use accountStatus (unified field), not legacy status.status
         const status = response.data.accountStatus || 'pending';
@@ -67,11 +110,11 @@ const ProtectedRoute = ({ children }) => {
         const normalizedStatus = status.toLowerCase();
         setUserStatus(normalizedStatus);
       } catch (error) {
-        console.error('Error fetching user status:', error);
+        logger.error('Error fetching user status', error);
         
         // If 401 error (session expired), clear auth data and redirect
         if (error.response?.status === 401) {
-          console.warn('🔒 ProtectedRoute: Session expired, clearing auth data');
+          logger.warn('ProtectedRoute: Session expired, clearing auth data');
           localStorage.removeItem('token');
           localStorage.removeItem('username');
           localStorage.removeItem('userRole');
@@ -98,7 +141,7 @@ const ProtectedRoute = ({ children }) => {
         const response = await api.get('/messages/unattended');
         setUnattendedData(response.data);
       } catch (error) {
-        console.warn('Could not check unattended chats:', error);
+        logger.warn('Could not check unattended chats', error);
         setUnattendedData(null);
       }
     };
@@ -106,7 +149,7 @@ const ProtectedRoute = ({ children }) => {
     if (localStorage.getItem('token')) {
       checkUnattendedChats();
     }
-  }, [location.pathname]); // Re-check on route change
+  }, [autoLoginAttempted, location.pathname]); // Re-check on route change
 
   // Handle redirect to login
   if (shouldRedirectToLogin) {

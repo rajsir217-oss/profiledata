@@ -515,6 +515,8 @@ class LoginRequest(BaseModel):
     mfa_code: Optional[str] = None
     remember_me: Optional[bool] = False
     captchaToken: Optional[str] = None  # Cloudflare Turnstile CAPTCHA token
+    device_id: Optional[str] = None
+    app_id: Optional[str] = None
 
 class PiiRequest(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
