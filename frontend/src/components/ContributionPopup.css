@@ -169,18 +169,6 @@
   margin: 2px 0 0;
 }
 
-@media (max-width: 480px) {
-  .contribution-amounts {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 4px;
-  }
-  
-  .contribution-amount-option {
-    padding: 6px 8px;
-    min-height: 28px;
-  }
-}
-
 .contribution-amount-option {
   position: relative;
   background: #1a1a1a;
@@ -233,6 +221,47 @@
   right: -3px;
   font-size: 18px;
   line-height: 1;
+}
+
+.lifetime-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Lifetime Support Option */
+.lifetime-option {
+  grid-column: span 2;
+  min-height: 44px;
+}
+
+.lifetime-amount-label {
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lifetime-amount {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.contribution-amount-sublabel {
+  font-size: 8px;
+  font-weight: 500;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.contribution-amount-micro {
+  font-size: 7px;
+  font-weight: 500;
+  color: var(--warning-color, #FFD700);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
 }
 
 /* Custom Amount - Column Layout */
@@ -880,6 +909,27 @@
     gap: 4px;
   }
 
+  /* On smaller mobile screens, stack amounts in a single column */
+  @media (max-width: 480px) {
+    .contribution-amounts {
+      grid-template-columns: 1fr;
+    }
+
+    .contribution-amount-option {
+      min-height: 28px;
+      padding: 6px 8px;
+    }
+
+    .lifetime-option {
+      grid-column: 1 / -1;
+      min-height: 52px;
+    }
+
+    .custom-option {
+      grid-column: 1 / -1;
+    }
+  }
+
   .contribution-amount-option {
     min-height: 36px;
     padding: 8px 6px;
@@ -922,4 +972,35 @@
   .custom-amount-input {
     width: auto;
   }
+}
+
+/* Lifetime Supporter View */
+.contribution-lifetime-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 20px 10px;
+  min-height: 240px;
+}
+
+.contribution-lifetime-icon {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.contribution-lifetime-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.contribution-lifetime-message {
+  font-size: 13px;
+  color: #aaa;
+  margin: 0;
+  max-width: 280px;
 }

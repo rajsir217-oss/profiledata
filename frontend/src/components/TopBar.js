@@ -1028,7 +1028,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
                     onClick={() => { handleLogoutAndForgetDevice(); setShowUserMenu(false); }}
                   >
                     <span className="user-menu-icon">🧹</span>
-                    <span className="user-menu-item-label">Logout &amp; forget</span>
+                    <span className="user-menu-item-label">Logout-forget</span>
                   </button>
                 </div>
               )}

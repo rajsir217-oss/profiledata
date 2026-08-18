@@ -725,12 +725,6 @@ const Login = () => {
       <div className="login-page-overlay"></div>
       
       <div className="login-container">
-        <div className="login-header">
-          <div className="login-logo">🦋</div>
-          <div className="login-brand">L3V3L</div>
-        </div>
-        <h2 className="login-title">{mfaRequired ? 'Verification Required' : 'Welcome Back!'}</h2>
-        <p className="login-subtitle">{mfaRequired ? `Enter the code sent to your ${mfaChannel}` : 'Sign in to continue to your account'}</p>
       {autoLoginStatus && !pendingTrustedPrompt && !mfaRequired && (
         <div className="trusted-autologin-status" role="status" aria-live="polite">
           <span className={`trusted-autologin-dot${autoLoginInProgress ? ' loading' : ''}`} aria-hidden="true">🦋</span>
@@ -1082,22 +1076,10 @@ const Login = () => {
       )}
       
       {!mfaRequired && (
-        <div style={{
-          marginTop: '24px',
-          paddingTop: '24px',
-          borderTop: '1px solid #e5e7eb',
-          textAlign: 'center'
-        }}>
-          <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '0' }}>
+        <div className="login-register-prompt">
+          <p>
             Don't have an account?{' '}
-            <Link to="/register-interest" style={{
-              color: '#667eea',
-              textDecoration: 'none',
-              fontWeight: '600'
-            }}
-            onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-            onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-            >Register</Link>
+            <Link to="/register-interest">Register</Link>
           </p>
         </div>
       )}

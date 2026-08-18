@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getBackendUrl } from '../config/apiConfig';
 import toastService from '../services/toastService';
 import logger from '../utils/logger';
+import { LIFETIME_CONTRIBUTION_THRESHOLD } from '../utils/contributionSilence';
 import './ContributionPopup.css';
 
 const MEMBER_STATS_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -18,7 +19,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const paypalScriptLoaded = useRef(false);
   const amountRef = useRef(50);
   const paypalInitialized = useRef(false);
-  const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'paypal', 'venmo-qr', 'paypal-qr', 'clover'
+  const [paymentMethod, setPaymentMethod] = useState('clover'); // 'clover', 'paypal', 'venmo-qr', 'paypal-qr'
   const [cloverLoading, setCloverLoading] = useState(false);
   const [cloverReady, setCloverReady] = useState(false);
   const [cloverConfig, setCloverConfig] = useState(null);
@@ -175,9 +176,11 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, [saveDismissCount]);
 
-  // Use admin-configured amounts (deduped + descending numeric sort for display).
-  // Default [25, 50, 75, 100] renders as [100, 75, 50, 25].
-  const amounts = [...new Set(contributionConfig?.amounts || [25, 50, 75, 100])]
+  // Use admin-configured amounts, always including the $LIFETIME_CONTRIBUTION_THRESHOLD lifetime option,
+  // remove the $25 tier, then dedupe and sort descending for display.
+  const rawAmounts = [...new Set([...(contributionConfig?.amounts || [50, 75, 100]), LIFETIME_CONTRIBUTION_THRESHOLD])]
+    .filter((n) => n !== 25);
+  const amounts = rawAmounts
     .map(Number)
     .filter((n) => Number.isFinite(n) && n > 0)
     .sort((a, b) => b - a);
@@ -394,12 +397,19 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     return () => clearTimeout(timer);
   }, [getAmount, selectedAmount]);
 
-  // Re-render PayPal buttons when container remounts (key changed)
+  // Reset PayPal ready state when leaving the PayPal tab so it re-renders on return
+  useEffect(() => {
+    if (paymentMethod !== 'paypal') {
+      setPaypalReady(false);
+    }
+  }, [paymentMethod]);
+
+  // Re-render PayPal buttons when container is available (tab switch or amount change)
   useEffect(() => {
     if (isOpen && paypalScriptLoaded.current && window.paypal && paypalContainerRef.current && !paypalReady) {
       renderPayPalButtons();
     }
-  }, [paypalKey, isOpen, paypalReady, renderPayPalButtons]);
+  }, [paypalKey, isOpen, paypalReady, paymentMethod, renderPayPalButtons]);
 
   // ESC key handler
   useEffect(() => {
@@ -627,9 +637,15 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     };
   }, [isOpen, loading, handleDismiss]);
 
+  const isLifetimeSupporter = Number(contributionStatus?.lastContributionAmount) >= LIFETIME_CONTRIBUTION_THRESHOLD;
+
   return (
     <div className="contribution-popup-overlay" onClick={(e) => {
-      // Only allow overlay click to close if required dismissals reached
+      // Lifetime supporters can close immediately; others must satisfy the nag count.
+      if (isLifetimeSupporter) {
+        onClose();
+        return;
+      }
       const newCount = dismissCount + 1;
       if (newCount >= requiredDismissals) {
         handleDismiss();
@@ -637,7 +653,21 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }} style={{ display: isOpen ? 'flex' : 'none' }}>
       <div className="contribution-popup" onClick={(e) => e.stopPropagation()}>
         <div className="contribution-popup-body">
-          <p className="contribution-message">
+          {isLifetimeSupporter && (
+            <div className="contribution-lifetime-view">
+              <span className="contribution-lifetime-icon" aria-hidden="true">✨</span>
+              <h3 className="contribution-lifetime-title">You're a Lifetime Supporter</h3>
+              <p className="contribution-lifetime-message">
+                {`Thank you for your $${LIFETIME_CONTRIBUTION_THRESHOLD} contribution. You'll never see this popup again.`}
+              </p>
+              <button className="contribution-remind-btn" onClick={onClose}>
+                Close
+              </button>
+            </div>
+          )}
+          {!isLifetimeSupporter && (
+            <>
+              <p className="contribution-message">
             {memberStatsLoading
               ? 'You’ve been part of L3V3L Matches. Behind the scenes, our admins provide real human help, quick responses, and a premium-grade application with features that go beyond commercial matrimonial sites. If you value this community and want to help us grow, we kindly invite you to contribute. Your support keeps the platform running and helps us build new features.'
               : (
@@ -659,7 +689,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
               {amounts.map((amt) => (
                 <label
                   key={amt}
-                  className={`contribution-amount-option ${selectedAmount === amt ? 'selected' : ''}`}
+                  className={`contribution-amount-option ${amt === LIFETIME_CONTRIBUTION_THRESHOLD ? 'lifetime-option' : ''} ${selectedAmount === amt ? 'selected' : ''}`}
                 >
                   <input
                     type="radio"
@@ -673,8 +703,17 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                     }}
                     disabled={loading}
                   />
-                  <span className="contribution-amount-label">${amt}</span>
+                  {amt === LIFETIME_CONTRIBUTION_THRESHOLD ? (
+                    <span className="contribution-amount-label lifetime-amount-label">
+                      <span className="lifetime-amount">${amt}</span>
+                      <span className="contribution-amount-sublabel">Support for life</span>
+                      <span className="contribution-amount-micro">no more popups</span>
+                    </span>
+                  ) : (
+                    <span className="contribution-amount-label">${amt}</span>
+                  )}
                   {amt === 100 && <span className="heart-badge">❤️</span>}
+                  {amt === LIFETIME_CONTRIBUTION_THRESHOLD && <span className="lifetime-badge" aria-label="Lifetime support">✨</span>}
                 </label>
               ))}
 
@@ -700,7 +739,11 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                       setSelectedAmount('custom');
                       setError('');
                     }}
-                    placeholder="Amt"
+                    onFocus={() => {
+                      setSelectedAmount('custom');
+                      setError('');
+                    }}
+                    placeholder="Amount"
                     min="1"
                     disabled={loading}
                   />
@@ -714,20 +757,20 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             <div className="contribution-block-title">Select Payment Method</div>
             <div className="payment-method-toggle">
               <button
-                className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('paypal')}
-                disabled={loading}
-              >
-                <span className="paypal-p">P</span>
-                PayPal
-              </button>
-              <button
                 className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
                 onClick={() => setPaymentMethod('clover')}
                 disabled={loading || cloverLoading}
               >
                 <span className="clover-icon">☘</span>
                 Card
+              </button>
+              <button
+                className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('paypal')}
+                disabled={loading}
+              >
+                <span className="paypal-p">P</span>
+                PayPal
               </button>
               <button
                 className={`payment-method-btn ${paymentMethod === 'venmo-qr' ? 'active' : ''}`}
@@ -930,6 +973,8 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
               </span>
             )}
           </button>
+            </>
+          )}
         </div>
       </div>
     </div>
