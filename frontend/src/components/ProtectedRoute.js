@@ -78,7 +78,7 @@ const ProtectedRoute = ({ children }) => {
           }
         } catch (autoLoginError) {
           logger.warn('Trusted-device auto-login failed', autoLoginError);
-          clearTrustedDeviceToken();
+          clearTrustedDeviceToken(trustedToken);
         } finally {
           setAutoLoginAttempted(true);
         }

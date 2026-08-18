@@ -358,7 +358,7 @@ const Login = () => {
         showTransientStatus('Auto-login not enabled on this device.');
       } catch (autoLoginError) {
         logger.debug('Trusted-device auto-login failed on login page', autoLoginError);
-        clearTrustedDeviceToken();
+        clearTrustedDeviceToken(trustedToken);
         showTransientStatus('Auto-login not enabled on this device.');
       } finally {
         if (isActive) {
@@ -392,7 +392,7 @@ const Login = () => {
           app_id: deviceContext.appId,
         });
         if (enrollResponse?.trusted_device_token) {
-          setTrustedDeviceToken(enrollResponse.trusted_device_token);
+          setTrustedDeviceToken(loginData.user?.username, enrollResponse.trusted_device_token);
           toastService.success('Device trusted for 30 days', 4000);
         }
       }
@@ -423,12 +423,14 @@ const Login = () => {
     
     try {
       // Trim whitespace from credentials
+      const username = form.username.trim();
       const credentials = {
-        username: form.username.trim(),
+        username,
         password: form.password.trim(),
         captchaToken: isDevelopment ? "XXXX.DUMMY.TOKEN.XXXX" : captchaToken,
         device_id: getTrustedDeviceContext().deviceId,
         app_id: getTrustedDeviceContext().appId,
+        trusted_device_token: getTrustedDeviceToken(username) || undefined,
       };
       const res = await api.post("/login", credentials);
 
@@ -540,13 +542,15 @@ const Login = () => {
     
     try {
       // Login with MFA code - use the same /login endpoint with mfa_code
+      const username = form.username.trim();
       const credentials = {
-        username: form.username.trim(),
+        username,
         password: form.password.trim(),
         mfa_code: mfaCode.trim(),
         captchaToken: isDevelopment ? "XXXX.DUMMY.TOKEN.XXXX" : captchaToken,
         device_id: getTrustedDeviceContext().deviceId,
         app_id: getTrustedDeviceContext().appId,
+        trusted_device_token: getTrustedDeviceToken(username) || undefined,
       };
       const res = await api.post("/login", credentials);
 

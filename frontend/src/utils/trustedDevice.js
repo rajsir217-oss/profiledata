@@ -1,12 +1,35 @@
 const TRUSTED_DEVICE_ID_KEY = 'trustedDeviceId';
 const TRUSTED_DEVICE_TOKEN_KEY = 'trustedDeviceToken';
+const TRUSTED_DEVICE_TOKENS_KEY = 'trustedDeviceTokens';
 const TRUSTED_DEVICE_APP_ID = 'profiledata-web';
 
 const generateDeviceId = () => {
   if (window.crypto && typeof window.crypto.randomUUID === 'function') {
     return window.crypto.randomUUID();
   }
-  return `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const arr = new Uint8Array(16);
+  if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+    window.crypto.getRandomValues(arr);
+  } else {
+    for (let i = 0; i < arr.length; i += 1) {
+      arr[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
+};
+
+const _getTokensMap = () => {
+  try {
+    return JSON.parse(localStorage.getItem(TRUSTED_DEVICE_TOKENS_KEY) || '{}');
+  } catch (_) {
+    return {};
+  }
+};
+
+const _setTokensMap = (map) => {
+  try {
+    localStorage.setItem(TRUSTED_DEVICE_TOKENS_KEY, JSON.stringify(map));
+  } catch (_) {}
 };
 
 export const getTrustedDeviceAppId = () => TRUSTED_DEVICE_APP_ID;
@@ -27,13 +50,54 @@ export const getTrustedDeviceContext = () => ({
   deviceName: `${navigator.platform || 'web'} browser`,
 });
 
-export const getTrustedDeviceToken = () => localStorage.getItem(TRUSTED_DEVICE_TOKEN_KEY);
-
-export const setTrustedDeviceToken = (token) => {
-  if (!token) return;
-  localStorage.setItem(TRUSTED_DEVICE_TOKEN_KEY, token);
+export const getTrustedDeviceToken = (username = null) => {
+  const map = _getTokensMap();
+  if (username) {
+    return map[username] || localStorage.getItem(TRUSTED_DEVICE_TOKEN_KEY) || null;
+  }
+  return localStorage.getItem(TRUSTED_DEVICE_TOKEN_KEY) || null;
 };
 
-export const clearTrustedDeviceToken = () => {
-  localStorage.removeItem(TRUSTED_DEVICE_TOKEN_KEY);
+export const setTrustedDeviceToken = (username, token) => {
+  if (!token) return;
+  try {
+    localStorage.setItem(TRUSTED_DEVICE_TOKEN_KEY, token);
+    if (username) {
+      const map = _getTokensMap();
+      map[username] = token;
+      _setTokensMap(map);
+    }
+  } catch (_) {}
+};
+
+export const clearTrustedDeviceToken = (identifier = null) => {
+  try {
+    if (!identifier) {
+      localStorage.removeItem(TRUSTED_DEVICE_TOKEN_KEY);
+      return;
+    }
+
+    const map = _getTokensMap();
+    let tokenToRemove = null;
+
+    if (map[identifier]) {
+      // identifier is a username
+      tokenToRemove = map[identifier];
+      delete map[identifier];
+    } else if (typeof identifier === 'string' && identifier.length > 0) {
+      // identifier may be the token value itself
+      tokenToRemove = identifier;
+      for (const [u, t] of Object.entries(map)) {
+        if (t === tokenToRemove) {
+          delete map[u];
+        }
+      }
+    }
+
+    _setTokensMap(map);
+    const generic = localStorage.getItem(TRUSTED_DEVICE_TOKEN_KEY);
+    if (generic && generic === tokenToRemove) {
+      localStorage.removeItem(TRUSTED_DEVICE_TOKEN_KEY);
+    }
+  } catch (_) {}
 };

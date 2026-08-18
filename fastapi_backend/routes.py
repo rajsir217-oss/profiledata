@@ -110,6 +110,12 @@ def _normalize_optional_text(value: Optional[str], max_len: int = 128) -> Option
         return None
     return normalized[:max_len]
 
+
+def _trusted_device_token_hash(raw_token: str) -> str:
+    secret = settings.trusted_device_secret or settings.secret_key
+    return hashlib.sha256(f"{raw_token}:{secret}".encode("utf-8")).hexdigest()
+
+
 # Helper function to decrypt PII contact info
 def _decrypt_contact_info(value: str) -> str:
     """Decrypt contact info (email/phone) if encrypted"""
@@ -1948,12 +1954,17 @@ async def login_user(login_data: LoginRequest, request: Request, db = Depends(ge
     normalized_device_id = _normalize_optional_text(login_data.device_id, max_len=128)
     trusted_app_id = _normalize_optional_text(login_data.app_id, max_len=64) or settings.trusted_device_app_id
     has_trusted_device = False
-    if normalized_device_id:
+    # Multi-account: only consider the device trusted if the client can prove
+    # it possesses the token that was issued for this specific user. This prevents
+    # a token belonging to account B from suppressing the trust prompt for account A.
+    if normalized_device_id and login_data.trusted_device_token:
+        token_hash = _trusted_device_token_hash(login_data.trusted_device_token)
         trusted_doc = await db.trusted_devices.find_one(
             {
                 "username": login_data.username,
                 "deviceId": normalized_device_id,
                 "appId": trusted_app_id,
+                "tokenHash": token_hash,
                 "revokedAt": None,
                 "expiresAt": {"$gt": datetime.utcnow()},
             },
@@ -1961,7 +1972,7 @@ async def login_user(login_data: LoginRequest, request: Request, db = Depends(ge
         )
         has_trusted_device = trusted_doc is not None
 
-    prompt_reason = "already_trusted" if has_trusted_device else ("missing_device_id" if not normalized_device_id else "not_trusted")
+    prompt_reason = "already_trusted" if has_trusted_device else ("missing_device_id" if not normalized_device_id else "no_valid_token")
     logger.info(
         "Trusted-device prompt decision for '%s': show_prompt=%s reason=%s device_id_present=%s app_id=%s",
         login_data.username,

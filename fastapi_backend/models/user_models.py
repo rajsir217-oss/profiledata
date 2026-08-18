@@ -517,6 +517,7 @@ class LoginRequest(BaseModel):
     captchaToken: Optional[str] = None  # Cloudflare Turnstile CAPTCHA token
     device_id: Optional[str] = None
     app_id: Optional[str] = None
+    trusted_device_token: Optional[str] = None  # Used to verify prior device trust on multi-account devices
 
 class PiiRequest(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")

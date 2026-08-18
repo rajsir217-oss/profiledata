@@ -72,11 +72,11 @@ const LandingPage = () => {
         return;
       }
 
-      clearTrustedDeviceToken();
+      clearTrustedDeviceToken(trustedToken);
       setTopLoginStatus('Auto-login not enabled. Redirecting to login...');
       navigate('/login');
     } catch (_) {
-      clearTrustedDeviceToken();
+      clearTrustedDeviceToken(trustedToken);
       setTopLoginStatus('Auto-login failed. Redirecting to login...');
       navigate('/login');
     } finally {
