@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Image, Linking } from 'react-native';
 import useMessengerStore from '@messenger/stores/messengerStore';
 import useAuthStore from '@messenger/stores/authStore';
 import { API_BASE_URL } from '@messenger/config/api';
@@ -44,6 +44,12 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [notifications, setNotifications] = useState(null);
   const [notificationLoading, setNotificationLoading] = useState(false);
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchActive, setSearchActive] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const [searchDescription, setSearchDescription] = useState('');
   // Notification preferences (for Settings section)
   const [notifPrefs, setNotifPrefs] = useState({
     newMatches: { enabled: true, fields: { name: true, age: true, height: true, location: true, education: true, profession: true }, lookbackDays: 7 },
@@ -546,6 +552,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                 lastName: p.lastName,
                 age: p.age,
                 height: p.height,
+                gender: p.gender || p.sex,
                 profession: p.profession || p.occupation,
                 location: p.location,
                 imageVisibility: p.imageVisibility,
@@ -567,6 +574,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                 lastName: p.lastName,
                 age: p.age || calcAge(p.dob),
                 height: p.height,
+                gender: p.gender || p.sex,
                 profession: p.profession || p.occupation,
                 location: p.location || [p.city, p.state, p.country].filter(Boolean).join(', '),
                 imageVisibility: p.imageVisibility,
@@ -750,6 +758,44 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     return { name, isGroup: false, username: other?.username || null, icon: null };
   };
 
+  // Helper: get other participant's normalized gender for direct chats
+  const getOtherGender = (conv) => {
+    if (!conv || conv.type === 'group' || conv.isSystemBot) return null;
+    if (conv.type === 'direct_legacy') {
+      const g = conv.profile?.gender || conv.profile?.sex || conv.otherGender || conv.otherSex;
+      return g ? String(g).trim().toLowerCase() : null;
+    }
+    const other = conv.participants?.find((p) => p?.username !== user?.username);
+    const g = other?.gender || other?.sex;
+    return g ? String(g).trim().toLowerCase() : null;
+  };
+
+  const normalizeGender = (g) => {
+    if (!g) return '';
+    const s = String(g).trim().toLowerCase();
+    if (['male', 'm', 'man'].includes(s)) return 'male';
+    if (['female', 'f', 'woman'].includes(s)) return 'female';
+    return '';
+  };
+
+  const getPendingBorderStyle = (conv) => {
+    if (!conv || conv.type === 'group' || conv.isSystemBot) return null;
+    const isPending = (conv.unreadCount || 0) > 0;
+    if (!isPending) return null;
+    const otherGender = normalizeGender(getOtherGender(conv));
+    if (otherGender === 'female') return { borderLeftWidth: 4, borderLeftColor: '#ec4899' };
+    if (otherGender === 'male') return { borderLeftWidth: 4, borderLeftColor: '#3b82f6' };
+    return null;
+  };
+
+  const matchesSearch = (conv) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    const display = getConvDisplay(conv);
+    const preview = String(conv.lastMessagePreview || '').toLowerCase();
+    return display.name.toLowerCase().includes(q) || preview.includes(q);
+  };
+
   // Helper: format timestamp
   const formatTime = (iso) => {
     if (!iso) return '';
@@ -778,6 +824,235 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     { id: 'main_app', label: 'Main App', subLabel: 'Open USVedika dashboard', icon: '🏠' },
   ];
 
+  const parseHeightToInches = (height) => {
+    if (!height) return null;
+    if (typeof height === 'number') return height;
+    const match = String(height).match(/(\d+)'(\d+)"/);
+    if (match) {
+      return parseInt(match[1], 10) * 12 + parseInt(match[2], 10);
+    }
+    const total = parseInt(String(height).replace(/[^0-9]/g, ''), 10);
+    return Number.isNaN(total) ? null : total;
+  };
+
+  const buildDefaultCriteria = (profile) => {
+    if (!profile) return {};
+    const userGender = normalizeGender(profile.gender || profile.sex);
+    const pc = profile.partnerCriteria || {};
+    const userAge = profile.age || calcAge(profile.dob) || null;
+    const userHeight = parseHeightToInches(profile.height);
+    const oppositeGender = userGender === 'male' ? 'Female' : userGender === 'female' ? 'Male' : '';
+
+    let ageMin = '';
+    let ageMax = '';
+    if (userAge && pc.ageRangeRelative) {
+      const minOffset = Number(pc.ageRangeRelative.minOffset) || 0;
+      const maxOffset = Number(pc.ageRangeRelative.maxOffset) || 0;
+      ageMin = String(Math.max(19, userAge + minOffset));
+      ageMax = String(Math.min(100, userAge + maxOffset));
+    } else if (pc.ageRange?.min && pc.ageRange?.max) {
+      ageMin = String(pc.ageRange.min);
+      ageMax = String(pc.ageRange.max);
+    } else if (userAge && userGender) {
+      if (userGender === 'male') {
+        ageMin = String(Math.max(19, userAge - 5));
+        ageMax = String(Math.min(100, userAge + 1));
+      } else {
+        ageMin = String(Math.max(19, userAge - 1));
+        ageMax = String(Math.min(100, userAge + 5));
+      }
+    }
+
+    let heightMin = '';
+    let heightMax = '';
+    if (userHeight && pc.heightRangeRelative) {
+      const minOffset = Number(pc.heightRangeRelative.minInches) || 0;
+      const maxOffset = Number(pc.heightRangeRelative.maxInches) || 0;
+      heightMin = String(userHeight + minOffset);
+      heightMax = String(userHeight + maxOffset);
+    } else if (pc.heightRange?.minFeet || pc.heightRange?.minFeet === 0) {
+      const minFt = Number(pc.heightRange.minFeet) || 0;
+      const minInch = Number(pc.heightRange.minInches) || 0;
+      const maxFt = Number(pc.heightRange.maxFeet) || 0;
+      const maxInch = Number(pc.heightRange.maxInches) || 0;
+      heightMin = String(minFt * 12 + minInch);
+      heightMax = String(maxFt * 12 + maxInch);
+    }
+
+    const criteria = {
+      gender: oppositeGender,
+      ageMin,
+      ageMax,
+      heightMin,
+      heightMax,
+      hasPhoto: true,
+      daysBack: 0,
+    };
+
+    const arrValue = (v) => (Array.isArray(v) ? v : [v]).filter(Boolean);
+    const isNoPreference = (v) => {
+      const s = String(v).toLowerCase().trim();
+      return s.startsWith('any') || s === 'no preference';
+    };
+    const skipAny = (arr) => arr.filter((v) => v && !isNoPreference(v));
+
+    const locations = skipAny(arrValue(pc.location));
+    if (locations.length > 0) criteria.locations = locations;
+
+    const professions = skipAny(arrValue(pc.profession));
+    if (professions.length > 0) criteria.occupations = professions;
+
+    const religions = skipAny(arrValue(pc.religion));
+    if (religions.length > 0) criteria.religion = String(religions[0]).capitalize?.() || religions[0];
+
+    const castes = skipAny(arrValue(pc.caste));
+    if (castes.length > 0) criteria.caste = String(castes[0]);
+
+    const eating = skipAny(arrValue(pc.eatingPreference));
+    if (eating.length > 0) criteria.eatingPreference = String(eating[0]);
+
+    return criteria;
+  };
+
+  const normalizeCriteria = (criteria) => {
+    const out = { ...criteria };
+    if (out.heightMinFeet && out.heightMinInches !== undefined) {
+      const feet = parseInt(out.heightMinFeet, 10) || 0;
+      const inches = parseInt(out.heightMinInches, 10) || 0;
+      out.heightMin = feet * 12 + inches;
+    }
+    if (out.heightMaxFeet && out.heightMaxInches !== undefined) {
+      const feet = parseInt(out.heightMaxFeet, 10) || 0;
+      const inches = parseInt(out.heightMaxInches, 10) || 0;
+      out.heightMax = feet * 12 + inches;
+    }
+    delete out.heightMinFeet;
+    delete out.heightMinInches;
+    delete out.heightMaxFeet;
+    delete out.heightMaxInches;
+    delete out.sortBy;
+    delete out.sortOrder;
+    if (Array.isArray(out.locations) && out.locations.length > 0) {
+      delete out.location;
+    }
+    return out;
+  };
+
+  const buildSearchParams = (criteria) => {
+    const params = new URLSearchParams();
+    const normalized = normalizeCriteria(criteria || {});
+    Object.entries(normalized).forEach(([key, value]) => {
+      if (value === '' || value === null || value === undefined) return;
+      if (Array.isArray(value)) {
+        value.forEach((v) => {
+          if (v !== '' && v !== null && v !== undefined) params.append(key, v);
+        });
+      } else {
+        params.append(key, value);
+      }
+    });
+    params.append('page', '1');
+    params.append('limit', '24');
+    params.append('sortBy', 'newest');
+    params.append('sortOrder', 'desc');
+    return params;
+  };
+
+  const openChatFromSearch = (result) => {
+    if (!result?.username) return;
+    const username = result.username;
+    const existing = allConversations.find((c) => {
+      if (c.otherUsername === username) return true;
+      const other = c.participants?.find((p) => p?.username !== user?.username);
+      return other?.username === username;
+    });
+    if (existing) {
+      const display = getConvDisplay(existing);
+      const key = existing._id || existing.id;
+      setSelectedChat({
+        id: key,
+        name: display.name,
+        isGroup: display.isGroup,
+        isLegacy: existing.type === 'direct_legacy',
+        username: display.username,
+        isSystemBot: !!existing.isSystemBot,
+      });
+      return;
+    }
+    const displayName = `${result.firstName || ''} ${result.lastName || ''}`.trim() || username;
+    setSelectedChat({
+      id: `direct:${username}`,
+      name: displayName,
+      isGroup: false,
+      isLegacy: true,
+      username,
+    });
+  };
+
+  const inchesToHeight = (inches) => {
+    if (!inches || Number.isNaN(Number(inches))) return null;
+    const total = Number(inches);
+    const ft = Math.floor(total / 12);
+    const ins = total % 12;
+    return `${ft}'${ins}"`;
+  };
+
+  const describeCriteria = (criteria) => {
+    const parts = [];
+    if (criteria.gender) parts.push(criteria.gender);
+    if (criteria.ageMin || criteria.ageMax) {
+      const min = criteria.ageMin || 'any';
+      const max = criteria.ageMax || 'any';
+      parts.push(`${min}-${max} yrs`);
+    }
+    if (criteria.heightMin || criteria.heightMax) {
+      const min = inchesToHeight(criteria.heightMin) || 'any';
+      const max = inchesToHeight(criteria.heightMax) || 'any';
+      parts.push(`${min} - ${max}`);
+    }
+    if (criteria.locations?.length > 0) parts.push(criteria.locations.join(', '));
+    if (criteria.occupations?.length > 0) parts.push(criteria.occupations.join(', '));
+    if (criteria.religion) parts.push(criteria.religion);
+    if (criteria.caste) parts.push(criteria.caste);
+    if (criteria.eatingPreference) parts.push(criteria.eatingPreference);
+    return parts.join(' · ');
+  };
+
+  const runSearch = async () => {
+    if (!user?.username) return;
+    setSearchLoading(true);
+    setSearchError(null);
+    setSearchDescription('');
+    try {
+      const api = useAuthStore.getState().getApi();
+      let criteria = null;
+      let source = 'Partner criteria';
+      try {
+        const defaultRes = await api.get(`/api/users/${user.username}/saved-searches/default`);
+        if (defaultRes.data?.criteria) {
+          criteria = defaultRes.data.criteria;
+          source = 'Saved search';
+        }
+      } catch (e) {
+        // no default saved search
+      }
+      if (!criteria) {
+        criteria = buildDefaultCriteria(userProfile);
+      }
+      const desc = describeCriteria(normalizeCriteria(criteria));
+      setSearchDescription(`${source}: ${desc}`);
+      const params = buildSearchParams(criteria);
+      const searchRes = await api.get(`/api/users/search?${params.toString()}`);
+      const users = searchRes.data?.users || [];
+      setSearchResults(users.slice(0, 50));
+    } catch (e) {
+      console.error('❌ Search failed:', e);
+      setSearchError(e?.response?.data?.detail || 'Search failed. Please try again.');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   const handleMenuClick = (id) => {
     if (id === 'portal_members') {
       if (portalGroup) {
@@ -798,6 +1073,12 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     }
     if (id === 'main_app') {
       openMainAppWithSso('/dashboard');
+      return;
+    }
+    if (id === 'search') {
+      setSelectedChat(null);
+      setActiveTab('search');
+      runSearch();
       return;
     }
     // US Vedika handler removed (menu item hidden).
@@ -829,7 +1110,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
               </View>
             )}
 
-            {!isLoading && !error && allViewItems.length === 0 && (
+            {!isLoading && !error && allViewItems.filter(matchesSearch).length === 0 && (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>No conversations yet</Text>
                 <Text style={styles.emptySubText}>Start a new chat to begin messaging</Text>
@@ -838,13 +1119,13 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
             {!isLoading && (
               <>
-                {allViewItems.map((conv, index) => {
+                {allViewItems.filter(matchesSearch).map((conv, index) => {
                   const display = getConvDisplay(conv);
                   const key = conv._id || conv.id || index;
                   const isLegacy = conv.type === 'direct_legacy';
                   const avatarText = display.icon || (display.isGroup ? '🦋' : (display.name || '?').charAt(0).toUpperCase());
                   return (
-                    <TouchableOpacity key={key} style={styles.conversationItem} onPress={() => {
+                    <TouchableOpacity key={key} style={[styles.conversationItem, getPendingBorderStyle(conv)]} onPress={() => {
                       // Handle placeholder rows for L3V3L Members / L3V3L Agent in the unified ALL list
                       if (conv.__placeholder && conv.__isPortal) {
                         setSelectedChat(null);
@@ -936,7 +1217,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                       const key = conv._id || conv.id || index;
                       const isLegacy = conv.type === 'direct_legacy';
                       return (
-                        <TouchableOpacity key={key} style={styles.conversationItem} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy })}>
+                        <TouchableOpacity key={key} style={[styles.conversationItem, getPendingBorderStyle(conv)]} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy })}>
                           <View style={styles.convAvatar}>
                             <Text style={styles.convAvatarText}>{display.isGroup ? '🦋' : display.name.charAt(0).toUpperCase()}</Text>
                           </View>
@@ -977,7 +1258,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                       const key = conv._id || conv.id || index;
                       const isLegacy = conv.type === 'direct_legacy';
                       return (
-                        <TouchableOpacity key={key} style={styles.conversationItem} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy, username: display.username })}>
+                        <TouchableOpacity key={key} style={[styles.conversationItem, getPendingBorderStyle(conv)]} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy, username: display.username })}>
                           <View style={styles.convAvatar}>
                             <Text style={styles.convAvatarText}>{display.name.charAt(0).toUpperCase()}</Text>
                             {/* Online presence dot — direct chats only */}
@@ -1181,6 +1462,78 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         );
       }
 
+      case 'search':
+        return (
+          <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.searchContent}>
+            <View style={styles.searchHeader}>
+              <Text style={styles.contentTitle}>Search Results</Text>
+              <TouchableOpacity onPress={() => handleMenuClick('all')} style={styles.searchCloseBtn} activeOpacity={0.7}>
+                <Text style={styles.searchCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {searchDescription ? (
+              <Text style={styles.searchDescription}>{searchDescription}</Text>
+            ) : null}
+
+            {searchLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#e94560" />
+                <Text style={styles.loadingText}>Searching profiles...</Text>
+              </View>
+            )}
+
+            {searchError && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{searchError}</Text>
+                <TouchableOpacity style={styles.retryBtn} onPress={runSearch}>
+                  <Text style={styles.retryBtnText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {!searchLoading && !searchError && searchResults.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No matches found</Text>
+              </View>
+            )}
+
+            {!searchLoading && searchResults.length > 0 && (
+              <View style={styles.stampGrid}>
+                {searchResults.map((result) => {
+                  const name = `${result.firstName || ''} ${result.lastName || ''}`.trim() || result.username;
+                  const avatarUrl = getProfilePicUrl(result);
+                  return (
+                    <TouchableOpacity
+                      key={result.username || result._id || result.profileId}
+                      style={styles.stampCard}
+                      onPress={() => openChatFromSearch(result)}
+                      activeOpacity={0.7}
+                    >
+                      {avatarUrl ? (
+                        <View style={styles.stampAvatar}>
+                          <Image source={{ uri: avatarUrl }} style={styles.stampImage} resizeMode="cover" />
+                        </View>
+                      ) : (
+                        <View style={[styles.stampAvatar, styles.stampAvatarFallback]}>
+                          <Text style={styles.stampAvatarInitial}>{(name[0] || '?').toUpperCase()}</Text>
+                        </View>
+                      )}
+                      <Text style={styles.stampName} numberOfLines={1}>{name}</Text>
+                      <Text style={styles.stampMeta} numberOfLines={1}>
+                        {[
+                          result.age ? `${result.age} yrs` : '',
+                          result.location || '',
+                        ].filter(Boolean).join(' · ')}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </ScrollView>
+        );
+
       default:
         return (
           <View style={styles.contentPlaceholder}>
@@ -1211,8 +1564,16 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           {profilePicUrl ? (
             <Image source={{ uri: profilePicUrl }} style={styles.topNavProfilePic} />
           ) : (
-            <Text style={styles.topNavIcon}>👤</Text>
+            <Text style={styles.topNavIcon}>�</Text>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.topNavItem, activeTab === 'search' && styles.topNavItemActive]}
+          onPress={() => handleMenuClick('search')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.topNavIcon}>�</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1280,6 +1641,25 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
       {/* Right column: header + content + footer below the top nav bar. */}
       <View style={styles.rightColumn}>
+        {searchActive && (
+          <View style={styles.searchBar}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search conversations..."
+              placeholderTextColor="#666"
+              autoFocus
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7}>
+                <Text style={styles.searchClear}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         {/* Agent notification nudge — shows briefly after fresh data is loaded */}
         {showNotificationBanner && (
           <TouchableOpacity
@@ -1357,6 +1737,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 8,
+  },
+  searchBar: {
+    height: 44,
+    backgroundColor: '#0f0f23',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a3e',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  searchIcon: {
+    fontSize: 14,
+    color: '#888',
+    width: 22,
+    textAlign: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    height: 32,
+    backgroundColor: '#16213e',
+    color: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#0f3460',
+  },
+  searchClear: {
+    fontSize: 16,
+    color: '#888',
+    paddingHorizontal: 6,
   },
   topNavItem: {
     width: 32,
@@ -1952,5 +2364,86 @@ const styles = StyleSheet.create({
     color: '#8892b0',
     fontSize: 16,
     paddingLeft: 12,
+  },
+
+  // Search results (postal-stamp cards)
+  searchContent: {
+    paddingBottom: 24,
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  searchCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#16213e',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchCloseText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  searchDescription: {
+    color: '#8892b0',
+    fontSize: 13,
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
+  stampGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 4,
+  },
+  stampCard: {
+    width: '31%',
+    margin: '1%',
+    backgroundColor: '#16213e',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1f2a4d',
+  },
+  stampAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginBottom: 8,
+    backgroundColor: '#0f3460',
+    overflow: 'hidden',
+  },
+  stampImage: {
+    width: 56,
+    height: 56,
+  },
+  stampAvatarFallback: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stampAvatarInitial: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  stampName: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    width: '100%',
+    marginBottom: 4,
+  },
+  stampMeta: {
+    color: '#8892b0',
+    fontSize: 11,
+    textAlign: 'center',
+    width: '100%',
   },
 });
