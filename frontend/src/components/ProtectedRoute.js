@@ -18,6 +18,7 @@ import {
   clearTrustedDeviceToken,
   getTrustedDeviceContext,
   getTrustedDeviceToken,
+  getTrustedUsernames,
 } from '../utils/trustedDevice';
 
 const ProtectedRoute = ({ children }) => {
@@ -45,13 +46,25 @@ const ProtectedRoute = ({ children }) => {
           return;
         }
 
-        const trustedToken = getTrustedDeviceToken();
-        if (!trustedToken) {
+        const usernames = getTrustedUsernames();
+        const legacyToken = getTrustedDeviceToken();
+        const accounts = usernames.length > 0 ? usernames : (legacyToken ? [''] : []);
+
+        if (accounts.length === 0) {
           setAutoLoginAttempted(true);
           setShouldRedirectToLogin(true);
           setLoading(false);
           return;
         }
+
+        // More than one saved account: send the user to the login page picker.
+        if (accounts.length > 1) {
+          logger.info('ProtectedRoute: multiple trusted accounts, redirecting to login picker');
+          navigate(`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`, { replace: true });
+          return;
+        }
+
+        const trustedToken = accounts[0] ? getTrustedDeviceToken(accounts[0]) : legacyToken;
 
         try {
           const deviceContext = getTrustedDeviceContext();
@@ -149,7 +162,7 @@ const ProtectedRoute = ({ children }) => {
     if (localStorage.getItem('token')) {
       checkUnattendedChats();
     }
-  }, [autoLoginAttempted, location.pathname]); // Re-check on route change
+  }, [autoLoginAttempted, location.pathname, navigate]); // Re-check on route change
 
   // Handle redirect to login
   if (shouldRedirectToLogin) {

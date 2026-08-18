@@ -9,9 +9,11 @@ import toastService from '../services/toastService';
 import { getBackendUrl, getTurnstileSiteKey } from "../config/apiConfig";
 import logger from '../utils/logger';
 import {
+  clearAllTrustedDeviceTokens,
   clearTrustedDeviceToken,
   getTrustedDeviceContext,
   getTrustedDeviceToken,
+  getTrustedUsernames,
   setTrustedDeviceToken,
 } from '../utils/trustedDevice';
 import {
@@ -60,6 +62,8 @@ const Login = () => {
   const [trustedPromptLoading, setTrustedPromptLoading] = useState(false);
   const [autoLoginStatus, setAutoLoginStatus] = useState('');
   const [autoLoginInProgress, setAutoLoginInProgress] = useState(false);
+  const [trustedUsernames, setTrustedUsernames] = useState([]);
+  const [selectedTrustedUsername, setSelectedTrustedUsername] = useState('');
   const autoLoginStatusTimerRef = useRef(null);
 
   // MFA State
@@ -303,6 +307,52 @@ const Login = () => {
     navigate(redirectPath, { state: { user: loginData.user } });
   };
 
+  const handleTrustedUserLogin = async (username) => {
+    const token = getTrustedDeviceToken(username);
+    if (!token) {
+      setAutoLoginStatus('Selected account is no longer trusted. Please log in with password.');
+      setTrustedUsernames((prev) => prev.filter((u) => u !== username));
+      return;
+    }
+
+    setAutoLoginInProgress(true);
+    setAutoLoginStatus(`Signing in as ${username}...`);
+
+    try {
+      const deviceContext = getTrustedDeviceContext();
+      const autoLoginResponse = await trustedDeviceAutoLogin({
+        trusted_device_token: token,
+        device_id: deviceContext.deviceId,
+        app_id: deviceContext.appId,
+      });
+
+      if (autoLoginResponse?.access_token && autoLoginResponse?.user?.username) {
+        setAutoLoginStatus('Auto-login enabled. Logging you in...');
+        await completeLoginFlow(autoLoginResponse, { runUnattendedCheck: true });
+        return;
+      }
+
+      clearTrustedDeviceToken(token);
+      setAutoLoginStatus('Auto-login failed. Please log in with password.');
+      setTrustedUsernames((prev) => prev.filter((u) => u !== username));
+    } catch (autoLoginError) {
+      logger.debug('Trusted-device auto-login failed on login page', autoLoginError);
+      clearTrustedDeviceToken(token);
+      setAutoLoginStatus('Auto-login failed. Please log in with password.');
+      setTrustedUsernames((prev) => prev.filter((u) => u !== username));
+    } finally {
+      setAutoLoginInProgress(false);
+    }
+  };
+
+  const handleResetAutoLogin = () => {
+    clearAllTrustedDeviceTokens();
+    setTrustedUsernames([]);
+    setSelectedTrustedUsername('');
+    setAutoLoginStatus('');
+    setAutoLoginInProgress(false);
+  };
+
   useEffect(() => {
     let isActive = true;
 
@@ -325,8 +375,14 @@ const Login = () => {
     };
 
     const attemptTrustedAutoLogin = async () => {
-      const trustedToken = getTrustedDeviceToken();
-      if (!trustedToken) {
+      const usernames = getTrustedUsernames();
+      const legacyToken = getTrustedDeviceToken();
+
+      // Legacy single-token fallback: if there is a generic token but no per-user map,
+      // treat it as a single anonymous account and let the backend identify the user.
+      const accounts = usernames.length > 0 ? usernames : (legacyToken ? [''] : []);
+
+      if (accounts.length === 0) {
         if (isActive) {
           showTransientStatus('Auto-login not enabled on this device.');
           setAutoLoginInProgress(false);
@@ -334,6 +390,19 @@ const Login = () => {
         return;
       }
 
+      if (accounts.length > 1) {
+        if (isActive) {
+          setTrustedUsernames(accounts);
+          setSelectedTrustedUsername(accounts[0]);
+          setAutoLoginStatus('Multiple saved accounts found. Select one to sign in.');
+          setAutoLoginInProgress(false);
+        }
+        return;
+      }
+
+      // Exactly one saved account -> attempt direct auto-login.
+      const username = accounts[0];
+      const token = username ? getTrustedDeviceToken(username) : legacyToken;
       if (isActive) {
         setAutoLoginInProgress(true);
         clearStatusTimer();
@@ -343,7 +412,7 @@ const Login = () => {
       try {
         const deviceContext = getTrustedDeviceContext();
         const autoLoginResponse = await trustedDeviceAutoLogin({
-          trusted_device_token: trustedToken,
+          trusted_device_token: token,
           device_id: deviceContext.deviceId,
           app_id: deviceContext.appId,
         });
@@ -358,7 +427,7 @@ const Login = () => {
         showTransientStatus('Auto-login not enabled on this device.');
       } catch (autoLoginError) {
         logger.debug('Trusted-device auto-login failed on login page', autoLoginError);
-        clearTrustedDeviceToken(trustedToken);
+        clearTrustedDeviceToken(token);
         showTransientStatus('Auto-login not enabled on this device.');
       } finally {
         if (isActive) {
@@ -666,6 +735,37 @@ const Login = () => {
         <div className="trusted-autologin-status" role="status" aria-live="polite">
           <span className={`trusted-autologin-dot${autoLoginInProgress ? ' loading' : ''}`} aria-hidden="true">🦋</span>
           <span>{autoLoginStatus}</span>
+        </div>
+      )}
+      {trustedUsernames.length > 1 && !pendingTrustedPrompt && !mfaRequired && (
+        <div className="mb-3">
+          <label className="login-form-label">Choose a saved account</label>
+          <select
+            className="login-input"
+            value={selectedTrustedUsername}
+            onChange={(e) => setSelectedTrustedUsername(e.target.value)}
+            disabled={autoLoginInProgress}
+          >
+            {trustedUsernames.map((u) => (
+              <option key={u} value={u}>{u}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="login-button w-100 mt-3"
+            onClick={() => handleTrustedUserLogin(selectedTrustedUsername)}
+            disabled={autoLoginInProgress || !selectedTrustedUsername}
+          >
+            {autoLoginInProgress ? 'Signing in...' : `Sign in as ${selectedTrustedUsername}`}
+          </button>
+          <button
+            type="button"
+            className="login-button login-biometric-clear w-100 mt-3"
+            onClick={handleResetAutoLogin}
+            disabled={autoLoginInProgress}
+          >
+            Use a different account
+          </button>
         </div>
       )}
       {error && <div className="alert alert-danger">{error}</div>}

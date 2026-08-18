@@ -58,6 +58,10 @@ export const getTrustedDeviceToken = (username = null) => {
   return localStorage.getItem(TRUSTED_DEVICE_TOKEN_KEY) || null;
 };
 
+export const getTrustedUsernames = () => {
+  return Object.keys(_getTokensMap());
+};
+
 export const setTrustedDeviceToken = (username, token) => {
   if (!token) return;
   try {
@@ -99,5 +103,12 @@ export const clearTrustedDeviceToken = (identifier = null) => {
     if (generic && generic === tokenToRemove) {
       localStorage.removeItem(TRUSTED_DEVICE_TOKEN_KEY);
     }
+  } catch (_) {}
+};
+
+export const clearAllTrustedDeviceTokens = () => {
+  try {
+    localStorage.removeItem(TRUSTED_DEVICE_TOKEN_KEY);
+    localStorage.removeItem(TRUSTED_DEVICE_TOKENS_KEY);
   } catch (_) {}
 };

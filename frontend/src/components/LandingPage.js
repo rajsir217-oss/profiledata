@@ -9,6 +9,7 @@ import {
   clearTrustedDeviceToken,
   getTrustedDeviceContext,
   getTrustedDeviceToken,
+  getTrustedUsernames,
 } from '../utils/trustedDevice';
 import './LandingPage.css';
 
@@ -46,22 +47,22 @@ const LandingPage = () => {
     navigate(getHomeRoute(homePage), { replace: true, state: { user } });
   }, [navigate]);
 
-  const handleTopLoginClick = useCallback(async () => {
-    setTopLoginLoading(true);
-    setTopLoginStatus('Checking auto-login...');
-
-    const trustedToken = getTrustedDeviceToken();
-    if (!trustedToken) {
-      setTopLoginStatus('Auto-login not enabled. Redirecting to login...');
+  const handleTrustedUserLogin = useCallback(async (username) => {
+    const token = getTrustedDeviceToken(username);
+    if (!token) {
+      setTopLoginStatus('Selected account is no longer trusted.');
       setTopLoginLoading(false);
       navigate('/login');
       return;
     }
 
+    setTopLoginLoading(true);
+    setTopLoginStatus(`Signing in as ${username}...`);
+
     try {
       const deviceContext = getTrustedDeviceContext();
       const autoLoginResponse = await trustedDeviceAutoLogin({
-        trusted_device_token: trustedToken,
+        trusted_device_token: token,
         device_id: deviceContext.deviceId,
         app_id: deviceContext.appId,
       });
@@ -72,17 +73,42 @@ const LandingPage = () => {
         return;
       }
 
-      clearTrustedDeviceToken(trustedToken);
+      clearTrustedDeviceToken(token);
       setTopLoginStatus('Auto-login not enabled. Redirecting to login...');
       navigate('/login');
     } catch (_) {
-      clearTrustedDeviceToken(trustedToken);
+      clearTrustedDeviceToken(token);
       setTopLoginStatus('Auto-login failed. Redirecting to login...');
       navigate('/login');
     } finally {
       setTopLoginLoading(false);
     }
   }, [completeLogin, navigate]);
+
+  const handleTopLoginClick = useCallback(async () => {
+    setTopLoginLoading(true);
+    setTopLoginStatus('Checking auto-login...');
+
+    const usernames = getTrustedUsernames();
+    const legacyToken = getTrustedDeviceToken();
+    const accounts = usernames.length > 0 ? usernames : (legacyToken ? [''] : []);
+
+    if (accounts.length === 0) {
+      setTopLoginStatus('Auto-login not enabled. Redirecting to login...');
+      setTopLoginLoading(false);
+      navigate('/login');
+      return;
+    }
+
+    if (accounts.length === 1) {
+      await handleTrustedUserLogin(accounts[0]);
+      return;
+    }
+
+    setTopLoginStatus('Multiple saved accounts found. Redirecting to login...');
+    setTopLoginLoading(false);
+    navigate('/login');
+  }, [handleTrustedUserLogin, navigate]);
 
   // Inject structured data for SEO
   useEffect(() => {
