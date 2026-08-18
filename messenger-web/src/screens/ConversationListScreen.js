@@ -60,6 +60,12 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   });
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [prefsToast, setPrefsToast] = useState(null); // { message, type }
+  const [profileSubTab, setProfileSubTab] = useState('profile'); // 'profile' | 'apps'
+  const [timerInputSeconds, setTimerInputSeconds] = useState('60');
+  const [timerRemainingSeconds, setTimerRemainingSeconds] = useState(60);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [beeperSecondsInput, setBeeperSecondsInput] = useState('5');
+  const [beeperRunning, setBeeperRunning] = useState(false);
 
   const {
     conversations,
@@ -180,6 +186,54 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     };
     saveNotifPrefs(updated);
   };
+
+  const playBeep = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const audioCtx = new AudioCtx();
+      const oscillator = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 880;
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.25);
+
+      oscillator.connect(gain);
+      gain.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.25);
+    } catch (e) {
+      // Ignore browser audio restrictions until the user interacts.
+    }
+  };
+
+  useEffect(() => {
+    if (!timerRunning) return undefined;
+    const timerId = setInterval(() => {
+      setTimerRemainingSeconds((prev) => {
+        if (prev <= 1) {
+          setTimerRunning(false);
+          playBeep();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerId);
+  }, [timerRunning]);
+
+  useEffect(() => {
+    if (!beeperRunning) return undefined;
+    const n = parseInt(beeperSecondsInput, 10);
+    if (!Number.isFinite(n) || n < 1) return undefined;
+    const beeperId = setInterval(() => {
+      playBeep();
+    }, n * 1000);
+    return () => clearInterval(beeperId);
+  }, [beeperRunning, beeperSecondsInput]);
 
   const isL3V3LAgentConversation = (conv) => {
     if (!conv) return false;
@@ -1378,139 +1432,247 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
               </View>
             </View>
 
-            {/* ---- Edit profile ---- */}
-            <TouchableOpacity
-              style={[styles.profileActionRow, styles.profilePrimaryAction]}
-              onPress={() => openMainAppWithSso('/edit-profile')}
-            >
-              <Text style={styles.profileActionIcon}>✏️</Text>
-              <Text style={styles.profileActionLabel}>Edit profile</Text>
-              <Text style={styles.profileActionHint}>↗</Text>
-            </TouchableOpacity>
-            <Text style={styles.profileActionHintSubtle}>
-              Opens the main app in a new tab
-            </Text>
-
-            {/* ---- Settings ---- */}
-            <View style={styles.profileSection}>
-              <Text style={styles.profileSectionTitle}>⚙️  Notification Settings</Text>
-              <Text style={styles.settingsHint}>Choose what to see when you log in</Text>
-
-              {prefsToast && (
-                <View style={[styles.settingsToast, prefsToast.type === 'success' ? styles.settingsToastSuccess : styles.settingsToastError]}>
-                  <Text style={styles.settingsToastText}>{prefsToast.message}</Text>
-                </View>
-              )}
-
-              {[
-                { key: 'newMatches',           icon: '🔍', label: 'New Matches',         sub: 'Profiles matching your saved searches' },
-                { key: 'pendingMessages',       icon: '💬', label: 'Pending Messages',    sub: 'Conversations awaiting your reply' },
-                { key: 'tips',                  icon: '💡', label: 'Tips',                sub: 'Helpful tips to improve your profile' },
-                { key: 'pollExpiration',        icon: '📊', label: 'Poll Expirations',    sub: 'Polls expiring in the next 7 days' },
-                { key: 'profileCardWeeklyPost', icon: '📌', label: 'Post Profile Card',  sub: 'Share profile card to L3V3L Members weekly' },
-              ].map(({ key, icon, label, sub }) => (
-                <TouchableOpacity
-                  key={key}
-                  style={styles.settingsRow}
-                  onPress={() => togglePref(key)}
-                  disabled={savingPrefs}
-                >
-                  <Text style={styles.settingsRowIcon}>{icon}</Text>
-                  <View style={styles.settingsRowText}>
-                    <Text style={styles.settingsRowLabel}>{label}</Text>
-                    <Text style={styles.settingsRowSub}>{sub}</Text>
-                  </View>
-                  <View style={[styles.settingsToggle, notifPrefs[key]?.enabled ? styles.settingsToggleOn : styles.settingsToggleOff]}>
-                    <Text style={styles.settingsToggleText}>{notifPrefs[key]?.enabled ? 'ON' : 'OFF'}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.profileTabs}>
+              <TouchableOpacity
+                style={[styles.profileTabBtn, profileSubTab === 'profile' && styles.profileTabBtnActive]}
+                onPress={() => setProfileSubTab('profile')}
+              >
+                <Text style={[styles.profileTabText, profileSubTab === 'profile' && styles.profileTabTextActive]}>Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.profileTabBtn, profileSubTab === 'apps' && styles.profileTabBtnActive]}
+                onPress={() => setProfileSubTab('apps')}
+              >
+                <Text style={[styles.profileTabText, profileSubTab === 'apps' && styles.profileTabTextActive]}>Apps</Text>
+              </TouchableOpacity>
             </View>
 
-            {/* ---- Blocked users ---- */}
-            <View style={styles.profileSection}>
-              <Text style={styles.profileSectionTitle}>
-                Blocked users{blockedUsers.length > 0 ? ` (${blockedUsers.length})` : ''}
-              </Text>
+            {profileSubTab === 'profile' ? (
+              <>
+                {/* ---- Edit profile ---- */}
+                <TouchableOpacity
+                  style={[styles.profileActionRow, styles.profilePrimaryAction]}
+                  onPress={() => openMainAppWithSso('/edit-profile')}
+                >
+                  <Text style={styles.profileActionIcon}>✏️</Text>
+                  <Text style={styles.profileActionLabel}>Edit profile</Text>
+                  <Text style={styles.profileActionHint}>↗</Text>
+                </TouchableOpacity>
+                <Text style={styles.profileActionHintSubtle}>
+                  Opens the main app in a new tab
+                </Text>
 
-              {blockedLoading && (
-                <View style={styles.profileInlineLoader}>
-                  <ActivityIndicator size="small" color="#e94560" />
-                  <Text style={styles.profileLoaderText}>Loading…</Text>
+                {/* ---- Settings ---- */}
+                <View style={styles.profileSection}>
+                  <Text style={styles.profileSectionTitle}>⚙️  Notification Settings</Text>
+                  <Text style={styles.settingsHint}>Choose what to see when you log in</Text>
+
+                  {prefsToast && (
+                    <View style={[styles.settingsToast, prefsToast.type === 'success' ? styles.settingsToastSuccess : styles.settingsToastError]}>
+                      <Text style={styles.settingsToastText}>{prefsToast.message}</Text>
+                    </View>
+                  )}
+
+                  {[
+                    { key: 'newMatches',           icon: '🔍', label: 'New Matches',         sub: 'Profiles matching your saved searches' },
+                    { key: 'pendingMessages',       icon: '💬', label: 'Pending Messages',    sub: 'Conversations awaiting your reply' },
+                    { key: 'tips',                  icon: '💡', label: 'Tips',                sub: 'Helpful tips to improve your profile' },
+                    { key: 'pollExpiration',        icon: '📊', label: 'Poll Expirations',    sub: 'Polls expiring in the next 7 days' },
+                    { key: 'profileCardWeeklyPost', icon: '📌', label: 'Post Profile Card',  sub: 'Share profile card to L3V3L Members weekly' },
+                  ].map(({ key, icon, label, sub }) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={styles.settingsRow}
+                      onPress={() => togglePref(key)}
+                      disabled={savingPrefs}
+                    >
+                      <Text style={styles.settingsRowIcon}>{icon}</Text>
+                      <View style={styles.settingsRowText}>
+                        <Text style={styles.settingsRowLabel}>{label}</Text>
+                        <Text style={styles.settingsRowSub}>{sub}</Text>
+                      </View>
+                      <View style={[styles.settingsToggle, notifPrefs[key]?.enabled ? styles.settingsToggleOn : styles.settingsToggleOff]}>
+                        <Text style={styles.settingsToggleText}>{notifPrefs[key]?.enabled ? 'ON' : 'OFF'}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              )}
 
-              {!blockedLoading && blockedError && (
-                <View style={styles.profileErrorBox}>
-                  <Text style={styles.profileErrorText}>{blockedError}</Text>
-                  <TouchableOpacity onPress={loadBlockedUsers}>
-                    <Text style={styles.profileRetryLink}>Retry</Text>
+                {/* ---- Blocked users ---- */}
+                <View style={styles.profileSection}>
+                  <Text style={styles.profileSectionTitle}>
+                    Blocked users{blockedUsers.length > 0 ? ` (${blockedUsers.length})` : ''}
+                  </Text>
+
+                  {blockedLoading && (
+                    <View style={styles.profileInlineLoader}>
+                      <ActivityIndicator size="small" color="#e94560" />
+                      <Text style={styles.profileLoaderText}>Loading…</Text>
+                    </View>
+                  )}
+
+                  {!blockedLoading && blockedError && (
+                    <View style={styles.profileErrorBox}>
+                      <Text style={styles.profileErrorText}>{blockedError}</Text>
+                      <TouchableOpacity onPress={loadBlockedUsers}>
+                        <Text style={styles.profileRetryLink}>Retry</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {!blockedLoading && !blockedError && blockedUsers.length === 0 && (
+                    <Text style={styles.profileEmptyText}>
+                      You haven’t blocked anyone.
+                    </Text>
+                  )}
+
+                  {!blockedLoading && blockedUsers.length > 0 && (
+                    <ScrollView style={styles.blockedGrid} nestedScrollEnabled showsVerticalScrollIndicator>
+                      <View style={styles.blockedGridInner}>
+                        {blockedUsers.map((u) => {
+                          const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username;
+                          const avatarUrl = getProfilePicUrl(u);
+                          const isBusy = unblockingUser === u.username;
+                          return (
+                            <View key={u.username} style={styles.blockedCard}>
+                              <View style={styles.blockedCardAvatarWrap}>
+                                {avatarUrl ? (
+                                  <Image source={{ uri: avatarUrl }} style={styles.blockedCardAvatar} />
+                                ) : (
+                                  <View style={[styles.blockedCardAvatar, styles.blockedAvatarFallback]}>
+                                    <Text style={styles.blockedAvatarInitial}>
+                                      {(name?.[0] || '?').toUpperCase()}
+                                    </Text>
+                                  </View>
+                                )}
+                                <OnlineDot online={isOnline(u.username)} size={9} />
+                              </View>
+                              <Text style={styles.blockedCardName} numberOfLines={1}>{name}</Text>
+                              <Text style={styles.blockedCardUsername} numberOfLines={1}>@{u.username}</Text>
+                              <TouchableOpacity
+                                style={[styles.blockedCardUnblockBtn, isBusy && styles.unblockButtonBusy]}
+                                onPress={() => handleUnblock(u.username)}
+                                disabled={isBusy}
+                              >
+                                <Text style={styles.unblockButtonText}>
+                                  {isBusy ? '…' : 'Unblock'}
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    </ScrollView>
+                  )}
+                </View>
+
+                {/* ---- About ---- */}
+                <View style={styles.profileSection}>
+                  <Text style={styles.profileSectionTitle}>About</Text>
+                  <View style={styles.aboutRow}>
+                    <Text style={styles.aboutLabel}>Version</Text>
+                    <Text style={styles.aboutValue}>{APP_VERSION}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.aboutRow} onPress={() => openLink(helpUrl)}>
+                    <Text style={styles.aboutLabel}>Help</Text>
+                    <Text style={styles.aboutLink}>Open ↗</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.aboutRow} onPress={() => openLink(contactUrl)}>
+                    <Text style={styles.aboutLabel}>Contact</Text>
+                    <Text style={styles.aboutLink}>Open ↗</Text>
                   </TouchableOpacity>
                 </View>
-              )}
+              </>
+            ) : (
+              <View style={styles.profileSection}>
+                <Text style={styles.profileSectionTitle}>Apps</Text>
 
-              {!blockedLoading && !blockedError && blockedUsers.length === 0 && (
-                <Text style={styles.profileEmptyText}>
-                  You haven’t blocked anyone.
-                </Text>
-              )}
-
-              {!blockedLoading && blockedUsers.length > 0 && (
-                <ScrollView style={styles.blockedGrid} nestedScrollEnabled showsVerticalScrollIndicator>
-                  <View style={styles.blockedGridInner}>
-                    {blockedUsers.map((u) => {
-                      const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username;
-                      const avatarUrl = getProfilePicUrl(u);
-                      const isBusy = unblockingUser === u.username;
-                      return (
-                        <View key={u.username} style={styles.blockedCard}>
-                          <View style={styles.blockedCardAvatarWrap}>
-                            {avatarUrl ? (
-                              <Image source={{ uri: avatarUrl }} style={styles.blockedCardAvatar} />
-                            ) : (
-                              <View style={[styles.blockedCardAvatar, styles.blockedAvatarFallback]}>
-                                <Text style={styles.blockedAvatarInitial}>
-                                  {(name?.[0] || '?').toUpperCase()}
-                                </Text>
-                              </View>
-                            )}
-                            <OnlineDot online={isOnline(u.username)} size={9} />
-                          </View>
-                          <Text style={styles.blockedCardName} numberOfLines={1}>{name}</Text>
-                          <Text style={styles.blockedCardUsername} numberOfLines={1}>@{u.username}</Text>
-                          <TouchableOpacity
-                            style={[styles.blockedCardUnblockBtn, isBusy && styles.unblockButtonBusy]}
-                            onPress={() => handleUnblock(u.username)}
-                            disabled={isBusy}
-                          >
-                            <Text style={styles.unblockButtonText}>
-                              {isBusy ? '…' : 'Unblock'}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    })}
+                <View style={styles.appCard}>
+                  <Text style={styles.appTitle}>⏱️ Timer App</Text>
+                  <Text style={styles.appSubText}>Start a countdown in seconds.</Text>
+                  <View style={styles.appInputRow}>
+                    <TextInput
+                      style={styles.appNumberInput}
+                      value={timerInputSeconds}
+                      onChangeText={setTimerInputSeconds}
+                      keyboardType="numeric"
+                      placeholder="Seconds"
+                      placeholderTextColor="#6b7490"
+                    />
                   </View>
-                </ScrollView>
-              )}
-            </View>
+                  <View style={styles.appActionsRow}>
+                    <TouchableOpacity
+                      style={[styles.appBtn, styles.appBtnEqual]}
+                      onPress={() => {
+                        const n = parseInt(timerInputSeconds, 10);
+                        if (!Number.isFinite(n) || n < 1) return;
+                        setTimerRemainingSeconds(n);
+                        setTimerRunning(true);
+                      }}
+                    >
+                      <Text style={styles.appBtnText}>Start</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.appBtn, styles.appBtnGhost, styles.appBtnEqual]}
+                      onPress={() => setTimerRunning((v) => !v)}
+                    >
+                      <Text style={styles.appBtnText}>{timerRunning ? 'Pause' : 'Resume'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.appBtn, styles.appBtnGhost, styles.appBtnEqual]}
+                      onPress={() => {
+                        setTimerRunning(false);
+                        setTimerRemainingSeconds(parseInt(timerInputSeconds, 10) || 0);
+                      }}
+                    >
+                      <Text style={styles.appBtnText}>Reset</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.appTimerCountdown}>
+                    Remaining: {Math.floor(timerRemainingSeconds / 60)}:{String(timerRemainingSeconds % 60).padStart(2, '0')}
+                  </Text>
+                </View>
 
-            {/* ---- About ---- */}
-            <View style={styles.profileSection}>
-              <Text style={styles.profileSectionTitle}>About</Text>
-              <View style={styles.aboutRow}>
-                <Text style={styles.aboutLabel}>Version</Text>
-                <Text style={styles.aboutValue}>{APP_VERSION}</Text>
+                <View style={styles.appCard}>
+                  <Text style={styles.appTitle}>🔔 Beeper App</Text>
+                  <Text style={styles.appSubText}>Play a short beep every N seconds.</Text>
+                  <View style={styles.appInputRow}>
+                    <TextInput
+                      style={styles.appNumberInput}
+                      value={beeperSecondsInput}
+                      onChangeText={setBeeperSecondsInput}
+                      keyboardType="numeric"
+                      placeholder="N seconds"
+                      placeholderTextColor="#6b7490"
+                    />
+                  </View>
+                  <View style={styles.appActionsRow}>
+                    <TouchableOpacity
+                      style={[styles.appBtn, styles.appBtnEqual]}
+                      onPress={() => {
+                        const n = parseInt(beeperSecondsInput, 10);
+                        if (!Number.isFinite(n) || n < 1) return;
+                        setBeeperRunning(true);
+                      }}
+                    >
+                      <Text style={styles.appBtnText}>Start</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.appBtn, styles.appBtnGhost, styles.appBtnEqual]}
+                      onPress={() => setBeeperRunning(false)}
+                    >
+                      <Text style={styles.appBtnText}>Stop</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.appBtn, styles.appBtnGhost, styles.appBtnEqual]} onPress={playBeep}>
+                      <Text style={styles.appBtnText}>Test Beep</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.appStatusText}>
+                    Status: {beeperRunning ? `Beeping every ${beeperSecondsInput}s` : 'Stopped'}
+                  </Text>
+                </View>
               </View>
-              <TouchableOpacity style={styles.aboutRow} onPress={() => openLink(helpUrl)}>
-                <Text style={styles.aboutLabel}>Help</Text>
-                <Text style={styles.aboutLink}>Open ↗</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.aboutRow} onPress={() => openLink(contactUrl)}>
-                <Text style={styles.aboutLabel}>Contact</Text>
-                <Text style={styles.aboutLink}>Open ↗</Text>
-              </TouchableOpacity>
-            </View>
+            )}
 
             {/* ---- Sign out ---- */}
             <TouchableOpacity style={styles.signOutButton} onPress={onLogout}>
@@ -2133,6 +2295,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
+  profileTabs: {
+    flexDirection: 'row',
+    marginBottom: 14,
+    backgroundColor: '#121b34',
+    borderRadius: 10,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#1f2a4d',
+  },
+  profileTabBtn: {
+    flex: 1,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  profileTabBtnActive: {
+    backgroundColor: '#1f2a4d',
+  },
+  profileTabText: {
+    color: '#8892b0',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  profileTabTextActive: {
+    color: '#fff',
+  },
 
   profileActionRow: {
     flexDirection: 'row',
@@ -2183,6 +2371,76 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     marginBottom: 12,
+  },
+  appCard: {
+    backgroundColor: '#0f1b36',
+    borderWidth: 1,
+    borderColor: '#2a3a61',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  appTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  appSubText: {
+    color: '#8892b0',
+    fontSize: 12,
+    marginBottom: 10,
+  },
+  appInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  appActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  appNumberInput: {
+    backgroundColor: '#121b34',
+    borderWidth: 1,
+    borderColor: '#2a3a61',
+    borderRadius: 8,
+    color: '#fff',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    width: '100%',
+  },
+  appBtn: {
+    backgroundColor: '#1f2a4d',
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+  },
+  appBtnEqual: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  appBtnGhost: {
+    borderColor: '#4b5f91',
+  },
+  appBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  appStatusText: {
+    color: '#c7d2fe',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  appTimerCountdown: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: 8,
   },
   profileEmptyText: {
     color: '#8892b0',
