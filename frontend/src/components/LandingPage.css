@@ -2324,7 +2324,7 @@ body {
 
 .lp-hero-container {
   max-width: 1240px;
-  border: 1px solid rgba(255, 255, 255, 0.48);
+  border: none;
   border-radius: 0;
   overflow: hidden;
   background: rgba(20, 16, 12, 0.1);
@@ -2338,7 +2338,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 8px 18px;
-  border-bottom: 1px solid rgba(252, 176, 113, 0.75);
+  border-bottom: none;
 }
 
 .lp-hero-top-brand {
@@ -2372,6 +2372,8 @@ body {
   letter-spacing: 0.35px;
   border-radius: 999px;
   padding: 7px 34px;
+  min-width: 108px;
+  white-space: nowrap;
   cursor: pointer;
   box-shadow: 0 6px 16px rgba(80, 65, 183, 0.35);
 }
@@ -2491,9 +2493,7 @@ body {
 .lp-stats-bar {
   margin: 0 auto;
   max-width: 1240px;
-  border-left: 1px solid rgba(255, 255, 255, 0.45);
-  border-right: 1px solid rgba(255, 255, 255, 0.45);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+  border: none;
   padding: 12px 30px;
   gap: 40px;
   background: rgba(41, 41, 44, 0.92);
@@ -2541,6 +2541,9 @@ body {
 @media (max-width: 680px) {
   .lp-hero-topline {
     padding: 8px 10px;
+    justify-content: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
   }
 
   .lp-hero-top-brand {
@@ -2557,8 +2560,10 @@ body {
   }
 
   .lp-hero-top-login {
-    padding: 7px 18px;
+    padding: 7px 20px;
     font-size: 10px;
+    min-width: 120px;
+    align-self: flex-start;
   }
 
   .lp-hero-top-status {

@@ -53,7 +53,7 @@ export const getTrustedDeviceContext = () => ({
 export const getTrustedDeviceToken = (username = null) => {
   const map = _getTokensMap();
   if (username) {
-    return map[username] || localStorage.getItem(TRUSTED_DEVICE_TOKEN_KEY) || null;
+    return map[username] || null;
   }
   return localStorage.getItem(TRUSTED_DEVICE_TOKEN_KEY) || null;
 };

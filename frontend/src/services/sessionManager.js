@@ -1,7 +1,6 @@
 // frontend/src/services/sessionManager.js
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
-import { clearTrustedDeviceToken } from '../utils/trustedDevice';
 import toastService from './toastService';
 import logger from '../utils/logger';
 
@@ -669,7 +668,6 @@ class SessionManager {
     this.inactivityWarningShown = false;
 
     // Clear storage
-    const currentUsername = localStorage.getItem('username');
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     
@@ -678,7 +676,6 @@ class SessionManager {
     localStorage.removeItem('username');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userStatus');
-    clearTrustedDeviceToken(currentUsername);
     localStorage.removeItem('sessionLoginTime');
     localStorage.removeItem('sessionLastActivity');
     localStorage.removeItem('sessionLastTokenUpdate');
@@ -762,13 +759,11 @@ class SessionManager {
     this.isLoggingOut = false;
 
     // Clear storage (tokens and session data)
-    const currentUsername = localStorage.getItem('username');
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('username');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userStatus');
-    clearTrustedDeviceToken(currentUsername);
     localStorage.removeItem('sessionLoginTime');
     localStorage.removeItem('sessionLastActivity');
     localStorage.removeItem('sessionLastTokenUpdate');

@@ -64,6 +64,12 @@ const Login = () => {
   const [autoLoginInProgress, setAutoLoginInProgress] = useState(false);
   const [trustedUsernames, setTrustedUsernames] = useState([]);
   const [selectedTrustedUsername, setSelectedTrustedUsername] = useState('');
+  const [autoLoginDebug, setAutoLoginDebug] = useState({
+    trustedUsernamesCount: 0,
+    hasGenericToken: false,
+    lastFailureStatus: null,
+    lastAttemptSource: '',
+  });
   const autoLoginStatusTimerRef = useRef(null);
 
   // MFA State
@@ -176,6 +182,18 @@ const Login = () => {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setError("");
+  };
+
+  const captureTrustedDebug = (extra = {}) => {
+    if (!isDevelopment) return;
+    const usernames = getTrustedUsernames();
+    const genericToken = getTrustedDeviceToken();
+    setAutoLoginDebug((prev) => ({
+      ...prev,
+      trustedUsernamesCount: usernames.length,
+      hasGenericToken: Boolean(genericToken),
+      ...extra,
+    }));
   };
 
   const persistAuthState = (loginData) => {
@@ -308,6 +326,7 @@ const Login = () => {
   };
 
   const handleTrustedUserLogin = async (username) => {
+    captureTrustedDebug({ lastAttemptSource: 'manual', lastFailureStatus: null });
     const token = getTrustedDeviceToken(username);
     if (!token) {
       setAutoLoginStatus('Selected account is no longer trusted. Please log in with password.');
@@ -332,12 +351,17 @@ const Login = () => {
         return;
       }
 
-      clearTrustedDeviceToken(token);
       setAutoLoginStatus('Auto-login failed. Please log in with password.');
       setTrustedUsernames((prev) => prev.filter((u) => u !== username));
     } catch (autoLoginError) {
       logger.debug('Trusted-device auto-login failed on login page', autoLoginError);
-      clearTrustedDeviceToken(token);
+      captureTrustedDebug({
+        lastAttemptSource: 'manual',
+        lastFailureStatus: autoLoginError?.response?.status || 'network',
+      });
+      if (autoLoginError?.response?.status === 401) {
+        clearTrustedDeviceToken(token);
+      }
       setAutoLoginStatus('Auto-login failed. Please log in with password.');
       setTrustedUsernames((prev) => prev.filter((u) => u !== username));
     } finally {
@@ -375,6 +399,7 @@ const Login = () => {
     };
 
     const attemptTrustedAutoLogin = async () => {
+      captureTrustedDebug({ lastAttemptSource: 'startup', lastFailureStatus: null });
       const usernames = getTrustedUsernames();
       const legacyToken = getTrustedDeviceToken();
 
@@ -427,7 +452,13 @@ const Login = () => {
         showTransientStatus('Auto-login not enabled on this device.');
       } catch (autoLoginError) {
         logger.debug('Trusted-device auto-login failed on login page', autoLoginError);
-        clearTrustedDeviceToken(token);
+        captureTrustedDebug({
+          lastAttemptSource: 'startup',
+          lastFailureStatus: autoLoginError?.response?.status || 'network',
+        });
+        if (autoLoginError?.response?.status === 401) {
+          clearTrustedDeviceToken(token);
+        }
         showTransientStatus('Auto-login not enabled on this device.');
       } finally {
         if (isActive) {
@@ -729,6 +760,15 @@ const Login = () => {
         <div className="trusted-autologin-status" role="status" aria-live="polite">
           <span className={`trusted-autologin-dot${autoLoginInProgress ? ' loading' : ''}`} aria-hidden="true">🦋</span>
           <span>{autoLoginStatus}</span>
+        </div>
+      )}
+      {isDevelopment && !pendingTrustedPrompt && !mfaRequired && (
+        <div className="trusted-autologin-debug" role="note" aria-label="Auto-login debug">
+          <div className="trusted-autologin-debug-title">Auto-login debug</div>
+          <div className="trusted-autologin-debug-line">Saved usernames: {autoLoginDebug.trustedUsernamesCount}</div>
+          <div className="trusted-autologin-debug-line">Generic token present: {autoLoginDebug.hasGenericToken ? 'yes' : 'no'}</div>
+          <div className="trusted-autologin-debug-line">Last source: {autoLoginDebug.lastAttemptSource || 'n/a'}</div>
+          <div className="trusted-autologin-debug-line">Last failure status: {autoLoginDebug.lastFailureStatus ?? 'none'}</div>
         </div>
       )}
       {trustedUsernames.length > 1 && !pendingTrustedPrompt && !mfaRequired && (

@@ -165,6 +165,25 @@ html {
   animation: trustedAutoLoginPulse 1s ease-in-out infinite;
 }
 
+.trusted-autologin-debug {
+  margin-bottom: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px dashed rgba(99, 102, 241, 0.5);
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--text-color, #111827);
+  font-size: 0.78rem;
+}
+
+.trusted-autologin-debug-title {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.trusted-autologin-debug-line {
+  line-height: 1.35;
+}
+
 @keyframes trustedAutoLoginPulse {
   0%,
   100% {
