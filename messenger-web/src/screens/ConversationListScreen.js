@@ -1731,21 +1731,23 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                       activeOpacity={0.7}
                     >
                       {avatarUrl ? (
-                        <View style={styles.stampAvatar}>
-                          <Image source={{ uri: avatarUrl }} style={styles.stampImage} resizeMode="cover" />
-                        </View>
+                        <Image source={{ uri: avatarUrl }} style={styles.stampBgImage} resizeMode="cover" />
                       ) : (
-                        <View style={[styles.stampAvatar, styles.stampAvatarFallback]}>
-                          <Text style={styles.stampAvatarInitial}>{(name[0] || '?').toUpperCase()}</Text>
+                        <View style={styles.stampBgFallback}>
+                          <View style={styles.stampAvatarFallbackBadge}>
+                            <Text style={styles.stampAvatarInitial}>{(name[0] || '?').toUpperCase()}</Text>
+                          </View>
                         </View>
                       )}
-                      <Text style={styles.stampName} numberOfLines={1}>{name}</Text>
-                      <Text style={styles.stampMeta} numberOfLines={1}>
-                        {[
-                          result.age ? `${result.age} yrs` : '',
-                          result.location || '',
-                        ].filter(Boolean).join(' · ')}
-                      </Text>
+                      <View style={styles.stampOverlay}>
+                        <Text style={styles.stampName} numberOfLines={1}>{name}</Text>
+                        <Text style={styles.stampMeta} numberOfLines={1}>
+                          {[
+                            result.age ? `${result.age} yrs` : '',
+                            result.location || '',
+                          ].filter(Boolean).join(' · ')}
+                        </Text>
+                      </View>
                     </TouchableOpacity>
                   );
                 })}
@@ -2721,11 +2723,12 @@ const styles = StyleSheet.create({
     margin: '1%',
     backgroundColor: '#16213e',
     borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    alignItems: 'center',
+    minHeight: 132,
+    justifyContent: 'flex-end',
     borderWidth: 1,
     borderColor: '#1f2a4d',
+    overflow: 'hidden',
+    position: 'relative',
   },
   stampCardAwaitingReplyBlue: {
     borderWidth: 3,
@@ -2747,22 +2750,32 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 0 },
   },
-  stampAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-    marginBottom: 8,
+  stampBgImage: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+  },
+  stampBgFallback: {
+    position: 'absolute',
+    inset: 0,
     backgroundColor: '#0f3460',
-    overflow: 'hidden',
-  },
-  stampImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-  },
-  stampAvatarFallback: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  stampAvatarFallbackBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    backgroundColor: '#18457f',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stampOverlay: {
+    width: '100%',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    backgroundColor: 'rgba(6, 10, 20, 0.68)',
   },
   stampAvatarInitial: {
     color: '#fff',
@@ -2772,15 +2785,21 @@ const styles = StyleSheet.create({
   stampName: {
     color: '#fff',
     fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: '700',
+    textAlign: 'left',
     width: '100%',
     marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   stampMeta: {
-    color: '#8892b0',
+    color: '#d1d9ee',
     fontSize: 11,
-    textAlign: 'center',
+    textAlign: 'left',
     width: '100%',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

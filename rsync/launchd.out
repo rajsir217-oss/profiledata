@@ -581,3 +581,147 @@
 2026-08-19 02:00:02 [SUCCESS] User Status: SUCCESS_SKIPPED_NO_CHANGES
 2026-08-19 02:00:02 [INFO] Process Status: SUCCESS (exit_code=0)
 2026-08-19 02:00:02 [INFO] Status: SUCCESS_SKIPPED_NO_CHANGES
+2026-08-20 02:00:01 [INFO] ========================================================
+2026-08-20 02:00:01 [INFO] sync2NAS Started
+2026-08-20 02:00:01 [INFO] ========================================================
+2026-08-20 02:00:01 [INFO] Source: /Users/rajsiripuram02/SyncSources/sync2NAS
+2026-08-20 02:00:01 [INFO] Destination: /Volumes/wdc_home_share/sync2NAS
+2026-08-20 02:00:01 [INFO] Sync policy: relax_metadata=True, modify_window_seconds=2, exclude_patterns=['.DS_Store', '._*', '.Spotlight-V100', '.Trashes', '.fseventsd', 'Thumbs.db']
+2026-08-20 02:00:01 [INFO] Source fingerprint cache: /Users/rajsiripuram02/opt/appsrc/profiledata/rsync/cache/source_fingerprint.json
+2026-08-20 02:00:01 [INFO] Current source fingerprint: 6600ddaee618 (dirs=600, files=33475, bytes=217113842854)
+2026-08-20 02:00:01 [INFO] Previous source fingerprint: 6600ddaee618
+2026-08-20 02:00:01 [SUCCESS] No source changes detected since last successful run; skipping sync.
+2026-08-20 02:00:01 [INFO] Use --force to run sync anyway.
+2026-08-20 02:00:01 [INFO] ====================================================
+2026-08-20 02:00:01 [INFO] SUMMARY
+2026-08-20 02:00:01 [INFO] ====================================================
+2026-08-20 02:00:01 [INFO] Source Directories: 600
+2026-08-20 02:00:01 [INFO] Destination Directories: 0
+2026-08-20 02:00:01 [INFO] Source Files: 33475
+2026-08-20 02:00:01 [INFO] Destination Files: 0
+2026-08-20 02:00:01 [INFO] Source Size: 202.20 GB
+2026-08-20 02:00:01 [INFO] Destination Size: 0 B
+2026-08-20 02:00:01 [INFO] Transferred Files: 0
+2026-08-20 02:00:01 [INFO] Deleted Files: 0
+2026-08-20 02:00:01 [INFO] Bytes Sent: 0 B
+2026-08-20 02:00:01 [INFO] Bytes Received: 0 B
+2026-08-20 02:00:01 [INFO] Folder Mismatches: 0
+2026-08-20 02:00:01 [INFO] File Count Mismatches: 0
+2026-08-20 02:00:01 [INFO] Missing Destination Folders: 0
+2026-08-20 02:00:01 [INFO] Missing Destination Files: 0
+2026-08-20 02:00:01 [INFO] Destination Extra Folders: 0
+2026-08-20 02:00:01 [INFO] Destination Extra Files: 0
+2026-08-20 02:00:01 [INFO] Verification: SKIPPED
+2026-08-20 02:00:01 [INFO] User Status: SUCCESS_SKIPPED_NO_CHANGES
+2026-08-20 02:00:01 [INFO] Process Status: SUCCESS
+2026-08-20 02:00:01 [INFO] 
+2026-08-20 02:00:01 [INFO] Mount Time: 0s
+2026-08-20 02:00:01 [INFO] Sync Time: 0s
+2026-08-20 02:00:01 [INFO] Source Inventory Time: 0s
+2026-08-20 02:00:01 [INFO] Destination Inventory Time: 0s
+2026-08-20 02:00:01 [INFO] Reconciliation Time: 0s
+2026-08-20 02:00:01 [INFO] Verification Time: 0s
+2026-08-20 02:00:01 [INFO] Total Runtime: 0s
+2026-08-20 02:00:01 [INFO] ====================================================
+2026-08-20 02:00:01 [INFO] ========================================================
+2026-08-20 02:00:01 [INFO] sync2NAS Finished
+2026-08-20 02:00:01 [INFO] ========================================================
+2026-08-20 02:00:01 [SUCCESS] User Status: SUCCESS_SKIPPED_NO_CHANGES
+2026-08-20 02:00:01 [INFO] Process Status: SUCCESS (exit_code=0)
+2026-08-20 02:00:01 [INFO] Status: SUCCESS_SKIPPED_NO_CHANGES
+2026-08-21 02:03:28 [INFO] ========================================================
+2026-08-21 02:03:28 [INFO] sync2NAS Started
+2026-08-21 02:03:28 [INFO] ========================================================
+2026-08-21 02:03:28 [INFO] Source: /Users/rajsiripuram02/SyncSources/sync2NAS
+2026-08-21 02:03:28 [INFO] Destination: /Volumes/wdc_home_share/sync2NAS
+2026-08-21 02:03:28 [INFO] Sync policy: relax_metadata=True, modify_window_seconds=2, exclude_patterns=['.DS_Store', '._*', '.Spotlight-V100', '.Trashes', '.fseventsd', 'Thumbs.db']
+2026-08-21 02:03:28 [INFO] Source fingerprint cache: /Users/rajsiripuram02/opt/appsrc/profiledata/rsync/cache/source_fingerprint.json
+2026-08-21 02:03:28 [INFO] Current source fingerprint: 6600ddaee618 (dirs=600, files=33475, bytes=217113842854)
+2026-08-21 02:03:28 [INFO] Previous source fingerprint: 6600ddaee618
+2026-08-21 02:03:28 [SUCCESS] No source changes detected since last successful run; skipping sync.
+2026-08-21 02:03:28 [INFO] Use --force to run sync anyway.
+2026-08-21 02:03:28 [INFO] ====================================================
+2026-08-21 02:03:28 [INFO] SUMMARY
+2026-08-21 02:03:28 [INFO] ====================================================
+2026-08-21 02:03:28 [INFO] Source Directories: 600
+2026-08-21 02:03:28 [INFO] Destination Directories: 0
+2026-08-21 02:03:28 [INFO] Source Files: 33475
+2026-08-21 02:03:28 [INFO] Destination Files: 0
+2026-08-21 02:03:28 [INFO] Source Size: 202.20 GB
+2026-08-21 02:03:28 [INFO] Destination Size: 0 B
+2026-08-21 02:03:28 [INFO] Transferred Files: 0
+2026-08-21 02:03:28 [INFO] Deleted Files: 0
+2026-08-21 02:03:28 [INFO] Bytes Sent: 0 B
+2026-08-21 02:03:28 [INFO] Bytes Received: 0 B
+2026-08-21 02:03:28 [INFO] Folder Mismatches: 0
+2026-08-21 02:03:28 [INFO] File Count Mismatches: 0
+2026-08-21 02:03:28 [INFO] Missing Destination Folders: 0
+2026-08-21 02:03:28 [INFO] Missing Destination Files: 0
+2026-08-21 02:03:28 [INFO] Destination Extra Folders: 0
+2026-08-21 02:03:28 [INFO] Destination Extra Files: 0
+2026-08-21 02:03:28 [INFO] Verification: SKIPPED
+2026-08-21 02:03:28 [INFO] User Status: SUCCESS_SKIPPED_NO_CHANGES
+2026-08-21 02:03:28 [INFO] Process Status: SUCCESS
+2026-08-21 02:03:28 [INFO] 
+2026-08-21 02:03:28 [INFO] Mount Time: 0s
+2026-08-21 02:03:28 [INFO] Sync Time: 0s
+2026-08-21 02:03:28 [INFO] Source Inventory Time: 0s
+2026-08-21 02:03:28 [INFO] Destination Inventory Time: 0s
+2026-08-21 02:03:28 [INFO] Reconciliation Time: 0s
+2026-08-21 02:03:28 [INFO] Verification Time: 0s
+2026-08-21 02:03:28 [INFO] Total Runtime: 0s
+2026-08-21 02:03:28 [INFO] ====================================================
+2026-08-21 02:03:28 [INFO] ========================================================
+2026-08-21 02:03:28 [INFO] sync2NAS Finished
+2026-08-21 02:03:28 [INFO] ========================================================
+2026-08-21 02:03:28 [SUCCESS] User Status: SUCCESS_SKIPPED_NO_CHANGES
+2026-08-21 02:03:28 [INFO] Process Status: SUCCESS (exit_code=0)
+2026-08-21 02:03:28 [INFO] Status: SUCCESS_SKIPPED_NO_CHANGES
+2026-08-21 07:29:46 [INFO] ========================================================
+2026-08-21 07:29:46 [INFO] sync2NAS Started
+2026-08-21 07:29:46 [INFO] ========================================================
+2026-08-21 07:29:46 [INFO] Source: /Users/rajsiripuram02/SyncSources/sync2NAS
+2026-08-21 07:29:46 [INFO] Destination: /Volumes/wdc_home_share/sync2NAS
+2026-08-21 07:29:46 [INFO] Sync policy: relax_metadata=True, modify_window_seconds=2, exclude_patterns=['.DS_Store', '._*', '.Spotlight-V100', '.Trashes', '.fseventsd', 'Thumbs.db']
+2026-08-21 07:29:46 [INFO] Source fingerprint cache: /Users/rajsiripuram02/opt/appsrc/profiledata/rsync/cache/source_fingerprint.json
+2026-08-21 07:29:47 [INFO] Current source fingerprint: 6600ddaee618 (dirs=600, files=33475, bytes=217113842854)
+2026-08-21 07:29:47 [INFO] Previous source fingerprint: 6600ddaee618
+2026-08-21 07:29:47 [SUCCESS] No source changes detected since last successful run; skipping sync.
+2026-08-21 07:29:47 [INFO] Use --force to run sync anyway.
+2026-08-21 07:29:47 [INFO] ====================================================
+2026-08-21 07:29:47 [INFO] SUMMARY
+2026-08-21 07:29:47 [INFO] ====================================================
+2026-08-21 07:29:47 [INFO] Source Directories: 600
+2026-08-21 07:29:47 [INFO] Destination Directories: 0
+2026-08-21 07:29:47 [INFO] Source Files: 33475
+2026-08-21 07:29:47 [INFO] Destination Files: 0
+2026-08-21 07:29:47 [INFO] Source Size: 202.20 GB
+2026-08-21 07:29:47 [INFO] Destination Size: 0 B
+2026-08-21 07:29:47 [INFO] Transferred Files: 0
+2026-08-21 07:29:47 [INFO] Deleted Files: 0
+2026-08-21 07:29:47 [INFO] Bytes Sent: 0 B
+2026-08-21 07:29:47 [INFO] Bytes Received: 0 B
+2026-08-21 07:29:47 [INFO] Folder Mismatches: 0
+2026-08-21 07:29:47 [INFO] File Count Mismatches: 0
+2026-08-21 07:29:47 [INFO] Missing Destination Folders: 0
+2026-08-21 07:29:47 [INFO] Missing Destination Files: 0
+2026-08-21 07:29:47 [INFO] Destination Extra Folders: 0
+2026-08-21 07:29:47 [INFO] Destination Extra Files: 0
+2026-08-21 07:29:47 [INFO] Verification: SKIPPED
+2026-08-21 07:29:47 [INFO] User Status: SUCCESS_SKIPPED_NO_CHANGES
+2026-08-21 07:29:47 [INFO] Process Status: SUCCESS
+2026-08-21 07:29:47 [INFO] 
+2026-08-21 07:29:47 [INFO] Mount Time: 0s
+2026-08-21 07:29:47 [INFO] Sync Time: 0s
+2026-08-21 07:29:47 [INFO] Source Inventory Time: 0s
+2026-08-21 07:29:47 [INFO] Destination Inventory Time: 0s
+2026-08-21 07:29:47 [INFO] Reconciliation Time: 0s
+2026-08-21 07:29:47 [INFO] Verification Time: 0s
+2026-08-21 07:29:47 [INFO] Total Runtime: 0s
+2026-08-21 07:29:47 [INFO] ====================================================
+2026-08-21 07:29:47 [INFO] ========================================================
+2026-08-21 07:29:47 [INFO] sync2NAS Finished
+2026-08-21 07:29:47 [INFO] ========================================================
+2026-08-21 07:29:47 [SUCCESS] User Status: SUCCESS_SKIPPED_NO_CHANGES
+2026-08-21 07:29:47 [INFO] Process Status: SUCCESS (exit_code=0)
+2026-08-21 07:29:47 [INFO] Status: SUCCESS_SKIPPED_NO_CHANGES
