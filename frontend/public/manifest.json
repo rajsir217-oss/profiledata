@@ -3,20 +3,20 @@
   "name": "L3V3L Matches - Find Your Perfect Life Partner",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "L3V3L_MATCHES_GREEN_favicon_32.png",
+      "sizes": "32x32",
+      "type": "image/png"
     },
     {
-      "src": "android-chrome-192x192.png",
+      "src": "L3V3L_MATCHES_GREEN_favicon_128.png",
       "type": "image/png",
-      "sizes": "192x192",
+      "sizes": "128x128",
       "purpose": "any maskable"
     },
     {
-      "src": "android-chrome-512x512.png",
+      "src": "L3V3L_MATCHES_GREEN_favicon_256.png",
       "type": "image/png",
-      "sizes": "512x512",
+      "sizes": "256x256",
       "purpose": "any maskable"
     }
   ],

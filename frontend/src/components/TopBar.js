@@ -11,7 +11,6 @@ import {
   getOrCreateTrustedDeviceId,
   getTrustedDeviceAppId,
 } from '../utils/trustedDevice';
-import Logo from './Logo';
 import InfoTicker from './InfoTicker';
 import EventCountdown from './EventCountdown';
 import { getShortName } from '../utils/userDisplay';
@@ -670,7 +669,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
               ☰
             </button>
             <div className="app-logo" onClick={() => navigate('/dashboardv2')}>
-              <Logo variant="modern" size="small" showText={!isMobile} theme="navbar" />
+              <img src="/landing-page-logo-transparent.png" alt="L3V3L Matches" className="app-logo-image" />
             </div>
           </div>
           <div className="top-bar-right">
@@ -709,11 +708,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
             ☰
           </button>
           <div className="app-logo" onClick={() => navigate('/dashboardv2')}>
-            <span className="butterfly-icon" aria-hidden="true">🦋</span>
-            <span className="logo-wordmark">
-              <span className="logo-text-full">L3V3L</span>
-              <span className="logo-tagline">MATCHES</span>
-            </span>
+            <img src="/landing-page-logo-transparent.png" alt="L3V3L Matches" className="app-logo-image" />
           </div>
           {/* Branding text - merged from BrandBanner */}
           {brandConfig && (

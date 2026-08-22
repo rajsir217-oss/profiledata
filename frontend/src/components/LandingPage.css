@@ -2343,24 +2343,21 @@ body {
 
 .lp-hero-top-brand {
   display: inline-flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  min-width: 174px;
-  padding: 5px 14px;
-  border-radius: 12px;
-  background: rgba(36, 32, 34, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 240px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
 }
 
-.lp-hero-top-brand .lp-brand-purple {
-  font-size: 22px;
-  line-height: 1;
-}
-
-.lp-hero-top-brand .lp-brand-tagline {
-  font-size: 7px;
-  letter-spacing: 0.35px;
+.lp-hero-brand-image {
+  display: block;
+  width: 320px;
+  max-width: 100%;
+  height: auto;
 }
 
 .lp-hero-top-login {
@@ -2547,16 +2544,12 @@ body {
   }
 
   .lp-hero-top-brand {
-    min-width: 136px;
-    padding: 5px 8px;
+    min-width: 180px;
+    padding: 0;
   }
 
-  .lp-hero-top-brand .lp-brand-purple {
-    font-size: 16px;
-  }
-
-  .lp-hero-top-brand .lp-brand-tagline {
-    font-size: 6px;
+  .lp-hero-brand-image {
+    width: 210px;
   }
 
   .lp-hero-top-login {

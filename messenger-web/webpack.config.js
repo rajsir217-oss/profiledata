@@ -113,7 +113,7 @@ module.exports = (env, argv) => {
     }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'web/index.html'),
-      favicon: path.resolve(__dirname, 'web/favicon.png'),
+      favicon: path.resolve(__dirname, 'web/L3V3L_MATCHES_master_transparent.png'),
     }),
     new CopyWebpackPlugin({
       patterns: [
@@ -122,8 +122,12 @@ module.exports = (env, argv) => {
           to: path.resolve(__dirname, 'dist/images'),
         },
         {
-          from: path.resolve(__dirname, 'web/favicon.png'),
-          to: path.resolve(__dirname, 'dist/favicon.png'),
+          from: path.resolve(__dirname, 'web/L3V3L_MATCHES_master_transparent.png'),
+          to: path.resolve(__dirname, 'dist/L3V3L_MATCHES_master_transparent.png'),
+        },
+        {
+          from: path.resolve(__dirname, 'web/L3V3L_MATCHES_GREEN_favicon_128.png'),
+          to: path.resolve(__dirname, 'dist/L3V3L_MATCHES_GREEN_favicon_128.png'),
         },
       ],
     }),

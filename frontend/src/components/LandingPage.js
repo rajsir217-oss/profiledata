@@ -144,8 +144,11 @@ const LandingPage = () => {
         <div className="lp-hero-container">
         <div className="lp-hero-topline">
           <div className="lp-hero-top-brand">
-            <span className="lp-brand-purple"><span aria-hidden="true">🦋</span> L3V3L Matches</span>
-            <span className="lp-brand-red lp-brand-tagline">premium community matrimonial platform</span>
+            <img
+              src="/landing-page-logo-transparent.png"
+              alt="L3V3L Matches"
+              className="lp-hero-brand-image"
+            />
           </div>
           <button
             type="button"

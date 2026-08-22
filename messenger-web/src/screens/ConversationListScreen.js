@@ -1775,7 +1775,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           onPress={() => handleMenuClick('main_app')}
           activeOpacity={0.7}
         >
-          <Text style={styles.topNavIcon}>🏠</Text>
+          <Image source={{ uri: '/L3V3L_MATCHES_master_transparent.png' }} style={styles.topNavBrandLogo} resizeMode="contain" />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -2015,6 +2015,10 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 6,
+  },
+  topNavBrandLogo: {
+    width: 24,
+    height: 24,
   },
   topNavBadge: {
     position: 'absolute',

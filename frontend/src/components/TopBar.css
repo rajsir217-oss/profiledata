@@ -127,19 +127,21 @@
 .app-logo {
   cursor: pointer;
   display: inline-flex;
-  flex-direction: row;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  min-width: 84px;
-  height: 44px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--primary-color) 25%, var(--secondary-color) 25%);
-  border: 2px solid color-mix(in srgb, var(--primary-color) 65%, white 25%);
-  padding: 4px 10px;
+  min-width: 220px;
+  height: 56px;
+  padding: 0;
   flex-shrink: 0;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--primary-color) 20%, rgba(0, 0, 0, 0.35));
-  gap: 8px;
+}
+
+.app-logo-image {
+  display: block;
+  height: 56px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
 }
 
 .app-logo .butterfly-icon {
@@ -192,14 +194,14 @@
 }
 
 .topbar-brand-name {
-  color: var(--text-color);
+  color: #ffffff;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.5px;
 }
 
 .topbar-brand-tagline {
-  color: var(--text-color);
+  color: #ffffff;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -212,31 +214,25 @@
 }
 
 .app-logo:hover {
-  /* transform: translateY(-1px); */
-  /* background: rgba(0, 0, 0, 0.25); Darker on hover for better visibility */
-  border: 2px solid rgba(255, 255, 255, 0.6);
-  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); Enhanced shadow on hover */
+  opacity: 0.92;
 }
 
 /* Mobile: Show only the butterfly icon */
 @media (max-width: 768px) {
   .app-logo {
     min-width: unset;
-    width: 32px;
+    width: 36px;
     height: 32px;
     padding: 0;
     justify-content: center;
-    border-radius: 12px;
     box-sizing: border-box;
     gap: 0;
   }
 
-  .app-logo .butterfly-icon {
-    font-size: 18px;
-  }
-
-  .app-logo .logo-wordmark {
-    display: none;
+  .app-logo-image {
+    width: 32px;
+    height: 32px;
+    max-width: 32px;
   }
   
   /* Hide page title breadcrumb on mobile */
@@ -1816,10 +1812,6 @@
     height: 32px;
     padding: 0;
   }
-
-  .logo-text .butterfly-icon {
-    font-size: 18px !important;
-  }
   
   .btn-messages,
   .btn-messenger-app,
@@ -1922,10 +1914,6 @@
     width: 32px;
     height: 32px;
     padding: 0;
-  }
-  
-  .logo-text {
-    font-size: 14px;
   }
 
   .btn-user-avatar {
