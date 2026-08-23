@@ -1,10 +1,10 @@
 {
-  "duration_seconds": 0.404,
+  "duration_seconds": 0.645,
   "exit_code": 0,
-  "finished_at": "2026-08-22T02:07:02.486129",
+  "finished_at": "2026-08-23T02:00:02.004466",
   "mode": "sync",
   "process_status": "SUCCESS",
-  "started_at": "2026-08-22T02:07:02.082128",
+  "started_at": "2026-08-23T02:00:01.359592",
   "status": "success",
   "summary": {
     "bytes_received": 0,
@@ -26,7 +26,7 @@
     "source_missing_folders": 0
   },
   "timings": {
-    "source_scan": 0.39755654200416757
+    "source_scan": 0.6428571660071611
   },
   "user_status": "SUCCESS_SKIPPED_NO_CHANGES",
   "verification": "skipped"

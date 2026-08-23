@@ -670,7 +670,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
             </button>
             <div className="app-logo" onClick={() => navigate('/dashboardv2')}>
               <img
-                src={isMobile ? "/L3V3L_MATCHES_GREEN_favicon_128.png" : "/landing-page-logo-transparent.png"}
+                src={isMobile ? "/L3V3L_MATCHES_GREEN_master_transparent_bg_removed.png" : "/landing-page-logo-transparent.png"}
                 alt="L3V3L Matches"
                 className="app-logo-image"
               />
@@ -721,7 +721,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
           </button>
           <div className="app-logo" onClick={() => navigate('/dashboardv2')}>
             <img
-              src={isMobile ? "/L3V3L_MATCHES_GREEN_favicon_128.png" : "/landing-page-logo-transparent.png"}
+              src={isMobile ? "/L3V3L_MATCHES_GREEN_master_transparent_bg_removed.png" : "/landing-page-logo-transparent.png"}
               alt="L3V3L Matches"
               className="app-logo-image"
             />
