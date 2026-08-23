@@ -669,7 +669,11 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
               ☰
             </button>
             <div className="app-logo" onClick={() => navigate('/dashboardv2')}>
-              <img src="/landing-page-logo-transparent.png" alt="L3V3L Matches" className="app-logo-image" />
+              <img
+                src={isMobile ? "/L3V3L_MATCHES_GREEN_favicon_128.png" : "/landing-page-logo-transparent.png"}
+                alt="L3V3L Matches"
+                className="app-logo-image"
+              />
             </div>
           </div>
           <div className="top-bar-right">
@@ -687,7 +691,15 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
       {/* Mobile Header - shown only on mobile, positioned at very top of page */}
       {isMobile && (
         <div className="mobile-messenger-header">
-          <span className="mobile-header-title">🦋 L3V3L Matches</span>
+          <span className="mobile-header-title">
+            <img
+              src="/L3V3L_MATCHES_GREEN_favicon_32.png"
+              alt=""
+              className="mobile-header-logo"
+              aria-hidden="true"
+            />
+            <span>L3V3L Matches</span>
+          </span>
           <span className="mobile-header-online">{onlineCount} online</span>
         </div>
       )}
@@ -708,7 +720,11 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
             ☰
           </button>
           <div className="app-logo" onClick={() => navigate('/dashboardv2')}>
-            <img src="/landing-page-logo-transparent.png" alt="L3V3L Matches" className="app-logo-image" />
+            <img
+              src={isMobile ? "/L3V3L_MATCHES_GREEN_favicon_128.png" : "/landing-page-logo-transparent.png"}
+              alt="L3V3L Matches"
+              className="app-logo-image"
+            />
           </div>
           {/* Branding text - merged from BrandBanner */}
           {brandConfig && (
