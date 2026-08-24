@@ -5,6 +5,7 @@ import WhatsAppVerification from './WhatsAppVerification';
 import EmailTemplatePreview from './EmailTemplatePreview';
 import NotificationConfigManager from './NotificationConfigManager';
 import SavedSearchNotificationManager from './admin/SavedSearchNotificationManager';
+import SEOBrandKitExport from './SEOBrandKitExport';
 import './AdminUtilities.css';
 
 const AdminUtilities = ({ routeBase = '/admin-utilities', baseParams = {} }) => {
@@ -43,6 +44,7 @@ const AdminUtilities = ({ routeBase = '/admin-utilities', baseParams = {} }) => 
     { id: 'email-templates', label: 'Email Templates', icon: '✉️', component: EmailTemplatePreview },
     { id: 'notification-config', label: 'Notification Config', icon: '⚙️', component: NotificationConfigManager },
     { id: 'saved-search-notifications', label: 'Saved Search Notifications', icon: '📬', component: SavedSearchNotificationManager },
+    { id: 'seo-brand-kit', label: 'SEO Brand Kit Export', icon: '🧭', component: SEOBrandKitExport },
   ];
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || AdminBackups;

@@ -1,162 +1,115 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SEO from './SEO';
 import { getPageSEO, getOrganizationSchema, getWebsiteSchema, injectStructuredData } from '../utils/seo';
-import { getBackendUrl, getTurnstileSiteKey } from '../config/apiConfig';
-import Turnstile from 'react-turnstile';
+import { trustedDeviceAutoLogin } from '../api';
 import socketService from '../services/socketService';
 import sessionManager from '../services/sessionManager';
+import {
+  clearTrustedDeviceToken,
+  getTrustedDeviceContext,
+  getTrustedDeviceToken,
+  getTrustedUsernames,
+} from '../utils/trustedDevice';
 import './LandingPage.css';
+
+const getHomeRoute = (homePage) => {
+  const homeRoutes = {
+    dashboard: '/dashboardv2',
+    search: '/search',
+    messages: '/messages',
+  };
+  return homeRoutes[homePage] || '/dashboardv2';
+};
 
 const LandingPage = () => {
   const navigate = useNavigate();
 
-  // Inline login state
-  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginError, setLoginError] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState(null);
-  const [captchaError, setCaptchaError] = useState(false);
-  const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
-  const turnstileRef = useRef();
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  const canBypassCaptcha = captchaRetryCount >= 3;
-
-  // MFA state
-  const [mfaRequired, setMfaRequired] = useState(false);
-  const [mfaCode, setMfaCode] = useState('');
-  const [mfaChannel, setMfaChannel] = useState('');
-  const [contactMasked, setContactMasked] = useState('');
-  const [showBackupCodeInput, setShowBackupCodeInput] = useState(false);
-  const [resendingCode, setResendingCode] = useState(false);
-
-  const handleLoginChange = (e) => {
-    const { name, value } = e.target;
-    setLoginForm(prev => ({ ...prev, [name]: value }));
-    setLoginError('');
-  };
+  const [topLoginStatus, setTopLoginStatus] = useState('');
+  const [topLoginLoading, setTopLoginLoading] = useState(false);
 
   const completeLogin = useCallback((data) => {
     const user = data.user || {};
+    const username = user.username || '';
     localStorage.setItem('token', data.access_token);
-    localStorage.setItem('username', user.username || loginForm.username.trim());
+    localStorage.setItem('username', username);
     if (data.refresh_token) localStorage.setItem('refreshToken', data.refresh_token);
     localStorage.setItem('userStatus', user.accountStatus || 'active');
     localStorage.setItem('userRole', user.role_name || user.role || data.role || 'free_user');
+    const homePage = user.homePage || localStorage.getItem('homePage') || 'dashboard';
+    localStorage.setItem('homePage', homePage);
     localStorage.removeItem('appTheme');
     sessionStorage.removeItem('photoReminderDismissed');
     sessionManager.init();
-    socketService.connect(user.username || loginForm.username.trim());
+    socketService.connect(username);
     window.dispatchEvent(new Event('loginStatusChanged'));
     window.dispatchEvent(new Event('userLoggedIn'));
-    navigate('/dashboardv2');
-  }, [loginForm.username, navigate]);
+    navigate(getHomeRoute(homePage), { replace: true, state: { user } });
+  }, [navigate]);
 
-  const sendMfaCode = useCallback(async () => {
-    try {
-      setResendingCode(true);
-      const res = await fetch(`${getBackendUrl()}/api/auth/mfa/send-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: loginForm.username.trim() })
-      });
-      const data = await res.json();
-      if (data.mock_code) {
-        setLoginError(`DEV MODE: Use code ${data.mock_code}`);
-      }
-    } catch (err) {
-      setLoginError('Failed to send verification code');
-    } finally {
-      setResendingCode(false);
-    }
-  }, [loginForm.username]);
-
-  const handleLoginSubmit = useCallback(async (e) => {
-    if (e) e.preventDefault();
-    if (!loginForm.username.trim() || !loginForm.password) {
-      setLoginError('Please enter username and password.');
+  const handleTrustedUserLogin = useCallback(async (username) => {
+    const token = getTrustedDeviceToken(username);
+    if (!token) {
+      setTopLoginStatus('Selected account is no longer trusted.');
+      setTopLoginLoading(false);
+      navigate('/login');
       return;
     }
-    if (!isDevelopment && !captchaToken && !canBypassCaptcha) {
-      setLoginError('Please complete the CAPTCHA verification.');
+
+    setTopLoginLoading(true);
+    setTopLoginStatus(`Signing in as ${username}...`);
+
+    try {
+      const deviceContext = getTrustedDeviceContext();
+      const autoLoginResponse = await trustedDeviceAutoLogin({
+        trusted_device_token: token,
+        device_id: deviceContext.deviceId,
+        app_id: deviceContext.appId,
+      });
+
+      if (autoLoginResponse?.access_token && autoLoginResponse?.user?.username) {
+        setTopLoginStatus('Auto-login enabled. Logging you in...');
+        completeLogin(autoLoginResponse);
+        return;
+      }
+
+      setTopLoginStatus('Auto-login not enabled. Redirecting to login...');
+      navigate('/login');
+    } catch (autoLoginError) {
+      if (autoLoginError?.response?.status === 401) {
+        clearTrustedDeviceToken(token);
+      }
+      setTopLoginStatus('Auto-login failed. Redirecting to login...');
+      navigate('/login');
+    } finally {
+      setTopLoginLoading(false);
+    }
+  }, [completeLogin, navigate]);
+
+  const handleTopLoginClick = useCallback(async () => {
+    setTopLoginLoading(true);
+    setTopLoginStatus('Checking auto-login...');
+
+    const usernames = getTrustedUsernames();
+    const legacyToken = getTrustedDeviceToken();
+    const accounts = usernames.length > 0 ? usernames : (legacyToken ? [''] : []);
+
+    if (accounts.length === 0) {
+      setTopLoginStatus('Auto-login not enabled. Redirecting to login...');
+      setTopLoginLoading(false);
+      navigate('/login');
       return;
     }
-    setLoginLoading(true);
-    setLoginError('');
-    try {
-      const res = await fetch(`${getBackendUrl()}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: loginForm.username.trim(),
-          password: loginForm.password,
-          captchaToken: isDevelopment ? 'XXXX.DUMMY.TOKEN.XXXX' : (captchaToken || '')
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.access_token) {
-        completeLogin(data);
-      } else if (res.status === 403 && data.detail === 'MFA_REQUIRED') {
-        setMfaRequired(true);
-        setMfaChannel(data.mfa_channel || 'email');
-        setContactMasked(data.contact_masked || '');
-        setLoginError('');
-        try {
-          await sendMfaCode();
-        } catch (mfaErr) {
-          // sendMfaCode already sets error state
-        }
-      } else {
-        setLoginError(data.detail || 'Invalid username or password.');
-        if (turnstileRef.current) { turnstileRef.current.reset(); setCaptchaToken(null); }
-      }
-    } catch (_) {
-      setLoginError('Connection error. Please try again.');
-      if (turnstileRef.current) { turnstileRef.current.reset(); setCaptchaToken(null); }
-    } finally {
-      setLoginLoading(false);
-    }
-  }, [loginForm, captchaToken, isDevelopment, canBypassCaptcha, completeLogin, sendMfaCode]);
 
-  const handleMfaVerify = useCallback(async (e) => {
-    e.preventDefault();
-    if (!loginForm.username.trim() || !loginForm.password || !mfaCode.trim()) {
-      setLoginError('Please enter the verification code.');
+    if (accounts.length === 1) {
+      await handleTrustedUserLogin(accounts[0]);
       return;
     }
-    setLoginLoading(true);
-    setLoginError('');
-    try {
-      const res = await fetch(`${getBackendUrl()}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: loginForm.username.trim(),
-          password: loginForm.password,
-          mfa_code: mfaCode.trim(),
-          captchaToken: isDevelopment ? 'XXXX.DUMMY.TOKEN.XXXX' : (captchaToken || '')
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.access_token) {
-        completeLogin(data);
-      } else {
-        setLoginError(data.detail || 'Invalid verification code.');
-      }
-    } catch (_) {
-      setLoginError('Connection error. Please try again.');
-    } finally {
-      setLoginLoading(false);
-    }
-  }, [loginForm, mfaCode, captchaToken, isDevelopment, completeLogin]);
 
-  const handleBackToLogin = useCallback(() => {
-    setMfaRequired(false);
-    setMfaCode('');
-    setLoginError('');
-    setShowBackupCodeInput(false);
-  }, []);
+    setTopLoginStatus('Multiple saved accounts found. Redirecting to login...');
+    setTopLoginLoading(false);
+    navigate('/login');
+  }, [handleTrustedUserLogin, navigate]);
 
   // Inject structured data for SEO
   useEffect(() => {
@@ -182,13 +135,33 @@ const LandingPage = () => {
       />
     <div className="landing-page">
       {/* Hero Section — Split Layout with merged header */}
-      <section className="hero-section lp-hero-split" style={{ background: `linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.6)), url('/images/hands_color1.jpeg') center/cover no-repeat fixed` }}>
-        {/* Left: Marketing */}
-        <div className="lp-hero-left">
-          <div className="lp-brand-logo">
-            <span className="butterfly-icon" aria-hidden="true">🦋</span>
-            <span className="lp-brand-text">L3V3L Matches - a premier matrimonial platform</span>
+      <section
+        className="hero-section lp-hero-split lp-hero-backdrop"
+        style={{
+          background: `linear-gradient(125deg, rgba(39, 19, 7, 0.58) 0%, rgba(33, 15, 8, 0.42) 52%, rgba(18, 15, 22, 0.52) 100%), url('/images/hands_color1.jpeg') center center / cover no-repeat`,
+        }}
+      >
+        <div className="lp-hero-container">
+        <div className="lp-hero-topline">
+          <div className="lp-hero-top-brand">
+            <img
+              src="/landing-page-logo-transparent.png"
+              alt="L3V3L Matches"
+              className="lp-hero-brand-image"
+            />
           </div>
+          <button
+            type="button"
+            className="lp-hero-top-login"
+            onClick={handleTopLoginClick}
+            disabled={topLoginLoading}
+          >
+            {topLoginLoading ? 'CHECKING...' : 'LOGIN'}
+          </button>
+        </div>
+        {topLoginStatus && <p className="lp-hero-top-status">{topLoginStatus}</p>}
+        <div className="lp-hero-main">
+        <div className="lp-hero-left">
           <div className="lp-trust-pill">
             <span className="lp-trust-check">✓</span>
             Search with confidence. Every profile on L3V3LMatches.com is genuine, verified, and community‑collected — supporting families in finding the right match
@@ -209,178 +182,14 @@ const LandingPage = () => {
             </button>
           </div>
         </div>
-
-        {/* Right: Inline Login Card */}
-        <div className="lp-login-card">
-          <div className="lp-login-card-header">
-            <h2>{mfaRequired ? 'Verification Required' : 'Welcome Back!'}</h2>
-            <p>{mfaRequired ? `Enter the code sent to your ${mfaChannel}` : 'Sign in to continue to your account'}</p>
-          </div>
-          <div className="lp-login-divider" />
-          {!mfaRequired ? (
-            <form onSubmit={handleLoginSubmit} action="#" method="POST" autoComplete="on">
-              <div className="lp-form-group">
-                <label htmlFor="lp-username">USERNAME</label>
-                <input
-                  id="lp-username"
-                  name="username"
-                  type="text"
-                  placeholder="Enter your username"
-                  value={loginForm.username}
-                  onChange={handleLoginChange}
-                  autoComplete="username"
-                />
-              </div>
-              <div className="lp-form-group">
-                <label htmlFor="lp-password">PASSWORD</label>
-                <div className="lp-password-wrap">
-                  <input
-                    id="lp-password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••••"
-                    value={loginForm.password}
-                    onChange={handleLoginChange}
-                    autoComplete="current-password"
-                  />
-                  <button type="button" className="lp-eye-btn" onClick={() => setShowPassword(p => !p)}>
-                    {showPassword ? '🙈' : '👁'}
-                  </button>
-                </div>
-              </div>
-              <div className="lp-forgot-row">
-                <button type="button" className="lp-forgot-link" onClick={() => navigate('/forgot-password')}>
-                  Forgot Password?
-                </button>
-              </div>
-              {/* Cloudflare Turnstile */}
-              {captchaError ? (
-                <div className="lp-captcha-error">
-                  {!canBypassCaptcha ? (
-                    <button type="button" className="lp-captcha-retry" onClick={() => { setCaptchaError(false); setCaptchaRetryCount(r => r + 1); }}>
-                      Retry CAPTCHA ({3 - captchaRetryCount} left)
-                    </button>
-                  ) : (
-                    <p className="lp-captcha-bypass">✓ Cloudflare issue — proceeding without captcha</p>
-                  )}
-                </div>
-              ) : (
-                <div className="lp-turnstile-wrap">
-                  <Turnstile
-                    ref={turnstileRef}
-                    sitekey={getTurnstileSiteKey()}
-                    onVerify={(token) => setCaptchaToken(token)}
-                    onLoad={() => {}}
-                    onError={() => { setCaptchaError(true); setCaptchaRetryCount(r => r + 1); }}
-                    onExpire={() => setCaptchaToken(null)}
-                    theme="light"
-                    size="flexible"
-                  />
-                </div>
-              )}
-              {loginError && <p className="lp-login-error">{loginError}</p>}
-              <button type="button" className="lp-signin-btn" onClick={handleLoginSubmit} disabled={loginLoading}>
-                {loginLoading ? 'Signing in…' : 'Sign In'}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleMfaVerify}>
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
-                padding: '16px',
-                borderRadius: '12px',
-                marginBottom: '24px',
-                textAlign: 'center'
-              }}>
-                <p style={{ fontSize: '14px', color: '#374151', margin: '0' }}>
-                  Code sent to: <strong>{contactMasked}</strong>
-                </p>
-              </div>
-
-              <div className="lp-form-group">
-                <label htmlFor="lp-mfa-code" style={{ display: 'block', textAlign: 'center', marginBottom: '8px' }}>
-                  {showBackupCodeInput ? 'Backup Code (XXXX-XXXX)' : 'Verification Code'}
-                </label>
-                <input
-                  id="lp-mfa-code"
-                  type="text"
-                  value={mfaCode}
-                  onChange={(e) => setMfaCode(e.target.value.replace(showBackupCodeInput ? '' : /\D/g, ''))}
-                  placeholder={showBackupCodeInput ? 'XXXX-XXXX' : '000000'}
-                  maxLength={showBackupCodeInput ? 9 : 6}
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    padding: '16px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '12px',
-                    fontSize: showBackupCodeInput ? '18px' : '32px',
-                    outline: 'none',
-                    textAlign: 'center',
-                    letterSpacing: showBackupCodeInput ? '0.2em' : '0.5em',
-                    fontFamily: 'monospace',
-                    backgroundColor: '#f9fafb',
-                    color: '#1f2937',
-                    fontWeight: '600'
-                  }}
-                />
-              </div>
-
-              {loginError && <p className="lp-login-error">{loginError}</p>}
-
-              <button
-                type="submit"
-                className="lp-signin-btn"
-                disabled={loginLoading || (!showBackupCodeInput && mfaCode.length !== 6) || (showBackupCodeInput && mfaCode.length !== 9)}
-              >
-                {loginLoading ? 'Verifying…' : 'Verify & Sign In'}
-              </button>
-
-              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                <button
-                  type="button"
-                  className="lp-register-link"
-                  onClick={sendMfaCode}
-                  disabled={resendingCode}
-                  style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: '#fbbf24', fontWeight: '600' }}
-                >
-                  {resendingCode ? 'Sending…' : 'Resend Code'}
-                </button>
-                <button
-                  type="button"
-                  className="lp-register-link"
-                  onClick={() => setShowBackupCodeInput(!showBackupCodeInput)}
-                  style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: '#fbbf24', fontWeight: '600' }}
-                >
-                  {showBackupCodeInput ? 'Use Code' : 'Use Backup'}
-                </button>
-              </div>
-
-              <button
-                type="button"
-                className="lp-forgot-link"
-                onClick={handleBackToLogin}
-                style={{ marginTop: '12px', width: '100%' }}
-              >
-                ← Back to Login
-              </button>
-            </form>
-          )}
-          {!mfaRequired && (
-            <p className="lp-signup-row">
-              Don't have an account?{' '}
-              <button type="button" className="lp-register-link" onClick={() => navigate('/register-interest')}>
-                Register
-              </button>
-            </p>
-          )}
+        </div>
         </div>
       </section>
 
       {/* Stats Bar */}
       <div className="lp-stats-bar">
-        <div className="lp-stat"><div className="lp-stat-number">10,000+</div><div className="lp-stat-label">Verified Profiles</div></div>
-        <div className="lp-stat"><div className="lp-stat-number">2,400+</div><div className="lp-stat-label">Successful Matches</div></div>
+        <div className="lp-stat"><div className="lp-stat-number">1,000+</div><div className="lp-stat-label">Verified Profiles</div></div>
+        <div className="lp-stat"><div className="lp-stat-number">50+</div><div className="lp-stat-label">Successful Matches</div></div>
         <div className="lp-stat"><div className="lp-stat-number">50+</div><div className="lp-stat-label">Compatibility Factors</div></div>
         <div className="lp-stat"><div className="lp-stat-number">98%</div><div className="lp-stat-label">Profile Verification</div></div>
       </div>

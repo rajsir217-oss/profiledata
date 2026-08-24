@@ -166,14 +166,14 @@ const UnifiedPreferences = () => {
       name: 'Cozy Light',
       icon: '☀️',
       description: 'Warm and inviting light theme with soft colors',
-      preview: { primary: '#3b82f6', secondary: '#60a5fa', background: '#f0f7ff', text: '#1f2937' }
+      preview: { primary: '#7c3aed', secondary: '#c084fc', background: '#fff8ef', text: '#3a2614' }
     },
     {
       id: 'sky-blue',
       name: 'Sky Blue',
       icon: '🩵',
       description: 'Calm light blue theme with airy sky tones',
-      preview: { primary: '#0ea5e9', secondary: '#7dd3fc', background: '#f0f9ff', text: '#0f172a' }
+      preview: { primary: '#0ea5e9', secondary: '#7dd3fc', background: '#e3f4ff', text: '#0f3d56' }
     },
     {
       id: 'dark',
@@ -237,6 +237,20 @@ const UnifiedPreferences = () => {
       icon: '🫧',
       description: 'Playful purple-pink theme with bubble effects',
       preview: { primary: '#8b5cf6', secondary: '#ec4899', background: '#f8f7ff', text: '#374151' }
+    },
+    {
+      id: 'clean-connect',
+      name: 'Clean Connect',
+      icon: '🕊️',
+      description: 'Crisp white and gray minimal theme',
+      preview: { primary: '#F8FCFF', secondary: '#9ca3af', background: '#f4f5f7', text: '#1f2937' }
+    },
+    {
+      id: 'white',
+      name: 'Egg White',
+      icon: '🥚',
+      description: 'Egg-white background with blue-white combination',
+      preview: { primary: '#f5c97a', secondary: '#ffe3b3', background: '#fffdf7', text: '#2f3445', accent: '#7fb4ff' }
     }
   ];
 
@@ -1163,7 +1177,7 @@ const UnifiedPreferences = () => {
       </div>
 
       <UniversalTabContainer
-        variant="underlined"
+        variant="pills"
         defaultTab={defaultTab}
         tabs={[
           {

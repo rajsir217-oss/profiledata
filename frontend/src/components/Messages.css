@@ -29,14 +29,14 @@
 }
 
 .messages-view-toggle:hover {
-  border-color: var(--primary-color, #667eea);
-  color: var(--primary-color, #667eea);
+  border-color: var(--text-color, #667eea);
+  color: var(--text-color, #667eea);
 }
 
 .messages-view-toggle.archived {
   background: var(--selected-background, #eef2ff);
-  border-color: var(--primary-color, #667eea);
-  color: var(--primary-color, #667eea);
+  border-color: var(--text-color, #667eea);
+  color: var(--text-color, #667eea);
 }
 
 /* Mobile Responsive */
@@ -75,7 +75,7 @@
 /* Pending Messages Warning Banner (1-2 days) - Gradient style like MFA banner */
 .pending-warning-banner {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
+  color: var(--text-color);
   padding: 14px 20px;
   border-radius: 12px;
   margin-bottom: 12px;
@@ -112,7 +112,7 @@
 
 .pending-action-btn {
   background: rgba(255, 255, 255, 0.95);
-  color: var(--primary-color);
+  color: var(--text-color);
   border: none;
   padding: 8px 18px;
   border-radius: 20px;
@@ -131,7 +131,7 @@
 
 .pending-dismiss-btn {
   background: rgba(0, 0, 0, 0.3);
-  color: white;
+  color: var(--text-color);
   border: none;
   width: 28px;
   height: 28px;
@@ -151,7 +151,7 @@
 /* Enhanced Critical Chats Banner with animations */
 .unattended-banner {
   background: linear-gradient(135deg, var(--danger-color) 0%, #ff6b7a 100%);
-  color: white;
+  color: var(--text-color);
   padding: 16px 24px;
   border-radius: 12px;
   margin-bottom: 16px;
@@ -241,7 +241,7 @@
   display: block;
   margin-top: 8px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-color);
   font-style: italic;
 }
 
@@ -261,6 +261,19 @@
 
 .urgency-count.critical {
   font-weight: 600;
+}
+
+/* Sticky global banner wrapper used in ProtectedRoute to keep banner visible across pages */
+.global-unattended-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.global-unattended-banner .unattended-banner,
+.global-unattended-banner .pending-warning-banner {
+  border-radius: 0;
+  margin: 0;
 }
 
 /* Override Bootstrap container max-width for messages page parent */

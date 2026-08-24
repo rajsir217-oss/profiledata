@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api, { createApiInstance } from '../api';
+import api, { createApiInstance, revokeTrustedDevice } from '../api';
 import socketService from '../services/socketService';
+import { clearCredential } from '../services/biometricAuth';
 import { getApiUrl, getMessengerUrl } from '../config/apiConfig';
 // eslint-disable-next-line no-unused-vars
 import { getImageUrl, getProfilePicUrl } from '../utils/urlHelper';
-import Logo from './Logo';
+import {
+  clearAllTrustedDeviceTokens,
+  getOrCreateTrustedDeviceId,
+  getTrustedDeviceAppId,
+} from '../utils/trustedDevice';
 import InfoTicker from './InfoTicker';
 import EventCountdown from './EventCountdown';
 import { getShortName } from '../utils/userDisplay';
@@ -284,6 +289,53 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     // Dispatch custom event for sidebar to update
     window.dispatchEvent(new Event('loginStatusChanged'));
     
+    navigate('/');
+  };
+
+  const handleLogoutAndForgetDevice = async () => {
+    const username = currentUser;
+
+    // Disconnect WebSocket
+    logger.info('Disconnecting WebSocket and forgetting device');
+    socketService.disconnect();
+
+    // Mark user as offline (non-blocking beacon)
+    if (username) {
+      navigator.sendBeacon(
+        `${getApiUrl()}/online-status/${username}/offline`,
+        ''
+      );
+    }
+
+    // Revoke this specific trusted device on the backend before clearing storage.
+    try {
+      const deviceId = getOrCreateTrustedDeviceId();
+      await revokeTrustedDevice(deviceId, getTrustedDeviceAppId());
+    } catch (revokeError) {
+      logger.warn('Failed to revoke trusted device on backend:', revokeError);
+    }
+
+    // Clear all local trusted-device and biometric credentials.
+    clearAllTrustedDeviceTokens();
+    try {
+      await clearCredential();
+    } catch (_) {
+      // Native credential may not exist; ignore.
+    }
+
+    localStorage.removeItem('username');
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userStatus');
+    localStorage.removeItem('homePage');
+    localStorage.removeItem('appTheme');
+    sessionStorage.removeItem('urgencyModalShown');
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+
+    window.dispatchEvent(new Event('loginStatusChanged'));
+
     navigate('/');
   };
 
@@ -617,7 +669,11 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
               ☰
             </button>
             <div className="app-logo" onClick={() => navigate('/dashboardv2')}>
-              <Logo variant="modern" size="small" showText={!isMobile} theme="navbar" />
+              <img
+                src={isMobile ? "/L3V3L_MATCHES_GREEN_master_transparent_bg_removed.png" : "/landing-page-logo-transparent.png"}
+                alt="L3V3L Matches"
+                className="app-logo-image"
+              />
             </div>
           </div>
           <div className="top-bar-right">
@@ -635,7 +691,15 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
       {/* Mobile Header - shown only on mobile, positioned at very top of page */}
       {isMobile && (
         <div className="mobile-messenger-header">
-          <span className="mobile-header-title">🦋 L3V3L Matches</span>
+          <span className="mobile-header-title">
+            <img
+              src="/L3V3L_MATCHES_GREEN_favicon_32.png"
+              alt=""
+              className="mobile-header-logo"
+              aria-hidden="true"
+            />
+            <span>L3V3L Matches</span>
+          </span>
           <span className="mobile-header-online">{onlineCount} online</span>
         </div>
       )}
@@ -656,11 +720,11 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
             ☰
           </button>
           <div className="app-logo" onClick={() => navigate('/dashboardv2')}>
-            <span className="butterfly-icon" aria-hidden="true">🦋</span>
-            <span className="logo-wordmark">
-              <span className="logo-text-full">L3V3L</span>
-              <span className="logo-tagline">MATCHES</span>
-            </span>
+            <img
+              src={isMobile ? "/L3V3L_MATCHES_GREEN_master_transparent_bg_removed.png" : "/landing-page-logo-transparent.png"}
+              alt="L3V3L Matches"
+              className="app-logo-image"
+            />
           </div>
           {/* Branding text - merged from BrandBanner */}
           {brandConfig && (
@@ -969,6 +1033,13 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
                   >
                     <span className="user-menu-icon">🚪</span>
                     <span className="user-menu-item-label">Logout</span>
+                  </button>
+                  <button
+                    className="user-menu-item logout"
+                    onClick={() => { handleLogoutAndForgetDevice(); setShowUserMenu(false); }}
+                  >
+                    <span className="user-menu-icon">🧹</span>
+                    <span className="user-menu-item-label">Logout-forget</span>
                   </button>
                 </div>
               )}

@@ -67,24 +67,29 @@ def _detect_face_vision(image_bytes: bytes) -> Tuple[bool, str]:
         return None, "Vision API not available"
 
     try:
+        # Prepare image first so invalid/truncated uploads are rejected before
+        # spending a Vision API call. PIL may raise OSError for truncated files.
+        try:
+            img = Image.open(io.BytesIO(image_bytes))
+            max_dim = 1024
+            if img.width > max_dim or img.height > max_dim:
+                ratio = min(max_dim / img.width, max_dim / img.height)
+                img = img.resize(
+                    (int(img.width * ratio), int(img.height * ratio)),
+                    Image.LANCZOS,
+                )
+            buf = io.BytesIO()
+            img_format = "JPEG"
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            img.save(buf, format=img_format, quality=80)
+            b64_image = base64.b64encode(buf.getvalue()).decode("utf-8")
+        except OSError as img_err:
+            logger.warning(f"🚫 Invalid or truncated image rejected: {img_err}")
+            return False, "The uploaded image is corrupted or truncated. Please upload a valid photo."
+
         from google.auth.transport.requests import Request
         _gcp_credentials.refresh(Request())
-
-        # Resize to max 1024px before sending (reduces latency & cost)
-        img = Image.open(io.BytesIO(image_bytes))
-        max_dim = 1024
-        if img.width > max_dim or img.height > max_dim:
-            ratio = min(max_dim / img.width, max_dim / img.height)
-            img = img.resize(
-                (int(img.width * ratio), int(img.height * ratio)),
-                Image.LANCZOS,
-            )
-        buf = io.BytesIO()
-        img_format = "JPEG"
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
-        img.save(buf, format=img_format, quality=80)
-        b64_image = base64.b64encode(buf.getvalue()).decode("utf-8")
 
         payload = {
             "requests": [
@@ -244,11 +249,15 @@ def _detect_face_opencv(image_bytes: bytes) -> Tuple[bool, str]:
         import cv2
         import numpy as np
 
-        img = Image.open(io.BytesIO(image_bytes))
-        if img.mode != "RGB":
-            img = img.convert("RGB")
+        try:
+            img = Image.open(io.BytesIO(image_bytes))
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            img_array = np.array(img)
+        except OSError as img_err:
+            logger.warning(f"🚫 Invalid or truncated image rejected: {img_err}")
+            return False, "The uploaded image is corrupted or truncated. Please upload a valid photo."
 
-        img_array = np.array(img)
         gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
 
         # Pass 1: frontal face cascade

@@ -73,7 +73,7 @@
 }
 
 .tab-button.active {
-  color: white !important;
+  color: var(--text-color) !important;
   font-weight: 700;
   background: var(--primary-color, #6366f1) !important;
   border-color: var(--primary-color, #6366f1) !important;
@@ -106,7 +106,7 @@
 }
 
 .tab-button.active .tab-label {
-  color: white !important;
+  color: var(--text-color) !important;
 }
 
 .tab-badge {
@@ -139,7 +139,7 @@
 
 .tab-button.active .tab-badge {
   background: white;
-  color: var(--primary-color);
+  color: var(--text-color);
   border-color: white;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
@@ -212,7 +212,7 @@
 .variant-underlined .tab-button.active {
   border-bottom-color: var(--primary-color);
   background: var(--selected-background);
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 .variant-underlined .tab-button.active::before {
@@ -256,7 +256,7 @@
   
   .variant-underlined .tab-button.active {
     background: var(--selected-background);
-    color: var(--primary-color);
+    color: var(--text-color);
   }
   
   .variant-underlined .tab-button.active::before {
@@ -264,7 +264,7 @@
   }
   
   .variant-underlined .tab-button.active .tab-label {
-    color: var(--primary-color) !important;
+    color: var(--text-color) !important;
   }
   
   .variant-underlined .tab-button.active .tab-icon {
@@ -277,42 +277,44 @@
    ======================================== */
 
 .variant-pills .tab-nav {
-  gap: 8px;
-  padding: 0;
-  background: transparent;
-  border-radius: 0;
+  gap: var(--spacing-sm);
+  padding: 4px;
+  background: var(--surface-color);
+  border-radius: 50px;
+  width: fit-content;
   border: none;
   justify-content: flex-start;
 }
 
 .variant-pills .tab-button {
-  padding: 8px 16px;
+  padding: 10px 24px;
   border-radius: 50px !important;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  font-size: 13px;
+  background: transparent;
+  border: none;
+  font-size: 15px;
   font-weight: 500;
   min-height: auto;
   height: auto;
   flex: 0 0 auto;
   width: auto;
+  color: var(--text-secondary);
 }
 
 .variant-pills .tab-button:hover {
-  background: var(--card-background);
-  border-color: var(--primary-color);
+  color: var(--text-color);
+  background: var(--hover-background);
 }
 
 .variant-pills .tab-button.active {
-  background: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
-  box-shadow: none;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: var(--text-color);
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 .variant-pills .tab-button.active .tab-badge {
   background: rgba(255, 255, 255, 0.3);
-  color: white;
+  color: var(--text-color);
   border-color: transparent;
 }
 
@@ -345,13 +347,13 @@
 
 .variant-bordered .tab-button.active {
   background: var(--primary-color);
-  color: white;
+  color: var(--text-color);
   box-shadow: inset 0 0 10px var(--primary-shadow);
 }
 
 .variant-bordered .tab-button.active .tab-badge {
   background: rgba(255, 255, 255, 0.3);
-  color: white;
+  color: var(--text-color);
   border-color: transparent;
 }
 

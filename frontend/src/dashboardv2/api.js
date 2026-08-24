@@ -191,7 +191,7 @@ export async function fetchConversations() {
   const username = getCurrentUsername();
   if (!username) return [];
   try {
-    const { data } = await api.get(`/messages/conversations?username=${username}`);
+    const { data } = await api.get('/messages/conversations');
     return data.conversations || [];
   } catch (err) {
     logger.error('fetchConversations failed:', err);
@@ -214,6 +214,20 @@ export async function fetchTheirFavorites() {
     return [];
   } catch (err) {
     logger.error('fetchTheirFavorites failed:', err);
+    return [];
+  }
+}
+
+export async function fetchTheirShortlist() {
+  const username = getCurrentUsername();
+  if (!username) return [];
+  try {
+    const { data } = await api.get(`/their-shortlists/${username}`);
+    if (Array.isArray(data?.users)) return data.users;
+    if (Array.isArray(data)) return data;
+    return [];
+  } catch (err) {
+    logger.error('fetchTheirShortlist failed:', err);
     return [];
   }
 }

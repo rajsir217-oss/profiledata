@@ -237,6 +237,30 @@ const AdminPage = () => {
     }
   };
 
+  const handleActivateUser = async (user) => {
+    try {
+      setError('');
+      setSuccessMsg('');
+      await adminApi.patch(`/api/admin/users/${user.username}/status`, {
+        status: 'active',
+        reason: 'Quick-activated via admin action panel'
+      });
+      setSuccessMsg(`✅ Activated ${user.username}`);
+      loadUsers({
+        status: statusFilter,
+        gender: genderFilter,
+        search: searchTerm,
+        emailSearch: emailSearch,
+        phoneSearch: phoneSearch,
+        updatedWithin: updatedWithinFilter
+      });
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error('Error activating user:', err);
+      setError('Failed to activate user. ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
   const handleDeleteClick = (user) => {
     setDeleteConfirm(user);
   };
@@ -485,7 +509,7 @@ const AdminPage = () => {
         <div className="admin-filter-row">
           <input
             type="text"
-            className="form-control admin-filter-input"
+            className="form-control admin-filter-input admin-username-input"
             placeholder="🔍 Username, first name, or last name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -633,6 +657,13 @@ const AdminPage = () => {
                         👁️
                       </button>
                       <button
+                        className="btn-micro btn-micro-success"
+                        onClick={() => handleActivateUser(user)}
+                        title="Activate User"
+                      >
+                        ✅
+                      </button>
+                      <button
                         className="btn-micro btn-micro-info"
                         onClick={() => setSelectedUserForMeta(user.username)}
                         title="Meta Fields"
@@ -684,7 +715,7 @@ const AdminPage = () => {
                       <span
                         className="invited-by-link"
                         style={{ 
-                          color: '#667eea', 
+                          color: 'var(--text-color)', 
                           cursor: 'pointer',
                           textDecoration: 'underline',
                           fontWeight: '500'
@@ -695,7 +726,7 @@ const AdminPage = () => {
                         {user.invitedBy}
                       </span>
                     ) : (
-                      <span style={{ color: '#999', fontStyle: 'italic' }}>system</span>
+                      <span style={{ color: 'var(--text-color)', fontStyle: 'italic' }}>system</span>
                     )}
                   </td>
                   <td>
@@ -709,14 +740,14 @@ const AdminPage = () => {
                         {new Date(user.adminApprovedAt).toLocaleDateString()}
                       </span>
                     ) : (
-                      <span style={{ color: '#999', fontStyle: 'italic', fontSize: '12px' }}>—</span>
+                      <span style={{ color: 'var(--text-color)', fontStyle: 'italic', fontSize: '12px' }}>—</span>
                     )}
                   </td>
                   <td>
                     {user.adminApprovedBy ? (
                       <span style={{ fontSize: '12px' }}>{user.adminApprovedBy}</span>
                     ) : (
-                      <span style={{ color: '#999', fontStyle: 'italic', fontSize: '12px' }}>—</span>
+                      <span style={{ color: 'var(--text-color)', fontStyle: 'italic', fontSize: '12px' }}>—</span>
                     )}
                   </td>
                   <td>
@@ -824,7 +855,7 @@ const AdminPage = () => {
                   />
                   <div className="status-icon">📧</div>
                   <div className="status-info">
-                    <strong>Pending Email Verification</strong>
+                    <strong>Pending Verification</strong>
                   </div>
                 </label>
                 
@@ -838,7 +869,7 @@ const AdminPage = () => {
                   />
                   <div className="status-icon">⏳</div>
                   <div className="status-info">
-                    <strong>Pending Admin Approval</strong>
+                    <strong>Pending Approval</strong>
                   </div>
                 </label>
                 

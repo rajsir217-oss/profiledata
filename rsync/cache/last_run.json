@@ -1,0 +1,33 @@
+{
+  "duration_seconds": 0.645,
+  "exit_code": 0,
+  "finished_at": "2026-08-23T02:00:02.004466",
+  "mode": "sync",
+  "process_status": "SUCCESS",
+  "started_at": "2026-08-23T02:00:01.359592",
+  "status": "success",
+  "summary": {
+    "bytes_received": 0,
+    "bytes_sent": 0,
+    "destination_bytes": 0,
+    "destination_directories": 0,
+    "destination_extra_files": 0,
+    "destination_extra_folders": 0,
+    "destination_files": 0,
+    "file_count_mismatches": 0,
+    "files_deleted": 0,
+    "files_transferred": 0,
+    "folder_mismatches": 0,
+    "folders_checked": 0,
+    "source_bytes": 217113842854,
+    "source_directories": 600,
+    "source_files": 33475,
+    "source_missing_files": 0,
+    "source_missing_folders": 0
+  },
+  "timings": {
+    "source_scan": 0.6428571660071611
+  },
+  "user_status": "SUCCESS_SKIPPED_NO_CHANGES",
+  "verification": "skipped"
+}

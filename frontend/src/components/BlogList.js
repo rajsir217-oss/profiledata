@@ -39,6 +39,9 @@ const BlogList = () => {
       <SEO
         title={activeTag ? `Blog - ${activeTag}` : 'Blog'}
         description="Read articles about matchmaking, compatibility, and the L3V3L platform."
+        keywords={activeTag
+          ? `l3v3l matches blog, level matches blog, indian matrimony blog, ${activeTag}`
+          : 'l3v3l matches blog, level matches blog, matrimony insights, indian matchmaking tips, matrimonial services blog'}
         url="/blog"
       />
 

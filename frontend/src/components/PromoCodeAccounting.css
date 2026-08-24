@@ -58,7 +58,7 @@
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   padding: 24px;
   border-radius: 16px;
-  color: white;
+  color: var(--text-color);
   margin-bottom: 24px;
   box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
 }
@@ -91,7 +91,7 @@
 .stats-bar .stat-item.highlight {
   background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
   border: none;
-  color: white;
+  color: var(--text-color);
 }
 
 .stats-bar .stat-value {
@@ -102,7 +102,7 @@
 }
 
 .stats-bar .stat-item.highlight .stat-value {
-  color: white;
+  color: var(--text-color);
 }
 
 .stats-bar .stat-label {
@@ -114,7 +114,7 @@
 }
 
 .stats-bar .stat-item.highlight .stat-label {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-color);
 }
 
 .header-stats {
@@ -234,7 +234,7 @@
 .year-badge {
   font-size: 24px;
   font-weight: 700;
-  color: var(--primary-color);
+  color: var(--text-color);
   margin-bottom: 12px;
 }
 
@@ -250,7 +250,7 @@
 
 .year-stat.revenue {
   background: var(--success-color);
-  color: white;
+  color: var(--text-color);
   border-radius: 8px;
   padding: 8px 4px;
 }
@@ -274,7 +274,7 @@
   top: 12px;
   right: 12px;
   background: var(--danger-color);
-  color: white;
+  color: var(--text-color);
   border: none;
   padding: 4px 10px;
   border-radius: 6px;
@@ -301,7 +301,7 @@
   padding: 16px 20px;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   border-radius: 12px;
-  color: white;
+  color: var(--text-color);
   font-weight: 600;
 }
 
@@ -375,7 +375,7 @@
 
 .btn-danger {
   background: var(--danger-color);
-  color: white;
+  color: var(--text-color);
   border: none;
   padding: 10px 20px;
   border-radius: 8px;
@@ -396,7 +396,7 @@
 
 .btn-primary {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
+  color: var(--text-color);
   border: none;
   padding: 10px 20px;
   border-radius: 8px;
@@ -425,7 +425,7 @@
 
 .year-detail-modal .modal-header {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
+  color: var(--text-color);
   padding: 16px 24px;
   display: flex;
   justify-content: space-between;
@@ -461,7 +461,7 @@
 
 .yds-stat.highlight {
   background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
-  color: white;
+  color: var(--text-color);
   border-radius: 10px;
 }
 
@@ -473,7 +473,7 @@
 }
 
 .yds-stat.highlight .yds-value {
-  color: white;
+  color: var(--text-color);
 }
 
 .yds-label {
@@ -600,7 +600,7 @@
 }
 
 .promo-card.expanded .expand-indicator {
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 .code-info {
@@ -612,7 +612,7 @@
   display: block;
   font-size: 18px;
   font-weight: 700;
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 .code-description {
@@ -646,7 +646,7 @@
 
 .flow-item.revenue .flow-value,
 .flow-item.revenue .flow-label {
-  color: white;
+  color: var(--text-color);
 }
 
 .flow-value {
@@ -763,7 +763,7 @@
 }
 
 .username-link {
-  color: var(--primary-color);
+  color: var(--text-color);
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s ease;
@@ -897,7 +897,7 @@
 
 .ph-type {
   background: var(--primary-color);
-  color: white;
+  color: var(--text-color);
   padding: 3px 8px;
   border-radius: 12px;
   font-size: 10px;
@@ -919,7 +919,7 @@
 
 .ph-promo {
   font-size: 11px;
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 .loading-inline,
@@ -984,7 +984,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: white;
+  color: var(--text-color);
 }
 
 .payment-modal .modal-header h3 {
@@ -996,7 +996,7 @@
 .payment-modal .modal-close {
   background: rgba(0, 0, 0, 0.2);
   border: none;
-  color: white;
+  color: var(--text-color);
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -1024,7 +1024,7 @@
 
 .payment-modal .btn-primary {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
+  color: var(--text-color);
   border: none;
   padding: 10px 24px;
   border-radius: 50px;
@@ -1055,7 +1055,7 @@
 
 .payment-summary .summary-stat.highlight {
   background: linear-gradient(135deg, var(--success-color) 0%, #10b981 100%);
-  color: white;
+  color: var(--text-color);
 }
 
 .payment-summary .stat-value {
@@ -1100,7 +1100,7 @@
 
 .payment-type {
   background: var(--primary-color);
-  color: white;
+  color: var(--text-color);
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 11px;
@@ -1122,7 +1122,7 @@
 }
 
 .payment-promo strong {
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 /* Responsive */

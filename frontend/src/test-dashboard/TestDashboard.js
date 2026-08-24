@@ -133,7 +133,7 @@ const TestDashboard = () => {
       </header>
 
       <UniversalTabContainer
-        variant="underlined"
+        variant="pills"
         defaultTab="dashboard"
         tabs={[
           {

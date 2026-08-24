@@ -27,7 +27,7 @@ from .security_models import (
     RegisterRequest, LoginRequest, LoginResponse,
     PhoneLoginSendCodeRequest, PhoneLoginVerifyCodeRequest,
     PasswordChangeRequest, PasswordResetRequest, PasswordResetConfirm,
-    RefreshTokenRequest
+    RefreshTokenRequest, TrustedDeviceEnrollRequest, TrustedDeviceAutoLoginRequest
 )
 from .security_config import security_settings, SECURITY_EVENTS, USER_STATUS
 from .password_utils import PasswordManager, AccountLockoutManager, TokenManager
@@ -49,6 +49,59 @@ def get_username_query(username: str):
     return {"username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}}
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+
+def _normalize_optional_text(value: Optional[str], max_len: int = 128) -> Optional[str]:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    if not normalized:
+        return None
+    return normalized[:max_len]
+
+
+def _resolve_trusted_app_id(app_id: Optional[str]) -> str:
+    return _normalize_optional_text(app_id, max_len=64) or settings.trusted_device_app_id
+
+
+def _trusted_device_token_hash(raw_token: str) -> str:
+    secret = settings.trusted_device_secret or settings.secret_key
+    return hashlib.sha256(f"{raw_token}:{secret}".encode("utf-8")).hexdigest()
+
+
+def _build_login_user_data(user: dict, status_info: dict) -> dict:
+    return {
+        "username": user.get("username"),
+        "email": user.get("email") or user.get("contactEmail"),
+        "firstName": user.get("firstName"),
+        "lastName": user.get("lastName"),
+        "role": user.get("role_name"),
+        "gender": user.get("sex") or user.get("gender"),
+        "email_verified": status_info.get("email_verified"),
+        "accountStatus": user.get("accountStatus") or status_info.get("status") or "active",
+        "role_name": user.get("role_name"),
+        "homePage": user.get("homePage"),
+    }
+
+
+async def _has_active_trusted_device(db, username: str, device_id: Optional[str], app_id: Optional[str]) -> bool:
+    normalized_device_id = _normalize_optional_text(device_id, max_len=128)
+    if not normalized_device_id:
+        return False
+
+    now = datetime.utcnow()
+    trusted_app_id = _resolve_trusted_app_id(app_id)
+    doc = await db.trusted_devices.find_one(
+        {
+            "username": username,
+            "deviceId": normalized_device_id,
+            "appId": trusted_app_id,
+            "revokedAt": None,
+            "expiresAt": {"$gt": now},
+        },
+        {"_id": 1},
+    )
+    return doc is not None
 
 
 async def verify_turnstile_token(token: str) -> bool:
@@ -767,15 +820,13 @@ async def login(
         logger.info(f"User logged in: {login_request.username}")
         
         # Prepare user data (remove sensitive info)
-        user_data = {
-            "username": user["username"],
-            "email": user.get("email") or user.get("contactEmail"),
-            "firstName": user.get("firstName"),
-            "lastName": user.get("lastName"),
-            "role": user.get("role_name"),
-            "gender": user.get("sex") or user.get("gender"),
-            "email_verified": status_info.get("email_verified")
-        }
+        user_data = _build_login_user_data(user, status_info)
+        has_trusted_device = await _has_active_trusted_device(
+            db,
+            user_data.get("username"),
+            login_request.device_id,
+            login_request.app_id,
+        )
         
         return LoginResponse(
             access_token=tokens["access_token"],
@@ -785,7 +836,8 @@ async def login(
             user=user_data,
             password_expires_in_days=days_until_expiry if not password_expired else 0,
             force_password_change=security.get("force_password_change", False) or password_expired,
-            mfa_warning=mfa_warning
+            mfa_warning=mfa_warning,
+            show_trusted_device_prompt=not has_trusted_device
         )
     
     except HTTPException:
@@ -1139,6 +1191,234 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not refresh token"
         )
+
+
+@router.post("/trusted-devices/enroll", response_model=dict)
+async def enroll_trusted_device(
+    request: TrustedDeviceEnrollRequest,
+    http_request: Request,
+    current_user: dict = Depends(get_current_user_dependency),
+    db = Depends(get_database),
+):
+    """Enroll current authenticated device for 30-day passwordless login."""
+    username = current_user.get("username")
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
+
+    device_id = _normalize_optional_text(request.device_id, max_len=128)
+    if not device_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="device_id is required")
+
+    trusted_app_id = _resolve_trusted_app_id(request.app_id)
+    now = datetime.utcnow()
+    expires_at = now + timedelta(days=settings.trusted_device_days)
+    raw_token = secrets.token_urlsafe(48)
+    token_hash = _trusted_device_token_hash(raw_token)
+
+    device_doc = {
+        "username": username,
+        "deviceId": device_id,
+        "deviceName": _normalize_optional_text(request.device_name, max_len=120),
+        "platform": _normalize_optional_text(request.platform, max_len=64),
+        "appId": trusted_app_id,
+        "tokenHash": token_hash,
+        "createdAt": now,
+        "updatedAt": now,
+        "lastUsedAt": now,
+        "expiresAt": expires_at,
+        "revokedAt": None,
+        "issuedIp": http_request.client.host,
+        "issuedUserAgent": http_request.headers.get("user-agent"),
+    }
+
+    await db.trusted_devices.update_one(
+        {"username": username, "deviceId": device_id, "appId": trusted_app_id},
+        {"$set": device_doc},
+        upsert=True,
+    )
+
+    return {
+        "message": "Device trusted successfully",
+        "trusted_device_token": raw_token,
+        "device_id": device_id,
+        "app_id": trusted_app_id,
+        "expires_at": expires_at,
+        "trusted_days": settings.trusted_device_days,
+    }
+
+
+@router.post("/trusted-devices/auto-login", response_model=dict)
+async def trusted_device_auto_login(
+    request: TrustedDeviceAutoLoginRequest,
+    http_request: Request,
+    db = Depends(get_database),
+):
+    """Create a full authenticated session from a valid trusted-device token."""
+    device_id = _normalize_optional_text(request.device_id, max_len=128)
+    if not device_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="device_id is required")
+
+    trusted_app_id = _resolve_trusted_app_id(request.app_id)
+    token_hash = _trusted_device_token_hash(request.trusted_device_token)
+    now = datetime.utcnow()
+
+    trusted_doc = await db.trusted_devices.find_one(
+        {
+            "tokenHash": token_hash,
+            "deviceId": device_id,
+            "appId": trusted_app_id,
+            "revokedAt": None,
+            "expiresAt": {"$gt": now},
+        }
+    )
+
+    if not trusted_doc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Trusted device authentication failed")
+
+    user = await db.users.find_one(get_username_query(trusted_doc.get("username", "")))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
+    if not _is_login_status_allowed(user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is not active")
+
+    tokens = create_token_pair(user, remember_me=True)
+    session_expires_delta = timedelta(days=7)
+    status_info = user.get("status", {})
+    user_data = _build_login_user_data(user, status_info)
+
+    await db.sessions.insert_one(
+        {
+            "user_id": str(user.get("_id")),
+            "username": user.get("username"),
+            "token": tokens.get("access_token"),
+            "refresh_token": tokens.get("refresh_token"),
+            "session_type": "web",
+            "ip_address": http_request.client.host,
+            "user_agent": http_request.headers.get("user-agent"),
+            "created_at": now,
+            "expires_at": now + session_expires_delta,
+            "last_activity": now,
+            "revoked": False,
+            "auth_method": "trusted_device",
+            "app_id": trusted_app_id,
+            "device_id": device_id,
+        }
+    )
+
+    await db.trusted_devices.update_one(
+        {"_id": trusted_doc.get("_id")},
+        {"$set": {"lastUsedAt": now, "updatedAt": now, "lastUsedIp": http_request.client.host}},
+    )
+
+    await db.users.update_one(
+        {"_id": user.get("_id")},
+        {
+            "$set": {
+                "security.last_login_at": now,
+                "security.last_login_ip": http_request.client.host,
+                "status.is_online": True,
+                "status.last_seen": now,
+            }
+        },
+    )
+
+    return {
+        "access_token": tokens.get("access_token"),
+        "refresh_token": tokens.get("refresh_token"),
+        "token_type": tokens.get("token_type", "bearer"),
+        "expires_in": tokens.get("expires_in"),
+        "user": user_data,
+        "show_trusted_device_prompt": False,
+    }
+
+
+@router.get("/trusted-devices", response_model=dict)
+async def list_trusted_devices(
+    current_user: dict = Depends(get_current_user_dependency),
+    db = Depends(get_database),
+):
+    username = current_user.get("username")
+    now = datetime.utcnow()
+    docs = await db.trusted_devices.find(
+        {"username": username, "revokedAt": None, "expiresAt": {"$gt": now}},
+        {
+            "tokenHash": 0,
+        },
+    ).sort("lastUsedAt", -1).to_list(length=50)
+
+    devices = []
+    for doc in docs:
+        devices.append(
+            {
+                "id": str(doc.get("_id")),
+                "deviceId": doc.get("deviceId"),
+                "deviceName": doc.get("deviceName"),
+                "platform": doc.get("platform"),
+                "appId": doc.get("appId"),
+                "createdAt": doc.get("createdAt"),
+                "lastUsedAt": doc.get("lastUsedAt"),
+                "expiresAt": doc.get("expiresAt"),
+            }
+        )
+
+    return {"devices": devices}
+
+
+@router.delete("/trusted-devices/{device_id}", response_model=dict)
+async def revoke_trusted_device(
+    device_id: str,
+    app_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user_dependency),
+    db = Depends(get_database),
+):
+    username = current_user.get("username")
+    trusted_app_id = _resolve_trusted_app_id(app_id)
+    now = datetime.utcnow()
+
+    result = await db.trusted_devices.update_one(
+        {
+            "username": username,
+            "deviceId": device_id,
+            "appId": trusted_app_id,
+            "revokedAt": None,
+        },
+        {
+            "$set": {
+                "revokedAt": now,
+                "updatedAt": now,
+            }
+        },
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trusted device not found")
+
+    return {"message": "Trusted device revoked"}
+
+
+@router.post("/trusted-devices/revoke-all", response_model=dict)
+async def revoke_all_trusted_devices(
+    current_user: dict = Depends(get_current_user_dependency),
+    db = Depends(get_database),
+):
+    username = current_user.get("username")
+    now = datetime.utcnow()
+
+    result = await db.trusted_devices.update_many(
+        {
+            "username": username,
+            "revokedAt": None,
+        },
+        {
+            "$set": {
+                "revokedAt": now,
+                "updatedAt": now,
+            }
+        },
+    )
+
+    return {"message": "Trusted devices revoked", "count": result.modified_count}
 
 # ===== LOGOUT =====
 

@@ -1,0 +1,31 @@
+====================================================
+SUMMARY
+====================================================
+Source Directories: 600
+Destination Directories: 0
+Source Files: 33475
+Destination Files: 0
+Source Size: 202.20 GB
+Destination Size: 0 B
+Transferred Files: 0
+Deleted Files: 0
+Bytes Sent: 0 B
+Bytes Received: 0 B
+Folder Mismatches: 0
+File Count Mismatches: 0
+Missing Destination Folders: 0
+Missing Destination Files: 0
+Destination Extra Folders: 0
+Destination Extra Files: 0
+Verification: SKIPPED
+User Status: SUCCESS_SKIPPED_NO_CHANGES
+Process Status: SUCCESS
+
+Mount Time: 0s
+Sync Time: 0s
+Source Inventory Time: 0s
+Destination Inventory Time: 0s
+Reconciliation Time: 0s
+Verification Time: 0s
+Total Runtime: 0s
+====================================================

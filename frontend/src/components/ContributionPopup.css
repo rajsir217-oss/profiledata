@@ -60,14 +60,18 @@
 .contribution-message {
   color: #e5e5e5;
   font-size: 11px;
-  font-weight: 700;
-  line-height: 1.5;
+  font-weight: 400;
+  line-height: 1.8;
   margin: 0;
   background: #111;
   border: 1px solid #333;
   border-radius: 6px;
   padding: 12px 16px;
-  text-align: center;
+  text-align: left;
+}
+
+.contribution-metric-pill {
+  font-weight: 700;
 }
 
 .contribution-member-stats {
@@ -106,14 +110,14 @@
 .contribution-block {
   border: 1px solid #333;
   border-radius: 6px;
-  padding: 12px;
+  padding: 8px;
 }
 
 .contribution-block-title {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: #a3a3a3;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   padding: 0 2px;
 }
 
@@ -160,21 +164,9 @@
 /* Amount Options - Column Layout */
 .contribution-amounts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 5px;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 4px;
   margin: 2px 0 0;
-}
-
-@media (max-width: 480px) {
-  .contribution-amounts {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-  }
-  
-  .contribution-amount-option {
-    padding: 10px 8px;
-    min-height: 44px;
-  }
 }
 
 .contribution-amount-option {
@@ -186,9 +178,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 12px;
+  padding: 6px 8px;
   transition: all 0.2s ease;
-  min-height: 40px;
+  min-height: 28px;
   width: 100%;
 }
 
@@ -207,7 +199,7 @@
 }
 
 .contribution-amount-label {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   color: #e5e5e5;
   display: flex;
@@ -217,7 +209,7 @@
 }
 
 .custom-amount-label {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   width: 100%;
   justify-content: flex-start;
@@ -225,10 +217,51 @@
 
 .heart-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  font-size: 26px;
+  top: -3px;
+  right: -3px;
+  font-size: 18px;
   line-height: 1;
+}
+
+.lifetime-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Lifetime Support Option */
+.lifetime-option {
+  grid-column: span 2;
+  min-height: 44px;
+}
+
+.lifetime-amount-label {
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lifetime-amount {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.contribution-amount-sublabel {
+  font-size: 8px;
+  font-weight: 500;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.contribution-amount-micro {
+  font-size: 7px;
+  font-weight: 500;
+  color: var(--warning-color, #FFD700);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
 }
 
 /* Custom Amount - Column Layout */
@@ -248,8 +281,8 @@
   background: #222;
   border: 1px solid #444;
   border-radius: 4px;
-  padding: 4px 6px;
-  font-size: 12px;
+  padding: 3px 4px;
+  font-size: 10px;
   font-weight: 500;
   color: #e5e5e5;
   width: auto;
@@ -876,6 +909,27 @@
     gap: 4px;
   }
 
+  /* On smaller mobile screens, stack amounts in a single column */
+  @media (max-width: 480px) {
+    .contribution-amounts {
+      grid-template-columns: 1fr;
+    }
+
+    .contribution-amount-option {
+      min-height: 28px;
+      padding: 6px 8px;
+    }
+
+    .lifetime-option {
+      grid-column: 1 / -1;
+      min-height: 52px;
+    }
+
+    .custom-option {
+      grid-column: 1 / -1;
+    }
+  }
+
   .contribution-amount-option {
     min-height: 36px;
     padding: 8px 6px;
@@ -918,4 +972,35 @@
   .custom-amount-input {
     width: auto;
   }
+}
+
+/* Lifetime Supporter View */
+.contribution-lifetime-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 20px 10px;
+  min-height: 240px;
+}
+
+.contribution-lifetime-icon {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.contribution-lifetime-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.contribution-lifetime-message {
+  font-size: 13px;
+  color: #aaa;
+  margin: 0;
+  max-width: 280px;
 }

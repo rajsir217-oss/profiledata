@@ -1,5 +1,26 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import { SEO_KEYWORD_UNIVERSE, createKeywordString } from '../config/seoBrandKit';
+
+const DEFAULT_SITE_URL = (process.env.REACT_APP_SITE_URL || 'https://l3v3lmatches.com').replace(/\/+$/, '');
+const DEFAULT_BUSINESS_KEYWORDS = createKeywordString(
+  SEO_KEYWORD_UNIVERSE.coreBrandKeywords.slice(0, 6),
+  SEO_KEYWORD_UNIVERSE.matrimonyAndMatchmakingKeywords.slice(0, 6),
+  SEO_KEYWORD_UNIVERSE.indianOriginAndCulturalKeywords.slice(0, 4)
+);
+
+const toAbsoluteUrl = (value) => {
+  if (!value) {
+    return DEFAULT_SITE_URL;
+  }
+
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
+  }
+
+  const path = value.startsWith('/') ? value : `/${value}`;
+  return `${DEFAULT_SITE_URL}${path}`;
+};
 
 /**
  * SEO Component - Meta tags management
@@ -20,9 +41,9 @@ import { Helmet } from 'react-helmet-async';
 const SEO = ({
   title = '🦋 L3V3L Matches - Find Your Perfect Match',
   description = 'L3V3L Matches is a modern matchmaking platform connecting people for meaningful relationships. Join thousands finding love today.',
-  keywords = 'matrimony, matchmaking, marriage, relationships, dating, love, partner, marriage bureau, shaadi, vivah',
-  image = 'https://l3v3lmatches.com/og-image.jpg',
-  url = 'https://l3v3lmatches.com',
+  keywords = DEFAULT_BUSINESS_KEYWORDS,
+  image = `${DEFAULT_SITE_URL}/android-chrome-512x512.png`,
+  url = DEFAULT_SITE_URL,
   type = 'website',
   noindex = false,
   author = 'L3V3L Matches',
@@ -32,6 +53,8 @@ const SEO = ({
 }) => {
   // Construct full title with site name
   const fullTitle = title.includes('L3V3L') ? title : `${title} | 🦋 L3V3L Matches`;
+  const canonicalUrl = toAbsoluteUrl(url);
+  const imageUrl = toAbsoluteUrl(image);
 
   return (
     <Helmet>
@@ -42,7 +65,7 @@ const SEO = ({
       <meta name="author" content={author} />
       
       {/* Canonical URL */}
-      <link rel="canonical" href={url} />
+      <link rel="canonical" href={canonicalUrl} />
       
       {/* Robots Meta */}
       {noindex && <meta name="robots" content="noindex, nofollow" />}
@@ -52,8 +75,8 @@ const SEO = ({
       <meta property="og:type" content={type} />
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
-      <meta property="og:image" content={image} />
-      <meta property="og:url" content={url} />
+      <meta property="og:image" content={imageUrl} />
+      <meta property="og:url" content={canonicalUrl} />
       <meta property="og:site_name" content="L3V3L Matches" />
       <meta property="og:locale" content="en_US" />
       
@@ -69,7 +92,7 @@ const SEO = ({
       <meta name="twitter:card" content={twitterCard} />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={image} />
+      <meta name="twitter:image" content={imageUrl} />
       {twitterSite && <meta name="twitter:site" content={twitterSite} />}
       <meta name="twitter:creator" content={twitterSite} />
       

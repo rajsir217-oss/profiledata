@@ -1,3 +1,13 @@
+// frontend/src/components/Messages.js
+//
+// Business Requirements:
+// - Display conversations and a selected chat for the current user.
+// - Show a non-blocking critical banner for messages 10+ days old.
+// - Show a dismissible warning banner for high/medium/pending messages.
+// - Warning dismissal is shared with the global route-guard banner via sessionStorage.
+//
+// Checkpoint: 2026-08-17 - Removed navigation-lock copy from critical banner and shared warning dismissal.
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
@@ -16,7 +26,7 @@ const Messages = () => {
   const [error, setError] = useState('');
   const [unattendedData, setUnattendedData] = useState(null);
   const [conversationStatus, setConversationStatus] = useState(null);
-  const [pendingDismissed, setPendingDismissed] = useState(false);
+  const [pendingDismissed, setPendingDismissed] = useState(() => sessionStorage.getItem('unattendedWarningDismissed') === 'true');
   const [showArchived, setShowArchived] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('messagesSidebarWidth');
@@ -468,7 +478,10 @@ const Messages = () => {
             </button>
             <button 
               className="pending-dismiss-btn"
-              onClick={() => setPendingDismissed(true)}
+              onClick={() => {
+                setPendingDismissed(true);
+                sessionStorage.setItem('unattendedWarningDismissed', 'true');
+              }}
               title="Dismiss"
             >
               ✕
@@ -477,16 +490,16 @@ const Messages = () => {
         </div>
       )}
 
-      {/* Critical Chats Banner (10+ days - BLOCKS navigation) */}
+      {/* Critical Chats Banner (10+ days - non-blocking) */}
       {!showArchived && unattendedData && unattendedData.criticalCount > 0 && (
         <div className="unattended-banner">
           <div className="unattended-banner-content">
-            <span className="unattended-icon">�</span>
+            <span className="unattended-icon">🚨</span>
             <div className="unattended-text">
               <strong>You have {unattendedData.criticalCount} critical message{unattendedData.criticalCount > 1 ? 's' : ''} (10+ days) requiring your response</strong>
               <p className="unattended-explanation">
                 Someone took the time to reach out to you! Please respond to each conversation (open the message by selecting the profile card on the left) or politely decline using the <strong>⚡ Quick Messages → Decline</strong> option. 
-                You'll be able to browse other areas once critical messages are addressed.
+                You can still navigate while this reminder is shown.
                 <br /><span className="exclusion-tip">💡 Tip: If you're not interested, you can also add them to your exclusions list to avoid future messages from this profile.</span>
               </p>
             </div>

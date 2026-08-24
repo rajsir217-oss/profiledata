@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Image, Linking } from 'react-native';
 import useMessengerStore from '@messenger/stores/messengerStore';
 import useAuthStore from '@messenger/stores/authStore';
 import { API_BASE_URL } from '@messenger/config/api';
@@ -44,6 +44,12 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   const [notifications, setNotifications] = useState(null);
   const [notificationLoading, setNotificationLoading] = useState(false);
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchActive, setSearchActive] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const [searchDescription, setSearchDescription] = useState('');
   // Notification preferences (for Settings section)
   const [notifPrefs, setNotifPrefs] = useState({
     newMatches: { enabled: true, fields: { name: true, age: true, height: true, location: true, education: true, profession: true }, lookbackDays: 7 },
@@ -54,6 +60,12 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
   });
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [prefsToast, setPrefsToast] = useState(null); // { message, type }
+  const [profileSubTab, setProfileSubTab] = useState('profile'); // 'profile' | 'apps'
+  const [timerInputSeconds, setTimerInputSeconds] = useState('60');
+  const [timerRemainingSeconds, setTimerRemainingSeconds] = useState(60);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [beeperSecondsInput, setBeeperSecondsInput] = useState('5');
+  const [beeperRunning, setBeeperRunning] = useState(false);
 
   const {
     conversations,
@@ -174,6 +186,54 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     };
     saveNotifPrefs(updated);
   };
+
+  const playBeep = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const audioCtx = new AudioCtx();
+      const oscillator = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 880;
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.25);
+
+      oscillator.connect(gain);
+      gain.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.25);
+    } catch (e) {
+      // Ignore browser audio restrictions until the user interacts.
+    }
+  };
+
+  useEffect(() => {
+    if (!timerRunning) return undefined;
+    const timerId = setInterval(() => {
+      setTimerRemainingSeconds((prev) => {
+        if (prev <= 1) {
+          setTimerRunning(false);
+          playBeep();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerId);
+  }, [timerRunning]);
+
+  useEffect(() => {
+    if (!beeperRunning) return undefined;
+    const n = parseInt(beeperSecondsInput, 10);
+    if (!Number.isFinite(n) || n < 1) return undefined;
+    const beeperId = setInterval(() => {
+      playBeep();
+    }, n * 1000);
+    return () => clearInterval(beeperId);
+  }, [beeperRunning, beeperSecondsInput]);
 
   const isL3V3LAgentConversation = (conv) => {
     if (!conv) return false;
@@ -502,6 +562,44 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
         console.warn('⚠️ Failed to load messenger conversations:', messengerRes.reason?.message);
       }
 
+      // Enrich modern direct conversations with profile gender so pending-status
+      // borders can be colored correctly (pink for female sender, blue for male).
+      try {
+        const usernamesToFetch = messengerConvs
+          .filter((c) => c && c.type !== 'group' && !c.isSystemBot)
+          .map((c) => c.participants?.find((p) => p?.username !== user?.username)?.username)
+          .filter(Boolean);
+        if (usernamesToFetch.length > 0) {
+          const bulkRes = await api.post('/api/users/profiles/bulk', {
+            usernames: Array.from(new Set(usernamesToFetch)),
+          });
+          const profiles = bulkRes.data?.profiles || {};
+          messengerConvs = messengerConvs.map((conv) => {
+            if (!conv || conv.type === 'group' || conv.isSystemBot) return conv;
+            const otherUsername = conv.participants?.find((p) => p?.username !== user?.username)?.username;
+            if (!otherUsername) return conv;
+            const p = profiles[otherUsername];
+            if (!p) return conv;
+            const enrichedParticipants = (conv.participants || []).map((participant) => (
+              participant?.username === otherUsername
+                ? { ...participant, gender: participant.gender || participant.sex || p.gender || p.sex }
+                : participant
+            ));
+            return {
+              ...conv,
+              participants: enrichedParticipants,
+              profile: {
+                ...(conv.profile || {}),
+                gender: (conv.profile && (conv.profile.gender || conv.profile.sex)) || p.gender || p.sex,
+              },
+              otherGender: conv.otherGender || p.gender || p.sex,
+            };
+          });
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to enrich messenger conversation genders:', e.message);
+      }
+
       // Fetch main app 1:1 conversations (legacy direct messages)
       console.log('📬 Fetching main app 1:1 conversations...');
       let directConvs = [];
@@ -546,6 +644,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                 lastName: p.lastName,
                 age: p.age,
                 height: p.height,
+                gender: p.gender || p.sex,
                 profession: p.profession || p.occupation,
                 location: p.location,
                 imageVisibility: p.imageVisibility,
@@ -567,6 +666,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                 lastName: p.lastName,
                 age: p.age || calcAge(p.dob),
                 height: p.height,
+                gender: p.gender || p.sex,
                 profession: p.profession || p.occupation,
                 location: p.location || [p.city, p.state, p.country].filter(Boolean).join(', '),
                 imageVisibility: p.imageVisibility,
@@ -750,6 +850,64 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     return { name, isGroup: false, username: other?.username || null, icon: null };
   };
 
+  // Helper: get other participant's normalized gender for direct chats
+  const getOtherGender = (conv) => {
+    if (!conv || conv.type === 'group' || conv.isSystemBot) return null;
+    if (conv.type === 'direct_legacy') {
+      const g = conv.profile?.gender || conv.profile?.sex || conv.otherGender || conv.otherSex;
+      return g ? String(g).trim().toLowerCase() : null;
+    }
+    const other = conv.participants?.find((p) => p?.username !== user?.username);
+    const g = other?.gender || other?.sex;
+    return g ? String(g).trim().toLowerCase() : null;
+  };
+
+  const normalizeGender = (g) => {
+    if (!g) return '';
+    const s = String(g).trim().toLowerCase();
+    if (['male', 'm', 'man'].includes(s)) return 'male';
+    if (['female', 'f', 'woman'].includes(s)) return 'female';
+    return '';
+  };
+
+  const getPendingBorderStyle = (conv) => {
+    if (!conv || conv.type === 'group' || conv.isSystemBot) return null;
+    const isPending = (conv.unreadCount || 0) > 0;
+    if (!isPending) return null;
+    const otherGender = normalizeGender(getOtherGender(conv));
+    if (otherGender === 'female') return { borderWidth: 2, borderColor: '#ec4899' };
+    if (otherGender === 'male') return { borderWidth: 2, borderColor: '#3b82f6' };
+    return null;
+  };
+
+  // Search-stamp status:
+  // - Blue glow: you sent the last message and are awaiting their reply.
+  // - Pink glow: they sent the last message and you have unread messages.
+  const getSearchStampStatusStyle = (result) => {
+    const targetUsername = result?.username;
+    if (!targetUsername) return null;
+    const conv = allConversations.find((c) => {
+      if (targetUsername && c?.otherUsername === targetUsername) return true;
+      const other = c?.participants?.find((p) => p?.username !== user?.username);
+      if (targetUsername && other?.username === targetUsername) return true;
+      return false;
+    });
+    if (!conv) return null;
+    const hasConversationHistory = Boolean(conv.lastMessageAt) || Boolean(String(conv.lastMessagePreview || '').trim()) || Number(conv.unreadCount || 0) > 0;
+    if (!hasConversationHistory) return null;
+    const unread = Number(conv.unreadCount || 0);
+    if (unread > 0) return styles.stampCardNeedsReplyPink;
+    return styles.stampCardAwaitingReplyBlue;
+  };
+
+  const matchesSearch = (conv) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    const display = getConvDisplay(conv);
+    const preview = String(conv.lastMessagePreview || '').toLowerCase();
+    return display.name.toLowerCase().includes(q) || preview.includes(q);
+  };
+
   // Helper: format timestamp
   const formatTime = (iso) => {
     if (!iso) return '';
@@ -778,6 +936,235 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     { id: 'main_app', label: 'Main App', subLabel: 'Open USVedika dashboard', icon: '🏠' },
   ];
 
+  const parseHeightToInches = (height) => {
+    if (!height) return null;
+    if (typeof height === 'number') return height;
+    const match = String(height).match(/(\d+)'(\d+)"/);
+    if (match) {
+      return parseInt(match[1], 10) * 12 + parseInt(match[2], 10);
+    }
+    const total = parseInt(String(height).replace(/[^0-9]/g, ''), 10);
+    return Number.isNaN(total) ? null : total;
+  };
+
+  const buildDefaultCriteria = (profile) => {
+    if (!profile) return {};
+    const userGender = normalizeGender(profile.gender || profile.sex);
+    const pc = profile.partnerCriteria || {};
+    const userAge = profile.age || calcAge(profile.dob) || null;
+    const userHeight = parseHeightToInches(profile.height);
+    const oppositeGender = userGender === 'male' ? 'Female' : userGender === 'female' ? 'Male' : '';
+
+    let ageMin = '';
+    let ageMax = '';
+    if (userAge && pc.ageRangeRelative) {
+      const minOffset = Number(pc.ageRangeRelative.minOffset) || 0;
+      const maxOffset = Number(pc.ageRangeRelative.maxOffset) || 0;
+      ageMin = String(Math.max(19, userAge + minOffset));
+      ageMax = String(Math.min(100, userAge + maxOffset));
+    } else if (pc.ageRange?.min && pc.ageRange?.max) {
+      ageMin = String(pc.ageRange.min);
+      ageMax = String(pc.ageRange.max);
+    } else if (userAge && userGender) {
+      if (userGender === 'male') {
+        ageMin = String(Math.max(19, userAge - 5));
+        ageMax = String(Math.min(100, userAge + 1));
+      } else {
+        ageMin = String(Math.max(19, userAge - 1));
+        ageMax = String(Math.min(100, userAge + 5));
+      }
+    }
+
+    let heightMin = '';
+    let heightMax = '';
+    if (userHeight && pc.heightRangeRelative) {
+      const minOffset = Number(pc.heightRangeRelative.minInches) || 0;
+      const maxOffset = Number(pc.heightRangeRelative.maxInches) || 0;
+      heightMin = String(userHeight + minOffset);
+      heightMax = String(userHeight + maxOffset);
+    } else if (pc.heightRange?.minFeet || pc.heightRange?.minFeet === 0) {
+      const minFt = Number(pc.heightRange.minFeet) || 0;
+      const minInch = Number(pc.heightRange.minInches) || 0;
+      const maxFt = Number(pc.heightRange.maxFeet) || 0;
+      const maxInch = Number(pc.heightRange.maxInches) || 0;
+      heightMin = String(minFt * 12 + minInch);
+      heightMax = String(maxFt * 12 + maxInch);
+    }
+
+    const criteria = {
+      gender: oppositeGender,
+      ageMin,
+      ageMax,
+      heightMin,
+      heightMax,
+      hasPhoto: true,
+      daysBack: 0,
+    };
+
+    const arrValue = (v) => (Array.isArray(v) ? v : [v]).filter(Boolean);
+    const isNoPreference = (v) => {
+      const s = String(v).toLowerCase().trim();
+      return s.startsWith('any') || s === 'no preference';
+    };
+    const skipAny = (arr) => arr.filter((v) => v && !isNoPreference(v));
+
+    const locations = skipAny(arrValue(pc.location));
+    if (locations.length > 0) criteria.locations = locations;
+
+    const professions = skipAny(arrValue(pc.profession));
+    if (professions.length > 0) criteria.occupations = professions;
+
+    const religions = skipAny(arrValue(pc.religion));
+    if (religions.length > 0) criteria.religion = String(religions[0]).capitalize?.() || religions[0];
+
+    const castes = skipAny(arrValue(pc.caste));
+    if (castes.length > 0) criteria.caste = String(castes[0]);
+
+    const eating = skipAny(arrValue(pc.eatingPreference));
+    if (eating.length > 0) criteria.eatingPreference = String(eating[0]);
+
+    return criteria;
+  };
+
+  const normalizeCriteria = (criteria) => {
+    const out = { ...criteria };
+    if (out.heightMinFeet && out.heightMinInches !== undefined) {
+      const feet = parseInt(out.heightMinFeet, 10) || 0;
+      const inches = parseInt(out.heightMinInches, 10) || 0;
+      out.heightMin = feet * 12 + inches;
+    }
+    if (out.heightMaxFeet && out.heightMaxInches !== undefined) {
+      const feet = parseInt(out.heightMaxFeet, 10) || 0;
+      const inches = parseInt(out.heightMaxInches, 10) || 0;
+      out.heightMax = feet * 12 + inches;
+    }
+    delete out.heightMinFeet;
+    delete out.heightMinInches;
+    delete out.heightMaxFeet;
+    delete out.heightMaxInches;
+    delete out.sortBy;
+    delete out.sortOrder;
+    if (Array.isArray(out.locations) && out.locations.length > 0) {
+      delete out.location;
+    }
+    return out;
+  };
+
+  const buildSearchParams = (criteria) => {
+    const params = new URLSearchParams();
+    const normalized = normalizeCriteria(criteria || {});
+    Object.entries(normalized).forEach(([key, value]) => {
+      if (value === '' || value === null || value === undefined) return;
+      if (Array.isArray(value)) {
+        value.forEach((v) => {
+          if (v !== '' && v !== null && v !== undefined) params.append(key, v);
+        });
+      } else {
+        params.append(key, value);
+      }
+    });
+    params.append('page', '1');
+    params.append('limit', '24');
+    params.append('sortBy', 'newest');
+    params.append('sortOrder', 'desc');
+    return params;
+  };
+
+  const openChatFromSearch = (result) => {
+    if (!result?.username) return;
+    const username = result.username;
+    const existing = allConversations.find((c) => {
+      if (c.otherUsername === username) return true;
+      const other = c.participants?.find((p) => p?.username !== user?.username);
+      return other?.username === username;
+    });
+    if (existing) {
+      const display = getConvDisplay(existing);
+      const key = existing._id || existing.id;
+      setSelectedChat({
+        id: key,
+        name: display.name,
+        isGroup: display.isGroup,
+        isLegacy: existing.type === 'direct_legacy',
+        username: display.username,
+        isSystemBot: !!existing.isSystemBot,
+      });
+      return;
+    }
+    const displayName = `${result.firstName || ''} ${result.lastName || ''}`.trim() || username;
+    setSelectedChat({
+      id: `direct:${username}`,
+      name: displayName,
+      isGroup: false,
+      isLegacy: true,
+      username,
+    });
+  };
+
+  const inchesToHeight = (inches) => {
+    if (!inches || Number.isNaN(Number(inches))) return null;
+    const total = Number(inches);
+    const ft = Math.floor(total / 12);
+    const ins = total % 12;
+    return `${ft}'${ins}"`;
+  };
+
+  const describeCriteria = (criteria) => {
+    const parts = [];
+    if (criteria.gender) parts.push(criteria.gender);
+    if (criteria.ageMin || criteria.ageMax) {
+      const min = criteria.ageMin || 'any';
+      const max = criteria.ageMax || 'any';
+      parts.push(`${min}-${max} yrs`);
+    }
+    if (criteria.heightMin || criteria.heightMax) {
+      const min = inchesToHeight(criteria.heightMin) || 'any';
+      const max = inchesToHeight(criteria.heightMax) || 'any';
+      parts.push(`${min} - ${max}`);
+    }
+    if (criteria.locations?.length > 0) parts.push(criteria.locations.join(', '));
+    if (criteria.occupations?.length > 0) parts.push(criteria.occupations.join(', '));
+    if (criteria.religion) parts.push(criteria.religion);
+    if (criteria.caste) parts.push(criteria.caste);
+    if (criteria.eatingPreference) parts.push(criteria.eatingPreference);
+    return parts.join(' · ');
+  };
+
+  const runSearch = async () => {
+    if (!user?.username) return;
+    setSearchLoading(true);
+    setSearchError(null);
+    setSearchDescription('');
+    try {
+      const api = useAuthStore.getState().getApi();
+      let criteria = null;
+      let source = 'Partner criteria';
+      try {
+        const defaultRes = await api.get(`/api/users/${user.username}/saved-searches/default`);
+        if (defaultRes.data?.criteria) {
+          criteria = defaultRes.data.criteria;
+          source = 'Saved search';
+        }
+      } catch (e) {
+        // no default saved search
+      }
+      if (!criteria) {
+        criteria = buildDefaultCriteria(userProfile);
+      }
+      const desc = describeCriteria(normalizeCriteria(criteria));
+      setSearchDescription(`${source}: ${desc}`);
+      const params = buildSearchParams(criteria);
+      const searchRes = await api.get(`/api/users/search?${params.toString()}`);
+      const users = searchRes.data?.users || [];
+      setSearchResults(users.slice(0, 50));
+    } catch (e) {
+      console.error('❌ Search failed:', e);
+      setSearchError(e?.response?.data?.detail || 'Search failed. Please try again.');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   const handleMenuClick = (id) => {
     if (id === 'portal_members') {
       if (portalGroup) {
@@ -798,6 +1185,12 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
     }
     if (id === 'main_app') {
       openMainAppWithSso('/dashboard');
+      return;
+    }
+    if (id === 'search') {
+      setSelectedChat(null);
+      setActiveTab('search');
+      runSearch();
       return;
     }
     // US Vedika handler removed (menu item hidden).
@@ -829,7 +1222,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
               </View>
             )}
 
-            {!isLoading && !error && allViewItems.length === 0 && (
+            {!isLoading && !error && allViewItems.filter(matchesSearch).length === 0 && (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>No conversations yet</Text>
                 <Text style={styles.emptySubText}>Start a new chat to begin messaging</Text>
@@ -838,13 +1231,13 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
             {!isLoading && (
               <>
-                {allViewItems.map((conv, index) => {
+                {allViewItems.filter(matchesSearch).map((conv, index) => {
                   const display = getConvDisplay(conv);
                   const key = conv._id || conv.id || index;
                   const isLegacy = conv.type === 'direct_legacy';
                   const avatarText = display.icon || (display.isGroup ? '🦋' : (display.name || '?').charAt(0).toUpperCase());
                   return (
-                    <TouchableOpacity key={key} style={styles.conversationItem} onPress={() => {
+                    <TouchableOpacity key={key} style={[styles.conversationItem, getPendingBorderStyle(conv)]} onPress={() => {
                       // Handle placeholder rows for L3V3L Members / L3V3L Agent in the unified ALL list
                       if (conv.__placeholder && conv.__isPortal) {
                         setSelectedChat(null);
@@ -936,7 +1329,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                       const key = conv._id || conv.id || index;
                       const isLegacy = conv.type === 'direct_legacy';
                       return (
-                        <TouchableOpacity key={key} style={styles.conversationItem} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy })}>
+                        <TouchableOpacity key={key} style={[styles.conversationItem, getPendingBorderStyle(conv)]} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy })}>
                           <View style={styles.convAvatar}>
                             <Text style={styles.convAvatarText}>{display.isGroup ? '🦋' : display.name.charAt(0).toUpperCase()}</Text>
                           </View>
@@ -977,7 +1370,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
                       const key = conv._id || conv.id || index;
                       const isLegacy = conv.type === 'direct_legacy';
                       return (
-                        <TouchableOpacity key={key} style={styles.conversationItem} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy, username: display.username })}>
+                        <TouchableOpacity key={key} style={[styles.conversationItem, getPendingBorderStyle(conv)]} onPress={() => setSelectedChat({ id: key, name: display.name, isGroup: display.isGroup, isLegacy, username: display.username })}>
                           <View style={styles.convAvatar}>
                             <Text style={styles.convAvatarText}>{display.name.charAt(0).toUpperCase()}</Text>
                             {/* Online presence dot — direct chats only */}
@@ -1039,139 +1432,247 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
               </View>
             </View>
 
-            {/* ---- Edit profile ---- */}
-            <TouchableOpacity
-              style={[styles.profileActionRow, styles.profilePrimaryAction]}
-              onPress={() => openMainAppWithSso('/edit-profile')}
-            >
-              <Text style={styles.profileActionIcon}>✏️</Text>
-              <Text style={styles.profileActionLabel}>Edit profile</Text>
-              <Text style={styles.profileActionHint}>↗</Text>
-            </TouchableOpacity>
-            <Text style={styles.profileActionHintSubtle}>
-              Opens the main app in a new tab
-            </Text>
-
-            {/* ---- Settings ---- */}
-            <View style={styles.profileSection}>
-              <Text style={styles.profileSectionTitle}>⚙️  Notification Settings</Text>
-              <Text style={styles.settingsHint}>Choose what to see when you log in</Text>
-
-              {prefsToast && (
-                <View style={[styles.settingsToast, prefsToast.type === 'success' ? styles.settingsToastSuccess : styles.settingsToastError]}>
-                  <Text style={styles.settingsToastText}>{prefsToast.message}</Text>
-                </View>
-              )}
-
-              {[
-                { key: 'newMatches',           icon: '🔍', label: 'New Matches',         sub: 'Profiles matching your saved searches' },
-                { key: 'pendingMessages',       icon: '💬', label: 'Pending Messages',    sub: 'Conversations awaiting your reply' },
-                { key: 'tips',                  icon: '💡', label: 'Tips',                sub: 'Helpful tips to improve your profile' },
-                { key: 'pollExpiration',        icon: '📊', label: 'Poll Expirations',    sub: 'Polls expiring in the next 7 days' },
-                { key: 'profileCardWeeklyPost', icon: '📌', label: 'Post Profile Card',  sub: 'Share profile card to L3V3L Members weekly' },
-              ].map(({ key, icon, label, sub }) => (
-                <TouchableOpacity
-                  key={key}
-                  style={styles.settingsRow}
-                  onPress={() => togglePref(key)}
-                  disabled={savingPrefs}
-                >
-                  <Text style={styles.settingsRowIcon}>{icon}</Text>
-                  <View style={styles.settingsRowText}>
-                    <Text style={styles.settingsRowLabel}>{label}</Text>
-                    <Text style={styles.settingsRowSub}>{sub}</Text>
-                  </View>
-                  <View style={[styles.settingsToggle, notifPrefs[key]?.enabled ? styles.settingsToggleOn : styles.settingsToggleOff]}>
-                    <Text style={styles.settingsToggleText}>{notifPrefs[key]?.enabled ? 'ON' : 'OFF'}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.profileTabs}>
+              <TouchableOpacity
+                style={[styles.profileTabBtn, profileSubTab === 'profile' && styles.profileTabBtnActive]}
+                onPress={() => setProfileSubTab('profile')}
+              >
+                <Text style={[styles.profileTabText, profileSubTab === 'profile' && styles.profileTabTextActive]}>Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.profileTabBtn, profileSubTab === 'apps' && styles.profileTabBtnActive]}
+                onPress={() => setProfileSubTab('apps')}
+              >
+                <Text style={[styles.profileTabText, profileSubTab === 'apps' && styles.profileTabTextActive]}>Apps</Text>
+              </TouchableOpacity>
             </View>
 
-            {/* ---- Blocked users ---- */}
-            <View style={styles.profileSection}>
-              <Text style={styles.profileSectionTitle}>
-                Blocked users{blockedUsers.length > 0 ? ` (${blockedUsers.length})` : ''}
-              </Text>
+            {profileSubTab === 'profile' ? (
+              <>
+                {/* ---- Edit profile ---- */}
+                <TouchableOpacity
+                  style={[styles.profileActionRow, styles.profilePrimaryAction]}
+                  onPress={() => openMainAppWithSso('/edit-profile')}
+                >
+                  <Text style={styles.profileActionIcon}>✏️</Text>
+                  <Text style={styles.profileActionLabel}>Edit profile</Text>
+                  <Text style={styles.profileActionHint}>↗</Text>
+                </TouchableOpacity>
+                <Text style={styles.profileActionHintSubtle}>
+                  Opens the main app in a new tab
+                </Text>
 
-              {blockedLoading && (
-                <View style={styles.profileInlineLoader}>
-                  <ActivityIndicator size="small" color="#e94560" />
-                  <Text style={styles.profileLoaderText}>Loading…</Text>
+                {/* ---- Settings ---- */}
+                <View style={styles.profileSection}>
+                  <Text style={styles.profileSectionTitle}>⚙️  Notification Settings</Text>
+                  <Text style={styles.settingsHint}>Choose what to see when you log in</Text>
+
+                  {prefsToast && (
+                    <View style={[styles.settingsToast, prefsToast.type === 'success' ? styles.settingsToastSuccess : styles.settingsToastError]}>
+                      <Text style={styles.settingsToastText}>{prefsToast.message}</Text>
+                    </View>
+                  )}
+
+                  {[
+                    { key: 'newMatches',           icon: '🔍', label: 'New Matches',         sub: 'Profiles matching your saved searches' },
+                    { key: 'pendingMessages',       icon: '💬', label: 'Pending Messages',    sub: 'Conversations awaiting your reply' },
+                    { key: 'tips',                  icon: '💡', label: 'Tips',                sub: 'Helpful tips to improve your profile' },
+                    { key: 'pollExpiration',        icon: '📊', label: 'Poll Expirations',    sub: 'Polls expiring in the next 7 days' },
+                    { key: 'profileCardWeeklyPost', icon: '📌', label: 'Post Profile Card',  sub: 'Share profile card to L3V3L Members weekly' },
+                  ].map(({ key, icon, label, sub }) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={styles.settingsRow}
+                      onPress={() => togglePref(key)}
+                      disabled={savingPrefs}
+                    >
+                      <Text style={styles.settingsRowIcon}>{icon}</Text>
+                      <View style={styles.settingsRowText}>
+                        <Text style={styles.settingsRowLabel}>{label}</Text>
+                        <Text style={styles.settingsRowSub}>{sub}</Text>
+                      </View>
+                      <View style={[styles.settingsToggle, notifPrefs[key]?.enabled ? styles.settingsToggleOn : styles.settingsToggleOff]}>
+                        <Text style={styles.settingsToggleText}>{notifPrefs[key]?.enabled ? 'ON' : 'OFF'}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              )}
 
-              {!blockedLoading && blockedError && (
-                <View style={styles.profileErrorBox}>
-                  <Text style={styles.profileErrorText}>{blockedError}</Text>
-                  <TouchableOpacity onPress={loadBlockedUsers}>
-                    <Text style={styles.profileRetryLink}>Retry</Text>
+                {/* ---- Blocked users ---- */}
+                <View style={styles.profileSection}>
+                  <Text style={styles.profileSectionTitle}>
+                    Blocked users{blockedUsers.length > 0 ? ` (${blockedUsers.length})` : ''}
+                  </Text>
+
+                  {blockedLoading && (
+                    <View style={styles.profileInlineLoader}>
+                      <ActivityIndicator size="small" color="#e94560" />
+                      <Text style={styles.profileLoaderText}>Loading…</Text>
+                    </View>
+                  )}
+
+                  {!blockedLoading && blockedError && (
+                    <View style={styles.profileErrorBox}>
+                      <Text style={styles.profileErrorText}>{blockedError}</Text>
+                      <TouchableOpacity onPress={loadBlockedUsers}>
+                        <Text style={styles.profileRetryLink}>Retry</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {!blockedLoading && !blockedError && blockedUsers.length === 0 && (
+                    <Text style={styles.profileEmptyText}>
+                      You haven’t blocked anyone.
+                    </Text>
+                  )}
+
+                  {!blockedLoading && blockedUsers.length > 0 && (
+                    <ScrollView style={styles.blockedGrid} nestedScrollEnabled showsVerticalScrollIndicator>
+                      <View style={styles.blockedGridInner}>
+                        {blockedUsers.map((u) => {
+                          const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username;
+                          const avatarUrl = getProfilePicUrl(u);
+                          const isBusy = unblockingUser === u.username;
+                          return (
+                            <View key={u.username} style={styles.blockedCard}>
+                              <View style={styles.blockedCardAvatarWrap}>
+                                {avatarUrl ? (
+                                  <Image source={{ uri: avatarUrl }} style={styles.blockedCardAvatar} />
+                                ) : (
+                                  <View style={[styles.blockedCardAvatar, styles.blockedAvatarFallback]}>
+                                    <Text style={styles.blockedAvatarInitial}>
+                                      {(name?.[0] || '?').toUpperCase()}
+                                    </Text>
+                                  </View>
+                                )}
+                                <OnlineDot online={isOnline(u.username)} size={9} />
+                              </View>
+                              <Text style={styles.blockedCardName} numberOfLines={1}>{name}</Text>
+                              <Text style={styles.blockedCardUsername} numberOfLines={1}>@{u.username}</Text>
+                              <TouchableOpacity
+                                style={[styles.blockedCardUnblockBtn, isBusy && styles.unblockButtonBusy]}
+                                onPress={() => handleUnblock(u.username)}
+                                disabled={isBusy}
+                              >
+                                <Text style={styles.unblockButtonText}>
+                                  {isBusy ? '…' : 'Unblock'}
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    </ScrollView>
+                  )}
+                </View>
+
+                {/* ---- About ---- */}
+                <View style={styles.profileSection}>
+                  <Text style={styles.profileSectionTitle}>About</Text>
+                  <View style={styles.aboutRow}>
+                    <Text style={styles.aboutLabel}>Version</Text>
+                    <Text style={styles.aboutValue}>{APP_VERSION}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.aboutRow} onPress={() => openLink(helpUrl)}>
+                    <Text style={styles.aboutLabel}>Help</Text>
+                    <Text style={styles.aboutLink}>Open ↗</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.aboutRow} onPress={() => openLink(contactUrl)}>
+                    <Text style={styles.aboutLabel}>Contact</Text>
+                    <Text style={styles.aboutLink}>Open ↗</Text>
                   </TouchableOpacity>
                 </View>
-              )}
+              </>
+            ) : (
+              <View style={styles.profileSection}>
+                <Text style={styles.profileSectionTitle}>Apps</Text>
 
-              {!blockedLoading && !blockedError && blockedUsers.length === 0 && (
-                <Text style={styles.profileEmptyText}>
-                  You haven’t blocked anyone.
-                </Text>
-              )}
-
-              {!blockedLoading && blockedUsers.length > 0 && (
-                <ScrollView style={styles.blockedGrid} nestedScrollEnabled showsVerticalScrollIndicator>
-                  <View style={styles.blockedGridInner}>
-                    {blockedUsers.map((u) => {
-                      const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username;
-                      const avatarUrl = getProfilePicUrl(u);
-                      const isBusy = unblockingUser === u.username;
-                      return (
-                        <View key={u.username} style={styles.blockedCard}>
-                          <View style={styles.blockedCardAvatarWrap}>
-                            {avatarUrl ? (
-                              <Image source={{ uri: avatarUrl }} style={styles.blockedCardAvatar} />
-                            ) : (
-                              <View style={[styles.blockedCardAvatar, styles.blockedAvatarFallback]}>
-                                <Text style={styles.blockedAvatarInitial}>
-                                  {(name?.[0] || '?').toUpperCase()}
-                                </Text>
-                              </View>
-                            )}
-                            <OnlineDot online={isOnline(u.username)} size={9} />
-                          </View>
-                          <Text style={styles.blockedCardName} numberOfLines={1}>{name}</Text>
-                          <Text style={styles.blockedCardUsername} numberOfLines={1}>@{u.username}</Text>
-                          <TouchableOpacity
-                            style={[styles.blockedCardUnblockBtn, isBusy && styles.unblockButtonBusy]}
-                            onPress={() => handleUnblock(u.username)}
-                            disabled={isBusy}
-                          >
-                            <Text style={styles.unblockButtonText}>
-                              {isBusy ? '…' : 'Unblock'}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    })}
+                <View style={styles.appCard}>
+                  <Text style={styles.appTitle}>⏱️ Timer App</Text>
+                  <Text style={styles.appSubText}>Start a countdown in seconds.</Text>
+                  <View style={styles.appInputRow}>
+                    <TextInput
+                      style={styles.appNumberInput}
+                      value={timerInputSeconds}
+                      onChangeText={setTimerInputSeconds}
+                      keyboardType="numeric"
+                      placeholder="Seconds"
+                      placeholderTextColor="#6b7490"
+                    />
                   </View>
-                </ScrollView>
-              )}
-            </View>
+                  <View style={styles.appActionsRow}>
+                    <TouchableOpacity
+                      style={[styles.appBtn, styles.appBtnEqual]}
+                      onPress={() => {
+                        const n = parseInt(timerInputSeconds, 10);
+                        if (!Number.isFinite(n) || n < 1) return;
+                        setTimerRemainingSeconds(n);
+                        setTimerRunning(true);
+                      }}
+                    >
+                      <Text style={styles.appBtnText}>Start</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.appBtn, styles.appBtnGhost, styles.appBtnEqual]}
+                      onPress={() => setTimerRunning((v) => !v)}
+                    >
+                      <Text style={styles.appBtnText}>{timerRunning ? 'Pause' : 'Resume'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.appBtn, styles.appBtnGhost, styles.appBtnEqual]}
+                      onPress={() => {
+                        setTimerRunning(false);
+                        setTimerRemainingSeconds(parseInt(timerInputSeconds, 10) || 0);
+                      }}
+                    >
+                      <Text style={styles.appBtnText}>Reset</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.appTimerCountdown}>
+                    Remaining: {Math.floor(timerRemainingSeconds / 60)}:{String(timerRemainingSeconds % 60).padStart(2, '0')}
+                  </Text>
+                </View>
 
-            {/* ---- About ---- */}
-            <View style={styles.profileSection}>
-              <Text style={styles.profileSectionTitle}>About</Text>
-              <View style={styles.aboutRow}>
-                <Text style={styles.aboutLabel}>Version</Text>
-                <Text style={styles.aboutValue}>{APP_VERSION}</Text>
+                <View style={styles.appCard}>
+                  <Text style={styles.appTitle}>🔔 Beeper App</Text>
+                  <Text style={styles.appSubText}>Play a short beep every N seconds.</Text>
+                  <View style={styles.appInputRow}>
+                    <TextInput
+                      style={styles.appNumberInput}
+                      value={beeperSecondsInput}
+                      onChangeText={setBeeperSecondsInput}
+                      keyboardType="numeric"
+                      placeholder="N seconds"
+                      placeholderTextColor="#6b7490"
+                    />
+                  </View>
+                  <View style={styles.appActionsRow}>
+                    <TouchableOpacity
+                      style={[styles.appBtn, styles.appBtnEqual]}
+                      onPress={() => {
+                        const n = parseInt(beeperSecondsInput, 10);
+                        if (!Number.isFinite(n) || n < 1) return;
+                        setBeeperRunning(true);
+                      }}
+                    >
+                      <Text style={styles.appBtnText}>Start</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.appBtn, styles.appBtnGhost, styles.appBtnEqual]}
+                      onPress={() => setBeeperRunning(false)}
+                    >
+                      <Text style={styles.appBtnText}>Stop</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.appBtn, styles.appBtnGhost, styles.appBtnEqual]} onPress={playBeep}>
+                      <Text style={styles.appBtnText}>Test Beep</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.appStatusText}>
+                    Status: {beeperRunning ? `Beeping every ${beeperSecondsInput}s` : 'Stopped'}
+                  </Text>
+                </View>
               </View>
-              <TouchableOpacity style={styles.aboutRow} onPress={() => openLink(helpUrl)}>
-                <Text style={styles.aboutLabel}>Help</Text>
-                <Text style={styles.aboutLink}>Open ↗</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.aboutRow} onPress={() => openLink(contactUrl)}>
-                <Text style={styles.aboutLabel}>Contact</Text>
-                <Text style={styles.aboutLink}>Open ↗</Text>
-              </TouchableOpacity>
-            </View>
+            )}
 
             {/* ---- Sign out ---- */}
             <TouchableOpacity style={styles.signOutButton} onPress={onLogout}>
@@ -1180,6 +1681,80 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           </ScrollView>
         );
       }
+
+      case 'search':
+        return (
+          <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.searchContent}>
+            <View style={styles.searchHeader}>
+              <Text style={styles.contentTitle}>Search Results</Text>
+              <TouchableOpacity onPress={() => handleMenuClick('all')} style={styles.searchCloseBtn} activeOpacity={0.7}>
+                <Text style={styles.searchCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {searchDescription ? (
+              <Text style={styles.searchDescription}>{searchDescription}</Text>
+            ) : null}
+
+            {searchLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#e94560" />
+                <Text style={styles.loadingText}>Searching profiles...</Text>
+              </View>
+            )}
+
+            {searchError && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{searchError}</Text>
+                <TouchableOpacity style={styles.retryBtn} onPress={runSearch}>
+                  <Text style={styles.retryBtnText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {!searchLoading && !searchError && searchResults.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No matches found</Text>
+              </View>
+            )}
+
+            {!searchLoading && searchResults.length > 0 && (
+              <View style={styles.stampGrid}>
+                {searchResults.map((result) => {
+                  const name = `${result.firstName || ''} ${result.lastName || ''}`.trim() || result.username;
+                  const avatarUrl = getProfilePicUrl(result);
+                  return (
+                    <TouchableOpacity
+                      key={result.username || result._id || result.profileId}
+                      style={[styles.stampCard, getSearchStampStatusStyle(result)]}
+                      onPress={() => openChatFromSearch(result)}
+                      activeOpacity={0.7}
+                    >
+                      {avatarUrl ? (
+                        <Image source={{ uri: avatarUrl }} style={styles.stampBgImage} resizeMode="cover" />
+                      ) : (
+                        <View style={styles.stampBgFallback}>
+                          <View style={styles.stampAvatarFallbackBadge}>
+                            <Text style={styles.stampAvatarInitial}>{(name[0] || '?').toUpperCase()}</Text>
+                          </View>
+                        </View>
+                      )}
+                      <View style={styles.stampOverlay}>
+                        <Text style={styles.stampName} numberOfLines={1}>{name}</Text>
+                        <Text style={styles.stampMeta} numberOfLines={1}>
+                          {[
+                            result.age ? `${result.age} yrs` : '',
+                            result.location || '',
+                          ].filter(Boolean).join(' · ')}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </ScrollView>
+        );
 
       default:
         return (
@@ -1200,7 +1775,7 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           onPress={() => handleMenuClick('main_app')}
           activeOpacity={0.7}
         >
-          <Text style={styles.topNavIcon}>🏠</Text>
+          <Image source={{ uri: '/L3V3L_MATCHES_master_transparent.png' }} style={styles.topNavBrandLogo} resizeMode="contain" />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1211,8 +1786,16 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
           {profilePicUrl ? (
             <Image source={{ uri: profilePicUrl }} style={styles.topNavProfilePic} />
           ) : (
-            <Text style={styles.topNavIcon}>👤</Text>
+            <Text style={styles.topNavIcon}>{'\uD83D\uDC64'}</Text>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.topNavItem, activeTab === 'search' && styles.topNavItemActive]}
+          onPress={() => handleMenuClick('search')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.topNavIcon}>🔍</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1280,6 +1863,25 @@ export default function ConversationListScreen({ onChatOpen, onNewChat, onLogout
 
       {/* Right column: header + content + footer below the top nav bar. */}
       <View style={styles.rightColumn}>
+        {searchActive && (
+          <View style={styles.searchBar}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search conversations..."
+              placeholderTextColor="#666"
+              autoFocus
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7}>
+                <Text style={styles.searchClear}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         {/* Agent notification nudge — shows briefly after fresh data is loaded */}
         {showNotificationBanner && (
           <TouchableOpacity
@@ -1358,6 +1960,38 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 8,
   },
+  searchBar: {
+    height: 44,
+    backgroundColor: '#0f0f23',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a3e',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  searchIcon: {
+    fontSize: 14,
+    color: '#888',
+    width: 22,
+    textAlign: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    height: 32,
+    backgroundColor: '#16213e',
+    color: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#0f3460',
+  },
+  searchClear: {
+    fontSize: 16,
+    color: '#888',
+    paddingHorizontal: 6,
+  },
   topNavItem: {
     width: 32,
     height: 32,
@@ -1381,6 +2015,10 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 6,
+  },
+  topNavBrandLogo: {
+    width: 24,
+    height: 24,
   },
   topNavBadge: {
     position: 'absolute',
@@ -1663,6 +2301,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
+  profileTabs: {
+    flexDirection: 'row',
+    marginBottom: 14,
+    backgroundColor: '#121b34',
+    borderRadius: 10,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#1f2a4d',
+  },
+  profileTabBtn: {
+    flex: 1,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  profileTabBtnActive: {
+    backgroundColor: '#1f2a4d',
+  },
+  profileTabText: {
+    color: '#8892b0',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  profileTabTextActive: {
+    color: '#fff',
+  },
 
   profileActionRow: {
     flexDirection: 'row',
@@ -1713,6 +2377,76 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     marginBottom: 12,
+  },
+  appCard: {
+    backgroundColor: '#0f1b36',
+    borderWidth: 1,
+    borderColor: '#2a3a61',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  appTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  appSubText: {
+    color: '#8892b0',
+    fontSize: 12,
+    marginBottom: 10,
+  },
+  appInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  appActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  appNumberInput: {
+    backgroundColor: '#121b34',
+    borderWidth: 1,
+    borderColor: '#2a3a61',
+    borderRadius: 8,
+    color: '#fff',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    width: '100%',
+  },
+  appBtn: {
+    backgroundColor: '#1f2a4d',
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+  },
+  appBtnEqual: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  appBtnGhost: {
+    borderColor: '#4b5f91',
+  },
+  appBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  appStatusText: {
+    color: '#c7d2fe',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  appTimerCountdown: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: 8,
   },
   profileEmptyText: {
     color: '#8892b0',
@@ -1952,5 +2686,124 @@ const styles = StyleSheet.create({
     color: '#8892b0',
     fontSize: 16,
     paddingLeft: 12,
+  },
+
+  // Search results (postal-stamp cards)
+  searchContent: {
+    paddingBottom: 24,
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  searchCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#16213e',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchCloseText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  searchDescription: {
+    color: '#8892b0',
+    fontSize: 13,
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
+  stampGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 4,
+  },
+  stampCard: {
+    width: '31%',
+    margin: '1%',
+    backgroundColor: '#16213e',
+    borderRadius: 12,
+    minHeight: 132,
+    justifyContent: 'flex-end',
+    borderWidth: 1,
+    borderColor: '#1f2a4d',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  stampCardAwaitingReplyBlue: {
+    borderWidth: 3,
+    borderColor: '#60a5fa',
+    backgroundColor: '#1a2b4f',
+    boxShadow: '0 0 14px rgba(96, 165, 250, 0.75)',
+    shadowColor: '#3b82f6',
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  stampCardNeedsReplyPink: {
+    borderWidth: 3,
+    borderColor: '#f472b6',
+    backgroundColor: '#3a1d33',
+    boxShadow: '0 0 14px rgba(244, 114, 182, 0.75)',
+    shadowColor: '#ec4899',
+    shadowOpacity: 0.65,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  stampBgImage: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+  },
+  stampBgFallback: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: '#0f3460',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stampAvatarFallbackBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    backgroundColor: '#18457f',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stampOverlay: {
+    width: '100%',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    backgroundColor: 'rgba(6, 10, 20, 0.68)',
+  },
+  stampAvatarInitial: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  stampName: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'left',
+    width: '100%',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  stampMeta: {
+    color: '#d1d9ee',
+    fontSize: 11,
+    textAlign: 'left',
+    width: '100%',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

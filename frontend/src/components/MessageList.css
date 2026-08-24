@@ -63,15 +63,15 @@
 .conversation-item {
   display: flex;
   align-items: center;
-  padding: 12px 14px;
-  margin: 0 8px 10px 8px;
+  padding: 6px 8px;
+  margin: 0 4px 6px 4px;
   cursor: pointer;
   background: var(--selected-background);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
+  border-radius: 10px;
   transition: all 0.2s ease;
   position: relative;
-  gap: 12px;
+  gap: 8px;
 }
 
 .conversation-item:hover:not(.active) {
@@ -103,14 +103,14 @@
 
 .conversation-item.active .view-profile-btn {
   background: var(--primary-color, #667eea);
-  border-color: var(--primary-color, #667eea);
-  color: var(--text-on-primary, #ffffff);
+  border-color: var(--text-color, #667eea);
+  color: var(--text-color, #ffffff);
 }
 
 .conversation-item.active .view-profile-btn:hover {
   background: var(--primary-hover, var(--secondary-color, #5a67d8));
   border-color: var(--primary-hover, var(--secondary-color, #5a67d8));
-  color: var(--text-on-primary, #ffffff);
+  color: var(--text-color, #ffffff);
 }
 
 .conversation-item.active .archive-conversation-btn {
@@ -120,8 +120,8 @@
 }
 
 .conversation-item.active .archive-conversation-btn:hover {
-  border-color: var(--primary-color, #667eea);
-  color: var(--primary-color, #667eea);
+  border-color: var(--text-color, #667eea);
+  color: var(--text-color, #667eea);
   background: var(--selected-background, #eef2ff);
 }
 
@@ -173,28 +173,28 @@
 .conversation-avatar {
   position: relative;
   flex-shrink: 0;
-  width: 64px;
-  height: 64px;
+  width: 36px;
+  height: 36px;
 }
 
 .conversation-avatar img {
-  width: 64px;
-  height: 64px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid var(--primary-color);
+  border: 2px solid var(--primary-color);
 }
 
 .avatar-placeholder {
-  width: 64px;
-  height: 64px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
-  color: white;
+  color: var(--text-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -210,7 +210,7 @@
   top: -5px;
   right: -5px;
   background: var(--danger-color, #f44336);
-  color: white;
+  color: var(--text-color);
   border-radius: 10px;
   padding: 2px 6px;
   font-size: 10px;
@@ -224,16 +224,16 @@
 .view-profile-btn {
   background: var(--primary-color, #667eea);
   border: 1px solid var(--primary-color, #667eea);
-  color: var(--text-on-primary, #ffffff);
-  border-radius: 6px;
+  color: var(--text-color, #ffffff);
+  border-radius: 4px;
   width: auto;
-  height: 22px;
-  min-width: 40px;
-  padding: 0 8px;
+  height: 18px;
+  min-width: 32px;
+  padding: 0 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
@@ -247,15 +247,15 @@
 .view-profile-btn:hover {
   background: var(--primary-hover, var(--secondary-color, #5a67d8));
   border-color: var(--primary-hover, var(--secondary-color, #5a67d8));
-  color: var(--text-on-primary, #ffffff);
+  color: var(--text-color, #ffffff);
   transform: scale(1.05);
 }
 
 .conversation-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 6px;
+  gap: 3px;
+  margin-top: 3px;
   flex-shrink: 0;
 }
 
@@ -263,15 +263,15 @@
   background: var(--surface-color, #f5f5f5);
   border: 1px solid var(--border-color, #e0e0e0);
   color: var(--text-secondary, #666);
-  border-radius: 6px;
+  border-radius: 4px;
   width: auto;
-  height: 22px;
-  min-width: 50px;
-  padding: 0 8px;
+  height: 18px;
+  min-width: 40px;
+  padding: 0 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
@@ -280,8 +280,8 @@
 }
 
 .archive-conversation-btn:hover {
-  border-color: var(--primary-color, #667eea);
-  color: var(--primary-color, #667eea);
+  border-color: var(--text-color, #667eea);
+  color: var(--text-color, #667eea);
   background: var(--selected-background, #eef2ff);
 }
 
@@ -295,16 +295,17 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .conversation-name {
-  font-weight: 700;
-  font-size: 18px;
+  font-weight: 500;
+  font-size: 10px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   color: var(--text-color, #333);
+  line-height: 1;
 }
 
 .pause-badge {
@@ -322,7 +323,7 @@
   justify-content: center;
   font-size: 11px;
   background: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
+  color: var(--text-color);
   padding: 2px 8px;
   border-radius: 10px;
   font-weight: 600;
@@ -367,7 +368,7 @@
 
 .urgency-badge.urgency-critical {
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  color: white;
+  color: var(--text-color);
   animation: criticalPulse 1.5s ease-in-out infinite;
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -398,7 +399,7 @@
 
 .urgency-badge.urgency-high {
   background: linear-gradient(135deg, var(--warning-color, #f59e0b) 0%, #d97706 100%);
-  color: white;
+  color: var(--text-color);
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.5);
   animation: highPulse 3s ease-in-out infinite;
 }
@@ -410,22 +411,23 @@
 
 .urgency-badge.urgency-medium {
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  color: #1f2937;
+  color: var(--text-color);
   box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4);
 }
 
 .urgency-badge.urgency-pending {
   background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
-  color: white;
+  color: var(--text-color);
   box-shadow: 0 2px 4px rgba(148, 163, 184, 0.3);
 }
 
 p.conversation-preview {
-  margin: 2px 0 0;
+  margin: 1px 0 0;
   color: var(--text-secondary, #666);
-  font-size: 14px;
+  font-size: 9px;
   font-style: italic;
   white-space: nowrap;
+  line-height: 1;
   overflow: hidden;
   text-overflow: ellipsis;
 }

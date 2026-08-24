@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getBackendUrl } from '../config/apiConfig';
 import toastService from '../services/toastService';
 import logger from '../utils/logger';
+import { LIFETIME_CONTRIBUTION_THRESHOLD } from '../utils/contributionSilence';
 import './ContributionPopup.css';
 
 const MEMBER_STATS_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -18,7 +19,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const paypalScriptLoaded = useRef(false);
   const amountRef = useRef(50);
   const paypalInitialized = useRef(false);
-  const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'paypal', 'venmo-qr', 'paypal-qr', 'clover'
+  const [paymentMethod, setPaymentMethod] = useState('clover'); // 'clover', 'paypal', 'venmo-qr', 'paypal-qr'
   const [cloverLoading, setCloverLoading] = useState(false);
   const [cloverReady, setCloverReady] = useState(false);
   const [cloverConfig, setCloverConfig] = useState(null);
@@ -38,14 +39,6 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [dismissCount, setDismissCount] = useState(0);
   const [requiredDismissals, setRequiredDismissals] = useState(0);
   const [isDismissing, setIsDismissing] = useState(false);
-
-  const computeDaysActive = useCallback((createdAtValue) => {
-    if (!createdAtValue) return 0;
-    const createdAt = new Date(createdAtValue);
-    if (Number.isNaN(createdAt.getTime())) return 0;
-    const diffMs = Date.now() - createdAt.getTime();
-    return Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
-  }, []);
 
   const loadMemberStats = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -86,10 +79,10 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
       const nextStats = {
         daysActive: stats.daysActive || 0,
-        profileViews: stats.profileViews || 0,
-        profileFavorites: stats.favoritedBy || 0,
-        profileShortlists: stats.shortlistedBy || 0,
-        conversations: stats.uniqueConversations || 0,
+        profileViews: stats.lifetimeViews || stats.profileViews || 0,
+        profileFavorites: stats.lifetimeFavorites || stats.favoritedBy || 0,
+        profileShortlists: stats.lifetimeShortlists || stats.shortlistedBy || 0,
+        conversations: stats.lifetimeMessages || stats.uniqueConversations || 0,
       };
 
       setMemberStats(nextStats);
@@ -105,49 +98,11 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         logger.debug('Contribution popup stats cache write failed', err);
       }
     } catch (err) {
-      logger.warn('Failed to load contribution member stats, falling back to live calculation', err);
-      // Fallback to live calculation if snapshot endpoint fails
-      try {
-        const headers = { Authorization: `Bearer ${token}` };
-        const [profileRes, viewsRes, favoritesRes, shortlistRes, conversationsRes] = await Promise.allSettled([
-          fetch(`${getBackendUrl()}/api/users/profile/${encodeURIComponent(username)}`, { headers }),
-          fetch(`${getBackendUrl()}/api/users/profile-views/${encodeURIComponent(username)}`, { headers }),
-          fetch(`${getBackendUrl()}/api/users/favorites/${encodeURIComponent(username)}`, { headers }),
-          fetch(`${getBackendUrl()}/api/users/shortlist/${encodeURIComponent(username)}`, { headers }),
-          fetch(`${getBackendUrl()}/api/users/messages/conversations?username=${encodeURIComponent(username)}`, { headers }),
-        ]);
-
-        const safeJson = async (res) => {
-          if (!res || !res.ok) return null;
-          try {
-            return await res.json();
-          } catch (err) {
-            return null;
-          }
-        };
-
-        const profileData = await safeJson(profileRes.status === 'fulfilled' ? profileRes.value : null);
-        const viewsData = await safeJson(viewsRes.status === 'fulfilled' ? viewsRes.value : null);
-        const favoritesData = await safeJson(favoritesRes.status === 'fulfilled' ? favoritesRes.value : null);
-        const shortlistData = await safeJson(shortlistRes.status === 'fulfilled' ? shortlistRes.value : null);
-        const conversationsData = await safeJson(conversationsRes.status === 'fulfilled' ? conversationsRes.value : null);
-
-        const fallbackStats = {
-          daysActive: computeDaysActive(profileData?.createdAt),
-          profileViews: Number(viewsData?.totalViews ?? viewsData?.uniqueViewers ?? viewsData?.views?.length ?? viewsData?.viewers?.length ?? 0) || 0,
-          profileFavorites: Array.isArray(favoritesData?.favorites) ? favoritesData.favorites.length : 0,
-          profileShortlists: Array.isArray(shortlistData?.shortlist) ? shortlistData.shortlist.length : 0,
-          conversations: Array.isArray(conversationsData?.conversations) ? conversationsData.conversations.length : 0,
-        };
-
-        setMemberStats(fallbackStats);
-      } catch (fallbackErr) {
-        logger.warn('Fallback stats calculation also failed', fallbackErr);
-      }
+      logger.warn('Failed to load contribution member stats', err);
     } finally {
       setMemberStatsLoading(false);
     }
-  }, [computeDaysActive]);
+  }, []);
 
   // Load dismiss count from localStorage
   const loadDismissCount = useCallback(() => {
@@ -221,12 +176,44 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, [saveDismissCount]);
 
-  // Use admin-configured amounts (deduped + descending numeric sort for display).
-  // Default [25, 50, 75, 100] renders as [100, 75, 50, 25].
-  const amounts = [...new Set(contributionConfig?.amounts || [25, 50, 75, 100])]
+  // Use admin-configured amounts, always including the $LIFETIME_CONTRIBUTION_THRESHOLD lifetime option,
+  // remove the $25 tier, then dedupe and sort descending for display.
+  const rawAmounts = [...new Set([...(contributionConfig?.amounts || [50, 75, 100]), LIFETIME_CONTRIBUTION_THRESHOLD])]
+    .filter((n) => n !== 25);
+  const amounts = rawAmounts
     .map(Number)
     .filter((n) => Number.isFinite(n) && n > 0)
     .sort((a, b) => b - a);
+
+  // Build engagement metrics list: numeric values as colored pills, or "no ... yet" if all zero.
+  const engagementMetrics = (() => {
+    const metrics = [];
+    if (memberStats.profileFavorites > 0) {
+      metrics.push({ value: memberStats.profileFavorites, label: 'favorites', className: 'metric-favorites' });
+    }
+    if (memberStats.profileShortlists > 0) {
+      metrics.push({ value: memberStats.profileShortlists, label: 'shortlists', className: 'metric-shortlists' });
+    }
+    if (memberStats.conversations > 0) {
+      metrics.push({ value: memberStats.conversations, label: 'messages', className: 'metric-messages' });
+    }
+
+    if (metrics.length === 0) {
+      return 'no favorites, shortlists, or messages yet';
+    }
+
+    return metrics.map((m, i) => {
+      const isFirst = i === 0;
+      const isLast = i === metrics.length - 1;
+      const connector = isFirst ? '' : (isLast ? ', and ' : ', ');
+      return (
+        <React.Fragment key={m.label}>
+          {connector}
+          <span className={`contribution-metric-pill ${m.className}`}>{m.value} {m.label}</span>
+        </React.Fragment>
+      );
+    });
+  })();
 
   // Log activity to backend (fire and forget)
   const logActivity = useCallback(async (action, amount = null, pType = null) => {
@@ -410,12 +397,19 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     return () => clearTimeout(timer);
   }, [getAmount, selectedAmount]);
 
-  // Re-render PayPal buttons when container remounts (key changed)
+  // Reset PayPal ready state when leaving the PayPal tab so it re-renders on return
+  useEffect(() => {
+    if (paymentMethod !== 'paypal') {
+      setPaypalReady(false);
+    }
+  }, [paymentMethod]);
+
+  // Re-render PayPal buttons when container is available (tab switch or amount change)
   useEffect(() => {
     if (isOpen && paypalScriptLoaded.current && window.paypal && paypalContainerRef.current && !paypalReady) {
       renderPayPalButtons();
     }
-  }, [paypalKey, isOpen, paypalReady, renderPayPalButtons]);
+  }, [paypalKey, isOpen, paypalReady, paymentMethod, renderPayPalButtons]);
 
   // ESC key handler
   useEffect(() => {
@@ -643,9 +637,15 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     };
   }, [isOpen, loading, handleDismiss]);
 
+  const isLifetimeSupporter = Number(contributionStatus?.lastContributionAmount) >= LIFETIME_CONTRIBUTION_THRESHOLD;
+
   return (
     <div className="contribution-popup-overlay" onClick={(e) => {
-      // Only allow overlay click to close if required dismissals reached
+      // Lifetime supporters can close immediately; others must satisfy the nag count.
+      if (isLifetimeSupporter) {
+        onClose();
+        return;
+      }
       const newCount = dismissCount + 1;
       if (newCount >= requiredDismissals) {
         handleDismiss();
@@ -653,35 +653,33 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }} style={{ display: isOpen ? 'flex' : 'none' }}>
       <div className="contribution-popup" onClick={(e) => e.stopPropagation()}>
         <div className="contribution-popup-body">
-          <p className="contribution-message">
-            YOUR SUPPORT HELPS AND ENCOURAGE OUR TEAM TO CONTINUOUSLY IMPROVING THE L3V3L MATCHES PLATFORM FOR EVERYONE.
-          </p>
-
-          <section className="contribution-member-stats" aria-label="Your member value stats">
-            <div className="contribution-member-stats-title">Your Value Snapshot ✨</div>
-            <div className="contribution-member-stats-grid">
-              <div className="contribution-member-stat-card">
-                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">📅</span> Days Active</span>
-                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.daysActive}</span>
-              </div>
-              <div className="contribution-member-stat-card">
-                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">👀</span> Views</span>
-                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.profileViews}</span>
-              </div>
-              <div className="contribution-member-stat-card">
-                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">⭐</span> Favorites</span>
-                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.profileFavorites}</span>
-              </div>
-              <div className="contribution-member-stat-card">
-                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">📝</span> Shortlists</span>
-                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.profileShortlists}</span>
-              </div>
-              <div className="contribution-member-stat-card">
-                <span className="contribution-member-stat-label"><span className="contribution-member-stat-emoji">💬</span> Messages</span>
-                <span className="contribution-member-stat-value">{memberStatsLoading ? '...' : memberStats.conversations}</span>
-              </div>
+          {isLifetimeSupporter && (
+            <div className="contribution-lifetime-view">
+              <span className="contribution-lifetime-icon" aria-hidden="true">✨</span>
+              <h3 className="contribution-lifetime-title">You're a Lifetime Supporter</h3>
+              <p className="contribution-lifetime-message">
+                {`Thank you for your $${LIFETIME_CONTRIBUTION_THRESHOLD} contribution. You'll never see this popup again.`}
+              </p>
+              <button className="contribution-remind-btn" onClick={onClose}>
+                Close
+              </button>
             </div>
-          </section>
+          )}
+          {!isLifetimeSupporter && (
+            <>
+              <p className="contribution-message">
+            {memberStatsLoading
+              ? 'You’ve been part of L3V3L Matches. Behind the scenes, our admins provide real human help, quick responses, and a premium-grade application with features that go beyond commercial matrimonial sites. If you value this community and want to help us grow, we kindly invite you to contribute. Your support keeps the platform running and helps us build new features.'
+              : (
+                <>
+                  You’ve been part of L3V3L Matches for{' '}
+                  <span className="contribution-metric-pill metric-days">{memberStats.daysActive} days</span>. So far, your profile has had{' '}
+                  <span className="contribution-metric-pill metric-views">{memberStats.profileViews} views</span>, and {engagementMetrics}. 
+                  Behind the scenes, our admins provide real human help, quick responses, and a premium-grade application with features that go beyond commercial matrimonial sites.<br />
+                  If you value this community and want to help us grow, we kindly invite you to <span className="contribution-metric-pill metric-views">contribute</span>. Your support keeps the platform running and helps us build new features.
+                </>
+              )}
+          </p>
 
           {error && <div className="contribution-error">{error}</div>}
 
@@ -691,7 +689,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
               {amounts.map((amt) => (
                 <label
                   key={amt}
-                  className={`contribution-amount-option ${selectedAmount === amt ? 'selected' : ''}`}
+                  className={`contribution-amount-option ${amt === LIFETIME_CONTRIBUTION_THRESHOLD ? 'lifetime-option' : ''} ${selectedAmount === amt ? 'selected' : ''}`}
                 >
                   <input
                     type="radio"
@@ -705,8 +703,17 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                     }}
                     disabled={loading}
                   />
-                  <span className="contribution-amount-label">${amt}</span>
+                  {amt === LIFETIME_CONTRIBUTION_THRESHOLD ? (
+                    <span className="contribution-amount-label lifetime-amount-label">
+                      <span className="lifetime-amount">${amt}</span>
+                      <span className="contribution-amount-sublabel">Support for life</span>
+                      <span className="contribution-amount-micro">no more popups</span>
+                    </span>
+                  ) : (
+                    <span className="contribution-amount-label">${amt}</span>
+                  )}
                   {amt === 100 && <span className="heart-badge">❤️</span>}
+                  {amt === LIFETIME_CONTRIBUTION_THRESHOLD && <span className="lifetime-badge" aria-label="Lifetime support">✨</span>}
                 </label>
               ))}
 
@@ -732,7 +739,11 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                       setSelectedAmount('custom');
                       setError('');
                     }}
-                    placeholder="Amt"
+                    onFocus={() => {
+                      setSelectedAmount('custom');
+                      setError('');
+                    }}
+                    placeholder="Amount"
                     min="1"
                     disabled={loading}
                   />
@@ -746,20 +757,20 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             <div className="contribution-block-title">Select Payment Method</div>
             <div className="payment-method-toggle">
               <button
+                className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('clover')}
+                disabled={loading || cloverLoading}
+              >
+                <span className="clover-icon">☘</span>
+                Card
+              </button>
+              <button
                 className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
                 onClick={() => setPaymentMethod('paypal')}
                 disabled={loading}
               >
                 <span className="paypal-p">P</span>
                 PayPal
-              </button>
-              <button
-                className={`payment-method-btn ${paymentMethod === 'paypal-qr' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('paypal-qr')}
-                disabled={loading}
-              >
-                <span className="paypal-p">P</span>
-                PayPal QR
               </button>
               <button
                 className={`payment-method-btn ${paymentMethod === 'venmo-qr' ? 'active' : ''}`}
@@ -770,12 +781,12 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                 Venmo QR
               </button>
               <button
-                className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('clover')}
-                disabled={loading || cloverLoading}
+                className={`payment-method-btn ${paymentMethod === 'paypal-qr' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('paypal-qr')}
+                disabled={loading}
               >
-                <span className="clover-icon">☘</span>
-                Card
+                <span className="paypal-p">P</span>
+                PayPal QR
               </button>
             </div>
           </section>
@@ -962,6 +973,8 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
               </span>
             )}
           </button>
+            </>
+          )}
         </div>
       </div>
     </div>

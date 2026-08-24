@@ -2,12 +2,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import axios from "axios";
-import api from "../api";
+import api, { enrollTrustedDevice, trustedDeviceAutoLogin } from "../api";
 import socketService from "../services/socketService";
 import sessionManager from "../services/sessionManager";
 import toastService from '../services/toastService';
 import { getBackendUrl, getTurnstileSiteKey } from "../config/apiConfig";
 import logger from '../utils/logger';
+import {
+  clearAllTrustedDeviceTokens,
+  clearTrustedDeviceToken,
+  getTrustedDeviceContext,
+  getTrustedDeviceToken,
+  getTrustedUsernames,
+  setTrustedDeviceToken,
+} from '../utils/trustedDevice';
 import {
   biometricLogin,
   clearCredential,
@@ -50,6 +58,19 @@ const Login = () => {
   const [biometricSupported, setBiometricSupported] = useState(false);
   const [biometricSaved, setBiometricSaved] = useState(false);
   const [enableBiometricOnDevice, setEnableBiometricOnDevice] = useState(false);
+  const [pendingTrustedPrompt, setPendingTrustedPrompt] = useState(null);
+  const [trustedPromptLoading, setTrustedPromptLoading] = useState(false);
+  const [autoLoginStatus, setAutoLoginStatus] = useState('');
+  const [autoLoginInProgress, setAutoLoginInProgress] = useState(false);
+  const [trustedUsernames, setTrustedUsernames] = useState([]);
+  const [selectedTrustedUsername, setSelectedTrustedUsername] = useState('');
+  const [autoLoginDebug, setAutoLoginDebug] = useState({
+    trustedUsernamesCount: 0,
+    hasGenericToken: false,
+    lastFailureStatus: null,
+    lastAttemptSource: '',
+  });
+  const autoLoginStatusTimerRef = useRef(null);
 
   // MFA State
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -163,6 +184,331 @@ const Login = () => {
     setError("");
   };
 
+  const captureTrustedDebug = (extra = {}) => {
+    if (!isDevelopment) return;
+    const usernames = getTrustedUsernames();
+    const genericToken = getTrustedDeviceToken();
+    setAutoLoginDebug((prev) => ({
+      ...prev,
+      trustedUsernamesCount: usernames.length,
+      hasGenericToken: Boolean(genericToken),
+      ...extra,
+    }));
+  };
+
+  const persistAuthState = (loginData) => {
+    localStorage.setItem('username', loginData.user.username);
+    localStorage.setItem('token', loginData.access_token);
+    if (loginData.refresh_token) {
+      localStorage.setItem('refreshToken', loginData.refresh_token);
+    }
+
+    const userStatus = loginData.user.accountStatus || 'active';
+    localStorage.setItem('userStatus', userStatus);
+
+    const userRole = loginData.user.role_name || loginData.user.role || 'free_user';
+    localStorage.setItem('userRole', userRole);
+  };
+
+  const completeLoginFlow = async (loginData, options = {}) => {
+    const { runUnattendedCheck = true } = options;
+
+    persistAuthState(loginData);
+
+    if (enableBiometricOnDevice) {
+      try {
+        if (loginData.refresh_token) {
+          const saveRes = await saveCredential({
+            username: loginData.user.username,
+            refreshToken: loginData.refresh_token,
+          });
+          if (saveRes?.ok) {
+            setBiometricSaved(true);
+            toastService.success('Biometric login enabled on this device', 4000);
+          } else if (saveRes?.error) {
+            toastService.warning(saveRes.error, 5000);
+          }
+        } else {
+          toastService.warning('Biometric login requires a refresh token. Please log in again.', 6000);
+        }
+      } catch (_) {
+        toastService.warning('Could not enable biometric login on this device.', 6000);
+      }
+    }
+
+    logger.debug('User role saved', { userRole: localStorage.getItem('userRole') });
+    sessionStorage.removeItem('photoReminderDismissed');
+    sessionManager.init();
+    logger.debug('Session manager initialized');
+    socketService.connect(loginData.user.username);
+    localStorage.removeItem('appTheme');
+    window.dispatchEvent(new Event('loginStatusChanged'));
+    window.dispatchEvent(new Event('userLoggedIn'));
+
+    if (loginData.mfa_warning) {
+      sessionStorage.setItem('mfa_warning', JSON.stringify(loginData.mfa_warning));
+    }
+
+    const urlParams = new URLSearchParams(location.search);
+    const requestedRedirect = urlParams.get('redirect');
+    const safeRequestedRedirect = typeof requestedRedirect === 'string' && requestedRedirect.startsWith('/')
+      ? requestedRedirect
+      : null;
+
+    if (!runUnattendedCheck) {
+      const homePage = loginData.user.homePage || 'dashboard';
+      localStorage.setItem('homePage', homePage);
+      navigate(safeRequestedRedirect || getHomeRoute(homePage), { state: { user: loginData.user } });
+      return;
+    }
+
+    let redirectPath = '/dashboardv2';
+    try {
+      logger.debug('Checking for unattended chats');
+      const unattendedRes = await api.get('/messages/unattended');
+      const unattendedData = unattendedRes.data;
+      logger.debug('Unattended chats response', unattendedData);
+
+      const hasWarnings = (unattendedData.warningCount || 0) > 0;
+      const hasCritical = (unattendedData.criticalCount || 0) > 0;
+
+      if (hasCritical) {
+        logger.info('Critical unattended chats found; redirecting to messages', {
+          criticalCount: unattendedData.criticalCount,
+          warningCount: unattendedData.warningCount || 0,
+        });
+        redirectPath = '/messages';
+        sessionStorage.setItem('unattendedChatsAlert', JSON.stringify({
+          count: unattendedData.criticalCount,
+          critical: unattendedData.criticalCount,
+          warning: unattendedData.warningCount || 0,
+        }));
+      } else if (hasWarnings) {
+        logger.info('Unattended chat warnings found', {
+          warningCount: unattendedData.warningCount,
+          highCount: unattendedData.highCount || 0,
+          mediumCount: unattendedData.mediumCount || 0,
+          pendingCount: unattendedData.pendingCount || 0,
+        });
+        sessionStorage.setItem('pendingMessagesWarning', JSON.stringify({
+          count: unattendedData.warningCount,
+          high: unattendedData.highCount || 0,
+          medium: unattendedData.mediumCount || 0,
+          pending: unattendedData.pendingCount || 0,
+        }));
+
+        if (safeRequestedRedirect) {
+          redirectPath = safeRequestedRedirect;
+        } else {
+          const homePage = loginData.user.homePage || 'dashboard';
+          localStorage.setItem('homePage', homePage);
+          redirectPath = getHomeRoute(homePage);
+        }
+      } else if (safeRequestedRedirect) {
+        redirectPath = safeRequestedRedirect;
+      } else {
+        const homePage = loginData.user.homePage || 'dashboard';
+        localStorage.setItem('homePage', homePage);
+        redirectPath = getHomeRoute(homePage);
+      }
+    } catch (unattendedErr) {
+      logger.warn('Could not check unattended chats', unattendedErr);
+      if (safeRequestedRedirect) {
+        redirectPath = safeRequestedRedirect;
+      } else {
+        const homePage = loginData.user.homePage || 'dashboard';
+        localStorage.setItem('homePage', homePage);
+        redirectPath = getHomeRoute(homePage);
+      }
+    }
+
+    navigate(redirectPath, { state: { user: loginData.user } });
+  };
+
+  const handleTrustedUserLogin = async (username) => {
+    captureTrustedDebug({ lastAttemptSource: 'manual', lastFailureStatus: null });
+    const token = getTrustedDeviceToken(username);
+    if (!token) {
+      setAutoLoginStatus('Selected account is no longer trusted. Please log in with password.');
+      setTrustedUsernames((prev) => prev.filter((u) => u !== username));
+      return;
+    }
+
+    setAutoLoginInProgress(true);
+    setAutoLoginStatus(`Signing in as ${username}...`);
+
+    try {
+      const deviceContext = getTrustedDeviceContext();
+      const autoLoginResponse = await trustedDeviceAutoLogin({
+        trusted_device_token: token,
+        device_id: deviceContext.deviceId,
+        app_id: deviceContext.appId,
+      });
+
+      if (autoLoginResponse?.access_token && autoLoginResponse?.user?.username) {
+        setAutoLoginStatus('Auto-login enabled. Logging you in...');
+        await completeLoginFlow(autoLoginResponse, { runUnattendedCheck: true });
+        return;
+      }
+
+      setAutoLoginStatus('Auto-login failed. Please log in with password.');
+      setTrustedUsernames((prev) => prev.filter((u) => u !== username));
+    } catch (autoLoginError) {
+      logger.debug('Trusted-device auto-login failed on login page', autoLoginError);
+      captureTrustedDebug({
+        lastAttemptSource: 'manual',
+        lastFailureStatus: autoLoginError?.response?.status || 'network',
+      });
+      if (autoLoginError?.response?.status === 401) {
+        clearTrustedDeviceToken(token);
+      }
+      setAutoLoginStatus('Auto-login failed. Please log in with password.');
+      setTrustedUsernames((prev) => prev.filter((u) => u !== username));
+    } finally {
+      setAutoLoginInProgress(false);
+    }
+  };
+
+  const handleResetAutoLogin = () => {
+    clearAllTrustedDeviceTokens();
+    setTrustedUsernames([]);
+    setSelectedTrustedUsername('');
+    setAutoLoginStatus('');
+    setAutoLoginInProgress(false);
+  };
+
+  useEffect(() => {
+    let isActive = true;
+
+    const clearStatusTimer = () => {
+      if (autoLoginStatusTimerRef.current) {
+        clearTimeout(autoLoginStatusTimerRef.current);
+        autoLoginStatusTimerRef.current = null;
+      }
+    };
+
+    const showTransientStatus = (message, durationMs = 2600) => {
+      if (!isActive) return;
+      clearStatusTimer();
+      setAutoLoginStatus(message);
+      autoLoginStatusTimerRef.current = setTimeout(() => {
+        if (isActive) {
+          setAutoLoginStatus('');
+        }
+      }, durationMs);
+    };
+
+    const attemptTrustedAutoLogin = async () => {
+      captureTrustedDebug({ lastAttemptSource: 'startup', lastFailureStatus: null });
+      const usernames = getTrustedUsernames();
+      const legacyToken = getTrustedDeviceToken();
+
+      // Legacy single-token fallback: if there is a generic token but no per-user map,
+      // treat it as a single anonymous account and let the backend identify the user.
+      const accounts = usernames.length > 0 ? usernames : (legacyToken ? [''] : []);
+
+      if (accounts.length === 0) {
+        if (isActive) {
+          showTransientStatus('Auto-login not enabled on this device.');
+          setAutoLoginInProgress(false);
+        }
+        return;
+      }
+
+      if (accounts.length > 1) {
+        if (isActive) {
+          setTrustedUsernames(accounts);
+          setSelectedTrustedUsername(accounts[0]);
+          setAutoLoginStatus('Multiple saved accounts found. Select one to sign in.');
+          setAutoLoginInProgress(false);
+        }
+        return;
+      }
+
+      // Exactly one saved account -> attempt direct auto-login.
+      const username = accounts[0];
+      const token = username ? getTrustedDeviceToken(username) : legacyToken;
+      if (isActive) {
+        setAutoLoginInProgress(true);
+        clearStatusTimer();
+        setAutoLoginStatus('Checking auto-login...');
+      }
+
+      try {
+        const deviceContext = getTrustedDeviceContext();
+        const autoLoginResponse = await trustedDeviceAutoLogin({
+          trusted_device_token: token,
+          device_id: deviceContext.deviceId,
+          app_id: deviceContext.appId,
+        });
+
+        if (autoLoginResponse?.access_token && autoLoginResponse?.user?.username) {
+          if (isActive) {
+            setAutoLoginStatus('Auto-login enabled. Logging you in...');
+          }
+          await completeLoginFlow(autoLoginResponse, { runUnattendedCheck: true });
+          return;
+        }
+        showTransientStatus('Auto-login not enabled on this device.');
+      } catch (autoLoginError) {
+        logger.debug('Trusted-device auto-login failed on login page', autoLoginError);
+        captureTrustedDebug({
+          lastAttemptSource: 'startup',
+          lastFailureStatus: autoLoginError?.response?.status || 'network',
+        });
+        if (autoLoginError?.response?.status === 401) {
+          clearTrustedDeviceToken(token);
+        }
+        showTransientStatus('Auto-login not enabled on this device.');
+      } finally {
+        if (isActive) {
+          setAutoLoginInProgress(false);
+        }
+      }
+    };
+
+    attemptTrustedAutoLogin();
+
+    return () => {
+      isActive = false;
+      clearStatusTimer();
+    };
+  }, []);
+
+  const handleTrustedPromptDecision = async (shouldTrust) => {
+    if (!pendingTrustedPrompt) return;
+
+    const loginData = pendingTrustedPrompt;
+    setTrustedPromptLoading(true);
+    setError('');
+    try {
+      if (shouldTrust) {
+        persistAuthState(loginData);
+        const deviceContext = getTrustedDeviceContext();
+        const enrollResponse = await enrollTrustedDevice({
+          device_id: deviceContext.deviceId,
+          device_name: deviceContext.deviceName,
+          platform: deviceContext.platform,
+          app_id: deviceContext.appId,
+        });
+        if (enrollResponse?.trusted_device_token) {
+          setTrustedDeviceToken(loginData.user?.username, enrollResponse.trusted_device_token);
+          toastService.success('Device trusted for 30 days', 4000);
+        }
+      }
+
+      setPendingTrustedPrompt(null);
+      await completeLoginFlow(loginData, { runUnattendedCheck: true });
+    } catch (trustError) {
+      logger.error('Trusted device enrollment failed', trustError);
+      toastService.warning('Could not save this device right now. Continuing with normal login.', 5000);
+      setPendingTrustedPrompt(null);
+      await completeLoginFlow(loginData, { runUnattendedCheck: true });
+    } finally {
+      setTrustedPromptLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -177,154 +523,23 @@ const Login = () => {
     
     try {
       // Trim whitespace from credentials
+      const username = form.username.trim();
       const credentials = {
-        username: form.username.trim(),
+        username,
         password: form.password.trim(),
-        captchaToken: isDevelopment ? "XXXX.DUMMY.TOKEN.XXXX" : captchaToken
+        captchaToken: isDevelopment ? "XXXX.DUMMY.TOKEN.XXXX" : captchaToken,
+        device_id: getTrustedDeviceContext().deviceId,
+        app_id: getTrustedDeviceContext().appId,
+        trusted_device_token: getTrustedDeviceToken(username) || undefined,
       };
       const res = await api.post("/login", credentials);
-      
-      // Save login credentials to localStorage
-      localStorage.setItem('username', res.data.user.username);
-      localStorage.setItem('token', res.data.access_token);
-      
-      // Save refresh token for session management
-      if (res.data.refresh_token) {
-        localStorage.setItem('refreshToken', res.data.refresh_token);
+
+      if (res.data.show_trusted_device_prompt) {
+        setPendingTrustedPrompt(res.data);
+        return;
       }
 
-      if (enableBiometricOnDevice) {
-        try {
-          if (res.data.refresh_token) {
-            const saveRes = await saveCredential({
-              username: res.data.user.username,
-              refreshToken: res.data.refresh_token,
-            });
-            if (saveRes?.ok) {
-              setBiometricSaved(true);
-              toastService.success('Biometric login enabled on this device', 4000);
-            } else if (saveRes?.error) {
-              toastService.warning(saveRes.error, 5000);
-            }
-          } else {
-            toastService.warning('Biometric login requires a refresh token. Please log in again.', 6000);
-          }
-        } catch (_) {
-          toastService.warning('Could not enable biometric login on this device.', 6000);
-        }
-      }
-      
-      // Save user status for menu access control
-      // CRITICAL FIX: Use accountStatus (unified field) instead of legacy status.status
-      const userStatus = res.data.user.accountStatus || 'active';
-      localStorage.setItem('userStatus', userStatus);
-      
-      // Save user role for admin access control
-      const userRole = res.data.user.role_name || res.data.user.role || 'free_user';
-      localStorage.setItem('userRole', userRole);
-      logger.debug('User role saved', { userRole });
-      
-      // Clear photo reminder dismissal so banner shows fresh each login
-      sessionStorage.removeItem('photoReminderDismissed');
-      
-      // Initialize session manager for activity-based token refresh
-      sessionManager.init();
-      logger.debug('Session manager initialized');
-      
-      // Connect to WebSocket (automatically marks user as online)
-      logger.debug('Connecting to WebSocket');
-      socketService.connect(res.data.user.username);
-      
-      // Clear any cached theme from previous user
-      localStorage.removeItem('appTheme');
-      
-      // Dispatch custom event to notify other components
-      window.dispatchEvent(new Event('loginStatusChanged'));
-      
-      // Dispatch theme reload event
-      window.dispatchEvent(new Event('userLoggedIn'));
-      
-      // Check for MFA warning
-      if (res.data.mfa_warning) {
-        // Store warning to display on dashboard
-        sessionStorage.setItem('mfa_warning', JSON.stringify(res.data.mfa_warning));
-      }
-
-      const urlParams = new URLSearchParams(location.search);
-      const requestedRedirect = urlParams.get('redirect');
-      const safeRequestedRedirect = typeof requestedRedirect === 'string' && requestedRedirect.startsWith('/')
-        ? requestedRedirect
-        : null;
-      
-      // Check for unattended chats before redirecting
-      let redirectPath = '/dashboardv2';
-      try {
-        logger.debug('Checking for unattended chats');
-        const unattendedRes = await api.get('/messages/unattended');
-        const unattendedData = unattendedRes.data;
-        logger.debug('Unattended chats response', unattendedData);
-        
-        // Check for critical (blocking) or warning messages
-        const hasWarnings = (unattendedData.warningCount || 0) > 0;
-        const hasCritical = (unattendedData.criticalCount || 0) > 0;
-        
-        if (hasCritical) {
-          // Critical messages (10+ days) - redirect to messages, blocks navigation
-          logger.info('Critical unattended chats found; redirecting to messages', {
-            criticalCount: unattendedData.criticalCount,
-            warningCount: unattendedData.warningCount || 0,
-          });
-          redirectPath = '/messages';
-          sessionStorage.setItem('unattendedChatsAlert', JSON.stringify({
-            count: unattendedData.criticalCount,
-            critical: unattendedData.criticalCount,
-            warning: unattendedData.warningCount || 0
-          }));
-        } else if (hasWarnings) {
-          // Warning messages (1-9 days) - show toast but don't force redirect
-          logger.info('Unattended chat warnings found', {
-            warningCount: unattendedData.warningCount,
-            highCount: unattendedData.highCount || 0,
-            mediumCount: unattendedData.mediumCount || 0,
-            pendingCount: unattendedData.pendingCount || 0,
-          });
-          sessionStorage.setItem('pendingMessagesWarning', JSON.stringify({
-            count: unattendedData.warningCount,
-            high: unattendedData.highCount || 0,
-            medium: unattendedData.mediumCount || 0,
-            pending: unattendedData.pendingCount || 0
-          }));
-          if (safeRequestedRedirect) {
-            redirectPath = safeRequestedRedirect;
-          } else {
-            // Continue to user's preferred home page
-            const homePage = res.data.user.homePage || 'dashboard';
-            localStorage.setItem('homePage', homePage);
-            redirectPath = getHomeRoute(homePage);
-          }
-        } else {
-          if (safeRequestedRedirect) {
-            redirectPath = safeRequestedRedirect;
-          } else {
-            // Redirect to user's preferred home page (default: dashboard)
-            const homePage = res.data.user.homePage || 'dashboard';
-            localStorage.setItem('homePage', homePage);
-            redirectPath = getHomeRoute(homePage);
-          }
-        }
-      } catch (unattendedErr) {
-        logger.warn('Could not check unattended chats', unattendedErr);
-        if (safeRequestedRedirect) {
-          redirectPath = safeRequestedRedirect;
-        } else {
-          // Fall back to user's preferred home page
-          const homePage = res.data.user.homePage || 'dashboard';
-          localStorage.setItem('homePage', homePage);
-          redirectPath = getHomeRoute(homePage);
-        }
-      }
-      
-      navigate(redirectPath, { state: { user: res.data.user } });
+      await completeLoginFlow(res.data, { runUnattendedCheck: true });
     } catch (err) {
       logger.error('Login error', err);
       
@@ -427,78 +642,24 @@ const Login = () => {
     
     try {
       // Login with MFA code - use the same /login endpoint with mfa_code
+      const username = form.username.trim();
       const credentials = {
-        username: form.username.trim(),
+        username,
         password: form.password.trim(),
         mfa_code: mfaCode.trim(),
-        captchaToken: isDevelopment ? "XXXX.DUMMY.TOKEN.XXXX" : captchaToken
+        captchaToken: isDevelopment ? "XXXX.DUMMY.TOKEN.XXXX" : captchaToken,
+        device_id: getTrustedDeviceContext().deviceId,
+        app_id: getTrustedDeviceContext().appId,
+        trusted_device_token: getTrustedDeviceToken(username) || undefined,
       };
       const res = await api.post("/login", credentials);
-      
-      // Save login credentials
-      localStorage.setItem('username', res.data.user.username);
-      localStorage.setItem('token', res.data.access_token);
-      
-      // Save refresh token for session management
-      if (res.data.refresh_token) {
-        localStorage.setItem('refreshToken', res.data.refresh_token);
+
+      if (res.data.show_trusted_device_prompt) {
+        setPendingTrustedPrompt(res.data);
+        return;
       }
 
-      if (enableBiometricOnDevice) {
-        try {
-          if (res.data.refresh_token) {
-            const saveRes = await saveCredential({
-              username: res.data.user.username,
-              refreshToken: res.data.refresh_token,
-            });
-            if (saveRes?.ok) {
-              setBiometricSaved(true);
-              toastService.success('Biometric login enabled on this device', 4000);
-            } else if (saveRes?.error) {
-              toastService.warning(saveRes.error, 5000);
-            }
-          } else {
-            toastService.warning('Biometric login requires a refresh token. Please log in again.', 6000);
-          }
-        } catch (_) {
-          toastService.warning('Could not enable biometric login on this device.', 6000);
-        }
-      }
-      
-      // Initialize session manager
-      sessionManager.init();
-      logger.debug('Session manager initialized (MFA)');
-      
-      // Save user status for menu access control
-      // CRITICAL FIX: Use accountStatus (unified field) instead of legacy status.status
-      const userStatus = res.data.user.accountStatus || 'active';
-      localStorage.setItem('userStatus', userStatus);
-      
-      // Save user role for admin access control
-      const userRole = res.data.user.role_name || 'free_user';
-      localStorage.setItem('userRole', userRole);
-      logger.debug('User role saved (MFA)', { userRole });
-      
-      // Connect to WebSocket
-      logger.debug('Connecting to WebSocket');
-      socketService.connect(res.data.user.username);
-      
-      // Clear any cached theme from previous user
-      localStorage.removeItem('appTheme');
-      
-      // Dispatch custom event to notify other components
-      window.dispatchEvent(new Event('loginStatusChanged'));
-      window.dispatchEvent(new Event('userLoggedIn'));
-
-      const urlParams = new URLSearchParams(location.search);
-      const requestedRedirect = urlParams.get('redirect');
-      const safeRequestedRedirect = typeof requestedRedirect === 'string' && requestedRedirect.startsWith('/')
-        ? requestedRedirect
-        : null;
-      const homePage = res.data.user.homePage || 'dashboard';
-      localStorage.setItem('homePage', homePage);
-
-      navigate(safeRequestedRedirect || getHomeRoute(homePage), { state: { user: res.data.user } });
+      await completeLoginFlow(res.data, { runUnattendedCheck: true });
     } catch (err) {
       logger.error('MFA verification error', err);
       setError(err.response?.data?.detail || "Invalid verification code");
@@ -595,13 +756,79 @@ const Login = () => {
       <div className="login-page-overlay"></div>
       
       <div className="login-container">
-        <div className="login-header">
-          <div className="login-logo">🦋</div>
-          <div className="login-brand">L3V3L</div>
+      {autoLoginStatus && !pendingTrustedPrompt && !mfaRequired && (
+        <div className="trusted-autologin-status" role="status" aria-live="polite">
+          <span className={`trusted-autologin-dot${autoLoginInProgress ? ' loading' : ''}`} aria-hidden="true">🦋</span>
+          <span>{autoLoginStatus}</span>
         </div>
-        <h2 className="login-title">{mfaRequired ? 'Verification Required' : 'Welcome Back!'}</h2>
-        <p className="login-subtitle">{mfaRequired ? `Enter the code sent to your ${mfaChannel}` : 'Sign in to continue to your account'}</p>
+      )}
+      {isDevelopment && !pendingTrustedPrompt && !mfaRequired && (
+        <div className="trusted-autologin-debug" role="note" aria-label="Auto-login debug">
+          <div className="trusted-autologin-debug-title">Auto-login debug</div>
+          <div className="trusted-autologin-debug-line">Saved usernames: {autoLoginDebug.trustedUsernamesCount}</div>
+          <div className="trusted-autologin-debug-line">Generic token present: {autoLoginDebug.hasGenericToken ? 'yes' : 'no'}</div>
+          <div className="trusted-autologin-debug-line">Last source: {autoLoginDebug.lastAttemptSource || 'n/a'}</div>
+          <div className="trusted-autologin-debug-line">Last failure status: {autoLoginDebug.lastFailureStatus ?? 'none'}</div>
+        </div>
+      )}
+      {trustedUsernames.length > 1 && !pendingTrustedPrompt && !mfaRequired && (
+        <div className="mb-3">
+          <label className="login-form-label">Choose a saved account</label>
+          <select
+            className="login-input"
+            value={selectedTrustedUsername}
+            onChange={(e) => setSelectedTrustedUsername(e.target.value)}
+            disabled={autoLoginInProgress}
+          >
+            {trustedUsernames.map((u) => (
+              <option key={u} value={u}>{u}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="login-button w-100 mt-3"
+            onClick={() => handleTrustedUserLogin(selectedTrustedUsername)}
+            disabled={autoLoginInProgress || !selectedTrustedUsername}
+          >
+            {autoLoginInProgress ? 'Signing in...' : `Sign in as ${selectedTrustedUsername}`}
+          </button>
+          <button
+            type="button"
+            className="login-button login-biometric-clear w-100 mt-3"
+            onClick={handleResetAutoLogin}
+            disabled={autoLoginInProgress}
+          >
+            Use a different account
+          </button>
+        </div>
+      )}
       {error && <div className="alert alert-danger">{error}</div>}
+      {pendingTrustedPrompt && (
+        <div className="trusted-device-prompt">
+          <h3 className="trusted-device-title">Save this device for 30 days?</h3>
+          <p className="trusted-device-text">
+            Next time, you can sign in on this device without entering username and password.
+          </p>
+          <div className="trusted-device-actions">
+            <button
+              type="button"
+              className="login-button trusted-device-yes"
+              onClick={() => handleTrustedPromptDecision(true)}
+              disabled={trustedPromptLoading}
+            >
+              {trustedPromptLoading ? 'Saving...' : 'Yes, trust this device'}
+            </button>
+            <button
+              type="button"
+              className="trusted-device-no"
+              onClick={() => handleTrustedPromptDecision(false)}
+              disabled={trustedPromptLoading}
+            >
+              No, continue login
+            </button>
+          </div>
+        </div>
+      )}
       
       {!mfaRequired ? (
         /* Regular Login Form */
@@ -749,7 +976,7 @@ const Login = () => {
           
           <button 
             type="submit" 
-            disabled={loading || (!isDevelopment && !captchaToken && !canBypassCaptcha)}
+            disabled={loading || autoLoginInProgress || (!isDevelopment && !captchaToken && !canBypassCaptcha)}
             className="login-button"
           >
             {loading ? "Signing in..." : "Sign In"}
@@ -889,22 +1116,10 @@ const Login = () => {
       )}
       
       {!mfaRequired && (
-        <div style={{
-          marginTop: '24px',
-          paddingTop: '24px',
-          borderTop: '1px solid #e5e7eb',
-          textAlign: 'center'
-        }}>
-          <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '0' }}>
+        <div className="login-register-prompt">
+          <p>
             Don't have an account?{' '}
-            <Link to="/register-interest" style={{
-              color: '#667eea',
-              textDecoration: 'none',
-              fontWeight: '600'
-            }}
-            onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-            onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-            >Register</Link>
+            <Link to="/register-interest">Register</Link>
           </p>
         </div>
       )}

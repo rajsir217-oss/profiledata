@@ -610,6 +610,33 @@ export const updateEmailPreferences = (preferences) => {
   return api.put('/account/email-preferences', preferences);
 };
 
+export const enrollTrustedDevice = async (payload) => {
+  const response = await api.post(`${getBackendUrl()}/api/auth/trusted-devices/enroll`, payload);
+  return response.data;
+};
+
+export const trustedDeviceAutoLogin = async (payload) => {
+  const response = await api.post(`${getBackendUrl()}/api/auth/trusted-devices/auto-login`, payload);
+  return response.data;
+};
+
+export const listTrustedDevices = async () => {
+  const response = await api.get(`${getBackendUrl()}/api/auth/trusted-devices`);
+  return response.data;
+};
+
+export const revokeTrustedDevice = async (deviceId, appId) => {
+  const response = await api.delete(`${getBackendUrl()}/api/auth/trusted-devices/${deviceId}`, {
+    params: appId ? { app_id: appId } : undefined,
+  });
+  return response.data;
+};
+
+export const revokeAllTrustedDevices = async () => {
+  const response = await api.post(`${getBackendUrl()}/api/auth/trusted-devices/revoke-all`);
+  return response.data;
+};
+
 /**
  * Create a configured axios instance with session handling
  * Use this instead of creating custom axios instances in components

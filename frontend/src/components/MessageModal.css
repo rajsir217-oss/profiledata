@@ -46,7 +46,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  color: white;
+  color: var(--text-color);
 }
 
 .modal-avatar-container {
@@ -68,7 +68,7 @@
   height: 50px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.3);
-  color: white;
+  color: var(--text-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,7 +130,7 @@
   font-weight: 600;
   line-height: 1;
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--text-color);
   border: 1px solid rgba(255, 255, 255, 0.3);
   margin-left: 6px;
   vertical-align: middle;
@@ -139,25 +139,25 @@
 .modal-user-header h3 .urgency-badge.critical {
   background: rgba(239, 68, 68, 0.3);
   border-color: rgba(239, 68, 68, 0.5);
-  color: #fca5a5;
+  color: var(--text-color);
 }
 
 .modal-user-header h3 .urgency-badge.high {
   background: rgba(251, 146, 60, 0.3);
   border-color: rgba(251, 146, 60, 0.5);
-  color: #fed7aa;
+  color: var(--text-color);
 }
 
 .modal-user-header h3 .urgency-badge.medium {
   background: rgba(250, 204, 21, 0.3);
   border-color: rgba(250, 204, 21, 0.5);
-  color: #fef3c7;
+  color: var(--text-color);
 }
 
 .modal-user-header h3 .urgency-badge.pending {
   background: rgba(59, 130, 246, 0.3);
   border-color: rgba(59, 130, 246, 0.5);
-  color: #dbeafe;
+  color: var(--text-color);
 }
 
 /* Quick Actions in Modal */
@@ -170,7 +170,7 @@
 .modal-quick-actions .quick-action-btn {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
+  color: var(--text-color);
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -209,7 +209,7 @@
   right: 15px;
   background: rgba(255, 255, 255, 0.25);
   border: 2px solid rgba(255, 255, 255, 0.5);
-  color: white;
+  color: var(--text-color);
   width: 40px;
   height: 40px;
   border-radius: 50%;

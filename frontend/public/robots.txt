@@ -2,19 +2,44 @@
 
 User-agent: *
 
-# Allow only public pages, disallow everything else
-Allow: /$
-Allow: /login
-Allow: /register
-Allow: /register2
-Allow: /about
-Allow: /contact
-Allow: /privacy-policy
-Allow: /terms-of-service
-Allow: /community-guidelines
-Allow: /cookie-policy
-Allow: /l3v3l-info
-Disallow: /
+# Allow crawling by default
+Allow: /
+
+# Disallow authenticated/private sections
+Disallow: /dashboard
+Disallow: /dashboardv2
+Disallow: /dashboard-legacy
+Disallow: /profile
+Disallow: /p/
+Disallow: /edit-profile
+Disallow: /preferences
+Disallow: /messages
+Disallow: /favorites
+Disallow: /shortlist
+Disallow: /exclusions
+Disallow: /search
+Disallow: /requests
+Disallow: /pii-management
+Disallow: /support
+Disallow: /admin
+Disallow: /admin-hub
+Disallow: /admin-utilities
+Disallow: /unified-reports
+Disallow: /invitations
+Disallow: /invite-friends
+Disallow: /virtual-meets
+Disallow: /marketing-pricing
+Disallow: /membership-plans
+Disallow: /payment/
+Disallow: /contribution/
+Disallow: /paypal-recurring-
+
+# Keep one-time auth and tokenized flows out of search results
+Disallow: /login
+Disallow: /forgot-password
+Disallow: /verify-email
+Disallow: /verify-email-sent
+Disallow: /messenger/public-reply/
 
 # Sitemap
 Sitemap: https://l3v3lmatches.com/sitemap.xml

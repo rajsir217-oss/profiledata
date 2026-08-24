@@ -327,6 +327,22 @@ async def lifespan(app: FastAPI):
             background=True,
             name="ttl_scheduledDeleteAt",
         )
+        await db.trusted_devices.create_index(
+            [("username", 1), ("deviceId", 1), ("appId", 1)],
+            unique=True,
+            background=True,
+            name="trusted_device_unique",
+        )
+        await db.trusted_devices.create_index(
+            [("tokenHash", 1)],
+            background=True,
+            name="trusted_device_token_hash",
+        )
+        await db.trusted_devices.create_index(
+            [("expiresAt", 1)],
+            background=True,
+            name="trusted_device_expires_at",
+        )
         logger.info("✅ Platform Stats indexes created")
     except Exception as e:
         logger.warning(f"⚠️ Platform Stats index creation failed (non-critical): {e}")

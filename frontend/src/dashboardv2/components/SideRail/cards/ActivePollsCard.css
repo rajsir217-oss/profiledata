@@ -116,7 +116,7 @@
   border-radius: 999px;
   border: none;
   background: var(--primary-color, #d4736a);
-  color: white;
+  color: var(--text-color);
   cursor: pointer;
   font: inherit;
   font-weight: 900;

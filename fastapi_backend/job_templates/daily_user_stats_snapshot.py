@@ -50,7 +50,7 @@ class UserStatsDailySnapshotTemplate(JobTemplate):
         
         try:
             # Get all active users
-            users_cursor = db.users.find({"accountStatus": "active"}, {"username": 1, "createdAt": 1})
+            users_cursor = db.users.find({"accountStatus": "active"}, {"username": 1, "createdAt": 1, "lifetimeStats": 1})
             users = await users_cursor.to_list(length=None)
             
             total_users = len(users)
@@ -72,8 +72,12 @@ class UserStatsDailySnapshotTemplate(JobTemplate):
                     else:
                         days_active = 0
 
-                    # 2. Profile Views (current count)
-                    views_count = await db.profile_views.count_documents({"profileUsername": username})
+                    # 2. Profile Views received (sum viewCount for both legacy and current field names)
+                    views_received_result = await db.profile_views.aggregate([
+                        {"$match": {"$or": [{"profileUsername": username}, {"viewedUsername": username}]}},
+                        {"$group": {"_id": None, "total": {"$sum": {"$ifNull": ["$viewCount", 1]}}}}
+                    ]).to_list(1)
+                    views_count = views_received_result[0]["total"] if views_received_result else 0
 
                     # 3. Favorites By (current count)
                     fav_by_count = await db.favorites.count_documents({"favoriteUsername": username})
@@ -82,7 +86,19 @@ class UserStatsDailySnapshotTemplate(JobTemplate):
                     short_by_count = await db.shortlists.count_documents({"shortlistedUsername": username})
 
                     # 5. Unique Conversations (current count)
-                    unique_conversations = len(await db.messages.distinct("to_username", {"from_username": username}))
+                    # The messages collection contains a mix of camelCase and snake_case field names
+                    sent_to_snake = await db.messages.distinct("to_username", {"from_username": username})
+                    received_from_snake = await db.messages.distinct("from_username", {"to_username": username})
+                    sent_to_camel = await db.messages.distinct("toUsername", {"fromUsername": username})
+                    received_from_camel = await db.messages.distinct("fromUsername", {"toUsername": username})
+                    unique_conversations = len(set(sent_to_snake + received_from_snake + sent_to_camel + received_from_camel))
+
+                    # 6. Lifetime totals (received + sent)
+                    lifetime_stats = user.get("lifetimeStats", {}) or {}
+                    lifetime_fav = lifetime_stats.get("favorites", 0)
+                    lifetime_short = lifetime_stats.get("shortlists", 0)
+                    lifetime_messages = lifetime_stats.get("messages", 0)
+                    lifetime_views = lifetime_stats.get("views", 0)
 
                     # Get previous snapshot to preserve historical maximums
                     prev_snapshot = await db.user_stats_daily.find_one(
@@ -96,6 +112,10 @@ class UserStatsDailySnapshotTemplate(JobTemplate):
                     max_fav = max(fav_by_count, prev_stats.get("favoritedBy", 0))
                     max_short = max(short_by_count, prev_stats.get("shortlistedBy", 0))
                     max_conv = max(unique_conversations, prev_stats.get("uniqueConversations", 0))
+                    max_lifetime_fav = max(lifetime_fav, prev_stats.get("lifetimeFavorites", 0))
+                    max_lifetime_short = max(lifetime_short, prev_stats.get("lifetimeShortlists", 0))
+                    max_lifetime_messages = max(lifetime_messages, prev_stats.get("lifetimeMessages", 0))
+                    max_lifetime_views = max(lifetime_views, prev_stats.get("lifetimeViews", 0))
 
                     # Log detailed metrics for this user
                     logger.info(
@@ -104,7 +124,9 @@ class UserStatsDailySnapshotTemplate(JobTemplate):
                         f"profileViews={max_views} (current={views_count}), "
                         f"favoritedBy={max_fav} (current={fav_by_count}), "
                         f"shortlistedBy={max_short} (current={short_by_count}), "
-                        f"uniqueConversations={max_conv} (current={unique_conversations})"
+                        f"uniqueConversations={max_conv} (current={unique_conversations}), "
+                        f"lifetimeFav={max_lifetime_fav}, lifetimeShort={max_lifetime_short}, "
+                        f"lifetimeMessages={max_lifetime_messages}, lifetimeViews={max_lifetime_views}"
                     )
 
                     # Upsert to user_stats_daily with historical maximums
@@ -116,7 +138,11 @@ class UserStatsDailySnapshotTemplate(JobTemplate):
                             "profileViews": max_views,
                             "favoritedBy": max_fav,
                             "shortlistedBy": max_short,
-                            "uniqueConversations": max_conv
+                            "uniqueConversations": max_conv,
+                            "lifetimeFavorites": max_lifetime_fav,
+                            "lifetimeShortlists": max_lifetime_short,
+                            "lifetimeMessages": max_lifetime_messages,
+                            "lifetimeViews": max_lifetime_views
                         },
                         "createdAt": day_start,
                         "updatedAt": datetime.utcnow()

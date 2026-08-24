@@ -106,7 +106,7 @@
 .dv2-link {
   background: transparent;
   border: none;
-  color: var(--primary-color, #d4736a);
+  color: var(--text-color);
   cursor: pointer;
   font: inherit;
   padding: 4px 0;
@@ -178,7 +178,7 @@
 
 .dv2-conv-initials {
   font-weight: 800;
-  color: var(--primary-color, #d4736a);
+  color: var(--text-color);
   font-size: 14px;
 }
 

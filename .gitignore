@@ -50,7 +50,15 @@ fastapi_backend/backups/*.archive.gz
 fastapi_backend/backups/*.tar.gz
 fastapi_backend/backups/*.json
 
+# Local archive staging for deferred deletion review
+safe2delete/
+
 # Terraform
 *.tf
 *.tfvars
-safe2delete/
+
+# OAuth credentials and tokens (Google Photos clicker)
+photo_utilities/parse_files_orgnaize/clicker/credentials.json
+photo_utilities/parse_files_orgnaize/clicker/token_combined.pickle
+photo_utilities/parse_files_orgnaize/clicker/*.pickle
+photo_utilities/parse_files_orgnaize/clicker/*.json

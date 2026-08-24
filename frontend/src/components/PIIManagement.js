@@ -1226,10 +1226,10 @@ const PIIManagement = () => {
         }}>
           <span style={{ fontSize: '20px', flexShrink: 0 }}>❌</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <strong style={{ color: '#721c24', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
+            <strong style={{ color: 'var(--text-color)', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
               Error
             </strong>
-            <p style={{ color: '#721c24', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
+            <p style={{ color: 'var(--text-color)', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
               {error}
             </p>
           </div>
@@ -1240,7 +1240,7 @@ const PIIManagement = () => {
               border: 'none',
               fontSize: '18px',
               cursor: 'pointer',
-              color: '#721c24',
+              color: 'var(--text-color)',
               padding: '0',
               width: '20px',
               height: '20px',
@@ -1276,10 +1276,10 @@ const PIIManagement = () => {
         }}>
           <span style={{ fontSize: '20px', flexShrink: 0 }}>✅</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <strong style={{ color: '#155724', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
+            <strong style={{ color: 'var(--text-color)', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
               Success
             </strong>
-            <p style={{ color: '#155724', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
+            <p style={{ color: 'var(--text-color)', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
               {successMessage}
             </p>
           </div>
@@ -1290,7 +1290,7 @@ const PIIManagement = () => {
               border: 'none',
               fontSize: '18px',
               cursor: 'pointer',
-              color: '#155724',
+              color: 'var(--text-color)',
               padding: '0',
               width: '20px',
               height: '20px',

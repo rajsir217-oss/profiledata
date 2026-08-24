@@ -14,13 +14,17 @@
  * The larger the contribution, the longer we stay quiet before asking again.
  */
 
+export const LIFETIME_CONTRIBUTION_THRESHOLD = 350;
+
 /**
  * Number of days the popup/banner should stay silenced after paying `amount`.
  * Returns 0 for falsy, non-numeric, or sub-$1 amounts.
+ * Lifetime supporters ($350+) are silenced effectively forever.
  */
 export const getSilenceDays = (amount) => {
   const n = Number(amount);
   if (!Number.isFinite(n) || n <= 0) return 0;
+  if (n >= LIFETIME_CONTRIBUTION_THRESHOLD) return Number.MAX_SAFE_INTEGER;
   return Math.floor(n);
 };
 

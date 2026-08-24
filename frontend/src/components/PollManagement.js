@@ -298,6 +298,14 @@ const PollManagement = () => {
           aVal = (a.rsvp_response || '').toLowerCase();
           bVal = (b.rsvp_response || '').toLowerCase();
           break;
+        case 'user_age':
+          aVal = a.user_age || 0;
+          bVal = b.user_age || 0;
+          break;
+        case 'user_location':
+          aVal = (a.user_location || '').toLowerCase();
+          bVal = (b.user_location || '').toLowerCase();
+          break;
         case 'responded_at':
         default:
           aVal = new Date(a.responded_at || 0).getTime();
@@ -1358,6 +1366,20 @@ const PollManagement = () => {
                               </th>
                               <th>Email</th>
                               <th>Phone</th>
+                              <th
+                                onClick={() => handleResponseSort('user_age')}
+                                className="sortable-header"
+                                title="Click to sort by age"
+                              >
+                                Age {responseSortBy === 'user_age' && (responseSortOrder === 'asc' ? '↑' : '↓')}
+                              </th>
+                              <th
+                                onClick={() => handleResponseSort('user_location')}
+                                className="sortable-header"
+                                title="Click to sort by location"
+                              >
+                                Location {responseSortBy === 'user_location' && (responseSortOrder === 'asc' ? '↑' : '↓')}
+                              </th>
                               <th 
                                 onClick={() => handleResponseSort('rsvp_response')} 
                                 className="sortable-header"
@@ -1390,6 +1412,8 @@ const PollManagement = () => {
                                 <td>{resp.user_full_name || '-'}</td>
                                 <td>{resp.user_email || '-'}</td>
                                 <td>{resp.user_phone || '-'}</td>
+                                <td>{resp.user_age || '-'}</td>
+                                <td>{resp.user_location || '-'}</td>
                                 <td>
                                   <span className={`poll-response-badge poll-response-${resp.rsvp_response || 'other'}`}>
                                     {resp.rsvp_response || 'Selected'}

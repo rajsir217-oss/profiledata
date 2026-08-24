@@ -858,12 +858,18 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
     setLoading(true);
     setError(null);
     try {
-      console.log('📬 Loading messages for conversation:', id, 'isLegacy:', isLegacy);
+      console.log('📬 Loading messages for conversation:', id, 'isLegacy:', isLegacy, 'username:', username);
       const api = useAuthStore.getState().getApi();
       let res;
       if (isLegacy) {
         // Legacy 1:1 main app messages
-        res = await api.get(`/api/users/messages/conversation/${name}?username=${user.username}`);
+        const targetUsername = (username || name || '').trim();
+        if (!targetUsername) {
+          throw new Error('Missing conversation username');
+        }
+        const encodedTarget = encodeURIComponent(targetUsername);
+        const encodedSelf = encodeURIComponent(user?.username || '');
+        res = await api.get(`/api/users/messages/conversation/${encodedTarget}?username=${encodedSelf}`);
       } else {
         await fetchStoreMessages(id);
         setMessages(useMessengerStore.getState().messages[id] ?? EMPTY_MESSAGES);
@@ -877,7 +883,7 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
       setMessages(msgs);
     } catch (e) {
       console.error('❌ Failed to load messages:', e);
-      setError('Failed to load messages');
+      setError(e?.response?.data?.detail || e?.message || 'Failed to load messages');
     } finally {
       setLoading(false);
     }
@@ -981,8 +987,12 @@ export default function ChatScreen({ id, name, isGroup, isLegacy, profile, usern
       const api = useAuthStore.getState().getApi();
       let res;
       if (isLegacy) {
+        const targetUsername = (username || name || '').trim();
+        if (!targetUsername) {
+          throw new Error('Missing conversation username');
+        }
         res = await api.post('/api/users/messages/send', {
-          toUsername: name,
+          toUsername: targetUsername,
           content: newMessage.trim(),
         });
       } else {
