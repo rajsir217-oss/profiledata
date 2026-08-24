@@ -53,3 +53,4 @@ fastapi_backend/backups/*.json
 # Terraform
 *.tf
 *.tfvars
+safe2delete/
