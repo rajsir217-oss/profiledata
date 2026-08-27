@@ -16,7 +16,10 @@ const ContributionPopupWrapper = () => {
   useEffect(() => {
     const handleForceShow = () => openPopup();
     window.addEventListener('force-contribution-popup', handleForceShow);
-    return () => window.removeEventListener('force-contribution-popup', handleForceShow);
+
+    return () => {
+      window.removeEventListener('force-contribution-popup', handleForceShow);
+    };
   }, [openPopup]);
 
   return (

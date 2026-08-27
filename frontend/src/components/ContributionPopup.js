@@ -176,14 +176,17 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, [saveDismissCount]);
 
-  // Use admin-configured amounts, always including the $LIFETIME_CONTRIBUTION_THRESHOLD lifetime option,
-  // remove the $25 tier, then dedupe and sort descending for display.
-  const rawAmounts = [...new Set([...(contributionConfig?.amounts || [50, 75, 100]), LIFETIME_CONTRIBUTION_THRESHOLD])]
-    .filter((n) => n !== 25);
+  // Membership prompt mode uses only $50 and $100.
+  // After activation (hasAccess), keep donation options at $100 and $30.
+  const rawAmounts = [100, 50];
   const amounts = rawAmounts
     .map(Number)
     .filter((n) => Number.isFinite(n) && n > 0)
     .sort((a, b) => b - a);
+  
+  // For donations (after membership), only show $100, $30, and custom
+  const hasMembershipAccess = Boolean(contributionStatus?.membership?.hasAccess);
+  const donationAmounts = hasMembershipAccess ? [100, 30] : amounts;
 
   // Build engagement metrics list: numeric values as colored pills, or "no ... yet" if all zero.
   const engagementMetrics = (() => {
@@ -340,6 +343,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
               },
               body: JSON.stringify({ order_id: data.orderID })
             });
+
             const captureData = await response.json();
             if (captureData.success) {
               logActivity('contributed', amountRef.current, 'one-time');
@@ -576,6 +580,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           recurring: cloverRecurring
         })
       });
+
       const chargeData = await chargeRes.json();
       if (chargeData.success) {
         setCloverSuccess(true);
@@ -667,6 +672,14 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           )}
           {!isLifetimeSupporter && (
             <>
+              {/* Thank you message for members */}
+              {contributionStatus?.membership?.hasAccess && (
+                <div className="member-thank-you">
+                  <span className="thank-you-icon">💝</span>
+                  <span className="thank-you-text">Thank you for being a member! Your support helps us continue providing quality service.</span>
+                </div>
+              )}
+
               <p className="contribution-message">
             {memberStatsLoading
               ? 'You’ve been part of L3V3L Matches. Behind the scenes, our admins provide real human help, quick responses, and a premium-grade application with features that go beyond commercial matrimonial sites. If you value this community and want to help us grow, we kindly invite you to contribute. Your support keeps the platform running and helps us build new features.'
@@ -684,12 +697,12 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           {error && <div className="contribution-error">{error}</div>}
 
           <section className="contribution-block contribution-amounts-block" aria-label="Contribution amount options">
-            <div className="contribution-block-title">Choose Your Contribution</div>
+            <div className="contribution-block-title">{hasMembershipAccess ? 'Support L3V3L Matches' : 'Choose Your Contribution'}</div>
             <div className="contribution-amounts">
-              {amounts.map((amt) => (
+              {donationAmounts.map((amt) => (
                 <label
                   key={amt}
-                  className={`contribution-amount-option ${amt === LIFETIME_CONTRIBUTION_THRESHOLD ? 'lifetime-option' : ''} ${selectedAmount === amt ? 'selected' : ''}`}
+                  className={`contribution-amount-option ${(!hasMembershipAccess && (amt === 50 || amt === 100)) ? 'membership-amount-option' : ''} ${selectedAmount === amt ? 'selected' : ''}`}
                 >
                   <input
                     type="radio"
@@ -703,17 +716,14 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                     }}
                     disabled={loading}
                   />
-                  {amt === LIFETIME_CONTRIBUTION_THRESHOLD ? (
-                    <span className="contribution-amount-label lifetime-amount-label">
-                      <span className="lifetime-amount">${amt}</span>
-                      <span className="contribution-amount-sublabel">Support for life</span>
-                      <span className="contribution-amount-micro">no more popups</span>
-                    </span>
-                  ) : (
-                    <span className="contribution-amount-label">${amt}</span>
-                  )}
+                  <span className="contribution-amount-label">${amt}</span>
+                      {!hasMembershipAccess && amt === 50 && (
+                        <span className="contribution-amount-micro membership-benefit-micro">Activation + 1 month</span>
+                      )}
+                      {!hasMembershipAccess && amt === 100 && (
+                        <span className="contribution-amount-micro membership-benefit-micro">Activation + 6 months</span>
+                      )}
                   {amt === 100 && <span className="heart-badge">❤️</span>}
-                  {amt === LIFETIME_CONTRIBUTION_THRESHOLD && <span className="lifetime-badge" aria-label="Lifetime support">✨</span>}
                 </label>
               ))}
 

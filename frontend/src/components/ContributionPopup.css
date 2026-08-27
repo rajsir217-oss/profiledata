@@ -70,6 +70,48 @@
   text-align: left;
 }
 
+/* Member Thank You Message */
+.member-thank-you {
+  background: linear-gradient(135deg, var(--success-color) 0%, var(--success-light) 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.thank-you-icon {
+  font-size: 24px;
+}
+
+.thank-you-text {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Member Thank You Message */
+.member-thank-you {
+  background: linear-gradient(135deg, var(--success-color) 0%, var(--success-light) 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.thank-you-icon {
+  font-size: 24px;
+}
+
+.thank-you-text {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
 .contribution-metric-pill {
   font-weight: 700;
 }
@@ -184,6 +226,14 @@
   width: 100%;
 }
 
+.membership-amount-option {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 40px;
+}
+
 .contribution-amount-option:hover {
   border-color: #555;
   background: #222;
@@ -262,6 +312,14 @@
   color: var(--warning-color, #FFD700);
   text-transform: lowercase;
   letter-spacing: 0.02em;
+}
+
+.membership-benefit-micro {
+  display: block;
+  margin-top: 0;
+  text-align: center;
+  white-space: normal;
+  max-width: 100%;
 }
 
 /* Custom Amount - Column Layout */
@@ -1003,4 +1061,115 @@
   color: #aaa;
   margin: 0;
   max-width: 280px;
+}
+
+/* Membership Mode Styles */
+.membership-options {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.membership-card {
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.2s ease;
+  background: var(--card-background, #fff);
+}
+
+.membership-card.selected {
+  border-color: var(--primary-color, #667eea);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.membership-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  margin-bottom: 12px;
+}
+
+.card-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color, #333);
+}
+
+.price {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary-color, #667eea);
+}
+
+.subtitle {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: var(--text-secondary, #666);
+}
+
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  text-align: left;
+}
+
+.features li {
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--text-color, #333);
+}
+
+.auto-renew-option {
+  margin-bottom: 16px;
+}
+
+.auto-renew-option label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+}
+
+.select-button {
+  width: 100%;
+  padding: 10px 16px;
+  border: 2px solid var(--primary-color, #667eea);
+  background: transparent;
+  color: var(--primary-color, #667eea);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-button:hover {
+  background: var(--primary-color, #667eea);
+  color: white;
+}
+
+.select-button.featured {
+  background: var(--primary-color, #667eea);
+  color: white;
+}
+
+.select-button.featured:hover {
+  background: var(--secondary-color, #764ba2);
+}
+
+.select-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

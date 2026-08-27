@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import api, { createApiInstance, revokeTrustedDevice } from '../api';
 import socketService from '../services/socketService';
 import { clearCredential } from '../services/biometricAuth';
-import { getApiUrl, getMessengerUrl } from '../config/apiConfig';
+import { getApiUrl, getMessengerUrl, getBackendUrl } from '../config/apiConfig';
 // eslint-disable-next-line no-unused-vars
 import { getImageUrl, getProfilePicUrl } from '../utils/urlHelper';
 import {
@@ -48,6 +48,24 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const [savedSearchesForMenuLoading, setSavedSearchesForMenuLoading] = useState(false);
   const [savedSearchesForMenuLoadedAt, setSavedSearchesForMenuLoadedAt] = useState(null);
   const [nearMeRadiusMiles, setNearMeRadiusMiles] = useState(50);
+  const [membershipStatus, setMembershipStatus] = useState(null);
+
+  // Force refresh membership status
+  const refreshMembershipStatus = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const membershipRes = await fetch(`${getBackendUrl()}/api/contributions/contribution-status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (membershipRes.ok) {
+        const membershipData = await membershipRes.json();
+        logger.debug('Membership status refreshed:', membershipData);
+        setMembershipStatus(membershipData.membership);
+      }
+    } catch (error) {
+      logger.error('Error refreshing membership status:', error);
+    }
+  }, []);
   const showNearMeNewBadge = Date.now() < new Date(NEAR_ME_NEW_BADGE_EXPIRES_AT).getTime();
   const [showMessengerMenu, setShowMessengerMenu] = useState(false);
   const messengerMenuRef = useRef(null);
@@ -218,6 +236,23 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
             
             // Load user violations
             loadUserViolations(username);
+
+            // Load membership status
+            try {
+              const token = localStorage.getItem('token');
+              const membershipRes = await fetch(`${getBackendUrl()}/api/contributions/contribution-status`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              if (membershipRes.ok) {
+                const membershipData = await membershipRes.json();
+                logger.debug('Membership status loaded:', membershipData);
+                setMembershipStatus(membershipData.membership);
+              } else {
+                logger.warn('Membership status API returned:', membershipRes.status);
+              }
+            } catch (membershipError) {
+              logger.warn('Could not load membership status (non-critical):', membershipError);
+            }
           } catch (profileError) {
             // Profile fetch failed - this is OK, don't logout
             // The Profile component will handle displaying the profile
@@ -253,9 +288,16 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     // Custom event for same-tab login/logout
     window.addEventListener('loginStatusChanged', checkLoginStatus);
 
+    // Listen for membership status changes (e.g., after reset via Activity Summary)
+    const handleMembershipChange = () => {
+      refreshMembershipStatus();
+    };
+    window.addEventListener('membershipChanged', handleMembershipChange);
+
     return () => {
       window.removeEventListener('storage', checkLoginStatus);
       window.removeEventListener('loginStatusChanged', checkLoginStatus);
+      window.removeEventListener('membershipChanged', handleMembershipChange);
     };
   }, []);
 
@@ -993,6 +1035,24 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
                     <div className="user-menu-info">
                       <span className="user-menu-name">{getShortName(userProfile) || currentUser || 'User'}</span>
                       <span className="user-menu-subtitle">Profile data</span>
+                      {membershipStatus && (
+                        <span className="user-menu-membership-status">
+                          {membershipStatus.hasAccess ? (
+                            <span className="membership-active">
+                              {membershipStatus.type === 'one_time' ? '🏆 Lifetime' :
+                               membershipStatus.type === '3_month' ? '⏰ 3-Month' :
+                               membershipStatus.type === '1_year' ? '⭐ 1-Year' : 'Active'}
+                            </span>
+                          ) : (
+                            <span className="membership-inactive">No membership</span>
+                          )}
+                        </span>
+                      )}
+                      {!membershipStatus && (
+                        <span className="user-menu-membership-status">
+                          <span className="membership-inactive">Loading...</span>
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="user-menu-divider" />

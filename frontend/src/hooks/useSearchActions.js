@@ -331,7 +331,17 @@ export const useSearchActions = (searchState, userState, filterState) => {
     } catch (err) {
       if (err.name !== 'AbortError') {
         logger.error('❌ Search error:', err);
-        setError(err.response?.data?.detail || err.message || 'Search failed');
+        
+        // Check if error is due to membership requirement
+        if (err.response?.status === 403 && err.response?.data?.detail?.includes('Membership required')) {
+          // Show contribution popup instead of error
+          logger.info('🔔 Membership required for search, showing contribution popup');
+          window.dispatchEvent(new CustomEvent('force-contribution-popup'));
+          setError('Membership required for search. Please complete your membership payment.');
+        } else {
+          setError(err.response?.data?.detail || err.message || 'Search failed');
+        }
+        
         // Mark the search attempt as complete so the UI can render feedback
         // (empty state / error) instead of staying blank forever.
         setInitialSearchComplete(true);
