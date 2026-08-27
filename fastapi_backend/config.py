@@ -185,6 +185,10 @@ class Settings(BaseSettings):
     geoip_api_key: Optional[str] = None
     geoip_timeout_seconds: Optional[int] = 3
 
+    # Unipile API Configuration (WhatsApp/LinkedIn/Instagram integration)
+    unipile_api_key: Optional[str] = None
+    unipile_dsn: Optional[str] = None  # Your Unipile DSN URL
+
     # Optional alternate connection strings for Cloud Run deployments
     gcp_mongodb_url: Optional[str] = None
     gcp_redis_url: Optional[str] = None

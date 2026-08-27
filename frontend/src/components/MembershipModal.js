@@ -25,34 +25,56 @@ const PLANS = [
     ]
   },
   {
-    id: 'premium',
-    name: 'Premium',
-    icon: '⭐',
-    price: '$199.99',
-    period: '/year',
-    billing: 'Billed annually',
-    btnLabel: 'Upgrade to Premium',
+    id: 'one_time',
+    name: 'One-Time',
+    icon: '🏆',
+    price: '$50',
+    period: ' one-time',
+    billing: 'Pay once, permanent access',
+    btnLabel: 'Get One-Time',
     btnClass: 'primary',
     featured: true,
     features: [
-      { label: 'Search results', value: '100', type: 'limit' },
+      { label: 'Search results', value: true, type: 'bool' },
       { label: 'Favorites', value: true, type: 'bool' },
       { label: 'Shortlist', value: true, type: 'bool' },
       { label: 'Messages / day', value: true, type: 'bool' },
       { label: 'Profile views / day', value: true, type: 'bool' },
-      { label: 'PII requests / month', value: '10', type: 'limit' },
+      { label: 'PII requests / month', value: true, type: 'bool' },
       { label: 'Privacy controls', value: true, type: 'bool' },
       { label: 'L3V3L matching', value: true, type: 'bool' },
+      { label: 'No expiration', value: true, type: 'bool' },
     ]
   },
   {
-    id: 'lifetime',
-    name: 'Lifetime',
-    icon: '💎',
-    price: '$299.99',
-    period: ' one-time',
-    billing: 'Pay once, forever access',
-    btnLabel: 'Get Lifetime',
+    id: '3_month',
+    name: '3-Month',
+    icon: '⏰',
+    price: '$30',
+    period: '/3 months',
+    billing: 'No auto-renewal',
+    btnLabel: 'Get 3-Month',
+    btnClass: 'secondary',
+    features: [
+      { label: 'Search results', value: true, type: 'bool' },
+      { label: 'Favorites', value: true, type: 'bool' },
+      { label: 'Shortlist', value: true, type: 'bool' },
+      { label: 'Messages / day', value: true, type: 'bool' },
+      { label: 'Profile views / day', value: true, type: 'bool' },
+      { label: 'PII requests / month', value: true, type: 'bool' },
+      { label: 'Privacy controls', value: true, type: 'bool' },
+      { label: 'L3V3L matching', value: true, type: 'bool' },
+      { label: '3 months access', value: true, type: 'bool' },
+    ]
+  },
+  {
+    id: '1_year',
+    name: '1-Year',
+    icon: '⭐',
+    price: '$100',
+    period: '/year',
+    billing: 'Auto-renewal enabled',
+    btnLabel: 'Get 1-Year',
     btnClass: 'gold',
     features: [
       { label: 'Search results', value: true, type: 'bool' },
@@ -63,7 +85,7 @@ const PLANS = [
       { label: 'PII requests / month', value: true, type: 'bool' },
       { label: 'Privacy controls', value: true, type: 'bool' },
       { label: 'L3V3L matching', value: true, type: 'bool' },
-      { label: 'Lifetime badge', value: true, type: 'bool' },
+      { label: 'Auto-renewal', value: true, type: 'bool' },
       { label: 'Priority support', value: true, type: 'bool' },
     ]
   }
@@ -71,23 +93,25 @@ const PLANS = [
 
 const COMPARISON_ROWS = [
   { section: 'Search & Discovery' },
-  { feature: 'Search results', free: '1', premium: '100', lifetime: 'Unlimited' },
-  { feature: 'L3V3L compatibility filter', free: false, premium: true, lifetime: true },
-  { feature: 'Profile views / day', free: '1', premium: 'Unlimited', lifetime: 'Unlimited' },
+  { feature: 'Search results', free: '1', one_time: 'Unlimited', three_month: 'Unlimited', one_year: 'Unlimited' },
+  { feature: 'L3V3L compatibility filter', free: false, one_time: true, three_month: true, one_year: true },
+  { feature: 'Profile views / day', free: '1', one_time: 'Unlimited', three_month: 'Unlimited', one_year: 'Unlimited' },
   { section: 'Interactions' },
-  { feature: 'Favorites', free: '1', premium: 'Unlimited', lifetime: 'Unlimited' },
-  { feature: 'Shortlist', free: '1', premium: 'Unlimited', lifetime: 'Unlimited' },
-  { feature: 'Messages / day', free: '1', premium: 'Unlimited', lifetime: 'Unlimited' },
+  { feature: 'Favorites', free: '1', one_time: 'Unlimited', three_month: 'Unlimited', one_year: 'Unlimited' },
+  { feature: 'Shortlist', free: '1', one_time: 'Unlimited', three_month: 'Unlimited', one_year: 'Unlimited' },
+  { feature: 'Messages / day', free: '1', one_time: 'Unlimited', three_month: 'Unlimited', one_year: 'Unlimited' },
   { section: 'Privacy & PII' },
-  { feature: 'PII requests / month', free: '1', premium: '10', lifetime: 'Unlimited' },
-  { feature: 'Hide favorites from others', free: false, premium: true, lifetime: true },
-  { feature: 'Hide shortlist from others', free: false, premium: true, lifetime: true },
-  { feature: 'Hide profile views', free: false, premium: true, lifetime: true },
+  { feature: 'PII requests / month', free: '1', one_time: 'Unlimited', three_month: 'Unlimited', one_year: 'Unlimited' },
+  { feature: 'Hide favorites from others', free: false, one_time: true, three_month: true, one_year: true },
+  { feature: 'Hide shortlist from others', free: false, one_time: true, three_month: true, one_year: true },
+  { feature: 'Hide profile views', free: false, one_time: true, three_month: true, one_year: true },
   { section: 'Perks' },
-  { feature: 'Premium badge on profile', free: false, premium: true, lifetime: true },
-  { feature: 'Lifetime badge on profile', free: false, premium: false, lifetime: true },
-  { feature: 'Priority support', free: false, premium: false, lifetime: true },
-  { feature: 'Payment', free: 'Free', premium: 'Monthly / Yearly', lifetime: 'One-time' },
+  { feature: 'Premium badge on profile', free: false, one_time: true, three_month: true, one_year: true },
+  { feature: 'No expiration', free: false, one_time: true, three_month: false, one_year: false },
+  { feature: 'Auto-renewal', free: false, one_time: false, three_month: false, one_year: true },
+  { feature: 'Priority support', free: false, one_time: false, three_month: false, one_year: true },
+  { section: 'Payment' },
+  { feature: 'Price', free: 'Free', one_time: '$50 one-time', three_month: '$30/3 months', one_year: '$100/year' },
 ];
 
 const MembershipModal = ({ isOpen, onClose, currentPlan = 'free' }) => {
@@ -98,7 +122,8 @@ const MembershipModal = ({ isOpen, onClose, currentPlan = 'free' }) => {
   const handleUpgrade = (planId) => {
     if (planId === 'free') return;
     onClose();
-    navigate(`/membership-plans?plan=${planId}`);
+    // Show membership popup instead of navigating
+    window.dispatchEvent(new CustomEvent('showMembershipPopup', { detail: { planId } }));
   };
 
   const renderFeatureValue = (feature) => {
@@ -120,7 +145,7 @@ const MembershipModal = ({ isOpen, onClose, currentPlan = 'free' }) => {
     <div className="membership-modal-overlay" onClick={onClose}>
       <div className="membership-modal" onClick={(e) => e.stopPropagation()}>
         <div className="membership-modal-header">
-          <h2>Choose Your Membership</h2>
+          <h2>Choose Your Membership Plan</h2>
           <button className="membership-modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
         <div className="membership-modal-body">
@@ -170,22 +195,24 @@ const MembershipModal = ({ isOpen, onClose, currentPlan = 'free' }) => {
                 <tr>
                   <th>Feature</th>
                   <th>Free</th>
-                  <th>Premium</th>
-                  <th>Lifetime</th>
+                  <th>One-Time</th>
+                  <th>3-Month</th>
+                  <th>1-Year</th>
                 </tr>
               </thead>
               <tbody>
                 {COMPARISON_ROWS.map((row, i) => (
                   row.section ? (
                     <tr key={i}>
-                      <td colSpan={4} className="comparison-section">{row.section}</td>
+                      <td colSpan={5} className="comparison-section">{row.section}</td>
                     </tr>
                   ) : (
                     <tr key={i}>
                       <td>{row.feature}</td>
                       <td>{renderCellValue(row.free)}</td>
-                      <td>{renderCellValue(row.premium)}</td>
-                      <td>{renderCellValue(row.lifetime)}</td>
+                      <td>{renderCellValue(row.one_time)}</td>
+                      <td>{renderCellValue(row.three_month)}</td>
+                      <td>{renderCellValue(row.one_year)}</td>
                     </tr>
                   )
                 ))}

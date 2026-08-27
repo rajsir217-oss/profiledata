@@ -6,9 +6,18 @@ import { LIFETIME_CONTRIBUTION_THRESHOLD } from '../utils/contributionSilence';
 import './ContributionPopup.css';
 
 const MEMBER_STATS_CACHE_TTL_MS = 10 * 60 * 1000;
+const ACTIVATION_MIN_AMOUNT = 60;
+const PRORATE_PER_MONTH = 10;
+const ACTIVATION_TIER_MONTHS = {
+  60: 6,
+  100: 12,
+  150: 18,
+  175: 24,
+  200: 36,
+};
 
 const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
-  const [selectedAmount, setSelectedAmount] = useState(50); // Default to $50
+  const [selectedAmount, setSelectedAmount] = useState(60); // Default to $60
   const [customAmount, setCustomAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,9 +26,10 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [paypalKey, setPaypalKey] = useState(0);
   const paypalContainerRef = useRef(null);
   const paypalScriptLoaded = useRef(false);
-  const amountRef = useRef(50);
+  const amountRef = useRef(60);
   const paypalInitialized = useRef(false);
   const [paymentMethod, setPaymentMethod] = useState('clover'); // 'clover', 'paypal', 'venmo-qr', 'paypal-qr'
+  const [showAltPaymentMethods, setShowAltPaymentMethods] = useState(false);
   const [cloverLoading, setCloverLoading] = useState(false);
   const [cloverReady, setCloverReady] = useState(false);
   const [cloverConfig, setCloverConfig] = useState(null);
@@ -39,6 +49,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [dismissCount, setDismissCount] = useState(0);
   const [requiredDismissals, setRequiredDismissals] = useState(0);
   const [isDismissing, setIsDismissing] = useState(false);
+  const [showTierInfo, setShowTierInfo] = useState(false);
 
   const loadMemberStats = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -176,14 +187,35 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, [saveDismissCount]);
 
-  // Use admin-configured amounts, always including the $LIFETIME_CONTRIBUTION_THRESHOLD lifetime option,
-  // remove the $25 tier, then dedupe and sort descending for display.
-  const rawAmounts = [...new Set([...(contributionConfig?.amounts || [50, 75, 100]), LIFETIME_CONTRIBUTION_THRESHOLD])]
-    .filter((n) => n !== 25);
+  // Membership prompt tiers (optimized to appeal while preserving min $60).
+  // After activation (hasAccess), keep donation options at $100 and $30.
+  const rawAmounts = [100, 60];
   const amounts = rawAmounts
     .map(Number)
     .filter((n) => Number.isFinite(n) && n > 0)
     .sort((a, b) => b - a);
+  
+  // For donations (after membership), only show $100, $30, and custom
+  const hasMembershipAccess = Boolean(contributionStatus?.membership?.hasAccess);
+  const activationFlow = !hasMembershipAccess;
+  const donationAmounts = hasMembershipAccess ? [100, 30] : amounts;
+  const getActivationMonthsLabel = useCallback((amount) => {
+    const numericAmount = Number(amount);
+    const tierMonths = ACTIVATION_TIER_MONTHS[numericAmount];
+    if (tierMonths) return `${tierMonths} months`;
+
+    const proratedMonths = Math.floor(numericAmount / PRORATE_PER_MONTH);
+    return `${Math.max(proratedMonths, 0)} months`;
+  }, []);
+
+  useEffect(() => {
+    // During activation flow, keep Clover as the only visible/active method.
+    if (activationFlow) {
+      setPaymentMethod('clover');
+      setCloverRecurring(false);
+      setShowAltPaymentMethods(false);
+    }
+  }, [activationFlow]);
 
   // Build engagement metrics list: numeric values as colored pills, or "no ... yet" if all zero.
   const engagementMetrics = (() => {
@@ -303,8 +335,9 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         },
         createOrder: async () => {
           const amount = amountRef.current;
-          if (!amount || amount < 1) {
-            setError('Please select a valid amount (minimum $1)');
+          const minimumAmount = activationFlow ? ACTIVATION_MIN_AMOUNT : 1;
+          if (!amount || amount < minimumAmount) {
+            setError(`Please select a valid amount (minimum $${minimumAmount})`);
             throw new Error('Invalid amount');
           }
 
@@ -340,6 +373,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
               },
               body: JSON.stringify({ order_id: data.orderID })
             });
+
             const captureData = await response.json();
             if (captureData.success) {
               logActivity('contributed', amountRef.current, 'one-time');
@@ -378,7 +412,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     } catch (err) {
       setPaypalFailed(true);
     }
-  }, [logActivity, onClose]);
+  }, [logActivity, onClose, activationFlow]);
 
   // Keep amountRef in sync and debounce paypalKey bump to avoid duplicate buttons
   useEffect(() => {
@@ -544,8 +578,9 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const handleCloverPay = useCallback(async () => {
     if (!cloverInstanceRef.current) return;
     const amount = getAmount();
-    if (!amount || amount < 1) {
-      setError('Please select a valid amount (minimum $1)');
+    const minimumAmount = activationFlow ? ACTIVATION_MIN_AMOUNT : 1;
+    if (!amount || amount < minimumAmount) {
+      setError(`Please select a valid amount (minimum $${minimumAmount})`);
       return;
     }
     setCloverLoading(true);
@@ -576,6 +611,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           recurring: cloverRecurring
         })
       });
+
       const chargeData = await chargeRes.json();
       if (chargeData.success) {
         setCloverSuccess(true);
@@ -598,7 +634,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     } finally {
       setCloverLoading(false);
     }
-  }, [getAmount, logActivity, onClose, cloverRecurring]);
+  }, [getAmount, logActivity, onClose, cloverRecurring, activationFlow]);
 
   // Handle dismiss. onClose() delegates to the hook, which writes the
   // per-session SESSION_POPUP_DISMISSED flag. No localStorage write here.
@@ -667,7 +703,15 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           )}
           {!isLifetimeSupporter && (
             <>
-              <p className="contribution-message">
+              {/* Thank you message for members */}
+              {contributionStatus?.membership?.hasAccess && (
+                <div className="member-thank-you">
+                  <span className="thank-you-icon">💝</span>
+                  <span className="thank-you-text">Thank you for being a member! Your support helps us continue providing quality service.</span>
+                </div>
+              )}
+
+          <p className="contribution-message">
             {memberStatsLoading
               ? 'You’ve been part of L3V3L Matches. Behind the scenes, our admins provide real human help, quick responses, and a premium-grade application with features that go beyond commercial matrimonial sites. If you value this community and want to help us grow, we kindly invite you to contribute. Your support keeps the platform running and helps us build new features.'
               : (
@@ -680,16 +724,21 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                 </>
               )}
           </p>
+          {contributionStatus?.membership && (
+            <div className="contribution-debug-line">
+              📊 YTD contributions (current year): ${Number(contributionStatus.membership.ytdPaid || 0).toFixed(2)}
+            </div>
+          )}
 
           {error && <div className="contribution-error">{error}</div>}
 
           <section className="contribution-block contribution-amounts-block" aria-label="Contribution amount options">
-            <div className="contribution-block-title">Choose Your Contribution</div>
+            <div className="contribution-block-title">{hasMembershipAccess ? 'Support L3V3L Matches' : 'Choose Your Contribution'}</div>
             <div className="contribution-amounts">
-              {amounts.map((amt) => (
+              {donationAmounts.map((amt) => (
                 <label
                   key={amt}
-                  className={`contribution-amount-option ${amt === LIFETIME_CONTRIBUTION_THRESHOLD ? 'lifetime-option' : ''} ${selectedAmount === amt ? 'selected' : ''}`}
+                  className={`contribution-amount-option ${(!hasMembershipAccess && amt >= ACTIVATION_MIN_AMOUNT) ? 'membership-amount-option' : ''} ${selectedAmount === amt ? 'selected' : ''}`}
                 >
                   <input
                     type="radio"
@@ -700,20 +749,15 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                       setSelectedAmount(amt);
                       setCustomAmount('');
                       setError('');
+                      setShowTierInfo(false);
                     }}
                     disabled={loading}
                   />
-                  {amt === LIFETIME_CONTRIBUTION_THRESHOLD ? (
-                    <span className="contribution-amount-label lifetime-amount-label">
-                      <span className="lifetime-amount">${amt}</span>
-                      <span className="contribution-amount-sublabel">Support for life</span>
-                      <span className="contribution-amount-micro">no more popups</span>
-                    </span>
-                  ) : (
-                    <span className="contribution-amount-label">${amt}</span>
-                  )}
+                  <span className="contribution-amount-label">${amt}</span>
+                      {!hasMembershipAccess && amt >= ACTIVATION_MIN_AMOUNT && (
+                        <span className="contribution-amount-micro membership-benefit-micro">{getActivationMonthsLabel(amt)}</span>
+                      )}
                   {amt === 100 && <span className="heart-badge">❤️</span>}
-                  {amt === LIFETIME_CONTRIBUTION_THRESHOLD && <span className="lifetime-badge" aria-label="Lifetime support">✨</span>}
                 </label>
               ))}
 
@@ -738,6 +782,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                       setCustomAmount(e.target.value);
                       setSelectedAmount('custom');
                       setError('');
+                      setShowTierInfo(false);
                     }}
                     onFocus={() => {
                       setSelectedAmount('custom');
@@ -747,48 +792,128 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                     min="1"
                     disabled={loading}
                   />
+                  {!hasMembershipAccess && (
+                    <button
+                      type="button"
+                      className={`tier-info-trigger ${showTierInfo ? 'open' : ''}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedAmount('custom');
+                        setShowTierInfo((prev) => !prev);
+                      }}
+                      aria-label="Show bonus tier months"
+                      title="Show bonus tier months"
+                    >
+                      ?
+                    </button>
+                  )}
                 </span>
+                {!hasMembershipAccess && !showTierInfo && (
+                  <span className="contribution-amount-micro contribution-custom-micro">
+                    🙏 Prorated at ${PRORATE_PER_MONTH}/month (minimum ${ACTIVATION_MIN_AMOUNT})
+                  </span>
+                )}
+                {!hasMembershipAccess && showTierInfo && (
+                  <div className="tier-info-popover" onClick={(e) => e.stopPropagation()}>
+                    <div className="tier-info-title">Bonus Tiers</div>
+                    <div className="tier-info-row"><span>$150</span><span>18 months</span></div>
+                    <div className="tier-info-row"><span>$175</span><span>24 months</span></div>
+                    <div className="tier-info-row"><span>$200+</span><span>36 months</span></div>
+                  </div>
+                )}
               </label>
             </div>
           </section>
 
           {/* Payment Method Selection */}
           <section className="contribution-block contribution-payment-block" aria-label="Payment method selection">
-            <div className="contribution-block-title">Select Payment Method</div>
-            <div className="payment-method-toggle">
-              <button
-                className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('clover')}
-                disabled={loading || cloverLoading}
-              >
-                <span className="clover-icon">☘</span>
-                Card
-              </button>
-              <button
-                className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('paypal')}
-                disabled={loading}
-              >
-                <span className="paypal-p">P</span>
-                PayPal
-              </button>
-              <button
-                className={`payment-method-btn ${paymentMethod === 'venmo-qr' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('venmo-qr')}
-                disabled={loading}
-              >
-                <span className="venmo-v">V</span>
-                Venmo QR
-              </button>
-              <button
-                className={`payment-method-btn ${paymentMethod === 'paypal-qr' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('paypal-qr')}
-                disabled={loading}
-              >
-                <span className="paypal-p">P</span>
-                PayPal QR
-              </button>
-            </div>
+            <div className="contribution-block-title">{activationFlow ? 'Preferred Payment Method' : 'Select Payment Method'}</div>
+            {activationFlow ? (
+              <div className="payment-method-toggle activation-inline">
+                <button
+                  className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
+                  onClick={() => setPaymentMethod('clover')}
+                  disabled={loading || cloverLoading}
+                >
+                  <span className="clover-icon">☘</span>
+                  Card
+                </button>
+                {showAltPaymentMethods && (
+                  <>
+                    <button
+                      className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
+                      onClick={() => setPaymentMethod('paypal')}
+                      disabled={loading}
+                    >
+                      <span className="paypal-p">P</span>
+                      PayPal
+                    </button>
+                    <button
+                      className={`payment-method-btn ${paymentMethod === 'venmo-qr' ? 'active' : ''}`}
+                      onClick={() => setPaymentMethod('venmo-qr')}
+                      disabled={loading}
+                    >
+                      <span className="venmo-v">V</span>
+                      Venmo QR
+                    </button>
+                    <button
+                      className={`payment-method-btn ${paymentMethod === 'paypal-qr' ? 'active' : ''}`}
+                      onClick={() => setPaymentMethod('paypal-qr')}
+                      disabled={loading}
+                    >
+                      <span className="paypal-p">P</span>
+                      PayPal QR
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  className={`payment-expand-btn ${showAltPaymentMethods ? 'open' : ''}`}
+                  onClick={() => setShowAltPaymentMethods((prev) => !prev)}
+                  disabled={loading}
+                  aria-expanded={showAltPaymentMethods}
+                  aria-label={showAltPaymentMethods ? 'Hide other payment methods' : 'Show other payment methods'}
+                >
+                  {showAltPaymentMethods ? '▾' : '▸'}
+                </button>
+              </div>
+            ) : (
+              <div className="payment-method-toggle">
+                <button
+                  className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
+                  onClick={() => setPaymentMethod('clover')}
+                  disabled={loading || cloverLoading}
+                >
+                  <span className="clover-icon">☘</span>
+                  Card
+                </button>
+                <button
+                  className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
+                  onClick={() => setPaymentMethod('paypal')}
+                  disabled={loading}
+                >
+                  <span className="paypal-p">P</span>
+                  PayPal
+                </button>
+                <button
+                  className={`payment-method-btn ${paymentMethod === 'venmo-qr' ? 'active' : ''}`}
+                  onClick={() => setPaymentMethod('venmo-qr')}
+                  disabled={loading}
+                >
+                  <span className="venmo-v">V</span>
+                  Venmo QR
+                </button>
+                <button
+                  className={`payment-method-btn ${paymentMethod === 'paypal-qr' ? 'active' : ''}`}
+                  onClick={() => setPaymentMethod('paypal-qr')}
+                  disabled={loading}
+                >
+                  <span className="paypal-p">P</span>
+                  PayPal QR
+                </button>
+              </div>
+            )}
           </section>
 
           {/* PayPal Buttons */}
@@ -901,16 +1026,18 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                       <div id="clover-card-zip" className="clover-input-container"></div>
                     </div>
                   </div>
-                  <div
-                    className={`clover-recurring-toggle ${cloverRecurring ? 'active' : ''}`}
-                    onClick={() => setCloverRecurring(prev => !prev)}
-                  >
-                    <div className={`clover-recurring-switch ${cloverRecurring ? 'on' : ''}`} />
-                    <div className="clover-recurring-label">
-                      <span>Monthly recurring</span>
-                      <span>{cloverRecurring ? `$${getAmount().toFixed(2)}/month auto-charge` : 'One-time payment'}</span>
+                  {!activationFlow && (
+                    <div
+                      className={`clover-recurring-toggle ${cloverRecurring ? 'active' : ''}`}
+                      onClick={() => setCloverRecurring(prev => !prev)}
+                    >
+                      <div className={`clover-recurring-switch ${cloverRecurring ? 'on' : ''}`} />
+                      <div className="clover-recurring-label">
+                        <span>Monthly recurring</span>
+                        <span>{cloverRecurring ? `$${getAmount().toFixed(2)}/month auto-charge` : 'One-time payment'}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <button
                     className="contribution-proceed-btn clover-pay-btn"
                     onClick={handleCloverPay}

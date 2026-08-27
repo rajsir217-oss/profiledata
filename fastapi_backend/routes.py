@@ -2391,6 +2391,19 @@ async def get_user_profile(
             detail="Your account must be fully activated to view other profiles. Please verify your email."
         )
     
+    # Check membership access for viewing other profiles (bypass for admins and moderators)
+    is_privileged_requester = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
+    
+    if not is_own_profile and not is_privileged_requester:
+        from routers.contribution_routes import check_membership_access
+        membership_access = await check_membership_access(requester_username, db)
+        
+        if not membership_access["hasAccess"]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Membership required to view other profiles. {membership_access.get('reason', 'Please complete your membership payment.')}"
+            )
+    
     # Find user (case-insensitive)
     logger.debug(f"Fetching profile for user '{username}'...")
     user = await db.users.find_one(get_username_query(username))
@@ -5413,6 +5426,19 @@ async def search_users(
 ):
     """Advanced search for users with filters"""
     logger.info(f"🔍 Search request - keyword: '{keyword}', profileId: '{profileId}', status_filter: '{status_filter}', page: {page}, limit: {limit}, gender: '{gender}', ageMin: {ageMin}, ageMax: {ageMax}, heightMin: {heightMin}, heightMax: {heightMax}")
+    
+    # Check membership access for search (bypass for admins and moderators)
+    is_privileged = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
+    
+    if not is_privileged:
+        from routers.contribution_routes import check_membership_access
+        membership_access = await check_membership_access(current_user["username"], db)
+        
+        if not membership_access["hasAccess"]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Membership required for search. {membership_access.get('reason', 'Please complete your membership payment.')}"
+            )
     
     # Validate range sanity: min must not exceed max
     if ageMin > 0 and ageMax > 0 and ageMin > ageMax:

@@ -1,0 +1,164 @@
+import React, { useState, useEffect } from 'react';
+import { getBackendUrl } from '../config/apiConfig';
+import toastService from '../services/toastService';
+import logger from '../utils/logger';
+import './MembershipPopup.css';
+
+const MembershipPopup = ({ isOpen, onClose, contributionStatus, adminMode = false, targetUsername = null }) => {
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [autoRenew3Month, setAutoRenew3Month] = useState(true);
+  const [autoRenew1Year, setAutoRenew1Year] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [ytdPaid, setYtdPaid] = useState(0);
+
+  useEffect(() => {
+    if (isOpen && contributionStatus) {
+      setYtdPaid(contributionStatus.membership?.ytdPaid || 0);
+    }
+  }, [isOpen, contributionStatus]);
+
+  const handlePlanSelect = async (planType) => {
+    setSelectedPlan(planType);
+    const autoRenew = planType === '3_month' ? autoRenew3Month : autoRenew1Year;
+    
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Admin mode: grant membership without payment
+      if (adminMode && targetUsername) {
+        const response = await fetch(`${getBackendUrl()}/api/contributions/membership/grant`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: targetUsername,
+            membership_type: planType,
+            auto_renew: autoRenew
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          toastService.success(`Membership granted to ${targetUsername} successfully!`);
+          onClose();
+          window.location.reload();
+        } else {
+          toastService.error(data.message || 'Failed to grant membership');
+        }
+      } else {
+        // Normal mode: process payment
+        const response = await fetch(`${getBackendUrl()}/api/contributions/membership/payment`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            membership_type: planType,
+            auto_renew: autoRenew
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          toastService.success(`Membership activated successfully!`);
+          onClose();
+          // Refresh page to update UI
+          window.location.reload();
+        } else {
+          toastService.error(data.message || 'Failed to activate membership');
+        }
+      }
+    } catch (error) {
+      logger.error('Error processing membership payment:', error);
+      toastService.error('Failed to process payment. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="membership-popup-overlay" onClick={onClose}>
+      <div className="membership-popup" onClick={(e) => e.stopPropagation()}>
+        <button className="close-button" onClick={onClose}>✕</button>
+        
+        <h2>Choose Your Membership Plan</h2>
+        
+        {ytdPaid >= 50 && (
+          <div className="ytd-notice">
+            <p>✅ You've contributed ${ytdPaid.toFixed(2)} this year - treated as one-time member!</p>
+            <p>Upgrade to subscription for additional benefits:</p>
+          </div>
+        )}
+        
+        <div className="membership-options">
+          <div className="membership-card one-time">
+            <div className="card-header">
+              <h3>One-Time</h3>
+              <div className="price">$50</div>
+            </div>
+            <p className="subtitle">Includes 1-month subscription</p>
+            <ul className="features">
+              <li>✓ One-time activation fee</li>
+              <li>✓ 1-month full access</li>
+              <li>✓ Lifetime search access</li>
+              <li>✓ Full messaging</li>
+            </ul>
+            <button 
+              className="select-button"
+              onClick={() => handlePlanSelect('one_time')}
+              disabled={loading}
+            >
+              {loading ? 'Processing...' : 'Select One-Time'}
+            </button>
+          </div>
+          
+          <div className="membership-card one-year">
+            <div className="card-header">
+              <h3>1-Year</h3>
+              <div className="price">$100</div>
+            </div>
+            <p className="subtitle">One-time activation + 6-month subscription</p>
+            <ul className="features">
+              <li>✓ One-time activation fee</li>
+              <li>✓ 6-month full access</li>
+              <li>✓ Best value - $16.67/month</li>
+              <li>✓ Priority support</li>
+              <li>✓ Auto-renewal enabled</li>
+            </ul>
+            <div className="auto-renew-option">
+              <label>
+                <input 
+                  type="checkbox" 
+                  checked={autoRenew1Year}
+                  onChange={(e) => setAutoRenew1Year(e.target.checked)}
+                />
+                Auto-renew every 6 months
+              </label>
+            </div>
+            <button 
+              className="select-button featured"
+              onClick={() => handlePlanSelect('1_year')}
+              disabled={loading}
+            >
+              {loading ? 'Processing...' : 'Select 1-Year'}
+            </button>
+          </div>
+        </div>
+        
+        <div className="auto-renew-info">
+          <p>ℹ️ You can change auto-renewal settings anytime in your account preferences.</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MembershipPopup;

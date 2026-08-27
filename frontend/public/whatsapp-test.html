@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Group Test - Unipile API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: #5568d3;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        input, textarea, select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .response {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .loading {
+            color: #667eea;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #e53e3e;
+        }
+        
+        .success {
+            color: #38a169;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .chat-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        
+        .chat-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .chat-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .chat-item.selected {
+            background: #e8f4fd;
+            border-left: 3px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 WhatsApp Group Test App</h1>
+        <p class="subtitle">Using Unipile API for WhatsApp group messaging</p>
+        
+        <!-- Test Configuration -->
+        <div class="section">
+            <h2>🔧 Configuration Test</h2>
+            <button onclick="testConfig()">Test API Configuration</button>
+            <div id="configResponse" class="response"></div>
+        </div>
+        
+        <!-- List Accounts -->
+        <div class="section">
+            <h2>👥 Connected Accounts</h2>
+            <button onclick="listAccounts()">List Accounts</button>
+            <div id="accountsResponse" class="response"></div>
+        </div>
+        
+        <!-- List Chats -->
+        <div class="section">
+            <h2>💬 List Chats/Groups</h2>
+            <div class="form-group">
+                <label>Account Type:</label>
+                <select id="accountType">
+                    <option value="">All</option>
+                    <option value="WHATSAPP">WhatsApp</option>
+                    <option value="LINKEDIN">LinkedIn</option>
+                    <option value="INSTAGRAM">Instagram</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Account ID (optional):</label>
+                <input type="text" id="accountId" placeholder="Enter account ID">
+            </div>
+            <button onclick="listChats()">List Chats</button>
+            <button onclick="syncAccountChats()">Sync Account Chats</button>
+            <div id="chatsResponse" class="response"></div>
+        </div>
+        
+        <!-- Send Message -->
+        <div class="section">
+            <h2>📤 Send Message to Chat</h2>
+            <div class="form-group">
+                <label>Chat ID:</label>
+                <input type="text" id="chatId" placeholder="Enter chat ID from list above">
+            </div>
+            <div class="form-group">
+                <label>Message:</label>
+                <textarea id="messageText" placeholder="Type your message here..."></textarea>
+            </div>
+            <button onclick="sendMessage()">Send Message</button>
+            <div id="sendMessageResponse" class="response"></div>
+        </div>
+        
+        <!-- Get Messages -->
+        <div class="section">
+            <h2>📥 Get Chat Messages</h2>
+            <div class="form-group">
+                <label>Chat ID:</label>
+                <input type="text" id="getMessagesChatId" placeholder="Enter chat ID">
+            </div>
+            <button onclick="getMessages()">Get Messages</button>
+            <div id="getMessagesResponse" class="response"></div>
+        </div>
+        
+        <!-- Create Group -->
+        <div class="section">
+            <h2>➕ Create Group Chat</h2>
+            <div class="form-group">
+                <label>Account ID:</label>
+                <input type="text" id="createAccountId" placeholder="Enter account ID">
+            </div>
+            <div class="form-group">
+                <label>Attendee IDs (comma-separated):</label>
+                <input type="text" id="attendeeIds" placeholder="e.g., 123@s.whatsapp.net,456@s.whatsapp.net">
+            </div>
+            <div class="form-group">
+                <label>Group Name (optional):</label>
+                <input type="text" id="groupName" placeholder="Group name">
+            </div>
+            <div class="form-group">
+                <label>Initial Message:</label>
+                <textarea id="initialMessage" placeholder="Welcome message..."></textarea>
+            </div>
+            <button onclick="createGroup()">Create Group</button>
+            <div id="createGroupResponse" class="response"></div>
+            <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                ⚠️ <strong>Note:</strong> Add all members when creating the group. Unipile API doesn't support adding members to existing WhatsApp groups.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        async function makeRequest(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+        
+        function displayResponse(elementId, data) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = '<span class="loading">Loading...</span>';
+            
+            setTimeout(() => {
+                if (data.error) {
+                    element.innerHTML = `<span class="error">Error: ${data.error}</span>`;
+                } else {
+                    element.innerHTML = `<span class="success">Success!</span>\n\n${JSON.stringify(data, null, 2)}`;
+                }
+            }, 100);
+        }
+        
+        async function testConfig() {
+            const data = await makeRequest('/api/whatsapp/test');
+            displayResponse('configResponse', data);
+        }
+        
+        async function listAccounts() {
+            const data = await makeRequest('/api/whatsapp/accounts');
+            displayResponse('accountsResponse', data);
+        }
+        
+        async function listChats() {
+            const accountType = document.getElementById('accountType').value;
+            const accountId = document.getElementById('accountId').value;
+            
+            let url = '/api/whatsapp/chats';
+            const params = new URLSearchParams();
+            
+            if (accountType) params.append('account_type', accountType);
+            if (accountId) params.append('account_id', accountId);
+            
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+            
+            const data = await makeRequest(url);
+            displayResponse('chatsResponse', data);
+        }
+        
+        async function syncAccountChats() {
+            const accountId = document.getElementById('accountId').value;
+            
+            if (!accountId) {
+                alert('Please enter account ID');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('account_id', accountId);
+            
+            const data = await makeRequest('/api/whatsapp/sync', {
+                method: 'POST',
+                headers: {},
+                body: formData
+            });
+            displayResponse('chatsResponse', data);
+        }
+        
+        async function sendMessage() {
+            const chatId = document.getElementById('chatId').value;
+            const messageText = document.getElementById('messageText').value;
+            
+            if (!chatId || !messageText) {
+                alert('Please enter both chat ID and message');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('text', messageText);
+            
+            const data = await makeRequest(`/api/whatsapp/chats/${chatId}/messages`, {
+                method: 'POST',
+                headers: {}, // Let browser set Content-Type for FormData
+                body: formData
+            });
+            
+            displayResponse('sendMessageResponse', data);
+        }
+        
+        async function getMessages() {
+            const chatId = document.getElementById('getMessagesChatId').value;
+            
+            if (!chatId) {
+                alert('Please enter chat ID');
+                return;
+            }
+            
+            const data = await makeRequest(`/api/whatsapp/chats/${chatId}/messages`);
+            displayResponse('getMessagesResponse', data);
+        }
+        
+        async function createGroup() {
+            const accountId = document.getElementById('createAccountId').value;
+            const attendeeIds = document.getElementById('attendeeIds').value;
+            const groupName = document.getElementById('groupName').value;
+            const initialMessage = document.getElementById('initialMessage').value;
+            
+            if (!accountId || !attendeeIds || !initialMessage) {
+                alert('Please fill in required fields');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('account_id', accountId);
+            formData.append('text', initialMessage);
+            
+            attendeeIds.split(',').forEach(id => {
+                formData.append('attendees_ids', id.trim());
+            });
+            
+            if (groupName) {
+                formData.append('subject', groupName);
+            }
+            
+            const data = await makeRequest('/api/whatsapp/chats', {
+                method: 'POST',
+                headers: {},
+                body: formData
+            });
+            
+            displayResponse('createGroupResponse', data);
+        }
+        
+        // Auto-test configuration on load
+        window.onload = function() {
+            testConfig();
+        };
+    </script>
+</body>
+</html>

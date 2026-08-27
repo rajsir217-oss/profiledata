@@ -145,7 +145,7 @@ const LandingPage = () => {
         <div className="lp-hero-topline">
           <div className="lp-hero-top-brand">
             <img
-              src="/landing-page-logo-transparent.png"
+              src="/landing-page-logo-clear.png"
               alt="L3V3L Matches"
               className="lp-hero-brand-image"
             />

@@ -19,7 +19,8 @@ const MembershipPlans = () => {
     price: 0,
     duration: 12,
     features: [],
-    isActive: true
+    isActive: true,
+    autoRenew: false
   });
 
   // Check admin access
@@ -132,7 +133,7 @@ const MembershipPlans = () => {
       if (data.success) {
         loadMembershipConfig();
         setShowAddPlan(false);
-        setNewPlan({ id: '', name: '', price: 0, duration: 12, features: [], isActive: true });
+        setNewPlan({ id: '', name: '', price: 0, duration: 12, features: [], isActive: true, autoRenew: false });
         toastService.success('Plan added!');
       } else {
         toastService.error(data.detail || 'Failed to add plan');
@@ -197,9 +198,10 @@ const MembershipPlans = () => {
             <button className="btn-edit" onClick={() => {
               setEditMode(true);
               setEditedConfig({
-                baseFee: membershipConfig?.baseFee || 99,
-                trialDays: membershipConfig?.trialDays || 0,
-                gracePeriodDays: membershipConfig?.gracePeriodDays || 7
+                enabled: membershipConfig?.enabled || false,
+                baseFee: 50, // One-time activation fee
+                trialDays: 0, // No trial
+                gracePeriodDays: 5 // 5-day grace period
               });
             }}>
               ✏️ Edit
@@ -217,40 +219,35 @@ const MembershipPlans = () => {
         </div>
         <div className="settings-grid">
           <div className="setting-item">
-            <label>Base Membership Fee</label>
+            <label>Activation Fee (One-time)</label>
             {editMode ? (
               <div className="input-with-prefix">
                 <span className="prefix">$</span>
                 <input
                   type="number"
-                  value={editedConfig.baseFee ?? membershipConfig?.baseFee}
+                  value={editedConfig.baseFee ?? 50}
                   onChange={(e) => setEditedConfig(prev => ({ ...prev, baseFee: parseFloat(e.target.value) || 0 }))}
                   min="0"
                   step="0.01"
                 />
               </div>
             ) : (
-              <span className="setting-value">${membershipConfig?.baseFee?.toFixed(2)}</span>
+              <span className="setting-value">${(membershipConfig?.baseFee || 50).toFixed(2)}</span>
             )}
           </div>
           <div className="setting-item">
-            <label>Currency</label>
-            <span className="setting-value">{membershipConfig?.currency || 'USD'}</span>
-          </div>
-          <div className="setting-item">
-            <label>Trial Period</label>
+            <label>Membership Enabled</label>
             {editMode ? (
-              <div className="input-with-suffix">
+              <label className="toggle-switch">
                 <input
-                  type="number"
-                  value={editedConfig.trialDays ?? membershipConfig?.trialDays}
-                  onChange={(e) => setEditedConfig(prev => ({ ...prev, trialDays: parseInt(e.target.value) || 0 }))}
-                  min="0"
+                  type="checkbox"
+                  checked={editedConfig.enabled ?? false}
+                  onChange={(e) => setEditedConfig(prev => ({ ...prev, enabled: e.target.checked }))}
                 />
-                <span className="suffix">days</span>
-              </div>
+                <span className="slider"></span>
+              </label>
             ) : (
-              <span className="setting-value">{membershipConfig?.trialDays || 0} days</span>
+              <span className="setting-value">{membershipConfig?.enabled ? '✅ Yes' : '❌ No'}</span>
             )}
           </div>
           <div className="setting-item">
@@ -259,14 +256,14 @@ const MembershipPlans = () => {
               <div className="input-with-suffix">
                 <input
                   type="number"
-                  value={editedConfig.gracePeriodDays ?? membershipConfig?.gracePeriodDays}
+                  value={editedConfig.gracePeriodDays ?? 5}
                   onChange={(e) => setEditedConfig(prev => ({ ...prev, gracePeriodDays: parseInt(e.target.value) || 0 }))}
                   min="0"
                 />
                 <span className="suffix">days</span>
               </div>
             ) : (
-              <span className="setting-value">{membershipConfig?.gracePeriodDays || 7} days</span>
+              <span className="setting-value">{membershipConfig?.gracePeriodDays || 5} days</span>
             )}
           </div>
         </div>
@@ -290,7 +287,7 @@ const MembershipPlans = () => {
               <div className="plan-price">
                 <span className="price-amount">${plan.price?.toFixed(2)}</span>
                 <span className="price-duration">
-                  {plan.duration ? `/ ${plan.duration} months` : '/ lifetime'}
+                  {plan.duration === 0 ? '/ lifetime' : plan.duration ? `/ ${plan.duration} months` : '/ lifetime'}
                 </span>
               </div>
               <div className="plan-features">
@@ -302,6 +299,11 @@ const MembershipPlans = () => {
                 ))}
                 {(!plan.features || plan.features.length === 0) && (
                   <div className="no-features">No features defined</div>
+                )}
+              </div>
+              <div className="plan-meta">
+                {plan.autoRenew && (
+                  <span className="auto-renew-badge">♻️ Auto-renew</span>
                 )}
               </div>
               <div className="plan-actions">
@@ -387,6 +389,16 @@ const MembershipPlans = () => {
                   Active (available for purchase)
                 </label>
               </div>
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={editingPlan.autoRenew || false}
+                    onChange={(e) => setEditingPlan(prev => ({ ...prev, autoRenew: e.target.checked }))}
+                  />
+                  Auto-renew (for subscription plans)
+                </label>
+              </div>
             </div>
             <div className="modal-footer">
               <button className="btn-cancel" onClick={() => setEditingPlan(null)}>Cancel</button>
@@ -396,7 +408,8 @@ const MembershipPlans = () => {
                   name: editingPlan.name,
                   price: editingPlan.price,
                   duration: editingPlan.duration,
-                  isActive: editingPlan.isActive
+                  isActive: editingPlan.isActive,
+                  autoRenew: editingPlan.autoRenew
                 })}
                 disabled={saving}
               >
@@ -465,6 +478,16 @@ const MembershipPlans = () => {
                     onChange={(e) => setNewPlan(prev => ({ ...prev, isActive: e.target.checked }))}
                   />
                   Active (available for purchase)
+                </label>
+              </div>
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={newPlan.autoRenew || false}
+                    onChange={(e) => setNewPlan(prev => ({ ...prev, autoRenew: e.target.checked }))}
+                  />
+                  Auto-renew (for subscription plans)
                 </label>
               </div>
             </div>

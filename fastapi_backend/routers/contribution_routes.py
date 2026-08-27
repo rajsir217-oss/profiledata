@@ -9,7 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
 from typing import Optional
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 from database import get_database
@@ -20,6 +20,120 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/contributions", tags=["Contributions"])
+
+
+# ============================================================================
+# MEMBERSHIP SYSTEM HELPER FUNCTIONS
+# ============================================================================
+
+async def get_ytd_contributions(username: str, db: AsyncIOMotorDatabase) -> float:
+    """Calculate year-to-date paid contributions for a user (contribution flows only)."""
+    current_year = datetime.now().year
+    start_of_year = datetime(current_year, 1, 1)
+    end_of_year = datetime(current_year, 12, 31, 23, 59, 59)
+    
+    try:
+        result = await db.payments.aggregate([
+            {
+                "$match": {
+                    "username": username,
+                    # Keep this aligned with admin-hub contribution screens:
+                    # only real contribution flows (one-time + recurring).
+                    "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
+                    "status": {"$in": ["completed", "succeeded", "paid", None]},
+                    "createdAt": {"$gte": start_of_year, "$lte": end_of_year}
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "totalAmount": {"$sum": "$amount"}
+                }
+            }
+        ]).to_list(length=1)
+        
+        return result[0]["totalAmount"] if result else 0.0
+    except Exception as e:
+        logger.error(f"Error calculating YTD contributions for {username}: {e}")
+        return 0.0
+
+
+async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> dict:
+    """Check if user has search access based on membership"""
+    user = await db.users.find_one({"username": username})
+    if not user:
+        return {"hasAccess": False, "reason": "user_not_found"}
+    
+    # Bypass membership check for admins and moderators
+    if user.get("role") == "admin" or user.get("role_name") == "moderator":
+        return {"hasAccess": True, "type": "privileged", "reason": "admin_or_moderator"}
+    
+    membership = user.get("membership", {})
+    
+    # Check YTD contributions first
+    ytd_total = await get_ytd_contributions(username, db)
+    
+    # If YTD ≥ $60, treat as one-time paid
+    if ytd_total >= 60 and not membership.get("treatedAsOneTime"):
+        try:
+            await db.users.update_one(
+                {"username": username},
+                {
+                    "$set": {
+                        "membership.type": "one_time",
+                        "membership.status": "active",
+                        "membership.treatedAsOneTime": True,
+                        "membership.ytdPaid": ytd_total,
+                        "membership.startDate": datetime.utcnow()
+                    }
+                }
+            )
+            logger.info(f"✅ User {username} treated as one-time member (YTD: ${ytd_total:.2f})")
+            return {"hasAccess": True, "type": "one_time", "reason": "ytd_threshold_met", "ytdPaid": ytd_total}
+        except Exception as e:
+            logger.error(f"Error updating membership status for {username}: {e}")
+    
+    # No membership
+    if membership.get("type") == "none" or not membership.get("type"):
+        return {"hasAccess": False, "reason": "no_membership", "ytdPaid": ytd_total}
+    
+    # Check grace period
+    if membership.get("status") == "grace_period":
+        if membership.get("gracePeriodEnds") and membership.get("gracePeriodEnds") > datetime.utcnow():
+            days_remaining = (membership["gracePeriodEnds"] - datetime.utcnow()).days
+            return {"hasAccess": True, "type": membership.get("type"), "reason": "grace_period", "daysRemaining": days_remaining}
+        else:
+            # Grace period ended, mark as expired
+            try:
+                await db.users.update_one(
+                    {"username": username},
+                    {"$set": {"membership.status": "expired"}}
+                )
+            except Exception as e:
+                logger.error(f"Error marking membership as expired for {username}: {e}")
+            return {"hasAccess": False, "reason": "grace_period_ended"}
+    
+    # Expired membership
+    if membership.get("status") == "expired":
+        return {"hasAccess": False, "reason": "membership_expired"}
+    
+    # Check end date for subscriptions
+    if membership.get("type") in ["3_month", "1_year"]:
+        if membership.get("endDate") and membership.get("endDate") < datetime.utcnow():
+            # Enter grace period
+            grace_end = datetime.utcnow() + timedelta(days=5)
+            try:
+                await db.users.update_one(
+                    {"username": username},
+                    {"$set": {"membership.status": "grace_period", "gracePeriodEnds": grace_end}}
+                )
+                logger.info(f"⏰ User {username} entered grace period (ends: {grace_end})")
+            except Exception as e:
+                logger.error(f"Error entering grace period for {username}: {e}")
+            return {"hasAccess": True, "type": membership.get("type"), "reason": "entered_grace_period"}
+    
+    # One-time or active subscription
+    return {"hasAccess": True, "type": membership.get("type"), "reason": "active_membership"}
 
 
 async def send_contribution_thank_you_email(
@@ -252,6 +366,7 @@ async def get_contribution_status(
             raise HTTPException(status_code=404, detail="User not found")
         
         contributions = user.get("contributions", {})
+        membership = user.get("membership", {})
         
         # Check site-level setting
         site_settings = await db.site_settings.find_one({"_id": "site_settings"})
@@ -259,6 +374,10 @@ async def get_contribution_status(
         
         # Get site-level enabled setting - MUST be explicitly True to show popup
         site_enabled = contribution_config.get("enabled") is True  # Strict check: only True, not truthy
+        
+        # Check membership access
+        membership_access = await check_membership_access(current_user["username"], db)
+        ytd_total = membership_access.get("ytdPaid", 0)
         
         # Debug logging
         logger.info(f"💝 Contribution status for {current_user['username']}: site_settings exists={site_settings is not None}, contributions={contribution_config}, siteEnabled={site_enabled}")
@@ -280,9 +399,26 @@ async def get_contribution_status(
             if latest_payment:
                 last_amount = latest_payment.get("amount", 0) or 0
         
+        # Determine if popup should show based on membership
+        show_popup = False
+        popup_reason = "none"
+        
+        if membership_access["hasAccess"]:
+            # User has access, no popup needed
+            show_popup = False
+            popup_reason = "membership_active"
+        elif ytd_total >= 60:
+            # YTD threshold met, should be treated as one-time
+            show_popup = False
+            popup_reason = "ytd_threshold_met"
+        else:
+            # No access and YTD < $60, show popup
+            show_popup = True
+            popup_reason = "membership_required"
+        
         return {
             "success": True,
-            "siteEnabled": site_enabled,  # Only True if explicitly enabled
+            "siteEnabled": site_enabled,
             "userDisabledByAdmin": user.get("contributionPopupDisabledByAdmin", False),
             "hasActiveRecurringContribution": contributions.get("hasActiveRecurring", False),
             "registrationDate": user.get("createdAt"),
@@ -291,8 +427,20 @@ async def get_contribution_status(
             "lastRecurringPaymentDate": contributions.get("lastRecurringPaymentDate"),
             "lastContributionAmount": last_amount,
             "totalContributed": contributions.get("totalContributed", 0),
+            "membership": {
+                "type": membership.get("type", "none"),
+                "status": membership.get("status", "none"),
+                "hasAccess": membership_access["hasAccess"],
+                "accessReason": membership_access["reason"],
+                "ytdPaid": ytd_total,
+                "endDate": membership.get("endDate"),
+                "gracePeriodEnds": membership.get("gracePeriodEnds"),
+                "autoRenew": membership.get("autoRenew", False)
+            },
+            "showPopup": show_popup,
+            "popupReason": popup_reason,
             "popupConfig": {
-                "amounts": contribution_config.get("amounts", [25, 50, 75, 100]),
+                "amounts": contribution_config.get("amounts", [60, 100]),
                 "message": contribution_config.get("message", "Support the platform"),
                 "frequencyDays": contribution_config.get("frequencyDays", 14),
                 "minLogins": contribution_config.get("minLogins", 10),
@@ -323,7 +471,7 @@ async def get_contribution_settings(
         "success": True,
         "contributions": {
             "enabled": contribution_config.get("enabled", False),  # Default: disabled
-            "amounts": contribution_config.get("amounts", [25, 50, 75, 100]),
+            "amounts": contribution_config.get("amounts", [60, 100]),
             "message": contribution_config.get("message", "Support the platform"),
             "frequencyDays": contribution_config.get("frequencyDays", 14),
             "minLogins": contribution_config.get("minLogins", 10),
@@ -1255,6 +1403,511 @@ async def get_payment_methods(
             "success": True,
             "paymentMethods": payment_methods
         }
+    except Exception as e:
+        logger.error(f"Error getting payment methods: {e}")
+        return {
+            "success": True,
+            "paymentMethods": []
+        }
+
+
+# ============================================================================
+# MEMBERSHIP PAYMENT ENDPOINTS
+# ============================================================================
+
+@router.post("/membership/payment")
+async def process_membership_payment(
+    membership_type: str = Body(..., embed=True),
+    auto_renew: bool = Body(True),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Process membership payment and activate membership"""
+    try:
+        username = current_user["username"]
+        
+        # Validate membership type
+        if membership_type not in ["one_time", "3_month", "1_year"]:
+            raise HTTPException(status_code=400, detail="Invalid membership type")
+        
+        # Determine amount and duration
+        if membership_type == "one_time":
+            amount = 50
+            months = None  # Permanent
+        elif membership_type == "3_month":
+            amount = 30
+            months = 3
+        elif membership_type == "1_year":
+            amount = 100
+            months = 12
+        
+        # Calculate end date for subscriptions
+        end_date = None
+        if months:
+            end_date = datetime.utcnow() + timedelta(days=months * 30)
+        
+        # Create payment record
+        payment_record = {
+            "username": username,
+            "amount": amount,
+            "paymentType": f"membership_{membership_type}",
+            "membershipType": membership_type,
+            "status": "completed",
+            "membershipStartDate": datetime.utcnow(),
+            "membershipEndDate": end_date,
+            "autoRenew": auto_renew,
+            "createdAt": datetime.utcnow()
+        }
+        
+        payment_result = await db.payments.insert_one(payment_record)
+        payment_id = str(payment_result.inserted_id)
+        
+        # Update user membership
+        membership_update = {
+            "type": membership_type,
+            "status": "active",
+            "startDate": datetime.utcnow(),
+            "endDate": end_date,
+            "autoRenew": auto_renew,
+            "lastPaymentAmount": amount,
+            "lastPaymentDate": datetime.utcnow(),
+            "treatedAsOneTime": membership_type == "one_time"
+        }
+        
+        # Calculate total paid
+        user = await db.users.find_one({"username": username})
+        current_total = user.get("membership", {}).get("totalPaid", 0)
+        membership_update["totalPaid"] = current_total + amount
+        
+        await db.users.update_one(
+            {"username": username},
+            {"$set": {"membership": membership_update}}
+        )
+        
+        # Update contributions tracking
+        await db.users.update_one(
+            {"username": username},
+            {
+                "$set": {
+                    "contributions.lastContributionAmount": amount,
+                    "contributions.lastContributionDate": datetime.utcnow(),
+                    "contributions.totalContributed": current_total + amount
+                }
+            }
+        )
+        
+        # Send thank you email
+        await send_contribution_thank_you_email(
+            db, username, amount, f"Membership ({membership_type})", 
+            "PayPal", payment_id
+        )
+        
+        logger.info(f"✅ Membership payment processed for {username}: {membership_type} - ${amount}")
+        
+        return {
+            "success": True,
+            "message": f"Membership activated successfully",
+            "membership": {
+                "type": membership_type,
+                "status": "active",
+                "startDate": datetime.utcnow().isoformat(),
+                "endDate": end_date.isoformat() if end_date else None,
+                "autoRenew": auto_renew,
+                "amount": amount
+            },
+            "paymentId": payment_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing membership payment: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to process membership payment: {str(e)}")
+
+
+@router.post("/membership/grant")
+async def grant_membership_admin(
+    username: str = Body(..., embed=True),
+    membership_type: str = Body(..., embed=True),
+    auto_renew: bool = Body(True),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Admin endpoint to grant membership without payment"""
+    try:
+        # Check if current user is admin
+        if current_user.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Validate membership type
+        if membership_type not in ["one_time", "3_month", "1_year"]:
+            raise HTTPException(status_code=400, detail="Invalid membership type")
+        
+        # Determine amount and duration
+        if membership_type == "one_time":
+            amount = 50
+            months = None  # Permanent
+        elif membership_type == "3_month":
+            amount = 30
+            months = 3
+        elif membership_type == "1_year":
+            amount = 100
+            months = 12
+        
+        # Calculate end date for subscriptions
+        end_date = None
+        if months:
+            end_date = datetime.utcnow() + timedelta(days=months * 30)
+        
+        # Create payment record (marked as admin-granted)
+        payment_record = {
+            "username": username,
+            "amount": amount,
+            "paymentType": f"membership_{membership_type}",
+            "membershipType": membership_type,
+            "status": "completed",
+            "membershipStartDate": datetime.utcnow(),
+            "membershipEndDate": end_date,
+            "autoRenew": auto_renew,
+            "createdAt": datetime.utcnow(),
+            "adminGranted": True,
+            "grantedBy": current_user["username"]
+        }
+        
+        payment_result = await db.payments.insert_one(payment_record)
+        payment_id = str(payment_result.inserted_id)
+        
+        # Update user membership
+        membership_update = {
+            "type": membership_type,
+            "status": "active",
+            "startDate": datetime.utcnow(),
+            "endDate": end_date,
+            "autoRenew": auto_renew,
+            "lastPaymentAmount": amount,
+            "lastPaymentDate": datetime.utcnow(),
+            "treatedAsOneTime": membership_type == "one_time"
+        }
+        
+        # Calculate total paid
+        user = await db.users.find_one({"username": username})
+        current_total = user.get("membership", {}).get("totalPaid", 0)
+        membership_update["totalPaid"] = current_total + amount
+        
+        await db.users.update_one(
+            {"username": username},
+            {"$set": {"membership": membership_update}}
+        )
+        
+        # Update contributions tracking
+        await db.users.update_one(
+            {"username": username},
+            {
+                "$set": {
+                    "contributions.lastContributionAmount": amount,
+                    "contributions.lastContributionDate": datetime.utcnow(),
+                    "contributions.totalContributed": current_total + amount
+                }
+            }
+        )
+        
+        logger.info(f"✅ Admin granted membership to {username}: {membership_type} - ${amount} (by {current_user['username']})")
+        
+        return {
+            "success": True,
+            "message": f"Membership granted to {username} successfully",
+            "membership": {
+                "type": membership_type,
+                "status": "active",
+                "startDate": datetime.utcnow().isoformat(),
+                "endDate": end_date.isoformat() if end_date else None,
+                "autoRenew": auto_renew,
+                "totalPaid": current_total + amount
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error granting membership: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to grant membership: {str(e)}")
+
+
+@router.post("/membership/reset")
+async def reset_membership_admin(
+    username: str = Body(..., embed=True),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Admin endpoint to reset a user's membership"""
+    try:
+        # Check if current user is admin
+        if current_user.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Reset membership and contributions
+        await db.users.update_one(
+            {"username": username},
+            {
+                "$unset": {"membership": 1},
+                "$set": {
+                    "contributions.lastContributionAmount": 0,
+                    "contributions.lastContributionDate": None,
+                    "contributions.totalContributed": 0
+                }
+            }
+        )
+        
+        logger.info(f"✅ Admin reset membership for {username} (by {current_user['username']})")
+        
+        return {
+            "success": True,
+            "message": f"Membership reset for {username} successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resetting membership: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to reset membership: {str(e)}")
+
+
+@router.put("/membership/auto-renew")
+async def update_auto_renew(
+    auto_renew: bool = Body(..., embed=True),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Update auto-renewal setting for membership"""
+    try:
+        username = current_user["username"]
+        
+        user = await db.users.find_one({"username": username})
+        membership = user.get("membership", {})
+        
+        # Only allow auto-renewal for subscriptions
+        if membership.get("type") == "one_time":
+            raise HTTPException(status_code=400, detail="Auto-renewal not available for one-time membership")
+        
+        await db.users.update_one(
+            {"username": username},
+            {"$set": {"membership.autoRenew": auto_renew}}
+        )
+        
+        logger.info(f"✅ Auto-renewal updated for {username}: {auto_renew}")
+        
+        return {
+            "success": True,
+            "message": f"Auto-renewal {'enabled' if auto_renew else 'disabled'}",
+            "autoRenew": auto_renew
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating auto-renewal: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update auto-renewal setting")
+
+
+@router.get("/membership/status")
+async def get_membership_status(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Get detailed membership status"""
+    try:
+        username = current_user["username"]
+        
+        user = await db.users.find_one({"username": username})
+        membership = user.get("membership", {})
+        
+        # Get YTD contributions
+        ytd_total = await get_ytd_contributions(username, db)
+        
+        # Check access
+        membership_access = await check_membership_access(username, db)
+        
+        return {
+            "success": True,
+            "membership": {
+                "type": membership.get("type", "none"),
+                "status": membership.get("status", "none"),
+                "startDate": membership.get("startDate"),
+                "endDate": membership.get("endDate"),
+                "gracePeriodEnds": membership.get("gracePeriodEnds"),
+                "autoRenew": membership.get("autoRenew", False),
+                "totalPaid": membership.get("totalPaid", 0),
+                "ytdPaid": ytd_total,
+                "treatedAsOneTime": membership.get("treatedAsOneTime", False)
+            },
+            "access": {
+                "hasAccess": membership_access["hasAccess"],
+                "reason": membership_access["reason"],
+                "daysRemaining": membership_access.get("daysRemaining")
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting membership status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get membership status")
+
+
+@router.post("/admin/check-expirations")
+async def check_membership_expirations(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Daily job to check membership expirations"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        now = datetime.utcnow()
+        
+        # Find memberships that should enter grace period
+        expiring_soon = await db.users.find({
+            "membership.type": {"$in": ["3_month", "1_year"]},
+            "membership.status": "active",
+            "membership.endDate": {
+                "$lte": now,
+                "$gt": now - timedelta(days=5)  # Already in grace period or expired
+            }
+        }).to_list(length=None)
+        
+        entered_grace = 0
+        for user in expiring_soon:
+            membership = user["membership"]
+            
+            # If not already in grace period and end date passed
+            if membership.get("status") != "grace_period" and membership.get("endDate") < now:
+                grace_end = now + timedelta(days=5)
+                await db.users.update_one(
+                    {"username": user["username"]},
+                    {"$set": {"membership.status": "grace_period", "membership.gracePeriodEnds": grace_end}}
+                )
+                entered_grace += 1
+                logger.info(f"⏰ User {user['username']} entered grace period (ends: {grace_end})")
+        
+        # Find grace periods that have ended
+        grace_ended = await db.users.find({
+            "membership.status": "grace_period",
+            "membership.gracePeriodEnds": {"$lte": now}
+        }).to_list(length=None)
+        
+        grace_period_ended = 0
+        for user in grace_ended:
+            await db.users.update_one(
+                {"username": user["username"]},
+                {"$set": {"membership.status": "expired"}}
+            )
+            grace_period_ended += 1
+            logger.info(f"🔒 User {user['username']} grace period ended - membership expired")
+        
+        return {
+            "success": True,
+            "processed": entered_grace + grace_period_ended,
+            "enteredGracePeriod": entered_grace,
+            "gracePeriodEnded": grace_period_ended
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking membership expirations: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to check membership expirations")
+
+
+@router.get("/admin/membership-stats")
+async def get_membership_stats(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Get membership statistics for admin dashboard"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        current_year = datetime.now().year
+        start_of_year = datetime(current_year, 1, 1)
+        end_of_year = datetime(current_year, 12, 31, 23, 59, 59)
+        
+        # Get membership breakdown
+        membership_stats = await db.users.aggregate([
+            {
+                "$group": {
+                    "_id": "$membership.type",
+                    "count": {"$sum": 1},
+                    "revenue": {"$sum": "$membership.lastPaymentAmount"}
+                }
+            }
+        ]).to_list(length=None)
+        
+        # Get YTD revenue
+        ytd_revenue = await db.payments.aggregate([
+            {
+                "$match": {
+                    "paymentType": {"$in": ["membership_one_time", "membership_3_month", "membership_1_year"]},
+                    "status": {"$in": ["completed", "succeeded", "paid", None]},
+                    "createdAt": {"$gte": start_of_year, "$lte": end_of_year}
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "totalRevenue": {"$sum": "$amount"},
+                    "totalPayments": {"$sum": 1}
+                }
+            }
+        ]).to_list(length=1)
+        
+        # Count active vs expired
+        active_count = await db.users.count_documents({
+            "membership.status": "active"
+        })
+        
+        expired_count = await db.users.count_documents({
+            "membership.status": "expired"
+        })
+        
+        grace_count = await db.users.count_documents({
+            "membership.status": "grace_period"
+        })
+        
+        # Format membership breakdown
+        breakdown = {
+            "none": {"count": 0, "revenue": 0},
+            "one_time": {"count": 0, "revenue": 0},
+            "3_month": {"count": 0, "revenue": 0},
+            "1_year": {"count": 0, "revenue": 0}
+        }
+        
+        for stat in membership_stats:
+            mtype = stat.get("_id", "none")
+            breakdown[mtype] = {
+                "count": stat.get("count", 0),
+                "revenue": stat.get("revenue", 0)
+            }
+        
+        ytd_data = ytd_revenue[0] if ytd_revenue else {"totalRevenue": 0, "totalPayments": 0}
+        
+        return {
+            "success": True,
+            "year": current_year,
+            "membershipBreakdown": breakdown,
+            "statusCounts": {
+                "active": active_count,
+                "expired": expired_count,
+                "grace_period": grace_count
+            },
+            "ytdRevenue": ytd_data.get("totalRevenue", 0),
+            "ytdPayments": ytd_data.get("totalPayments", 0)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting membership stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get membership statistics")
         
     except Exception as e:
         logger.error(f"Error getting payment methods: {e}")

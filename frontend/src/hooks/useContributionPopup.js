@@ -82,6 +82,23 @@ const useContributionPopup = () => {
         return;
       }
 
+      // Membership/search lock gate:
+      // if user has NOT met access requirements (YTD < threshold or no valid membership),
+      // always treat popup as eligibility-critical for unlocking search.
+      const hasSearchAccess = Boolean(data?.membership?.hasAccess);
+      if (!hasSearchAccess) {
+        setShouldShowContribution(true);
+        if (sessionStorage.getItem(SESSION_POPUP_SHOWN)) {
+          setLoading(false);
+          return;
+        }
+        logger.debug('🔔 Contribution: membership required, showing activation popup');
+        sessionStorage.setItem(SESSION_POPUP_SHOWN, '1');
+        setShowPopup(true);
+        setLoading(false);
+        return;
+      }
+
       // Gate: inside amount-tier silence window.
       if (
         isSilenceActive(

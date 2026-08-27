@@ -70,6 +70,48 @@
   text-align: left;
 }
 
+/* Member Thank You Message */
+.member-thank-you {
+  background: linear-gradient(135deg, var(--success-color) 0%, var(--success-light) 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.thank-you-icon {
+  font-size: 24px;
+}
+
+.thank-you-text {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Member Thank You Message */
+.member-thank-you {
+  background: linear-gradient(135deg, var(--success-color) 0%, var(--success-light) 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.thank-you-icon {
+  font-size: 24px;
+}
+
+.thank-you-text {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
 .contribution-metric-pill {
   font-weight: 700;
 }
@@ -184,6 +226,14 @@
   width: 100%;
 }
 
+.membership-amount-option {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 40px;
+}
+
 .contribution-amount-option:hover {
   border-color: #555;
   background: #222;
@@ -264,9 +314,38 @@
   letter-spacing: 0.02em;
 }
 
+.membership-benefit-micro {
+  display: block;
+  margin-top: 0;
+  text-align: center;
+  white-space: normal;
+  max-width: 100%;
+}
+
+.contribution-custom-micro {
+  display: block;
+  margin-top: 3px;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.contribution-debug-line {
+  margin-top: 6px;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--info-color, #60a5fa);
+  text-align: center;
+}
+
 /* Custom Amount - Column Layout */
 .custom-option {
   grid-column: span 1;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 3px;
 }
 
 .custom-option .contribution-amount-label {
@@ -275,6 +354,7 @@
   gap: 4px;
   white-space: nowrap;
   flex-wrap: nowrap;
+  width: 100%;
 }
 
 .custom-amount-input {
@@ -282,9 +362,10 @@
   border: 1px solid #444;
   border-radius: 4px;
   padding: 3px 4px;
-  font-size: 10px;
-  font-weight: 500;
-  color: #e5e5e5;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
   width: auto;
   flex: 1;
   min-width: 0;
@@ -293,6 +374,8 @@
   z-index: 1;
   pointer-events: auto;
   position: relative;
+  caret-color: #ffffff;
+  opacity: 1 !important;
 }
 
 .custom-amount-input:focus {
@@ -302,7 +385,61 @@
 }
 
 .custom-amount-input::placeholder {
-  color: #666;
+  color: #9ca3af;
+  -webkit-text-fill-color: #9ca3af;
+  opacity: 1;
+}
+
+.custom-option.selected .custom-amount-input {
+  background: #1f2937;
+  border-color: #6b7280;
+}
+
+.tier-info-trigger {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #555);
+  background: var(--surface-color, #2a2a2a);
+  color: var(--text-secondary, #cfcfcf);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.tier-info-trigger.open {
+  border-color: var(--primary-color, #888);
+  color: var(--text-color, #fff);
+}
+
+.tier-info-popover {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color, #444);
+  border-radius: 6px;
+  background: var(--surface-color, #1e1e1e);
+}
+
+.tier-info-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-secondary, #ddd);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+}
+
+.tier-info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 9px;
+  color: var(--text-muted, #bbb);
 }
 
 /* Payment Type Toggle - Pill Style */
@@ -450,11 +587,57 @@
   display: flex;
   gap: 4px;
   margin-top: 0;
+  align-items: stretch;
+}
+
+.payment-method-toggle.activation-inline {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.payment-method-toggle.activation-inline .payment-method-btn {
+  flex: 0 0 auto;
+  min-width: 74px;
+  height: 42px;
+}
+
+.payment-method-toggle.activation-inline .payment-expand-btn {
+  margin-left: 0;
+}
+
+.payment-expand-btn {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #1a1a1a;
+  color: #e5e5e5;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.payment-expand-btn:hover:not(:disabled) {
+  background: #222;
+  border-color: #555;
+}
+
+.payment-expand-btn.open {
+  background: #333;
+  border-color: #666;
 }
 
 .payment-method-btn {
   flex: 1;
   padding: 8px 10px;
+  min-height: 42px;
   border: 1px solid #333;
   border-radius: 4px;
   background: #1a1a1a;
@@ -467,6 +650,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .payment-method-btn:hover {
@@ -1003,4 +1187,115 @@
   color: #aaa;
   margin: 0;
   max-width: 280px;
+}
+
+/* Membership Mode Styles */
+.membership-options {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.membership-card {
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.2s ease;
+  background: var(--card-background, #fff);
+}
+
+.membership-card.selected {
+  border-color: var(--primary-color, #667eea);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.membership-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  margin-bottom: 12px;
+}
+
+.card-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color, #333);
+}
+
+.price {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary-color, #667eea);
+}
+
+.subtitle {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: var(--text-secondary, #666);
+}
+
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  text-align: left;
+}
+
+.features li {
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--text-color, #333);
+}
+
+.auto-renew-option {
+  margin-bottom: 16px;
+}
+
+.auto-renew-option label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+}
+
+.select-button {
+  width: 100%;
+  padding: 10px 16px;
+  border: 2px solid var(--primary-color, #667eea);
+  background: transparent;
+  color: var(--primary-color, #667eea);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-button:hover {
+  background: var(--primary-color, #667eea);
+  color: white;
+}
+
+.select-button.featured {
+  background: var(--primary-color, #667eea);
+  color: white;
+}
+
+.select-button.featured:hover {
+  background: var(--secondary-color, #764ba2);
+}
+
+.select-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

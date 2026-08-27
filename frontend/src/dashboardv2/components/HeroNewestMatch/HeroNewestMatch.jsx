@@ -238,27 +238,59 @@ const HeroNewestMatch = ({
   }
 
   if (error) {
+    const isMembershipError = error?.response?.status === 403 ||
+                              error?.response?.data?.detail?.toLowerCase().includes('membership');
+
+    const handleContributeNow = () => {
+      window.dispatchEvent(new CustomEvent('force-contribution-popup'));
+    };
+
     return (
       <div className="dv2-hero-card dv2-hero-empty">
-        <div className="dv2-hero-empty-title">Could not load newest match</div>
+        <div className="dv2-hero-empty-title">
+          {isMembershipError ? 'No valid membership is active' : 'Could not load newest match'}
+        </div>
         <div className="dv2-hero-empty-sub">
-          Please try again in a moment.
+          {isMembershipError
+            ? 'Contribute $60+ to unlock search and see your newest match.'
+            : 'Please try again in a moment.'}
         </div>
         <div className="dv2-hero-actions">
-          <button
-            className="dv2-btn dv2-btn-primary"
-            type="button"
-            onClick={() => onRetry?.()}
-          >
-            Retry
-          </button>
-          <button
-            className="dv2-btn dv2-btn-link"
-            type="button"
-            onClick={() => onOpenSearch?.()}
-          >
-            Open search
-          </button>
+          {isMembershipError ? (
+            <>
+              <button
+                className="dv2-btn dv2-btn-primary"
+                type="button"
+                onClick={handleContributeNow}
+              >
+                Contribute now
+              </button>
+              <button
+                className="dv2-btn dv2-btn-link"
+                type="button"
+                onClick={() => onOpenSearch?.()}
+              >
+                Open search
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="dv2-btn dv2-btn-primary"
+                type="button"
+                onClick={() => onRetry?.()}
+              >
+                Retry
+              </button>
+              <button
+                className="dv2-btn dv2-btn-link"
+                type="button"
+                onClick={() => onOpenSearch?.()}
+              >
+                Open search
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
