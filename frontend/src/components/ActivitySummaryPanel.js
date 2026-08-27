@@ -9,6 +9,7 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activatingStatus, setActivatingStatus] = useState(false);
   const [showMembershipPopup, setShowMembershipPopup] = useState(false);
   const [membershipStatus, setMembershipStatus] = useState(null);
   const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
@@ -190,6 +191,44 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
   }
 
   const d = data;
+  const accountStatusNormalized = String(d?.accountStatus || '').toLowerCase();
+  const isPendingAdminApproval = accountStatusNormalized === 'pending_admin_approval';
+  const isAdminViewer = (localStorage.getItem('userRole') || '').toLowerCase() === 'admin';
+
+  const handleActivateAccount = async () => {
+    if (!username || activatingStatus) return;
+    setActivatingStatus(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${getBackendUrl()}/api/admin/users/${encodeURIComponent(username)}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          status: 'active',
+          reason: 'Activated from activity summary panel'
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.detail || result?.message || 'Failed to activate account');
+      }
+
+      setReminderToast({ type: 'success', text: `✅ @${username} activated successfully` });
+      const refreshed = await api.get(`/user-activity-summary/${username}`);
+      setData(refreshed.data);
+      window.dispatchEvent(new CustomEvent('membershipChanged'));
+    } catch (e) {
+      const detail = e?.message || 'Failed to activate account';
+      setReminderToast({ type: 'error', text: detail });
+    } finally {
+      setActivatingStatus(false);
+      setTimeout(() => setReminderToast(null), 4000);
+    }
+  };
 
   return (
     <div className="activity-panel-overlay" onClick={onClose}>
@@ -200,6 +239,11 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
         </div>
 
         <div className="activity-panel-body">
+          {reminderToast ? (
+            <div className={`reminder-toast reminder-toast-${reminderToast.type}`}>
+              {reminderToast.text}
+            </div>
+          ) : null}
           {/* Account Overview */}
           <div className="activity-section">
             <h4>🏠 Account</h4>
@@ -210,7 +254,19 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
               </div>
               <div className="activity-item">
                 <span className="activity-label">Status</span>
-                <span className={`activity-status-badge status-${d.accountStatus}`}>{d.accountStatus}</span>
+                <div className="activity-status-actions">
+                  <span className={`activity-status-badge status-${accountStatusNormalized}`}>{d.accountStatus}</span>
+                  {isAdminViewer && isPendingAdminApproval && (
+                    <button
+                      type="button"
+                      className="activity-status-activate-btn"
+                      onClick={handleActivateAccount}
+                      disabled={activatingStatus}
+                    >
+                      {activatingStatus ? 'Activating...' : 'Activate'}
+                    </button>
+                  )}
+                </div>
               </div>
               {d.profileCompletion != null && (
                 <div className="activity-item">
@@ -453,11 +509,6 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
                 </button>
               </div>
             </div>
-            {reminderToast ? (
-              <div className={`reminder-toast reminder-toast-${reminderToast.type}`}>
-                {reminderToast.text}
-              </div>
-            ) : null}
             <div className="activity-stats-row">
               <div className="activity-stat">
                 <span className="stat-number">${(d.contributions?.totalAmount || 0).toFixed(2)}</span>

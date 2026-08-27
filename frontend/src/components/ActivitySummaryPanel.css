@@ -200,6 +200,34 @@
   letter-spacing: 0.5px;
 }
 
+.activity-status-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-status-activate-btn {
+  border: 1px solid var(--success-color, #22c55e);
+  background: var(--success-light, #dcfce7);
+  color: var(--success-color, #22c55e);
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.activity-status-activate-btn:hover:not(:disabled) {
+  background: var(--success-color, #22c55e);
+  color: var(--text-on-gradient, #fff);
+}
+
+.activity-status-activate-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .status-active {
   background: var(--success-light, #dcfce7);
   color: var(--success-color, #22c55e);

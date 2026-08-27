@@ -71,8 +71,8 @@ async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> di
     # Check YTD contributions first
     ytd_total = await get_ytd_contributions(username, db)
     
-    # If YTD ≥ $50, treat as one-time paid
-    if ytd_total >= 50 and not membership.get("treatedAsOneTime"):
+    # If YTD ≥ $60, treat as one-time paid
+    if ytd_total >= 60 and not membership.get("treatedAsOneTime"):
         try:
             await db.users.update_one(
                 {"username": username},
@@ -405,12 +405,12 @@ async def get_contribution_status(
             # User has access, no popup needed
             show_popup = False
             popup_reason = "membership_active"
-        elif ytd_total >= 50:
+        elif ytd_total >= 60:
             # YTD threshold met, should be treated as one-time
             show_popup = False
             popup_reason = "ytd_threshold_met"
         else:
-            # No access and YTD < $50, show popup
+            # No access and YTD < $60, show popup
             show_popup = True
             popup_reason = "membership_required"
         
@@ -438,7 +438,7 @@ async def get_contribution_status(
             "showPopup": show_popup,
             "popupReason": popup_reason,
             "popupConfig": {
-                "amounts": contribution_config.get("amounts", [25, 50, 75, 100]),
+                "amounts": contribution_config.get("amounts", [60, 100]),
                 "message": contribution_config.get("message", "Support the platform"),
                 "frequencyDays": contribution_config.get("frequencyDays", 14),
                 "minLogins": contribution_config.get("minLogins", 10),
@@ -469,7 +469,7 @@ async def get_contribution_settings(
         "success": True,
         "contributions": {
             "enabled": contribution_config.get("enabled", False),  # Default: disabled
-            "amounts": contribution_config.get("amounts", [25, 50, 75, 100]),
+            "amounts": contribution_config.get("amounts", [60, 100]),
             "message": contribution_config.get("message", "Support the platform"),
             "frequencyDays": contribution_config.get("frequencyDays", 14),
             "minLogins": contribution_config.get("minLogins", 10),

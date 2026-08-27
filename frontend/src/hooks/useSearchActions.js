@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import api from '../api';
+import { getBackendUrl } from '../config/apiConfig';
 import logger from '../utils/logger';
 import toastService from '../services/toastService';
 
@@ -192,6 +193,35 @@ export const useSearchActions = (searchState, userState, filterState) => {
 
   // ===== SEARCH FUNCTIONS =====
 
+  const validateSearchAccess = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return false;
+
+      const response = await fetch(`${getBackendUrl()}/api/contributions/contribution-status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // If this pre-check fails, fallback to backend enforcement on actual search request.
+      if (!response.ok) return true;
+      const data = await response.json();
+      if (!data?.success) return true;
+
+      const hasAccess = Boolean(data?.membership?.hasAccess);
+      if (!hasAccess) {
+        setError('Membership required for search. Please complete your activation payment.');
+        setInitialSearchComplete(true);
+        window.dispatchEvent(new CustomEvent('force-contribution-popup'));
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      logger.warn('Search access pre-check failed, falling back to backend enforcement', error);
+      return true;
+    }
+  }, [setError, setInitialSearchComplete]);
+
   // Main search function
   const handleSearch = useCallback(async (page = 1, overrideMinMatchScore = null, overrideCriteria = null, overrideSort = null) => {
     
@@ -205,6 +235,17 @@ export const useSearchActions = (searchState, userState, filterState) => {
     try {
       setLoading(true);
       startLoadingTimer();
+
+      // Guard search workflow with current-year contribution/membership access.
+      // Run this only for page 1; backend still enforces access for all requests.
+      if (page === 1) {
+        const canSearch = await validateSearchAccess();
+        if (!canSearch) {
+          setLoading(false);
+          setLoadingMore(false);
+          return;
+        }
+      }
       
       if (page === 1) {
         resetSearchState();
@@ -357,7 +398,7 @@ export const useSearchActions = (searchState, userState, filterState) => {
     setUsers, setCurrentPage, setTotalResults, setHasMoreResults,
     setInitialSearchComplete, setError, setLoading, setLoadingMore,
     searchAbortRef, loadingPageRef, accumulatedCountRef,
-    selectedProfileForDetail, setSelectedProfileForDetail
+    selectedProfileForDetail, setSelectedProfileForDetail, validateSearchAccess
   ]);
 
   // ===== SAVED SEARCHES =====
