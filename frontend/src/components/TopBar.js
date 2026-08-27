@@ -50,6 +50,25 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
   const [nearMeRadiusMiles, setNearMeRadiusMiles] = useState(50);
   const [membershipStatus, setMembershipStatus] = useState(null);
 
+  const getMembershipMicroLabel = useCallback((membership) => {
+    if (!membership) return 'Loading...';
+    if (!membership.hasAccess) return 'No membership';
+
+    if (membership.type === 'one_time') {
+      const ytdPaid = Number(membership.ytdPaid || 0);
+      if (ytdPaid >= 200) return '🙏 36-Months';
+      if (ytdPaid >= 175) return '🙏 24-Months';
+      if (ytdPaid >= 150) return '🙏 18-Months';
+      if (ytdPaid >= 100) return '🙏 12-Months';
+      const proratedMonths = Math.floor(ytdPaid / 10);
+      if (proratedMonths >= 6) return `🙏 ${proratedMonths}-Months`;
+      return '✅ Active';
+    }
+    if (membership.type === '3_month') return '⏰ 3-Month';
+    if (membership.type === '1_year') return '⭐ 1-Year';
+    return '✅ Active';
+  }, []);
+
   // Force refresh membership status
   const refreshMembershipStatus = useCallback(async () => {
     try {
@@ -1039,9 +1058,7 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
                         <span className="user-menu-membership-status">
                           {membershipStatus.hasAccess ? (
                             <span className="membership-active">
-                              {membershipStatus.type === 'one_time' ? '🏆 Lifetime' :
-                               membershipStatus.type === '3_month' ? '⏰ 3-Month' :
-                               membershipStatus.type === '1_year' ? '⭐ 1-Year' : 'Active'}
+                              {getMembershipMicroLabel(membershipStatus)}
                             </span>
                           ) : (
                             <span className="membership-inactive">No membership</span>

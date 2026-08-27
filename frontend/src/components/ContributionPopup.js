@@ -8,6 +8,13 @@ import './ContributionPopup.css';
 const MEMBER_STATS_CACHE_TTL_MS = 10 * 60 * 1000;
 const ACTIVATION_MIN_AMOUNT = 60;
 const PRORATE_PER_MONTH = 10;
+const ACTIVATION_TIER_MONTHS = {
+  60: 6,
+  100: 12,
+  150: 18,
+  175: 24,
+  200: 36,
+};
 
 const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [selectedAmount, setSelectedAmount] = useState(60); // Default to $60
@@ -42,6 +49,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [dismissCount, setDismissCount] = useState(0);
   const [requiredDismissals, setRequiredDismissals] = useState(0);
   const [isDismissing, setIsDismissing] = useState(false);
+  const [showTierInfo, setShowTierInfo] = useState(false);
 
   const loadMemberStats = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -179,7 +187,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, [saveDismissCount]);
 
-  // Membership prompt mode uses only $50 and $100.
+  // Membership prompt tiers (optimized to appeal while preserving min $60).
   // After activation (hasAccess), keep donation options at $100 and $30.
   const rawAmounts = [100, 60];
   const amounts = rawAmounts
@@ -191,6 +199,14 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const hasMembershipAccess = Boolean(contributionStatus?.membership?.hasAccess);
   const activationFlow = !hasMembershipAccess;
   const donationAmounts = hasMembershipAccess ? [100, 30] : amounts;
+  const getActivationMonthsLabel = useCallback((amount) => {
+    const numericAmount = Number(amount);
+    const tierMonths = ACTIVATION_TIER_MONTHS[numericAmount];
+    if (tierMonths) return `${tierMonths} months`;
+
+    const proratedMonths = Math.floor(numericAmount / PRORATE_PER_MONTH);
+    return `${Math.max(proratedMonths, 0)} months`;
+  }, []);
 
   useEffect(() => {
     // During activation flow, keep Clover as the only visible/active method.
@@ -695,7 +711,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                 </div>
               )}
 
-              <p className="contribution-message">
+          <p className="contribution-message">
             {memberStatsLoading
               ? 'You’ve been part of L3V3L Matches. Behind the scenes, our admins provide real human help, quick responses, and a premium-grade application with features that go beyond commercial matrimonial sites. If you value this community and want to help us grow, we kindly invite you to contribute. Your support keeps the platform running and helps us build new features.'
               : (
@@ -708,6 +724,11 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                 </>
               )}
           </p>
+          {contributionStatus?.membership && (
+            <div className="contribution-debug-line">
+              📊 YTD contributions (current year): ${Number(contributionStatus.membership.ytdPaid || 0).toFixed(2)}
+            </div>
+          )}
 
           {error && <div className="contribution-error">{error}</div>}
 
@@ -717,7 +738,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
               {donationAmounts.map((amt) => (
                 <label
                   key={amt}
-                  className={`contribution-amount-option ${(!hasMembershipAccess && (amt === 60 || amt === 100)) ? 'membership-amount-option' : ''} ${selectedAmount === amt ? 'selected' : ''}`}
+                  className={`contribution-amount-option ${(!hasMembershipAccess && amt >= ACTIVATION_MIN_AMOUNT) ? 'membership-amount-option' : ''} ${selectedAmount === amt ? 'selected' : ''}`}
                 >
                   <input
                     type="radio"
@@ -728,15 +749,13 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                       setSelectedAmount(amt);
                       setCustomAmount('');
                       setError('');
+                      setShowTierInfo(false);
                     }}
                     disabled={loading}
                   />
                   <span className="contribution-amount-label">${amt}</span>
-                      {!hasMembershipAccess && amt === 60 && (
-                        <span className="contribution-amount-micro membership-benefit-micro">6 months</span>
-                      )}
-                      {!hasMembershipAccess && amt === 100 && (
-                        <span className="contribution-amount-micro membership-benefit-micro">10 months</span>
+                      {!hasMembershipAccess && amt >= ACTIVATION_MIN_AMOUNT && (
+                        <span className="contribution-amount-micro membership-benefit-micro">{getActivationMonthsLabel(amt)}</span>
                       )}
                   {amt === 100 && <span className="heart-badge">❤️</span>}
                 </label>
@@ -763,6 +782,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                       setCustomAmount(e.target.value);
                       setSelectedAmount('custom');
                       setError('');
+                      setShowTierInfo(false);
                     }}
                     onFocus={() => {
                       setSelectedAmount('custom');
@@ -772,11 +792,35 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
                     min="1"
                     disabled={loading}
                   />
+                  {!hasMembershipAccess && (
+                    <button
+                      type="button"
+                      className={`tier-info-trigger ${showTierInfo ? 'open' : ''}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedAmount('custom');
+                        setShowTierInfo((prev) => !prev);
+                      }}
+                      aria-label="Show bonus tier months"
+                      title="Show bonus tier months"
+                    >
+                      ?
+                    </button>
+                  )}
                 </span>
-                {!hasMembershipAccess && (
+                {!hasMembershipAccess && !showTierInfo && (
                   <span className="contribution-amount-micro contribution-custom-micro">
                     🙏 Prorated at ${PRORATE_PER_MONTH}/month (minimum ${ACTIVATION_MIN_AMOUNT})
                   </span>
+                )}
+                {!hasMembershipAccess && showTierInfo && (
+                  <div className="tier-info-popover" onClick={(e) => e.stopPropagation()}>
+                    <div className="tier-info-title">Bonus Tiers</div>
+                    <div className="tier-info-row"><span>$150</span><span>18 months</span></div>
+                    <div className="tier-info-row"><span>$175</span><span>24 months</span></div>
+                    <div className="tier-info-row"><span>$200+</span><span>36 months</span></div>
+                  </div>
                 )}
               </label>
             </div>

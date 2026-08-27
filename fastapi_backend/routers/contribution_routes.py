@@ -27,7 +27,7 @@ router = APIRouter(prefix="/api/contributions", tags=["Contributions"])
 # ============================================================================
 
 async def get_ytd_contributions(username: str, db: AsyncIOMotorDatabase) -> float:
-    """Calculate year-to-date contributions for a user"""
+    """Calculate year-to-date paid contributions for a user (contribution flows only)."""
     current_year = datetime.now().year
     start_of_year = datetime(current_year, 1, 1)
     end_of_year = datetime(current_year, 12, 31, 23, 59, 59)
@@ -37,7 +37,9 @@ async def get_ytd_contributions(username: str, db: AsyncIOMotorDatabase) -> floa
             {
                 "$match": {
                     "username": username,
-                    "paymentType": {"$in": ["contribution_one_time", "contribution_recurring", "membership_one_time", "membership_3_month", "membership_1_year"]},
+                    # Keep this aligned with admin-hub contribution screens:
+                    # only real contribution flows (one-time + recurring).
+                    "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
                     "status": {"$in": ["completed", "succeeded", "paid", None]},
                     "createdAt": {"$gte": start_of_year, "$lte": end_of_year}
                 }
