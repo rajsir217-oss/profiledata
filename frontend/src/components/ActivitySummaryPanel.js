@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { getBackendUrl } from '../config/apiConfig';
-import ContributionPopup from './ContributionPopup';
 import './ActivitySummaryPanel.css';
 
 const ActivitySummaryPanel = ({ username, onClose }) => {
@@ -10,8 +9,6 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activatingStatus, setActivatingStatus] = useState(false);
-  const [showMembershipPopup, setShowMembershipPopup] = useState(false);
-  const [membershipStatus, setMembershipStatus] = useState(null);
   const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
   // Reminder send state — 'email' | 'sms' while in flight, null otherwise.
   // `reminderToast` shows a transient success/error message under the buttons.
@@ -75,14 +72,6 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
         // Reload activity data to show updated status
         const activityRes = await api.get(`/user-activity-summary/${username}`);
         setData(activityRes.data);
-        // Reload membership status
-        const membershipRes = await fetch(`${getBackendUrl()}/api/contributions/contribution-status`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (membershipRes.ok) {
-          const membershipData = await membershipRes.json();
-          setMembershipStatus(membershipData.membership);
-        }
         // Dispatch event to update TopBar membership status
         window.dispatchEvent(new CustomEvent('membershipChanged'));
       } else {
@@ -105,16 +94,6 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
         setLoading(true);
         const res = await api.get(`/user-activity-summary/${username}`);
         setData(res.data);
-        
-        // Load membership status
-        const token = localStorage.getItem('token');
-        const membershipRes = await fetch(`${getBackendUrl()}/api/contributions/contribution-status`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (membershipRes.ok) {
-          const membershipData = await membershipRes.json();
-          setMembershipStatus(membershipData.membership);
-        }
       } catch (err) {
         setError(err.response?.data?.detail || 'Failed to load activity summary');
       } finally {
@@ -526,6 +505,15 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
                 <span className="stat-number">{d.contributions?.recurringCount || 0}</span>
                 <span className="stat-label">Recurring</span>
               </div>
+              <div className="activity-stat">
+                <button
+                  className="activity-reset-membership-btn"
+                  onClick={handleResetMembership}
+                  title="Reset membership to test payment flow"
+                >
+                  🔄 Reset
+                </button>
+              </div>
             </div>
             <div className="activity-grid">
               <div className="activity-item">
@@ -580,68 +568,8 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
               <p className="activity-empty">No contributions yet.</p>
             )}
           </div>
-
-          {/* Admin Membership Section - Only if user has active membership */}
-          {membershipStatus && membershipStatus.hasAccess && (
-            <div className="admin-membership-section">
-              <div className="admin-membership-header">
-                <span className="admin-membership-icon">👑</span>
-                <span className="admin-membership-title">Grant Membership</span>
-              </div>
-              <div className="admin-membership-status">
-                <span className="membership-status-label">Current:</span>
-                <span className="membership-status-value">
-                  {membershipStatus.type === 'one_time' ? '🏆 One-Time (Lifetime)' :
-                   membershipStatus.type === '3_month' ? '⏰ 3-Month' :
-                   membershipStatus.type === '1_year' ? '⭐ 1-Year' : 'None'}
-                </span>
-                {membershipStatus.endDate && (
-                  <span className="membership-status-expiry">
-                    • Expires: {new Date(membershipStatus.endDate).toLocaleDateString()}
-                  </span>
-                )}
-                <button
-                  className="membership-reset-btn"
-                  onClick={handleResetMembership}
-                  title="Reset membership to test payment flow"
-                >
-                  🔄 Reset
-                </button>
-              </div>
-              <div className="admin-membership-actions">
-                <button
-                  className="admin-membership-btn"
-                  onClick={() => setShowMembershipPopup(true)}
-                >
-                  🏆 Grant One-Time ($50)
-                </button>
-                <button
-                  className="admin-membership-btn"
-                  onClick={() => setShowMembershipPopup(true)}
-                >
-                  ⏰ Grant 3-Month ($30)
-                </button>
-                <button
-                  className="admin-membership-btn"
-                  onClick={() => setShowMembershipPopup(true)}
-                >
-                  ⭐ Grant 1-Year ($100)
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
-
-      {/* Membership Popup (now powered by ContributionPopup in membership mode) */}
-      {showMembershipPopup && (
-        <ContributionPopup
-          isOpen={showMembershipPopup}
-          onClose={() => setShowMembershipPopup(false)}
-          contributionConfig={null}
-          membershipMode={true}
-        />
-      )}
 
       {/* Reset Confirmation Modal */}
       {showResetConfirmModal && (

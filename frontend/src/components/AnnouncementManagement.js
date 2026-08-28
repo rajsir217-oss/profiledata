@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import useToast from '../hooks/useToast';
-import DeleteButton from './DeleteButton';
 import RichTextEditor from './shared/RichTextEditor';
 import logger from '../utils/logger';
 import TipsManagement from './TipsManagement';
@@ -60,6 +59,7 @@ const AnnouncementManagement = () => {
   });
   const [savingSettings, setSavingSettings] = useState(false);
   const [formData, setFormData] = useState({
+    title: '',
     message: '',
     type: 'info',
     priority: 'medium',
@@ -70,7 +70,8 @@ const AnnouncementManagement = () => {
     icon: '',
     startDate: '',
     endDate: '',
-    recurringFrequencyDays: ''
+    recurringFrequencyDays: '',
+    showInTicker: true
   });
 
   useEffect(() => {
@@ -180,6 +181,7 @@ const AnnouncementManagement = () => {
   const handleCreate = () => {
     setEditingId(null);
     setFormData({
+      title: '',
       message: '',
       type: 'info',
       priority: 'medium',
@@ -188,6 +190,7 @@ const AnnouncementManagement = () => {
       linkText: '',
       dismissible: true,
       icon: '',
+      showInTicker: true,
       startDate: '',
       endDate: '',
       recurringFrequencyDays: ''
@@ -198,6 +201,7 @@ const AnnouncementManagement = () => {
   const handleClone = (announcement) => {
     setEditingId(null);
     setFormData({
+      title: announcement.title || '',
       message: announcement.message,
       type: announcement.type,
       priority: announcement.priority,
@@ -206,6 +210,7 @@ const AnnouncementManagement = () => {
       linkText: announcement.linkText || '',
       dismissible: announcement.dismissible,
       icon: announcement.icon || '',
+      showInTicker: announcement.showInTicker !== false,
       startDate: '',
       endDate: '',
       recurringFrequencyDays: announcement.recurringFrequencyDays || ''
@@ -214,8 +219,33 @@ const AnnouncementManagement = () => {
   };
 
   const handleEdit = (announcement) => {
-    setEditingId(announcement.id);
+    const id = announcement.id || announcement._id;
+    logger.debug('📝 Editing announcement:', announcement);
+    setEditingId(id);
+    
+    // Convert ISO dates to datetime-local format for the inline form
+    const formatDateTimeLocal = (isoDate) => {
+      if (!isoDate) return '';
+      const date = new Date(isoDate);
+      if (isNaN(date.getTime())) return '';
+      // datetime-local expects: YYYY-MM-DDTHH:mm
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+    
+    // Strip HTML from message for title fallback
+    const stripHtml = (html) => {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      return tmp.textContent || tmp.innerText || '';
+    };
+    
     setFormData({
+      title: announcement.title || stripHtml(announcement.message)?.substring(0, 100) || '',
       message: announcement.message,
       type: announcement.type,
       priority: announcement.priority,
@@ -224,9 +254,15 @@ const AnnouncementManagement = () => {
       linkText: announcement.linkText || '',
       dismissible: announcement.dismissible,
       icon: announcement.icon || '',
-      startDate: announcement.startDate ? announcement.startDate.split('T')[0] : '',
-      endDate: announcement.endDate ? announcement.endDate.split('T')[0] : '',
+      showInTicker: announcement.showInTicker !== false,
+      startDate: formatDateTimeLocal(announcement.startDate),
+      endDate: formatDateTimeLocal(announcement.endDate),
       recurringFrequencyDays: announcement.recurringFrequencyDays || ''
+    });
+    logger.debug('📝 Form data set:', {
+      title: announcement.title || stripHtml(announcement.message)?.substring(0, 100),
+      startDate: formatDateTimeLocal(announcement.startDate),
+      endDate: formatDateTimeLocal(announcement.endDate)
     });
     setShowForm(true);
   };
@@ -235,6 +271,10 @@ const AnnouncementManagement = () => {
     e.preventDefault();
 
     // Validate required fields
+    if (!formData.title || formData.title.trim() === '') {
+      toast.error('Title is required');
+      return;
+    }
     if (!formData.message || formData.message.trim() === '') {
       toast.error('Message is required');
       return;
@@ -244,17 +284,21 @@ const AnnouncementManagement = () => {
       // Convert date strings to ISO datetime format
       const convertToISO = (dateString) => {
         if (!dateString) return null;
-        // Date input gives "YYYY-MM-DD", convert to "YYYY-MM-DDTHH:MM:SS"
-        return `${dateString}T00:00:00`;
+        // Date input gives "YYYY-MM-DD", convert to ISO format with timezone
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return null;
+        return date.toISOString();
       };
 
       // Clean up payload - remove empty strings for optional fields
       const payload = {
+        title: formData.title,
         message: formData.message,
         type: formData.type,
         priority: formData.priority,
         targetAudience: formData.targetAudience,
         dismissible: formData.dismissible,
+        showInTicker: formData.showInTicker,
         startDate: convertToISO(formData.startDate),
         endDate: convertToISO(formData.endDate),
         recurringFrequencyDays: formData.recurringFrequencyDays ? parseInt(formData.recurringFrequencyDays) : null
@@ -269,10 +313,12 @@ const AnnouncementManagement = () => {
 
       if (editingId) {
         // Update
-        await announcementsApi.put(`/announcements/admin/${editingId}`, payload);
+        const response = await announcementsApi.put(`/announcements/admin/${editingId}`, payload);
+        logger.debug('📥 Update response:', response.data);
       } else {
         // Create
-        await announcementsApi.post('/announcements/admin/create', payload);
+        const response = await announcementsApi.post('/announcements/admin/create', payload);
+        logger.debug('📥 Create response:', response.data);
       }
 
       setShowForm(false);
@@ -439,6 +485,21 @@ const AnnouncementManagement = () => {
 
                 <div className="form-row">
                   <div className="form-group">
+                    <label>Type</label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) => setFormData({...formData, type: e.target.value})}
+                    >
+                      <option value="info">ℹ️ Info</option>
+                      <option value="success">✅ Success</option>
+                      <option value="warning">⚠️ Warning</option>
+                      <option value="error">❌ Error</option>
+                      <option value="maintenance">🔧 Maintenance</option>
+                      <option value="promotion">🎉 Promotion</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
                     <label>Priority</label>
                     <select
                       value={formData.priority}
@@ -458,14 +519,13 @@ const AnnouncementManagement = () => {
                       onChange={(e) => setFormData({...formData, targetAudience: e.target.value})}
                     >
                       <option value="all">All Users</option>
-                      <option value="active">Active Users</option>
-                      <option value="pending">Pending Users</option>
-                      <option value="premium">Premium Members</option>
+                      <option value="authenticated">Authenticated</option>
+                      <option value="admins">Admins Only</option>
+                      <option value="premium">Premium Users</option>
+                      <option value="free">Free Users</option>
                     </select>
                   </div>
-                </div>
 
-                <div className="form-row">
                   <div className="form-group">
                     <label>Start Date</label>
                     <input
@@ -485,17 +545,15 @@ const AnnouncementManagement = () => {
                     />
                     <small>Leave empty for no expiry</small>
                   </div>
-                </div>
 
-                <div className="form-group">
-                  <label>
+                  <div className="form-group">
+                    <label>Show Ticker</label>
                     <input
                       type="checkbox"
                       checked={formData.showInTicker}
                       onChange={(e) => setFormData({...formData, showInTicker: e.target.checked})}
                     />
-                    Show in Info Ticker
-                  </label>
+                  </div>
                 </div>
 
                 <div className="form-actions">
@@ -511,11 +569,16 @@ const AnnouncementManagement = () => {
                       setFormData({
                         title: '',
                         message: '',
+                        type: 'info',
                         priority: 'medium',
                         targetAudience: 'all',
+                        link: '',
+                        linkText: '',
+                        dismissible: true,
+                        icon: '',
                         startDate: '',
                         endDate: '',
-                        showInTicker: true
+                        recurringFrequencyDays: ''
                       });
                     }}
                   >
@@ -526,7 +589,7 @@ const AnnouncementManagement = () => {
             </div>
           )}
 
-          {/* Announcements List */}
+          {/* Announcements List - Table View */}
           <div className="announcements-list">
             {loading ? (
               <div className="loading-state">Loading announcements...</div>
@@ -537,51 +600,71 @@ const AnnouncementManagement = () => {
                 <p>Create your first announcement to get started</p>
               </div>
             ) : (
-              <div className="announcements-grid">
-                {announcements.map(announcement => (
-                  <div
-                    key={announcement._id}
-                    className={`announcement-card ${getPriorityBadge(announcement.priority).class}`}
-                  >
-                    <div className="announcement-header">
-                      <h3>{announcement.title}</h3>
-                      <span className={`priority-badge ${getPriorityBadge(announcement.priority).class}`}>
-                        {getPriorityBadge(announcement.priority).label}
-                      </span>
-                    </div>
-                    <div
-                      className="announcement-message"
-                      dangerouslySetInnerHTML={{ __html: announcement.message }}
-                    />
-                    <div className="announcement-meta">
-                      <span className="meta-item">
-                        🎯 {announcement.targetAudience || 'All Users'}
-                      </span>
-                      <span className="meta-item">
-                        📅 {new Date(announcement.createdAt).toLocaleDateString()}
-                      </span>
-                      {announcement.showInTicker && (
-                        <span className="meta-item">
-                          📋 In Ticker
-                        </span>
-                      )}
-                    </div>
-                    <div className="announcement-actions">
-                      <button
-                        className="btn-edit"
-                        onClick={() => handleEdit(announcement)}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <DeleteButton
-                        onDelete={() => handleDelete(announcement._id)}
-                        itemName="announcement"
-                        size="small"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <table className="announcements-table">
+                <thead>
+                  <tr>
+                    <th>TITLE</th>
+                    <th>MESSAGE</th>
+                    <th>Priority</th>
+                    <th>Audience</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Show Ticker</th>
+                    <th>action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {announcements.map(announcement => {
+                    const stripHtml = (html) => {
+                      const tmp = document.createElement('div');
+                      tmp.innerHTML = html;
+                      return tmp.textContent || tmp.innerText || '';
+                    };
+                    
+                    const audienceLabels = {
+                      'all': 'all',
+                      'authenticated': 'authenticated',
+                      'admins': 'admins',
+                      'premium': 'premium',
+                      'free': 'free',
+                      'active': 'authenticated',
+                      'pending': 'free'
+                    };
+                    
+                    return (
+                    <tr key={announcement._id}>
+                      <td>{announcement.title || stripHtml(announcement.message)?.substring(0, 50) || ''}</td>
+                      <td>{stripHtml(announcement.message)?.substring(0, 100) || ''}</td>
+                      <td>{getPriorityBadge(announcement.priority).label}</td>
+                      <td>{audienceLabels[announcement.targetAudience] || announcement.targetAudience || 'all'}</td>
+                      <td>{announcement.startDate ? new Date(announcement.startDate).toLocaleDateString() : ''}</td>
+                      <td>{announcement.endDate ? new Date(announcement.endDate).toLocaleDateString() : ''}</td>
+                      <td>{announcement.showInTicker ? 'yes' : 'No'}</td>
+                      <td>
+                        <button
+                          className="btn-action btn-micro"
+                          onClick={() => handleEdit(announcement)}
+                          title="Edit"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          className="btn-action btn-micro"
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this announcement?')) {
+                              handleDelete(announcement.id || announcement._id);
+                            }
+                          }}
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                  })}
+                </tbody>
+              </table>
             )}
           </div>
         </>
@@ -634,6 +717,18 @@ const AnnouncementManagement = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="announcement-form">
+              {/* Title */}
+              <div className="form-group">
+                <label>Title *</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  required
+                  placeholder="Announcement title"
+                />
+              </div>
+
               {/* Message */}
               <div className="form-group">
                 <label>Message *</label>
@@ -827,6 +922,10 @@ const AnnouncementManagement = () => {
               </div>
 
               <div className="item-message" dangerouslySetInnerHTML={{ __html: announcement.message }} />
+
+              {announcement.title && announcement.title.trim() && (
+                <div className="item-title">{announcement.title}</div>
+              )}
 
               {(announcement.link || announcement.startDate || announcement.endDate) && (
                 <div className="item-details">

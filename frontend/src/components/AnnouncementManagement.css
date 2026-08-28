@@ -13,6 +13,73 @@
   padding-right: 0 !important;
 }
 
+/* Announcements Table */
+.announcements-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card-background);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.announcements-table thead {
+  background: var(--primary-color);
+}
+
+.announcements-table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+  border-bottom: 2px solid var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.announcements-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.announcements-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.announcements-table tbody tr:hover {
+  background: var(--hover-background);
+}
+
+.announcements-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.announcements-table td .btn-action {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: 4px;
+  transition: all 0.2s ease;
+}
+
+.announcements-table td .btn-action:hover {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+  transform: scale(1.1);
+}
+
+.announcements-table td .btn-micro {
+  padding: 4px 6px;
+  font-size: 12px;
+  min-width: 28px;
+}
+
 /* Tab Navigation - Pill Style */
 .tab-navigation {
   display: flex;
@@ -536,6 +603,19 @@
   color: var(--text-color);
 }
 
+.announcement-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-xs);
+}
+
+.announcement-message {
+  font-size: 1rem;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-color);
+}
+
 .item-details {
   display: flex;
   flex-wrap: wrap;
@@ -572,14 +652,15 @@
 .btn-edit {
   background: var(--card-bg);
   border: 2px solid var(--border-color);
-  padding: 8px 20px;
+  padding: 8px 16px;
   border-radius: 50px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  width: 120px;
+  min-width: 100px;
   color: var(--text-color);
+  white-space: nowrap;
 }
 
 .btn-clone:hover {
@@ -715,8 +796,8 @@
   }
 
   .btn-edit {
-    width: 110px;
-    padding: 8px 16px;
+    min-width: 100px;
+    padding: 8px 14px;
     font-size: 0.8125rem;
   }
 

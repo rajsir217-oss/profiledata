@@ -38,6 +38,7 @@ class AnnouncementTargetAudience(str, Enum):
 
 class AnnouncementBase(BaseModel):
     """Base announcement fields"""
+    title: Optional[str] = Field(None, max_length=200, description="Announcement title")
     message: str = Field(..., min_length=1, max_length=5000, description="Announcement message (supports HTML)")
     type: AnnouncementType = Field(default=AnnouncementType.INFO, description="Announcement type")
     priority: AnnouncementPriority = Field(default=AnnouncementPriority.MEDIUM, description="Priority level")
@@ -47,6 +48,7 @@ class AnnouncementBase(BaseModel):
     dismissible: bool = Field(default=True, description="Can users dismiss this announcement")
     icon: Optional[str] = Field(None, description="Optional emoji icon")
     recurringFrequencyDays: Optional[int] = Field(None, ge=1, le=30, description="Show every N days (null = one-time)")
+    showInTicker: Optional[bool] = Field(True, description="Show in info ticker")
 
 
 class AnnouncementCreate(AnnouncementBase):
@@ -57,6 +59,7 @@ class AnnouncementCreate(AnnouncementBase):
 
 class AnnouncementUpdate(BaseModel):
     """Update announcement request (all fields optional)"""
+    title: Optional[str] = Field(None, max_length=200)
     message: Optional[str] = Field(None, min_length=1, max_length=5000)
     type: Optional[AnnouncementType] = None
     priority: Optional[AnnouncementPriority] = None
@@ -69,6 +72,7 @@ class AnnouncementUpdate(BaseModel):
     startDate: Optional[datetime] = None
     endDate: Optional[datetime] = None
     recurringFrequencyDays: Optional[int] = Field(None, ge=1, le=30)
+    showInTicker: Optional[bool] = None
 
 
 class AnnouncementResponse(AnnouncementBase):
