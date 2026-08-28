@@ -642,14 +642,14 @@ const AnnouncementManagement = () => {
                       <td>{announcement.showInTicker ? 'yes' : 'No'}</td>
                       <td>
                         <button
-                          className="btn-action btn-micro"
+                          className="btn-icon"
                           onClick={() => handleEdit(announcement)}
                           title="Edit"
                         >
                           ✏️
                         </button>
                         <button
-                          className="btn-action btn-micro"
+                          className="btn-icon danger"
                           onClick={() => {
                             if (window.confirm('Are you sure you want to delete this announcement?')) {
                               handleDelete(announcement.id || announcement._id);
@@ -948,17 +948,23 @@ const AnnouncementManagement = () => {
               </div>
 
               <div className="item-actions">
-                <button onClick={() => handleClone(announcement)} className="btn-clone">
-                  📋 Clone
+                <button onClick={() => handleClone(announcement)} className="btn-icon" title="Clone">
+                  📋
                 </button>
-                <button onClick={() => handleEdit(announcement)} className="btn-edit">
-                  ✏️ Edit
+                <button onClick={() => handleEdit(announcement)} className="btn-icon" title="Edit">
+                  ✏️
                 </button>
-                <DeleteButton
-                  onDelete={() => handleDelete(announcement.id)}
-                  itemName="announcement"
-                  size="medium"
-                />
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete this announcement?')) {
+                      handleDelete(announcement.id);
+                    }
+                  }}
+                  className="btn-icon danger"
+                  title="Delete"
+                >
+                  🗑️
+                </button>
               </div>
             </div>
           ))

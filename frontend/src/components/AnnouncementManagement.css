@@ -639,49 +639,45 @@
   font-style: italic;
 }
 
+/* Action Buttons - Consistent with DynamicScheduler */
 .item-actions {
   display: flex;
-  justify-content: center;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 0.2rem;
   padding-top: 16px;
   border-top: 1px solid var(--border-color);
   margin-top: 12px;
 }
 
-.btn-clone,
-.btn-edit {
-  background: var(--card-bg);
-  border: 2px solid var(--border-color);
-  padding: 8px 16px;
-  border-radius: 50px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 100px;
-  color: var(--text-color);
-  white-space: nowrap;
+.item-actions .btn-icon {
+  background: none !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 999px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.75rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  flex: 0;
 }
 
-.btn-clone:hover {
-  background: var(--secondary-color, #6c757d);
-  color: white;
-  border-color: var(--secondary-color, #6c757d);
-  transform: translateY(-1px);
+.item-actions .btn-icon:hover {
+  background: var(--hover-background) !important;
+  border-color: var(--primary-color) !important;
+  transform: scale(1.1);
 }
 
-.btn-edit:hover {
-  background: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
-  transform: translateY(-1px);
-}
-
-/* DeleteButton styling override */
-.item-actions .delete-button {
-  width: 120px;
-  min-width: 120px;
-  max-width: 120px;
+.item-actions .btn-icon.danger:hover {
+  background: var(--danger-light) !important;
+  border-color: var(--danger-color) !important;
 }
 
 /* Responsive */
@@ -790,21 +786,15 @@
   }
 
   .item-actions {
-    flex-direction: row;
-    justify-content: center;
-    gap: 10px;
+    gap: 0.25rem;
   }
 
-  .btn-edit {
-    min-width: 100px;
-    padding: 8px 14px;
-    font-size: 0.8125rem;
-  }
-
-  .item-actions .delete-button {
-    width: 110px;
-    min-width: 110px;
-    max-width: 110px;
+  .item-actions .btn-icon {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    font-size: 0.7rem !important;
   }
 }
 
