@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UniversalTabContainer from './UniversalTabContainer';
 import { useContribution } from '../contexts/ContributionContext';
-import ContributionPopup from './ContributionPopup';
 import SystemStatus from './SystemStatus';
 import PauseSettings from './PauseSettings';
 import { getBackendUrl } from '../config/apiConfig';
@@ -309,24 +308,6 @@ const UnifiedPreferences = () => {
   };
 
   const channels = ['email', 'sms', 'push'];
-
-  // Load contribution popup config (single source of truth from backend)
-  useEffect(() => {
-    const loadPopupConfig = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${getBackendUrl()}/api/contributions/contribution-status`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (response.data?.success && response.data.popupConfig) {
-          setContributionPopupConfig(response.data.popupConfig);
-        }
-      } catch (error) {
-        console.error('Error loading contribution config:', error);
-      }
-    };
-    loadPopupConfig();
-  }, []);
 
   // Load account preferences
   useEffect(() => {
@@ -2810,13 +2791,6 @@ const UnifiedPreferences = () => {
           </div>
         </div>
       )}
-
-      {/* Contribution Popup - using ContributionContext for consistent behavior */}
-      <ContributionPopup
-        isOpen={showPopup}
-        onClose={closePopup}
-        contributionConfig={contributionConfig}
-      />
     </div>
   );
 };

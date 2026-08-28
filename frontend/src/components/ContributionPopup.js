@@ -515,13 +515,16 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         });
         const config = await res.json();
         if (!res.ok) {
+          logger.error('Clover SDK config fetch failed:', config);
           setError(config?.detail || 'Clover card payments not available.');
           return;
         }
         if (!config.public_key) {
+          logger.error('Clover config missing public_key:', config);
           setError('Clover card payments not available.');
           return;
         }
+        logger.info('Clover SDK config loaded:', { public_key: config.public_key, sdk_url: config.sdk_url });
         setCloverConfig(config);
 
         // Load Clover SDK script if not already loaded
@@ -532,16 +535,29 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             const script = document.createElement('script');
             script.src = config.sdk_url;
             script.async = true;
-            script.onload = resolve;
-            script.onerror = () => reject(new Error('Failed to load Clover SDK'));
+            script.onload = () => {
+              logger.info('Clover SDK script loaded');
+              resolve();
+            };
+            script.onerror = () => {
+              logger.error('Failed to load Clover SDK script');
+              reject(new Error('Failed to load Clover SDK'));
+            };
             document.head.appendChild(script);
           });
+        }
+
+        // Verify Clover SDK is available
+        if (!window.Clover) {
+          setError('Clover SDK failed to load. Please try PayPal instead.');
+          return;
         }
 
         // Initialize Clover instance
         const clover = new window.Clover(config.public_key);
         cloverInstanceRef.current = clover;
         const elements = clover.elements();
+        logger.info('Clover instance initialized');
 
         // Mount card elements into DOM containers
         const styles = {
@@ -556,6 +572,17 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         // Small delay to ensure DOM containers are rendered
         setTimeout(() => {
           try {
+            // Check if DOM elements exist before mounting
+            const cardNumberEl = document.querySelector('#clover-card-number');
+            const cardDateEl = document.querySelector('#clover-card-date');
+            const cardCvvEl = document.querySelector('#clover-card-cvv');
+            const cardZipEl = document.querySelector('#clover-card-zip');
+
+            if (!cardNumberEl || !cardDateEl || !cardCvvEl || !cardZipEl) {
+              setError('Card form containers not found. Please try again.');
+              return;
+            }
+
             cardNumber.mount('#clover-card-number');
             cardDate.mount('#clover-card-date');
             cardCvv.mount('#clover-card-cvv');
@@ -563,11 +590,13 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             cloverMountedRef.current = true;
             setCloverReady(true);
           } catch (mountErr) {
-            setError('Failed to mount card form. Please try again.');
+            logger.error('Clover mount error:', mountErr);
+            setError(`Failed to mount card form: ${mountErr.message || 'Unknown error'}`);
           }
         }, 300);
       } catch (err) {
-        setError('Failed to initialize card payment form.');
+        logger.error('Clover initialization error:', err);
+        setError(`Failed to initialize card payment form: ${err.message || 'Unknown error'}`);
       }
     };
     initClover();
