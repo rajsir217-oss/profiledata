@@ -55,13 +55,19 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
     if (!membership.hasAccess) return 'No membership';
 
     if (membership.type === 'one_time') {
-      const ytdPaid = Number(membership.ytdPaid || 0);
-      if (ytdPaid >= 200) return '🙏 36-Months';
-      if (ytdPaid >= 175) return '🙏 24-Months';
-      if (ytdPaid >= 150) return '🙏 18-Months';
-      if (ytdPaid >= 100) return '🙏 12-Months';
-      const proratedMonths = Math.floor(ytdPaid / 10);
-      if (proratedMonths >= 6) return `🙏 ${proratedMonths}-Months`;
+      const largestPayment = Number(membership.largestPayment || 0);
+      if (largestPayment >= 200) return '🙏 36-Months';
+      if (largestPayment >= 175) return '🙏 24-Months';
+      if (largestPayment >= 150) return '🙏 18-Months';
+      if (largestPayment >= 100) return '🙏 12-Months';
+      if (largestPayment >= 60) {
+        const proratedMonths = Math.floor(largestPayment / 10);
+        if (proratedMonths >= 6) return `🙏 ${proratedMonths}-Months`;
+        return '✅ Active';
+      }
+      // For amounts < $60, show days at $1/day
+      const days = Math.floor(largestPayment);
+      if (days > 0) return `🙏 ${days} days`;
       return '✅ Active';
     }
     if (membership.type === '3_month') return '⏰ 3-Month';
@@ -1063,6 +1069,9 @@ const TopBar = ({ onSidebarToggle, isOpen, isPinned }) => {
                           ) : (
                             <span className="membership-inactive">No membership</span>
                           )}
+                          <span className="membership-explanation" title="Single payment ≥ $60 unlocks tier benefits. Amounts < $60 give $1/day access.">
+                            💡 Single payment ≥ $60 for tier benefits
+                          </span>
                         </span>
                       )}
                       {!membershipStatus && (

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UniversalTabContainer from './UniversalTabContainer';
+import { useContribution } from '../contexts/ContributionContext';
 import ContributionPopup from './ContributionPopup';
 import SystemStatus from './SystemStatus';
 import PauseSettings from './PauseSettings';
@@ -27,14 +28,15 @@ const UnifiedPreferences = () => {
   const location = useLocation();
   const [toast, setToast] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  
+  const { showPopup, openPopup, closePopup, contributionConfig } = useContribution();
+
   // Get initial tab from URL parameter
   const getInitialTab = () => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
     return tab || 'account';
   };
-  
+
   const [defaultTab] = useState(getInitialTab());
 
   // Account Settings State
@@ -72,13 +74,7 @@ const UnifiedPreferences = () => {
   });
   const [savedPaymentMethods, setSavedPaymentMethods] = useState([]);
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
-  
-  // Contribution Popup State
-  const [showContributionPopup, setShowContributionPopup] = useState(false);
-  const [contributionPopupConfig, setContributionPopupConfig] = useState({
-    amounts: [25, 50, 75, 100],
-    message: 'Support the platform'
-  });
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -1692,9 +1688,9 @@ const UnifiedPreferences = () => {
                   
                   {/* Make a Contribution Button - Top Center */}
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-                    <button 
+                    <button
                       className="btn-primary contribution-btn"
-                      onClick={() => setShowContributionPopup(true)}
+                      onClick={openPopup}
                       style={{ fontSize: '16px', padding: '12px 32px' }}
                     >
                       💝 Make a Contribution
@@ -2814,12 +2810,12 @@ const UnifiedPreferences = () => {
           </div>
         </div>
       )}
-      
-      {/* Contribution Popup */}
+
+      {/* Contribution Popup - using ContributionContext for consistent behavior */}
       <ContributionPopup
-        isOpen={showContributionPopup}
-        onClose={() => setShowContributionPopup(false)}
-        contributionConfig={contributionPopupConfig}
+        isOpen={showPopup}
+        onClose={closePopup}
+        contributionConfig={contributionConfig}
       />
     </div>
   );

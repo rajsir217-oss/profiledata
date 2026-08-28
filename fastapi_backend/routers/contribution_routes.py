@@ -31,7 +31,7 @@ async def get_ytd_contributions(username: str, db: AsyncIOMotorDatabase) -> floa
     current_year = datetime.now().year
     start_of_year = datetime(current_year, 1, 1)
     end_of_year = datetime(current_year, 12, 31, 23, 59, 59)
-    
+
     try:
         result = await db.payments.aggregate([
             {
@@ -51,11 +51,40 @@ async def get_ytd_contributions(username: str, db: AsyncIOMotorDatabase) -> floa
                 }
             }
         ]).to_list(length=1)
-        
+
         return result[0]["totalAmount"] if result else 0.0
     except Exception as e:
         logger.error(f"Error calculating YTD contributions for {username}: {e}")
         return 0.0
+
+
+async def get_largest_single_payment(username: str, db: AsyncIOMotorDatabase) -> dict:
+    """Get the largest single payment amount for a user (contribution flows only)."""
+    current_year = datetime.now().year
+    start_of_year = datetime(current_year, 1, 1)
+    end_of_year = datetime(current_year, 12, 31, 23, 59, 59)
+
+    try:
+        payment = await db.payments.find_one(
+            {
+                "username": username,
+                "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
+                "status": {"$in": ["completed", "succeeded", "paid", None]},
+                "createdAt": {"$gte": start_of_year, "$lte": end_of_year}
+            },
+            sort=[("amount", -1)]
+        )
+
+        if payment:
+            return {
+                "amount": payment.get("amount", 0),
+                "paymentType": payment.get("paymentType"),
+                "createdAt": payment.get("createdAt")
+            }
+        return {"amount": 0, "paymentType": None, "createdAt": None}
+    except Exception as e:
+        logger.error(f"Error getting largest single payment for {username}: {e}")
+        return {"amount": 0, "paymentType": None, "createdAt": None}
 
 
 async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> dict:
@@ -63,18 +92,22 @@ async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> di
     user = await db.users.find_one({"username": username})
     if not user:
         return {"hasAccess": False, "reason": "user_not_found"}
-    
+
     # Bypass membership check for admins and moderators
     if user.get("role") == "admin" or user.get("role_name") == "moderator":
         return {"hasAccess": True, "type": "privileged", "reason": "admin_or_moderator"}
-    
+
     membership = user.get("membership", {})
-    
-    # Check YTD contributions first
+
+    # Check YTD contributions for display purposes (admin screens)
     ytd_total = await get_ytd_contributions(username, db)
-    
-    # If YTD ≥ $60, treat as one-time paid
-    if ytd_total >= 60 and not membership.get("treatedAsOneTime"):
+
+    # Check largest single payment for membership eligibility
+    largest_payment = await get_largest_single_payment(username, db)
+    largest_amount = largest_payment.get("amount", 0)
+
+    # If largest single payment ≥ $60, treat as one-time paid with tier benefits
+    if largest_amount >= 60 and not membership.get("treatedAsOneTime"):
         try:
             await db.users.update_one(
                 {"username": username},
@@ -83,19 +116,19 @@ async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> di
                         "membership.type": "one_time",
                         "membership.status": "active",
                         "membership.treatedAsOneTime": True,
-                        "membership.ytdPaid": ytd_total,
+                        "membership.largestPayment": largest_amount,
                         "membership.startDate": datetime.utcnow()
                     }
                 }
             )
-            logger.info(f"✅ User {username} treated as one-time member (YTD: ${ytd_total:.2f})")
-            return {"hasAccess": True, "type": "one_time", "reason": "ytd_threshold_met", "ytdPaid": ytd_total}
+            logger.info(f"✅ User {username} treated as one-time member (single payment: ${largest_amount:.2f})")
+            return {"hasAccess": True, "type": "one_time", "reason": "single_payment_threshold_met", "largestPayment": largest_amount, "ytdPaid": ytd_total}
         except Exception as e:
             logger.error(f"Error updating membership status for {username}: {e}")
-    
+
     # No membership
     if membership.get("type") == "none" or not membership.get("type"):
-        return {"hasAccess": False, "reason": "no_membership", "ytdPaid": ytd_total}
+        return {"hasAccess": False, "reason": "no_membership", "largestPayment": largest_amount, "ytdPaid": ytd_total}
     
     # Check grace period
     if membership.get("status") == "grace_period":
@@ -378,10 +411,11 @@ async def get_contribution_status(
         # Check membership access
         membership_access = await check_membership_access(current_user["username"], db)
         ytd_total = membership_access.get("ytdPaid", 0)
-        
+        largest_payment = membership_access.get("largestPayment", 0)
+
         # Debug logging
         logger.info(f"💝 Contribution status for {current_user['username']}: site_settings exists={site_settings is not None}, contributions={contribution_config}, siteEnabled={site_enabled}")
-        
+
         # Resolve last contribution amount.
         # Preferred: the `contributions.lastContributionAmount` field stamped by
         # payment handlers. Fallback: look up the most recent contribution in
@@ -398,24 +432,24 @@ async def get_contribution_status(
             )
             if latest_payment:
                 last_amount = latest_payment.get("amount", 0) or 0
-        
+
         # Determine if popup should show based on membership
         show_popup = False
         popup_reason = "none"
-        
+
         if membership_access["hasAccess"]:
             # User has access, no popup needed
             show_popup = False
             popup_reason = "membership_active"
-        elif ytd_total >= 60:
-            # YTD threshold met, should be treated as one-time
+        elif largest_payment >= 60:
+            # Single payment threshold met, should be treated as one-time
             show_popup = False
-            popup_reason = "ytd_threshold_met"
+            popup_reason = "single_payment_threshold_met"
         else:
-            # No access and YTD < $60, show popup
+            # No access and largest payment < $60, show popup
             show_popup = True
             popup_reason = "membership_required"
-        
+
         return {
             "success": True,
             "siteEnabled": site_enabled,
@@ -433,6 +467,7 @@ async def get_contribution_status(
                 "hasAccess": membership_access["hasAccess"],
                 "accessReason": membership_access["reason"],
                 "ytdPaid": ytd_total,
+                "largestPayment": largest_payment,
                 "endDate": membership.get("endDate"),
                 "gracePeriodEnds": membership.get("gracePeriodEnds"),
                 "autoRenew": membership.get("autoRenew", False)
