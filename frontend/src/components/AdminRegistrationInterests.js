@@ -31,6 +31,12 @@ const HOW_DID_YOU_HEAR_LABELS = {
   word_of_mouth: 'Word of Mouth'
 };
 
+const REGISTERING_FOR_LABELS = {
+  myself: 'Myself',
+  my_son: 'Son',
+  my_daughter: 'Daughter'
+};
+
 const AdminRegistrationInterests = () => {
   const [interests, setInterests] = useState([]);
   const [total, setTotal] = useState(0);
@@ -479,6 +485,14 @@ const AdminRegistrationInterests = () => {
                     <div className="ari-detail-section">
                       <h4>How Did You Hear About Us</h4>
                       <p className="ari-detail-value">{HOW_DID_YOU_HEAR_LABELS[interest.howDidYouHear] || interest.howDidYouHear}</p>
+                    </div>
+                  )}
+
+                  {/* Registering For */}
+                  {interest.registeringFor && (
+                    <div className="ari-detail-section">
+                      <h4>I Am Registering For</h4>
+                      <p className="ari-detail-value">{REGISTERING_FOR_LABELS[interest.registeringFor] || interest.registeringFor}</p>
                     </div>
                   )}
 
