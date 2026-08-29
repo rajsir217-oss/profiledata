@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useToast from '../hooks/useToast';
+import DeleteButton from './DeleteButton';
 import { getBackendApiUrl } from '../utils/urlHelper';
 import './DynamicScheduler.css';
 import JobCreationModal from './JobCreationModal';
@@ -780,42 +781,41 @@ const DynamicScheduler = ({ currentUser }) => {
                     <td>{formatDate(job.last_run_at)}</td>
                     <td>{formatDate(job.next_run_at)}</td>
                     <td>
-                      <div className="job-actions">
+                      <div className="admin-action-btns">
                         <button 
-                          className="btn-icon" 
+                          className="btn-micro btn-micro-success" 
                           title="Run Now"
                           onClick={() => handleRunJob(job._id, job.name)}
                         >
                           ▶️
                         </button>
                         <button 
-                          className="btn-icon" 
+                          className="btn-micro btn-micro-primary" 
                           title="View History"
                           onClick={() => handleViewHistory(job)}
                         >
                           📊
                         </button>
                         <button 
-                          className="btn-icon" 
+                          className="btn-micro btn-micro-warning" 
                           title="Edit Job"
                           onClick={() => handleEditJob(job)}
                         >
                           ✏️
                         </button>
                         <button 
-                          className="btn-icon" 
+                          className={`btn-micro ${job.enabled ? 'btn-micro-secondary' : 'btn-micro-success'}`}
                           title={job.enabled ? 'Disable' : 'Enable'}
                           onClick={() => handleToggleEnabled(job._id, job.enabled)}
                         >
                           {job.enabled ? '⏸️' : '▶️'}
                         </button>
-                        <button 
-                          className="btn-icon danger" 
-                          title="Delete"
-                          onClick={() => handleDeleteJob(job._id, job.name)}
-                        >
-                          🗑️
-                        </button>
+                        <DeleteButton
+                          onDelete={() => handleDeleteJob(job._id, job.name)}
+                          itemName="job"
+                          confirmMessage={`Delete job "${job.name}"?`}
+                          size="small"
+                        />
                       </div>
                     </td>
                   </tr>

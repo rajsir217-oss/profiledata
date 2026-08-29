@@ -491,32 +491,37 @@ const SavedSearchNotificationManager = () => {
                     <span className="toggle-label">{isActive ? '🔔 On' : '🔕 Off'}</span>
                   </label>
                   
-                  {isActive && (
+                  <div className="admin-action-btns">
+                    {isActive && (
+                      <button 
+                        className="btn-micro btn-micro-warning"
+                        title="Override"
+                        onClick={() => openOverrideModal(search)}
+                        disabled={actionLoading}
+                      >
+                        ✏️
+                      </button>
+                    )}
                     <button 
-                      className="btn btn-sm btn-primary"
-                      onClick={() => openOverrideModal(search)}
+                      className="btn-micro btn-micro-info"
+                      title="Test"
+                      onClick={() => {
+                        setSelectedSearch(search);
+                        setShowTestModal(true);
+                      }}
                       disabled={actionLoading}
                     >
-                      ✏️ Override
+                      🧪
                     </button>
-                  )}
-                  <button 
-                    className="btn btn-sm btn-info"
-                    onClick={() => {
-                      setSelectedSearch(search);
-                      setShowTestModal(true);
-                    }}
-                    disabled={actionLoading}
-                  >
-                    🧪 Test
-                  </button>
-                  <button 
-                    className="btn btn-sm btn-secondary"
-                    onClick={() => handleViewLog(search)}
-                    disabled={actionLoading}
-                  >
-                    📋 View Log
-                  </button>
+                    <button 
+                      className="btn-micro btn-micro-primary"
+                      title="View Log"
+                      onClick={() => handleViewLog(search)}
+                      disabled={actionLoading}
+                    >
+                      📋
+                    </button>
+                  </div>
                 </div>
               </div>
             );

@@ -146,6 +146,42 @@
 .btn-micro-success { border-color: var(--success-color, #22c55e); color: var(--success-color, #22c55e); }
 .btn-micro-success:hover:not(:disabled) { background: var(--success-color, #22c55e); color: #fff; }
 
+/* DeleteButton override inside admin action group */
+.admin-action-btns .delete-button {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid var(--danger-color, #ef4444) !important;
+  background: var(--surface-color, #f5f5f5) !important;
+  color: var(--danger-color, #ef4444) !important;
+  font-size: 10px !important;
+  padding: 0 !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.admin-action-btns .delete-button:hover:not(:disabled) {
+  background: var(--danger-color, #ef4444) !important;
+  color: #fff !important;
+  transform: scale(1.2) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+}
+
+.admin-action-btns .delete-button.confirming {
+  background: var(--danger-color, #ef4444) !important;
+  color: #fff !important;
+  width: auto !important;
+  min-width: 60px !important;
+  border-radius: 12px !important;
+  font-size: 9px !important;
+  padding: 0 6px !important;
+}
+
 /* ========================================
    MODAL COMPONENTS
    ======================================== */

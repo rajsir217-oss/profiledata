@@ -885,16 +885,16 @@ const PromoCodeManager = () => {
                     </span>
                   </td>
                   <td>
-                    <div className="action-buttons">
+                    <div className="admin-action-btns">
                       <button
-                        className="btn-action btn-qr"
+                        className="btn-micro btn-micro-info"
                         onClick={() => setQrCodeModal(code)}
                         title="View QR Code & Invitation Link"
                       >
                         📱
                       </button>
                       <button
-                        className="btn-action btn-edit"
+                        className="btn-micro btn-micro-warning"
                         onClick={() => handleEdit(code)}
                         title="Edit"
                       >
@@ -906,7 +906,7 @@ const PromoCodeManager = () => {
                         if (isSystemCode) {
                           return (
                             <button
-                              className="btn-action btn-system"
+                              className="btn-micro btn-micro-secondary"
                               disabled
                               title="System code - cannot be deleted"
                             >
@@ -914,19 +914,18 @@ const PromoCodeManager = () => {
                             </button>
                           );
                         }
-                        
+
                         const hasUsage = (code.currentUses > 0 || code.registrations > 0);
                         const isExpired = code.validUntil && new Date(code.validUntil) < new Date();
                         const isActive = code.isActive;
                         // Safe to delete: no usage AND (expired OR inactive)
                         const safeToDelete = !hasUsage && (isExpired || !isActive);
-                        
+
                         if (safeToDelete) {
                           return (
                             <DeleteButton
                               onDelete={() => handleDelete(code.code)}
                               itemName={code.code}
-                              buttonClassName="btn-action btn-delete"
                             />
                           );
                         } else {
@@ -935,7 +934,7 @@ const PromoCodeManager = () => {
                           if (!isExpired && isActive) reasons.push('not expired and still active');
                           return (
                             <button
-                              className="btn-action btn-archive"
+                              className="btn-micro btn-micro-secondary"
                               onClick={() => setArchiveCode(code)}
                               title={`Protected: ${reasons.join('; ')} - Click to archive`}
                             >
@@ -1662,9 +1661,9 @@ const PromoCodeManager = () => {
                       <td>{code.currentUses || 0} / {code.registrations || 0}</td>
                       <td>{code.archivedAt ? new Date(code.archivedAt).toLocaleDateString() : '-'}</td>
                       <td>
-                        <div className="action-buttons">
+                        <div className="admin-action-btns">
                           <button
-                            className="btn-action btn-restore"
+                            className="btn-micro btn-micro-success"
                             onClick={() => handleRestore(code.code)}
                             title="Restore this promo code"
                           >
@@ -1673,7 +1672,6 @@ const PromoCodeManager = () => {
                           <DeleteButton
                             onDelete={() => handleDeleteArchived(code.code)}
                             itemName={code.code}
-                            buttonClassName="btn-action btn-delete"
                           />
                         </div>
                       </td>

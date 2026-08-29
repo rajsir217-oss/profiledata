@@ -615,17 +615,17 @@ const ActivityLogs = () => {
         />
         
         {/* Action buttons row */}
-        <div className="action-buttons-row">
-          <button 
-            className="btn-primary"
+        <div className="admin-action-btns">
+          <button
+            className="btn-micro btn-micro-primary"
             onClick={handleSearch}
+            title="Search"
           >
-            <span className="search-icon">🔍</span>
-            <span className="search-text"> Search</span>
+            🔍
           </button>
-          
-          <button 
-            className="btn-secondary"
+
+          <button
+            className="btn-micro btn-micro-secondary"
             onClick={() => {
               setSearchTerm('');
               setTargetSearch('');
@@ -634,11 +634,10 @@ const ActivityLogs = () => {
             }}
             title="Clear filters"
           >
-            <span className="clear-icon">✕</span>
-            <span className="clear-text">Clear</span>
+            ✕
           </button>
-          
-          <select 
+
+          <select
             className="export-dropdown"
             value={exportValue}
             onChange={(e) => {
@@ -648,12 +647,13 @@ const ActivityLogs = () => {
                 setExportValue(''); // Reset to default
               }
             }}
+            title="Export"
           >
             <option value="">📥</option>
             <option value="json">JSON</option>
             <option value="csv">CSV</option>
           </select>
-          
+
           <DeleteButton
             onDelete={handleCleanup}
             itemName="logs >30 days"
@@ -662,7 +662,7 @@ const ActivityLogs = () => {
             confirmIcon="✓"
             confirmText="Cleanup?"
           />
-          
+
           {selectedLogs.length > 0 && (
             <DeleteButton
               onDelete={handleBulkDelete}
@@ -757,11 +757,13 @@ const ActivityLogs = () => {
                         </button>
                       </td>
                       <td className="delete-col">
-                        <DeleteButton
-                          onDelete={() => handleDeleteLog(log._id)}
-                          itemName="log"
-                          size="small"
-                        />
+                        <div className="admin-action-btns">
+                          <DeleteButton
+                            onDelete={() => handleDeleteLog(log._id)}
+                            itemName="log"
+                            size="small"
+                          />
+                        </div>
                       </td>
                     </tr>
                     {isExpanded && (
