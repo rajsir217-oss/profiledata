@@ -48,6 +48,7 @@ tmux-server-*.log
 
 # Devin local skills
 .devin/skills/
+.devin/skills/caveman/
 
 # Backup archives
 fastapi_backend/backups/*.archive.gz
