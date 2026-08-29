@@ -641,24 +641,26 @@ const AnnouncementManagement = () => {
                       <td>{announcement.endDate ? new Date(announcement.endDate).toLocaleDateString() : ''}</td>
                       <td>{announcement.showInTicker ? 'yes' : 'No'}</td>
                       <td>
-                        <button
-                          className="btn-icon"
-                          onClick={() => handleEdit(announcement)}
-                          title="Edit"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          className="btn-icon danger"
-                          onClick={() => {
-                            if (window.confirm('Are you sure you want to delete this announcement?')) {
-                              handleDelete(announcement.id || announcement._id);
-                            }
-                          }}
-                          title="Delete"
-                        >
-                          🗑️
-                        </button>
+                        <div className="admin-action-btns">
+                          <button
+                            className="btn-micro btn-micro-warning"
+                            onClick={() => handleEdit(announcement)}
+                            title="Edit"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            className="btn-micro btn-micro-danger"
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to delete this announcement?')) {
+                                handleDelete(announcement.id || announcement._id);
+                              }
+                            }}
+                            title="Delete"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -947,11 +949,11 @@ const AnnouncementManagement = () => {
                 <span className="item-creator">Created by {announcement.createdBy}</span>
               </div>
 
-              <div className="item-actions">
-                <button onClick={() => handleClone(announcement)} className="btn-icon" title="Clone">
+              <div className="admin-action-btns">
+                <button onClick={() => handleClone(announcement)} className="btn-micro btn-micro-info" title="Clone">
                   📋
                 </button>
-                <button onClick={() => handleEdit(announcement)} className="btn-icon" title="Edit">
+                <button onClick={() => handleEdit(announcement)} className="btn-micro btn-micro-warning" title="Edit">
                   ✏️
                 </button>
                 <button
@@ -960,7 +962,7 @@ const AnnouncementManagement = () => {
                       handleDelete(announcement.id);
                     }
                   }}
-                  className="btn-icon danger"
+                  className="btn-micro btn-micro-danger"
                   title="Delete"
                 >
                   🗑️

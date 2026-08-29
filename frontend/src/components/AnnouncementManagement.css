@@ -56,30 +56,6 @@
   color: var(--text-color);
 }
 
-.announcements-table td .btn-action {
-  background: var(--surface-color);
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  margin-right: 4px;
-  transition: all 0.2s ease;
-}
-
-.announcements-table td .btn-action:hover {
-  background: var(--hover-background);
-  border-color: var(--primary-color);
-  transform: scale(1.1);
-}
-
-.announcements-table td .btn-micro {
-  padding: 4px 6px;
-  font-size: 12px;
-  min-width: 28px;
-}
-
 /* Tab Navigation - Pill Style */
 .tab-navigation {
   display: flex;
@@ -639,45 +615,9 @@
   font-style: italic;
 }
 
-/* Action Buttons - Consistent with DynamicScheduler */
-.item-actions {
-  display: flex;
-  justify-content: flex-start;
-  gap: 0.2rem;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-color);
-  margin-top: 12px;
-}
-
-.item-actions .btn-icon {
-  background: none !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: 999px !important;
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  min-height: 32px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 0.75rem !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  padding: 0 !important;
-  line-height: 1 !important;
-  box-sizing: border-box !important;
-  flex: 0;
-}
-
-.item-actions .btn-icon:hover {
-  background: var(--hover-background) !important;
-  border-color: var(--primary-color) !important;
-  transform: scale(1.1);
-}
-
-.item-actions .btn-icon.danger:hover {
-  background: var(--danger-light) !important;
-  border-color: var(--danger-color) !important;
+/* Action Buttons - consistent global classes */
+.announcements-table td .admin-action-btns {
+  justify-content: center;
 }
 
 /* Responsive */
@@ -783,18 +723,6 @@
   .item-status {
     width: 100%;
     justify-content: flex-end;
-  }
-
-  .item-actions {
-    gap: 0.25rem;
-  }
-
-  .item-actions .btn-icon {
-    width: 20px !important;
-    height: 20px !important;
-    min-width: 20px !important;
-    min-height: 20px !important;
-    font-size: 0.7rem !important;
   }
 }
 

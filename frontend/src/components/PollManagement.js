@@ -756,77 +756,84 @@ const PollManagement = () => {
                 <div className="poll-card-description" dangerouslySetInnerHTML={{ __html: poll.description }} />
               )}
               
-              <div className="poll-card-actions">
-                <button 
-                  className="poll-action-btn poll-action-results"
+              <div className="admin-action-btns">
+                <button
+                  className="btn-micro btn-micro-info"
                   onClick={() => handleViewResults(poll)}
+                  title="Results"
                 >
-                  📈 Results
+                  📈
                 </button>
-                
-                <button 
-                  className="poll-action-btn poll-action-clone"
+
+                <button
+                  className="btn-micro btn-micro-secondary"
                   onClick={() => handleClonePoll(poll)}
-                  title="Clone this poll"
+                  title="Clone"
                 >
-                  📋 Clone
+                  📋
                 </button>
-                
+
                 {(poll.status === 'active' || poll.status === 'draft' || poll.status === 'closed') && (
-                  <button 
-                    className="poll-action-btn poll-action-edit"
+                  <button
+                    className="btn-micro btn-micro-warning"
                     onClick={() => handleOpenEdit(poll)}
+                    title="Edit"
                   >
-                    ✏️ Edit
+                    ✏️
                   </button>
                 )}
-                
+
                 {poll.status === 'draft' && (
-                  <button 
-                    className="poll-action-btn poll-action-activate"
+                  <button
+                    className="btn-micro btn-micro-success"
                     onClick={() => handleStatusChange(poll._id, 'active')}
+                    title="Activate"
                   >
-                    ▶️ Activate
+                    ▶️
                   </button>
                 )}
-                
+
                 {poll.status === 'active' && (
-                  <button 
-                    className="poll-action-btn poll-action-close"
+                  <button
+                    className="btn-micro btn-micro-primary"
                     onClick={() => handleStatusChange(poll._id, 'closed')}
+                    title="Close"
                   >
-                    ⏹️ Close
+                    ⏹️
                   </button>
                 )}
-                
+
                 {poll.status === 'closed' && (
                   <>
-                    <button 
-                      className="poll-action-btn poll-action-reopen"
+                    <button
+                      className="btn-micro btn-micro-success"
                       onClick={() => handleStatusChange(poll._id, 'active')}
-                      title="Reopen this poll"
+                      title="Reopen"
                     >
-                      🔄 Reopen
+                      🔄
                     </button>
-                    <button 
-                      className="poll-action-btn poll-action-archive"
+                    <button
+                      className="btn-micro btn-micro-secondary"
                       onClick={() => handleStatusChange(poll._id, 'archived')}
+                      title="Archive"
                     >
-                      📦 Archive
+                      📦
                     </button>
                   </>
                 )}
-                
-                <button 
-                  className="poll-action-btn poll-action-export"
+
+                <button
+                  className="btn-micro btn-micro-info"
                   onClick={() => handleExportResults(poll._id)}
+                  title="Export"
                 >
-                  📥 Export
+                  📥
                 </button>
-                
-                <button 
-                  className="poll-action-btn poll-action-delete"
+
+                <button
+                  className="btn-micro btn-micro-danger"
                   onClick={() => handleDeletePoll(poll._id, poll.title)}
+                  title="Delete"
                 >
                   🗑️
                 </button>
