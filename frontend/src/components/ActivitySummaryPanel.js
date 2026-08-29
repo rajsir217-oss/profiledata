@@ -370,9 +370,9 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
                   <span className="activity-value">{d.profileCompletion}%</span>
                 </div>
               )}
-              <div className="activity-item">
+              <div className="activity-item activity-item-slim">
                 <span className="activity-label">Activity (last 7 days)</span>
-                <span className="activity-value highlight">{d.recentActivity?.last7Days || 0} actions</span>
+                <span className="activity-label">{d.recentActivity?.last7Days || 0} actions</span>
               </div>
             </div>
           </div>
