@@ -297,3 +297,6 @@
 1788024600.711768 client_signal: Child exited: 20
 1788024600.725705 peer 0x10d2670e0 message 207
 1788024600.725728 sending message 208 to peer 0x10d2670e0 (0 bytes)
+1788042100.876241 client_signal: Window size changes: 28
+1788042100.876501 sending message 208 to peer 0x10d2670e0 (0 bytes)
+1788042360.266847 client loop exit
