@@ -44,6 +44,10 @@ mongodb_backup_*.tar.gz
 
 # Logs
 logs/
+tmux-server-*.log
+
+# Devin local skills
+.devin/skills/
 
 # Backup archives
 fastapi_backend/backups/*.archive.gz
