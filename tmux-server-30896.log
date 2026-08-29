@@ -137546,3 +137546,469 @@
 1788027600.935200 server_client_reset_state: cursor to 49,2
 1788027600.935206 server_client_check_pane_buffer: pane %0 is on
 1788027600.935211 @0 active pane not changed
+1788027615.931863 client 0x10d225e00, status interval 15
+1788027615.932002 cmdq_next <global>: empty
+1788027615.932030 cmdq_next </dev/ttys000>: empty
+1788027615.932054 /dev/ttys000: redraw status
+1788027615.932067 /dev/ttys000: redraw needed
+1788027615.932104 screen_redraw_set_context: /dev/ttys000 @0 ox=0 oy=0 sx=130 sy=36 1/0
+1788027615.932123 status_redraw enter
+1788027615.932137 format_defaults: c=/dev/ttys000
+1788027615.932147 format_defaults: s=none
+1788027615.932157 format_defaults: wl=none
+1788027615.932166 format_defaults: wp=none
+1788027615.932186 screen_write_start: size 130x1, no pane
+1788027615.932198 screen_write_cursormove: from 0,0 to 0,0
+1788027615.932249 format_expand1: expanding format: #[align=left range=left #{E:status-left-style}]#[push-default]#{T;=/#{status-left-length}:status-left}#[pop-default]#[norange default]#[list=on align=#{status-justify}]#[list=left-marker]<#[list=right-marker]>#[list=on]#{W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}}#[nolist align=right range=right #{E:status-right-style}]#[push-default]#{T;=/#{status-right-length}:status-right}#[pop-default]#[norange default]
+1788027615.932284 format_expand1: found #*1[
+1788027615.932302 format_expand1: found #{}: E:status-left-style
+1788027615.932319 format_replace: modifier 0 is E
+1788027615.932358 format_replace: format 'status-left-style' found: default
+1788027615.932370 format_expand1: expanding format: default
+1788027615.932380 format_expand1: result is: default
+1788027615.932392 format_replace: replaced 'E:status-left-style' with 'default'
+1788027615.932404 format_expand1: found #*1[
+1788027615.932416 format_expand1: found #{}: T;=/#{status-left-length}:status-left
+1788027615.932430 format_expand1: expanding format: #{status-left-length}
+1788027615.932441 format_expand1: found #{}: status-left-length
+1788027615.932457 format_replace: format 'status-left-length' found: 10
+1788027615.932468 format_replace: replaced 'status-left-length' with '10'
+1788027615.932478 format_expand1: result is: 10
+1788027615.932489 format_replace: modifier 0 is T
+1788027615.932503 format_replace: modifier 1 is =
+1788027615.932513 format_replace: modifier 1 argument 0: 10
+1788027615.932534 format_replace: format 'status-left' found: [#{session_name}] 
+1788027615.932544 format_expand1: expanding format: [#{session_name}] 
+1788027615.932555 format_expand1: found #{}: session_name
+1788027615.932583 format_replace: format 'session_name' found: 0
+1788027615.932594 format_replace: replaced 'session_name' with '0'
+1788027615.932604 format_expand1: result is: [0] 
+1788027615.932616 format_replace: applied length limit 10: [0] 
+1788027615.932627 format_replace: replaced 'T;=/#{status-left-length}:status-left' with '[0] '
+1788027615.932638 format_expand1: found #*1[
+1788027615.932649 format_expand1: found #*1[
+1788027615.932659 format_expand1: found #*1[
+1788027615.932669 format_expand1: found #{}: status-justify
+1788027615.932686 format_replace: format 'status-justify' found: left
+1788027615.932696 format_replace: replaced 'status-justify' with 'left'
+1788027615.932706 format_expand1: found #*1[
+1788027615.932716 format_expand1: found #*1[
+1788027615.932726 format_expand1: found #*1[
+1788027615.932786 format_expand1: found #{}: W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027615.932799 format_replace: modifier 0 is W
+1788027615.932835 format_loop_windows: window loop: 0 @0
+1788027615.932845 format_defaults: c=/dev/ttys000
+1788027615.932855 format_defaults: s=$0
+1788027615.932864 format_defaults: wl=0
+1788027615.932873 format_defaults: wp=none
+1788027615.932919 format_expand1: expanding format: #[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027615.932943 format_expand1: found #*1[
+1788027615.932953 format_expand1: found #{}: window_index
+1788027615.932973 format_replace: format 'window_index' found: 0
+1788027615.932983 format_replace: replaced 'window_index' with '0'
+1788027615.932999 format_expand1: found #{}: ?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}
+1788027615.933011 format_replace: condition is: #{!=:#{E:window-status-current-style},default}
+1788027615.933043 format_expand1: expanding format: #{!=:#{E:window-status-current-style},default}
+1788027615.933055 format_expand1: found #{}: !=:#{E:window-status-current-style},default
+1788027615.933066 format_replace: modifier 0 is !=
+1788027615.933080 format_expand1: expanding format: #{E:window-status-current-style}
+1788027615.933091 format_expand1: found #{}: E:window-status-current-style
+1788027615.933103 format_replace: modifier 0 is E
+1788027615.933117 format_replace: format 'window-status-current-style' found: default
+1788027615.933133 format_expand1: expanding format: default
+1788027615.933143 format_expand1: result is: default
+1788027615.933154 format_replace: replaced 'E:window-status-current-style' with 'default'
+1788027615.933164 format_expand1: result is: default
+1788027615.933174 format_expand1: expanding format: default
+1788027615.933183 format_expand1: result is: default
+1788027615.933193 format_replace: compare != left is: default
+1788027615.933203 format_replace: compare != right is: default
+1788027615.933214 format_replace: replaced '!=:#{E:window-status-current-style},default' with '0'
+1788027615.933224 format_expand1: result is: 0
+1788027615.933236 format_replace: condition '#{!=:#{E:window-status-current-style},default}' is false
+1788027615.933248 format_replace: no condition matched in '#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}'; using last arg
+1788027615.933259 format_expand1: expanding format: #{E:window-status-style}
+1788027615.933269 format_expand1: found #{}: E:window-status-style
+1788027615.933279 format_replace: modifier 0 is E
+1788027615.933291 format_replace: format 'window-status-style' found: default
+1788027615.933301 format_expand1: expanding format: default
+1788027615.933310 format_expand1: result is: default
+1788027615.933320 format_replace: replaced 'E:window-status-style' with 'default'
+1788027615.933330 format_expand1: result is: default
+1788027615.933342 format_replace: replaced '?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}' with 'default'
+1788027615.933355 format_expand1: found #{}: ?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},
+1788027615.933375 format_replace: condition is: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027615.933391 format_expand1: expanding format: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027615.933403 format_expand1: found #{}: &&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}
+1788027615.933413 format_replace: modifier 0 is &&
+1788027615.933424 format_expand1: expanding format: #{window_last_flag}
+1788027615.933441 format_expand1: found #{}: window_last_flag
+1788027615.933457 format_replace: format 'window_last_flag' found: 0
+1788027615.933467 format_replace: replaced 'window_last_flag' with '0'
+1788027615.933477 format_expand1: result is: 0
+1788027615.933487 format_bool_op_n: operator && has operand: 0
+1788027615.933498 format_replace: replaced '&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}' with '0'
+1788027615.933507 format_expand1: result is: 0
+1788027615.933518 format_replace: condition '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}' is false
+1788027615.933530 format_replace: no condition matched in '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},'; using last arg
+1788027615.933542 format_replace: replaced '?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},' with ''
+1788027615.933560 format_expand1: found #{}: ?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027615.933573 format_replace: condition is: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027615.933587 format_expand1: expanding format: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027615.933599 format_expand1: found #{}: &&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}
+1788027615.933609 format_replace: modifier 0 is &&
+1788027615.933620 format_expand1: expanding format: #{window_bell_flag}
+1788027615.933630 format_expand1: found #{}: window_bell_flag
+1788027615.933646 format_replace: format 'window_bell_flag' found: 0
+1788027615.933664 format_replace: replaced 'window_bell_flag' with '0'
+1788027615.933677 format_expand1: result is: 0
+1788027615.933687 format_bool_op_n: operator && has operand: 0
+1788027615.933699 format_replace: replaced '&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}' with '0'
+1788027615.933709 format_expand1: result is: 0
+1788027615.933720 format_replace: condition '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}' is false
+1788027615.933736 format_replace: no condition matched in '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}'; using last arg
+1788027615.933748 format_expand1: expanding format: #{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027615.933763 format_expand1: found #{}: ?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},
+1788027615.933777 format_replace: condition is: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027615.933792 format_expand1: expanding format: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027615.933805 format_expand1: found #{}: &&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}
+1788027615.933815 format_replace: modifier 0 is &&
+1788027615.933827 format_expand1: expanding format: #{||:#{window_activity_flag},#{window_silence_flag}}
+1788027615.933838 format_expand1: found #{}: ||:#{window_activity_flag},#{window_silence_flag}
+1788027615.933848 format_replace: modifier 0 is ||
+1788027615.933859 format_expand1: expanding format: #{window_activity_flag}
+1788027615.933869 format_expand1: found #{}: window_activity_flag
+1788027615.933885 format_replace: format 'window_activity_flag' found: 0
+1788027615.933896 format_replace: replaced 'window_activity_flag' with '0'
+1788027615.933905 format_expand1: result is: 0
+1788027615.933915 format_bool_op_n: operator || has operand: 0
+1788027615.933926 format_expand1: expanding format: #{window_silence_flag}
+1788027615.933936 format_expand1: found #{}: window_silence_flag
+1788027615.933950 format_replace: format 'window_silence_flag' found: 0
+1788027615.933961 format_replace: replaced 'window_silence_flag' with '0'
+1788027615.933970 format_expand1: result is: 0
+1788027615.933979 format_bool_op_n: operator || has operand: 0
+1788027615.933990 format_replace: replaced '||:#{window_activity_flag},#{window_silence_flag}' with '0'
+1788027615.934000 format_expand1: result is: 0
+1788027615.934009 format_bool_op_n: operator && has operand: 0
+1788027615.934020 format_replace: replaced '&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}' with '0'
+1788027615.934030 format_expand1: result is: 0
+1788027615.934041 format_replace: condition '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}' is false
+1788027615.934053 format_replace: no condition matched in '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},'; using last arg
+1788027615.934065 format_replace: replaced '?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},' with ''
+1788027615.934075 format_expand1: result is: 
+1788027615.934087 format_replace: replaced '?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}' with ''
+1788027615.934098 format_expand1: found #*1[
+1788027615.934108 format_expand1: found #{}: T:window-status-current-format
+1788027615.934118 format_replace: modifier 0 is T
+1788027615.934136 format_replace: format 'window-status-current-format' found: #I:#W#{?window_flags,#{window_flags}, }
+1788027615.934147 format_expand1: expanding format: #I:#W#{?window_flags,#{window_flags}, }
+1788027615.934158 format_expand1: found #I: window_index
+1788027615.934173 format_replace: format 'window_index' found: 0
+1788027615.934183 format_replace: replaced 'window_index' with '0'
+1788027615.934193 format_expand1: found #W: window_name
+1788027615.934208 format_replace: format 'window_name' found: zsh
+1788027615.934218 format_replace: replaced 'window_name' with 'zsh'
+1788027615.934229 format_expand1: found #{}: ?window_flags,#{window_flags}, 
+1788027615.934239 format_replace: condition is: window_flags
+1788027615.934254 format_replace: condition 'window_flags' found: *
+1788027615.934264 format_replace: condition 'window_flags' is true
+1788027615.934274 format_expand1: expanding format: #{window_flags}
+1788027615.934284 format_expand1: found #{}: window_flags
+1788027615.934297 format_replace: format 'window_flags' found: *
+1788027615.934307 format_replace: replaced 'window_flags' with '*'
+1788027615.934317 format_expand1: result is: *
+1788027615.934327 format_replace: replaced '?window_flags,#{window_flags}, ' with '*'
+1788027615.934337 format_expand1: result is: 0:zsh*
+1788027615.934347 format_replace: replaced 'T:window-status-current-format' with '0:zsh*'
+1788027615.934357 format_expand1: found #*1[
+1788027615.934367 format_expand1: found #*1[
+1788027615.934378 format_expand1: found #{}: ?loop_last_flag,,#{E:window-status-separator}
+1788027615.934389 format_replace: condition is: loop_last_flag
+1788027615.934406 format_replace: condition 'loop_last_flag' found: 1
+1788027615.934416 format_replace: condition 'loop_last_flag' is true
+1788027615.934427 format_replace: replaced '?loop_last_flag,,#{E:window-status-separator}' with ''
+1788027615.934440 format_expand1: result is: #[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]
+1788027615.934453 unref client 0x10d225e00 (3 references)
+1788027615.934489 format_replace: replaced 'W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}' with '#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]'
+1788027615.934502 format_expand1: found #*1[
+1788027615.934513 format_expand1: found #{}: E:status-right-style
+1788027615.934523 format_replace: modifier 0 is E
+1788027615.934546 format_replace: format 'status-right-style' found: default
+1788027615.934556 format_expand1: expanding format: default
+1788027615.934566 format_expand1: result is: default
+1788027615.934576 format_replace: replaced 'E:status-right-style' with 'default'
+1788027615.934587 format_expand1: found #*1[
+1788027615.934597 format_expand1: found #{}: T;=/#{status-right-length}:status-right
+1788027615.934609 format_expand1: expanding format: #{status-right-length}
+1788027615.934619 format_expand1: found #{}: status-right-length
+1788027615.934633 format_replace: format 'status-right-length' found: 40
+1788027615.934643 format_replace: replaced 'status-right-length' with '40'
+1788027615.934653 format_expand1: result is: 40
+1788027615.934663 format_replace: modifier 0 is T
+1788027615.934673 format_replace: modifier 1 is =
+1788027615.934683 format_replace: modifier 1 argument 0: 40
+1788027615.934700 format_replace: format 'status-right' found: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027615.934712 format_expand1: expanding format: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027615.935506 format_expand1: after time expanded: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" 11:20 29-Aug-26
+1788027615.935522 format_expand1: found #{}: ?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,
+1788027615.935533 format_replace: condition is: window_bigger
+1788027615.935550 format_replace: condition 'window_bigger' found: 0
+1788027615.935561 format_replace: condition 'window_bigger' is false
+1788027615.935574 format_replace: no condition matched in 'window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,'; using last arg
+1788027615.935585 format_replace: replaced '?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,' with ''
+1788027615.935595 format_expand1: found #{}: =21:pane_title
+1788027615.935607 format_expand1: expanding format: 21
+1788027615.935616 format_expand1: result is: 21
+1788027615.935627 format_replace: modifier 0 is =
+1788027615.935636 format_replace: modifier 0 argument 0: 21
+1788027615.935656 format_replace: format 'pane_title' found: unknownc6fec8e4399a.attlocal.net
+1788027615.935668 format_replace: applied length limit 21: unknownc6fec8e4399a.a
+1788027615.935679 format_replace: replaced '=21:pane_title' with 'unknownc6fec8e4399a.a'
+1788027615.935689 format_expand1: result is: "unknownc6fec8e4399a.a" 11:20 29-Aug-26
+1788027615.935700 format_replace: applied length limit 40: "unknownc6fec8e4399a.a" 11:20 29-Aug-26
+1788027615.935711 format_replace: replaced 'T;=/#{status-right-length}:status-right' with '"unknownc6fec8e4399a.a" 11:20 29-Aug-26'
+1788027615.935722 format_expand1: found #*1[
+1788027615.935732 format_expand1: found #*1[
+1788027615.935747 format_expand1: result is: #[align=left range=left default]#[push-default][0] #[pop-default]#[norange default]#[list=on align=left]#[list=left-marker]<#[list=right-marker]>#[list=on]#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]#[nolist align=right range=right default]#[push-default]"unknownc6fec8e4399a.a" 11:20 29-Aug-26#[pop-default]#[norange default]
+1788027615.935765 screen_write_collect_flush: flushed 0 items (screen_write_stop)
+1788027615.935776 unref client 0x10d225e00 (2 references)
+1788027615.935786 status_redraw exit: force=0, changed=0
+1788027615.935798 /dev/ttys000: redraw added 0 bytes
+1788027615.935811 server_client_reset_state: client /dev/ttys000 mode CURSOR,WRAP,BRACKETPASTE
+1788027615.935823 server_client_reset_state: cursor to 49,2
+1788027615.935840 server_client_check_pane_buffer: pane %0 is on
+1788027615.935858 @0 active pane not changed
+1788027630.932734 client 0x10d225e00, status interval 15
+1788027630.932833 cmdq_next <global>: empty
+1788027630.932856 cmdq_next </dev/ttys000>: empty
+1788027630.932873 /dev/ttys000: redraw status
+1788027630.932885 /dev/ttys000: redraw needed
+1788027630.932909 screen_redraw_set_context: /dev/ttys000 @0 ox=0 oy=0 sx=130 sy=36 1/0
+1788027630.932922 status_redraw enter
+1788027630.932935 format_defaults: c=/dev/ttys000
+1788027630.932948 format_defaults: s=none
+1788027630.932957 format_defaults: wl=none
+1788027630.932968 format_defaults: wp=none
+1788027630.932986 screen_write_start: size 130x1, no pane
+1788027630.932998 screen_write_cursormove: from 0,0 to 0,0
+1788027630.933043 format_expand1: expanding format: #[align=left range=left #{E:status-left-style}]#[push-default]#{T;=/#{status-left-length}:status-left}#[pop-default]#[norange default]#[list=on align=#{status-justify}]#[list=left-marker]<#[list=right-marker]>#[list=on]#{W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}}#[nolist align=right range=right #{E:status-right-style}]#[push-default]#{T;=/#{status-right-length}:status-right}#[pop-default]#[norange default]
+1788027630.933062 format_expand1: found #*1[
+1788027630.933078 format_expand1: found #{}: E:status-left-style
+1788027630.933092 format_replace: modifier 0 is E
+1788027630.933121 format_replace: format 'status-left-style' found: default
+1788027630.933132 format_expand1: expanding format: default
+1788027630.933143 format_expand1: result is: default
+1788027630.933156 format_replace: replaced 'E:status-left-style' with 'default'
+1788027630.933168 format_expand1: found #*1[
+1788027630.933181 format_expand1: found #{}: T;=/#{status-left-length}:status-left
+1788027630.933195 format_expand1: expanding format: #{status-left-length}
+1788027630.933208 format_expand1: found #{}: status-left-length
+1788027630.933235 format_replace: format 'status-left-length' found: 10
+1788027630.933247 format_replace: replaced 'status-left-length' with '10'
+1788027630.933257 format_expand1: result is: 10
+1788027630.933268 format_replace: modifier 0 is T
+1788027630.933278 format_replace: modifier 1 is =
+1788027630.933288 format_replace: modifier 1 argument 0: 10
+1788027630.933308 format_replace: format 'status-left' found: [#{session_name}] 
+1788027630.933318 format_expand1: expanding format: [#{session_name}] 
+1788027630.933329 format_expand1: found #{}: session_name
+1788027630.933350 format_replace: format 'session_name' found: 0
+1788027630.933361 format_replace: replaced 'session_name' with '0'
+1788027630.933371 format_expand1: result is: [0] 
+1788027630.933383 format_replace: applied length limit 10: [0] 
+1788027630.933394 format_replace: replaced 'T;=/#{status-left-length}:status-left' with '[0] '
+1788027630.933405 format_expand1: found #*1[
+1788027630.933415 format_expand1: found #*1[
+1788027630.933426 format_expand1: found #*1[
+1788027630.933436 format_expand1: found #{}: status-justify
+1788027630.933453 format_replace: format 'status-justify' found: left
+1788027630.933464 format_replace: replaced 'status-justify' with 'left'
+1788027630.933474 format_expand1: found #*1[
+1788027630.933484 format_expand1: found #*1[
+1788027630.933494 format_expand1: found #*1[
+1788027630.933549 format_expand1: found #{}: W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027630.933562 format_replace: modifier 0 is W
+1788027630.933590 format_loop_windows: window loop: 0 @0
+1788027630.933600 format_defaults: c=/dev/ttys000
+1788027630.933610 format_defaults: s=$0
+1788027630.933619 format_defaults: wl=0
+1788027630.933628 format_defaults: wp=none
+1788027630.933653 format_expand1: expanding format: #[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027630.933675 format_expand1: found #*1[
+1788027630.933685 format_expand1: found #{}: window_index
+1788027630.933705 format_replace: format 'window_index' found: 0
+1788027630.933715 format_replace: replaced 'window_index' with '0'
+1788027630.933731 format_expand1: found #{}: ?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}
+1788027630.933743 format_replace: condition is: #{!=:#{E:window-status-current-style},default}
+1788027630.933766 format_expand1: expanding format: #{!=:#{E:window-status-current-style},default}
+1788027630.933778 format_expand1: found #{}: !=:#{E:window-status-current-style},default
+1788027630.933788 format_replace: modifier 0 is !=
+1788027630.933803 format_expand1: expanding format: #{E:window-status-current-style}
+1788027630.933814 format_expand1: found #{}: E:window-status-current-style
+1788027630.933824 format_replace: modifier 0 is E
+1788027630.933856 format_replace: format 'window-status-current-style' found: default
+1788027630.933867 format_expand1: expanding format: default
+1788027630.933877 format_expand1: result is: default
+1788027630.933887 format_replace: replaced 'E:window-status-current-style' with 'default'
+1788027630.933897 format_expand1: result is: default
+1788027630.933907 format_expand1: expanding format: default
+1788027630.933917 format_expand1: result is: default
+1788027630.933927 format_replace: compare != left is: default
+1788027630.933938 format_replace: compare != right is: default
+1788027630.933949 format_replace: replaced '!=:#{E:window-status-current-style},default' with '0'
+1788027630.933959 format_expand1: result is: 0
+1788027630.933970 format_replace: condition '#{!=:#{E:window-status-current-style},default}' is false
+1788027630.933983 format_replace: no condition matched in '#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}'; using last arg
+1788027630.933994 format_expand1: expanding format: #{E:window-status-style}
+1788027630.934004 format_expand1: found #{}: E:window-status-style
+1788027630.934014 format_replace: modifier 0 is E
+1788027630.934027 format_replace: format 'window-status-style' found: default
+1788027630.934036 format_expand1: expanding format: default
+1788027630.934046 format_expand1: result is: default
+1788027630.934057 format_replace: replaced 'E:window-status-style' with 'default'
+1788027630.934066 format_expand1: result is: default
+1788027630.934079 format_replace: replaced '?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}' with 'default'
+1788027630.934092 format_expand1: found #{}: ?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},
+1788027630.934106 format_replace: condition is: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027630.934122 format_expand1: expanding format: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027630.934134 format_expand1: found #{}: &&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}
+1788027630.934146 format_replace: modifier 0 is &&
+1788027630.934158 format_expand1: expanding format: #{window_last_flag}
+1788027630.934169 format_expand1: found #{}: window_last_flag
+1788027630.934185 format_replace: format 'window_last_flag' found: 0
+1788027630.934195 format_replace: replaced 'window_last_flag' with '0'
+1788027630.934205 format_expand1: result is: 0
+1788027630.934215 format_bool_op_n: operator && has operand: 0
+1788027630.934226 format_replace: replaced '&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}' with '0'
+1788027630.934236 format_expand1: result is: 0
+1788027630.934247 format_replace: condition '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}' is false
+1788027630.934259 format_replace: no condition matched in '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},'; using last arg
+1788027630.934271 format_replace: replaced '?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},' with ''
+1788027630.934290 format_expand1: found #{}: ?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027630.934302 format_replace: condition is: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027630.934317 format_expand1: expanding format: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027630.934329 format_expand1: found #{}: &&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}
+1788027630.934339 format_replace: modifier 0 is &&
+1788027630.934350 format_expand1: expanding format: #{window_bell_flag}
+1788027630.934360 format_expand1: found #{}: window_bell_flag
+1788027630.934375 format_replace: format 'window_bell_flag' found: 0
+1788027630.934385 format_replace: replaced 'window_bell_flag' with '0'
+1788027630.934395 format_expand1: result is: 0
+1788027630.934405 format_bool_op_n: operator && has operand: 0
+1788027630.934416 format_replace: replaced '&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}' with '0'
+1788027630.934425 format_expand1: result is: 0
+1788027630.934436 format_replace: condition '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}' is false
+1788027630.934452 format_replace: no condition matched in '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}'; using last arg
+1788027630.934464 format_expand1: expanding format: #{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027630.934480 format_expand1: found #{}: ?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},
+1788027630.934493 format_replace: condition is: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027630.934508 format_expand1: expanding format: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027630.934522 format_expand1: found #{}: &&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}
+1788027630.934532 format_replace: modifier 0 is &&
+1788027630.934544 format_expand1: expanding format: #{||:#{window_activity_flag},#{window_silence_flag}}
+1788027630.934555 format_expand1: found #{}: ||:#{window_activity_flag},#{window_silence_flag}
+1788027630.934565 format_replace: modifier 0 is ||
+1788027630.934578 format_expand1: expanding format: #{window_activity_flag}
+1788027630.934588 format_expand1: found #{}: window_activity_flag
+1788027630.934603 format_replace: format 'window_activity_flag' found: 0
+1788027630.934614 format_replace: replaced 'window_activity_flag' with '0'
+1788027630.934623 format_expand1: result is: 0
+1788027630.934633 format_bool_op_n: operator || has operand: 0
+1788027630.934644 format_expand1: expanding format: #{window_silence_flag}
+1788027630.934654 format_expand1: found #{}: window_silence_flag
+1788027630.934670 format_replace: format 'window_silence_flag' found: 0
+1788027630.934680 format_replace: replaced 'window_silence_flag' with '0'
+1788027630.934690 format_expand1: result is: 0
+1788027630.934699 format_bool_op_n: operator || has operand: 0
+1788027630.934710 format_replace: replaced '||:#{window_activity_flag},#{window_silence_flag}' with '0'
+1788027630.934720 format_expand1: result is: 0
+1788027630.934729 format_bool_op_n: operator && has operand: 0
+1788027630.934741 format_replace: replaced '&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}' with '0'
+1788027630.934750 format_expand1: result is: 0
+1788027630.934762 format_replace: condition '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}' is false
+1788027630.934775 format_replace: no condition matched in '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},'; using last arg
+1788027630.934787 format_replace: replaced '?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},' with ''
+1788027630.934797 format_expand1: result is: 
+1788027630.934811 format_replace: replaced '?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}' with ''
+1788027630.934821 format_expand1: found #*1[
+1788027630.934832 format_expand1: found #{}: T:window-status-current-format
+1788027630.934842 format_replace: modifier 0 is T
+1788027630.934854 format_replace: format 'window-status-current-format' found: #I:#W#{?window_flags,#{window_flags}, }
+1788027630.934865 format_expand1: expanding format: #I:#W#{?window_flags,#{window_flags}, }
+1788027630.934876 format_expand1: found #I: window_index
+1788027630.934891 format_replace: format 'window_index' found: 0
+1788027630.934901 format_replace: replaced 'window_index' with '0'
+1788027630.934911 format_expand1: found #W: window_name
+1788027630.934926 format_replace: format 'window_name' found: zsh
+1788027630.934936 format_replace: replaced 'window_name' with 'zsh'
+1788027630.934947 format_expand1: found #{}: ?window_flags,#{window_flags}, 
+1788027630.934958 format_replace: condition is: window_flags
+1788027630.934975 format_replace: condition 'window_flags' found: *
+1788027630.934985 format_replace: condition 'window_flags' is true
+1788027630.934995 format_expand1: expanding format: #{window_flags}
+1788027630.935005 format_expand1: found #{}: window_flags
+1788027630.935020 format_replace: format 'window_flags' found: *
+1788027630.935031 format_replace: replaced 'window_flags' with '*'
+1788027630.935041 format_expand1: result is: *
+1788027630.935051 format_replace: replaced '?window_flags,#{window_flags}, ' with '*'
+1788027630.935061 format_expand1: result is: 0:zsh*
+1788027630.935071 format_replace: replaced 'T:window-status-current-format' with '0:zsh*'
+1788027630.935082 format_expand1: found #*1[
+1788027630.935092 format_expand1: found #*1[
+1788027630.935103 format_expand1: found #{}: ?loop_last_flag,,#{E:window-status-separator}
+1788027630.935114 format_replace: condition is: loop_last_flag
+1788027630.935133 format_replace: condition 'loop_last_flag' found: 1
+1788027630.935142 format_replace: condition 'loop_last_flag' is true
+1788027630.935154 format_replace: replaced '?loop_last_flag,,#{E:window-status-separator}' with ''
+1788027630.935165 format_expand1: result is: #[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]
+1788027630.935177 unref client 0x10d225e00 (3 references)
+1788027630.935207 format_replace: replaced 'W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}' with '#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]'
+1788027630.935220 format_expand1: found #*1[
+1788027630.935241 format_expand1: found #{}: E:status-right-style
+1788027630.935252 format_replace: modifier 0 is E
+1788027630.935266 format_replace: format 'status-right-style' found: default
+1788027630.935276 format_expand1: expanding format: default
+1788027630.935286 format_expand1: result is: default
+1788027630.935296 format_replace: replaced 'E:status-right-style' with 'default'
+1788027630.935306 format_expand1: found #*1[
+1788027630.935317 format_expand1: found #{}: T;=/#{status-right-length}:status-right
+1788027630.935328 format_expand1: expanding format: #{status-right-length}
+1788027630.935338 format_expand1: found #{}: status-right-length
+1788027630.935353 format_replace: format 'status-right-length' found: 40
+1788027630.935363 format_replace: replaced 'status-right-length' with '40'
+1788027630.935373 format_expand1: result is: 40
+1788027630.935382 format_replace: modifier 0 is T
+1788027630.935392 format_replace: modifier 1 is =
+1788027630.935402 format_replace: modifier 1 argument 0: 40
+1788027630.935419 format_replace: format 'status-right' found: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027630.935431 format_expand1: expanding format: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027630.936134 format_expand1: after time expanded: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" 11:20 29-Aug-26
+1788027630.936151 format_expand1: found #{}: ?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,
+1788027630.936164 format_replace: condition is: window_bigger
+1788027630.936181 format_replace: condition 'window_bigger' found: 0
+1788027630.936192 format_replace: condition 'window_bigger' is false
+1788027630.936204 format_replace: no condition matched in 'window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,'; using last arg
+1788027630.936215 format_replace: replaced '?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,' with ''
+1788027630.936226 format_expand1: found #{}: =21:pane_title
+1788027630.936238 format_expand1: expanding format: 21
+1788027630.936248 format_expand1: result is: 21
+1788027630.936258 format_replace: modifier 0 is =
+1788027630.936268 format_replace: modifier 0 argument 0: 21
+1788027630.936287 format_replace: format 'pane_title' found: unknownc6fec8e4399a.attlocal.net
+1788027630.936298 format_replace: applied length limit 21: unknownc6fec8e4399a.a
+1788027630.936309 format_replace: replaced '=21:pane_title' with 'unknownc6fec8e4399a.a'
+1788027630.936320 format_expand1: result is: "unknownc6fec8e4399a.a" 11:20 29-Aug-26
+1788027630.936331 format_replace: applied length limit 40: "unknownc6fec8e4399a.a" 11:20 29-Aug-26
+1788027630.936343 format_replace: replaced 'T;=/#{status-right-length}:status-right' with '"unknownc6fec8e4399a.a" 11:20 29-Aug-26'
+1788027630.936354 format_expand1: found #*1[
+1788027630.936364 format_expand1: found #*1[
+1788027630.936380 format_expand1: result is: #[align=left range=left default]#[push-default][0] #[pop-default]#[norange default]#[list=on align=left]#[list=left-marker]<#[list=right-marker]>#[list=on]#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]#[nolist align=right range=right default]#[push-default]"unknownc6fec8e4399a.a" 11:20 29-Aug-26#[pop-default]#[norange default]
+1788027630.936394 screen_write_collect_flush: flushed 0 items (screen_write_stop)
+1788027630.936405 unref client 0x10d225e00 (2 references)
+1788027630.936414 status_redraw exit: force=0, changed=0
+1788027630.936426 /dev/ttys000: redraw added 0 bytes
+1788027630.936440 server_client_reset_state: client /dev/ttys000 mode CURSOR,WRAP,BRACKETPASTE
+1788027630.936452 server_client_reset_state: cursor to 49,2
+1788027630.936469 server_client_check_pane_buffer: pane %0 is on
+1788027630.936484 @0 active pane not changed
