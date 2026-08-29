@@ -82,6 +82,14 @@ const useContributionPopup = () => {
         return;
       }
 
+      // Gate: backend says no popup needed (active membership, admin grant, threshold met).
+      if (data.showPopup === false) {
+        logger.debug('🔔 Contribution: backend says no popup needed');
+        setShouldShowContribution(false);
+        setLoading(false);
+        return;
+      }
+
       // Membership/search lock gate:
       // if user has NOT met access requirements (YTD < threshold or no valid membership),
       // always treat popup as eligibility-critical for unlocking search.
