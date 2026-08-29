@@ -1563,43 +1563,54 @@ async def process_membership_payment(
 @router.post("/membership/grant")
 async def grant_membership_admin(
     username: str = Body(..., embed=True),
-    membership_type: str = Body(..., embed=True),
-    auto_renew: bool = Body(True),
+    membership_type: Optional[str] = Body(None, embed=True),
+    months: Optional[int] = Body(None, embed=True),
+    auto_renew: bool = Body(False),
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Admin endpoint to grant membership without payment"""
+    """Admin endpoint to grant membership without payment. Supports legacy membership_type or explicit months."""
     try:
         # Check if current user is admin
-        if current_user.get("role") != "admin":
+        if current_user.get("role") != "admin" and current_user.get("role_name") != "admin":
             raise HTTPException(status_code=403, detail="Admin access required")
-        
-        # Validate membership type
-        if membership_type not in ["one_time", "3_month", "1_year"]:
-            raise HTTPException(status_code=400, detail="Invalid membership type")
-        
-        # Determine amount and duration
-        if membership_type == "one_time":
-            amount = 50
-            months = None  # Permanent
-        elif membership_type == "3_month":
-            amount = 30
-            months = 3
-        elif membership_type == "1_year":
-            amount = 100
-            months = 12
-        
+
+        # Resolve duration
+        if membership_type is not None:
+            if membership_type not in ["one_time", "3_month", "1_year"]:
+                raise HTTPException(status_code=400, detail="Invalid membership type")
+            if membership_type == "one_time":
+                amount = 0
+                resolved_months = None  # Permanent
+                label = "one_time"
+            elif membership_type == "3_month":
+                amount = 0
+                resolved_months = 3
+                label = "3_month"
+            elif membership_type == "1_year":
+                amount = 0
+                resolved_months = 12
+                label = "1_year"
+        elif months is not None:
+            if not (1 <= months <= 36):
+                raise HTTPException(status_code=400, detail="months must be between 1 and 36")
+            amount = 0
+            resolved_months = months
+            label = f"{months}_month"
+        else:
+            raise HTTPException(status_code=400, detail="membership_type or months required")
+
         # Calculate end date for subscriptions
         end_date = None
-        if months:
-            end_date = datetime.utcnow() + timedelta(days=months * 30)
-        
+        if resolved_months:
+            end_date = datetime.utcnow() + timedelta(days=resolved_months * 30)
+
         # Create payment record (marked as admin-granted)
         payment_record = {
             "username": username,
             "amount": amount,
-            "paymentType": f"membership_{membership_type}",
-            "membershipType": membership_type,
+            "paymentType": f"membership_{label}",
+            "membershipType": label,
             "status": "completed",
             "membershipStartDate": datetime.utcnow(),
             "membershipEndDate": end_date,
@@ -1608,56 +1619,61 @@ async def grant_membership_admin(
             "adminGranted": True,
             "grantedBy": current_user["username"]
         }
-        
+
         payment_result = await db.payments.insert_one(payment_record)
         payment_id = str(payment_result.inserted_id)
-        
+
         # Update user membership
         membership_update = {
-            "type": membership_type,
+            "type": label,
             "status": "active",
             "startDate": datetime.utcnow(),
             "endDate": end_date,
             "autoRenew": auto_renew,
             "lastPaymentAmount": amount,
             "lastPaymentDate": datetime.utcnow(),
-            "treatedAsOneTime": membership_type == "one_time"
+            "treatedAsOneTime": resolved_months is None,
+            "adminGranted": True
         }
-        
-        # Calculate total paid
+
+        # Calculate total paid only if amount > 0; otherwise leave unchanged
         user = await db.users.find_one({"username": username})
         current_total = user.get("membership", {}).get("totalPaid", 0)
-        membership_update["totalPaid"] = current_total + amount
-        
+        if amount > 0:
+            membership_update["totalPaid"] = current_total + amount
+        else:
+            membership_update["totalPaid"] = current_total
+
         await db.users.update_one(
             {"username": username},
             {"$set": {"membership": membership_update}}
         )
-        
-        # Update contributions tracking
-        await db.users.update_one(
-            {"username": username},
-            {
-                "$set": {
-                    "contributions.lastContributionAmount": amount,
-                    "contributions.lastContributionDate": datetime.utcnow(),
-                    "contributions.totalContributed": current_total + amount
+
+        # Update contributions tracking only when amount is > 0
+        if amount > 0:
+            await db.users.update_one(
+                {"username": username},
+                {
+                    "$set": {
+                        "contributions.lastContributionAmount": amount,
+                        "contributions.lastContributionDate": datetime.utcnow(),
+                        "contributions.totalContributed": current_total + amount
+                    }
                 }
-            }
-        )
-        
-        logger.info(f"✅ Admin granted membership to {username}: {membership_type} - ${amount} (by {current_user['username']})")
-        
+            )
+
+        logger.info(f"✅ Admin granted membership to {username}: {label} ({resolved_months or 'permanent'} months) (by {current_user['username']})")
+
         return {
             "success": True,
             "message": f"Membership granted to {username} successfully",
             "membership": {
-                "type": membership_type,
+                "type": label,
                 "status": "active",
                 "startDate": datetime.utcnow().isoformat(),
                 "endDate": end_date.isoformat() if end_date else None,
                 "autoRenew": auto_renew,
-                "totalPaid": current_total + amount
+                "totalPaid": current_total + (amount if amount > 0 else 0)
             }
         }
     except HTTPException:
@@ -1676,7 +1692,7 @@ async def reset_membership_admin(
     """Admin endpoint to reset a user's membership"""
     try:
         # Check if current user is admin
-        if current_user.get("role") != "admin":
+        if current_user.get("role") != "admin" and current_user.get("role_name") != "admin":
             raise HTTPException(status_code=403, detail="Admin access required")
         
         # Reset membership and contributions

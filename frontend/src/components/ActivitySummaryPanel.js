@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { getBackendUrl } from '../config/apiConfig';
+import DeleteButton from './DeleteButton';
 import './ActivitySummaryPanel.css';
 
 const ActivitySummaryPanel = ({ username, onClose }) => {
@@ -14,6 +15,11 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
   // `reminderToast` shows a transient success/error message under the buttons.
   const [reminderSending, setReminderSending] = useState(null);
   const [reminderToast, setReminderToast] = useState(null);
+  const [grantMonths, setGrantMonths] = useState(1);
+  const [grantConfirming, setGrantConfirming] = useState(null);
+  const [grantLoading, setGrantLoading] = useState(false);
+  const [revokeLoading, setRevokeLoading] = useState(false);
+  const [revokeConfirming, setRevokeConfirming] = useState(false);
   const navigate = useNavigate();
 
   // Fire a single contribution reminder (email or SMS) to this profile's user.
@@ -88,6 +94,99 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
     }
   };
 
+  const handleGrantMembership = async (months) => {
+    if (!username || grantLoading) return;
+    setGrantLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${getBackendUrl()}/api/contributions/membership/grant`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, months })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || data.message || `Grant failed (${res.status})`);
+      }
+      setReminderToast({
+        type: 'success',
+        text: `✅ Granted ${months} month${months > 1 ? 's' : ''} to @${username}`
+      });
+      const activityRes = await api.get(`/user-activity-summary/${username}`);
+      setData(activityRes.data);
+      window.dispatchEvent(new CustomEvent('membershipChanged'));
+    } catch (e) {
+      const detail = e?.response?.data?.detail || e?.message || 'Failed to grant membership';
+      setReminderToast({ type: 'error', text: detail });
+    } finally {
+      setGrantLoading(false);
+      setGrantConfirming(null);
+      setTimeout(() => setReminderToast(null), 4000);
+    }
+  };
+
+  const handleGrantClick = () => {
+    if (grantConfirming === grantMonths) {
+      handleGrantMembership(grantMonths);
+    } else {
+      setGrantConfirming(grantMonths);
+    }
+  };
+
+  const handleRevokeMembership = async () => {
+    if (!username || revokeLoading) return;
+    if (!data?.membership?.adminGranted) {
+      setReminderToast({
+        type: 'error',
+        text: 'Only admin-granted memberships can be revoked'
+      });
+      setTimeout(() => setReminderToast(null), 4000);
+      return;
+    }
+    const match = data.membership?.type?.match(/^(\d+)_month$/);
+    const grantedMonths = match ? parseInt(match[1], 10) : null;
+    if (!grantedMonths || grantedMonths !== grantMonths) {
+      setReminderToast({
+        type: 'error',
+        text: 'Selected month does not match the admin-granted membership'
+      });
+      setTimeout(() => setReminderToast(null), 4000);
+      return;
+    }
+    setRevokeLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${getBackendUrl()}/api/contributions/membership/reset`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username })
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.detail || result.message || `Revoke failed (${res.status})`);
+      }
+      setReminderToast({
+        type: 'success',
+        text: `✅ Membership revoked for @${username}`
+      });
+      const activityRes = await api.get(`/user-activity-summary/${username}`);
+      setData(activityRes.data);
+      window.dispatchEvent(new CustomEvent('membershipChanged'));
+    } catch (e) {
+      const detail = e?.response?.data?.detail || e?.message || 'Failed to revoke membership';
+      setReminderToast({ type: 'error', text: detail });
+    } finally {
+      setRevokeLoading(false);
+      setTimeout(() => setReminderToast(null), 4000);
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -102,6 +201,16 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
     };
     load();
   }, [username]);
+
+  useEffect(() => {
+    const m = data?.membership;
+    if (m?.type) {
+      const match = m.type.match(/^(\d+)_month$/);
+      if (match) {
+        setGrantMonths(parseInt(match[1], 10));
+      }
+    }
+  }, [data?.membership?.type]);
 
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
@@ -128,6 +237,11 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
     const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     return `${relative} (${dateStr} ${timeStr})`;
+  };
+
+  const shortDate = (iso) => {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const userLink = (uname) => {
@@ -173,6 +287,9 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
   const accountStatusNormalized = String(d?.accountStatus || '').toLowerCase();
   const isPendingAdminApproval = accountStatusNormalized === 'pending_admin_approval';
   const isAdminViewer = (localStorage.getItem('userRole') || '').toLowerCase() === 'admin';
+
+  const grantedAdminMonths = d.membership?.adminGranted && d.membership?.type ? parseInt(d.membership.type, 10) : null;
+  const revokeAllowed = Number.isFinite(grantedAdminMonths) && grantedAdminMonths === grantMonths;
 
   const handleActivateAccount = async () => {
     if (!username || activatingStatus) return;
@@ -460,6 +577,35 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
             </div>
           </div>
 
+          {/* Membership */}
+          <div className="activity-section">
+            <h4>👑 Membership</h4>
+            <div className="activity-stats-row">
+              <div className="activity-stat">
+                <span className="stat-number">{d.membership?.status || 'none'}</span>
+                <span className="stat-label">Status</span>
+              </div>
+              <div className="activity-stat">
+                <span className="stat-number">{d.membership?.type || '—'}</span>
+                <span className="stat-label">Type</span>
+              </div>
+              <div className="activity-stat">
+                <span className="stat-number">${(d.membership?.totalPaid || 0).toFixed(2)}</span>
+                <span className="stat-label">Total Paid</span>
+              </div>
+            </div>
+            <div className="activity-grid">
+              <div className="activity-item">
+                <span className="activity-label">Start</span>
+                <span className="activity-value">{formatDate(d.membership?.startDate)}</span>
+              </div>
+              <div className="activity-item">
+                <span className="activity-label">End</span>
+                <span className="activity-value">{d.membership?.endDate ? formatDate(d.membership.endDate) : '—'}</span>
+              </div>
+            </div>
+          </div>
+
           {/* Contributions */}
           <div className="activity-section">
             <div className="activity-section-header">
@@ -520,6 +666,70 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
                 <span className="activity-label">Last Contribution</span>
                 <span className="activity-value">{formatDate(d.contributions?.lastContribution)}</span>
               </div>
+              {isAdminViewer && (
+                <div className="activity-item">
+                  <span className="activity-label">Grant Access</span>
+                  <div className="admin-action-btns">
+                    <select
+                      className="month-grant-select"
+                      value={String(grantMonths)}
+                      onChange={(e) => {
+                        const m = parseInt(e.target.value, 10);
+                        setGrantMonths(m);
+                        setGrantConfirming(null);
+                      }}
+                      disabled={grantLoading}
+                      title="Months to grant"
+                    >
+                      <option value="1">1 month</option>
+                      <option value="2">2 months</option>
+                      <option value="3">3 months</option>
+                      <option value="6">6 months</option>
+                      <option value="12">12 months</option>
+                      <option value="24">24 months</option>
+                      <option value="36">36 months</option>
+                    </select>
+                    <button
+                      className={`btn-micro ${grantConfirming === grantMonths ? 'btn-micro-success' : 'btn-micro-primary'}`}
+                      onClick={handleGrantClick}
+                      disabled={grantLoading}
+                      title={grantConfirming === grantMonths ? 'Click to confirm grant' : 'Grant membership'}
+                    >
+                      {grantLoading ? '⏳' : (grantConfirming === grantMonths ? '✓' : '📅')}
+                    </button>
+                    {grantConfirming === grantMonths && (
+                      <span className="grant-confirm-text">Click again to grant</span>
+                    )}
+                    <DeleteButton
+                      onDelete={handleRevokeMembership}
+                      onConfirmStateChange={setRevokeConfirming}
+                      itemName={
+                        d.membership?.adminGranted
+                          ? `admin-granted ${d.membership?.type || 'membership'} ending ${shortDate(d.membership?.endDate)}`
+                          : 'membership (not admin-granted)'
+                      }
+                      size="small"
+                      icon="🗑️"
+                      confirmIcon="✓"
+                      confirmText="Revoke?"
+                      disabled={revokeLoading || !revokeAllowed}
+                    />
+                    {revokeConfirming && revokeAllowed && (
+                      <span className="revoke-confirm-text">
+                        Revoke admin-granted {d.membership?.type} ending {shortDate(d.membership?.endDate)}?
+                      </span>
+                    )}
+                    {!d.membership?.adminGranted && (
+                      <span className="revoke-confirm-text">No admin grant to revoke</span>
+                    )}
+                    {d.membership?.adminGranted && !revokeAllowed && Number.isFinite(grantedAdminMonths) && (
+                      <span className="revoke-confirm-text">
+                        Select {grantedAdminMonths} month{grantedAdminMonths > 1 ? 's' : ''} to revoke
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Latest 10 contributions grid */}

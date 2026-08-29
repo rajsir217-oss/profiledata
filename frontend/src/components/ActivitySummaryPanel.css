@@ -562,6 +562,37 @@
   cursor: not-allowed;
 }
 
+.month-grant-select {
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--surface-color);
+  color: var(--text-color);
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+}
+
+.month-grant-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.grant-confirm-text {
+  font-size: 11px;
+  color: var(--success-color);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.revoke-confirm-text {
+  font-size: 11px;
+  color: var(--danger-color);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
 /* Custom Modal Styles */
 .activity-modal-overlay {
   position: fixed;

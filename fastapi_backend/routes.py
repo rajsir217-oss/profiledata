@@ -2105,7 +2105,7 @@ async def get_user_activity_summary(
 
     user = await db.users.find_one(
         {"username": username},
-        {"status": 1, "createdAt": 1, "lastLogin": 1, "security.last_login_at": 1, "security.last_login_ip": 1, "accountStatus": 1, "profileCompletionPercentage": 1}
+        {"status": 1, "createdAt": 1, "lastLogin": 1, "security.last_login_at": 1, "security.last_login_ip": 1, "accountStatus": 1, "profileCompletionPercentage": 1, "membership": 1}
     )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -2365,6 +2365,15 @@ async def get_user_activity_summary(
             "isRecurringContributor": recurring_count > 0,
             "lastContribution": last_contribution_date,
             "recent": recent_contributions,  # latest 10
+        },
+        "membership": {
+            "type": user.get("membership", {}).get("type"),
+            "status": user.get("membership", {}).get("status", "none"),
+            "startDate": ts(user.get("membership", {}).get("startDate")),
+            "endDate": ts(user.get("membership", {}).get("endDate")),
+            "totalPaid": round(float(user.get("membership", {}).get("totalPaid", 0) or 0), 2),
+            "autoRenew": user.get("membership", {}).get("autoRenew", False),
+            "adminGranted": user.get("membership", {}).get("adminGranted", False),
         },
     }
 
