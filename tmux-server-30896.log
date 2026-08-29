@@ -137032,3 +137032,517 @@
 1788027585.935777 server_client_reset_state: cursor to 49,2
 1788027585.935789 server_client_check_pane_buffer: pane %0 is on
 1788027585.935799 @0 active pane not changed
+1788027600.930684 client 0x10d225e00, status interval 15
+1788027600.930754 cmdq_next <global>: empty
+1788027600.930767 cmdq_next </dev/ttys000>: empty
+1788027600.930777 /dev/ttys000: redraw status
+1788027600.930785 /dev/ttys000: redraw needed
+1788027600.930799 screen_redraw_set_context: /dev/ttys000 @0 ox=0 oy=0 sx=130 sy=36 1/0
+1788027600.930806 status_redraw enter
+1788027600.930813 format_defaults: c=/dev/ttys000
+1788027600.930821 format_defaults: s=none
+1788027600.930827 format_defaults: wl=none
+1788027600.930833 format_defaults: wp=none
+1788027600.930844 screen_write_start: size 130x1, no pane
+1788027600.930851 screen_write_cursormove: from 0,0 to 0,0
+1788027600.930874 format_expand1: expanding format: #[align=left range=left #{E:status-left-style}]#[push-default]#{T;=/#{status-left-length}:status-left}#[pop-default]#[norange default]#[list=on align=#{status-justify}]#[list=left-marker]<#[list=right-marker]>#[list=on]#{W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}}#[nolist align=right range=right #{E:status-right-style}]#[push-default]#{T;=/#{status-right-length}:status-right}#[pop-default]#[norange default]
+1788027600.930890 format_expand1: found #*1[
+1788027600.930898 format_expand1: found #{}: E:status-left-style
+1788027600.930906 format_replace: modifier 0 is E
+1788027600.930925 format_replace: format 'status-left-style' found: default
+1788027600.930933 format_expand1: expanding format: default
+1788027600.930940 format_expand1: result is: default
+1788027600.930949 format_replace: replaced 'E:status-left-style' with 'default'
+1788027600.930956 format_expand1: found #*1[
+1788027600.930964 format_expand1: found #{}: T;=/#{status-left-length}:status-left
+1788027600.930972 format_expand1: expanding format: #{status-left-length}
+1788027600.930979 format_expand1: found #{}: status-left-length
+1788027600.930990 format_replace: format 'status-left-length' found: 10
+1788027600.930997 format_replace: replaced 'status-left-length' with '10'
+1788027600.931003 format_expand1: result is: 10
+1788027600.931009 format_replace: modifier 0 is T
+1788027600.931015 format_replace: modifier 1 is =
+1788027600.931021 format_replace: modifier 1 argument 0: 10
+1788027600.931033 format_replace: format 'status-left' found: [#{session_name}] 
+1788027600.931039 format_expand1: expanding format: [#{session_name}] 
+1788027600.931045 format_expand1: found #{}: session_name
+1788027600.931059 format_replace: format 'session_name' found: 0
+1788027600.931065 format_replace: replaced 'session_name' with '0'
+1788027600.931071 format_expand1: result is: [0] 
+1788027600.931079 format_replace: applied length limit 10: [0] 
+1788027600.931085 format_replace: replaced 'T;=/#{status-left-length}:status-left' with '[0] '
+1788027600.931092 format_expand1: found #*1[
+1788027600.931099 format_expand1: found #*1[
+1788027600.931105 format_expand1: found #*1[
+1788027600.931112 format_expand1: found #{}: status-justify
+1788027600.931122 format_replace: format 'status-justify' found: left
+1788027600.931128 format_replace: replaced 'status-justify' with 'left'
+1788027600.931135 format_expand1: found #*1[
+1788027600.931141 format_expand1: found #*1[
+1788027600.931147 format_expand1: found #*1[
+1788027600.931183 format_expand1: found #{}: W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027600.931198 format_replace: modifier 0 is W
+1788027600.931215 format_loop_windows: window loop: 0 @0
+1788027600.931222 format_defaults: c=/dev/ttys000
+1788027600.931228 format_defaults: s=$0
+1788027600.931234 format_defaults: wl=0
+1788027600.931239 format_defaults: wp=none
+1788027600.931254 format_expand1: expanding format: #[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027600.931265 format_expand1: found #*1[
+1788027600.931272 format_expand1: found #{}: window_index
+1788027600.931284 format_replace: format 'window_index' found: 0
+1788027600.931290 format_replace: replaced 'window_index' with '0'
+1788027600.931301 format_expand1: found #{}: ?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}
+1788027600.931309 format_replace: condition is: #{!=:#{E:window-status-current-style},default}
+1788027600.931325 format_expand1: expanding format: #{!=:#{E:window-status-current-style},default}
+1788027600.931333 format_expand1: found #{}: !=:#{E:window-status-current-style},default
+1788027600.931339 format_replace: modifier 0 is !=
+1788027600.931349 format_expand1: expanding format: #{E:window-status-current-style}
+1788027600.931356 format_expand1: found #{}: E:window-status-current-style
+1788027600.931362 format_replace: modifier 0 is E
+1788027600.931385 format_replace: format 'window-status-current-style' found: default
+1788027600.931392 format_expand1: expanding format: default
+1788027600.931398 format_expand1: result is: default
+1788027600.931404 format_replace: replaced 'E:window-status-current-style' with 'default'
+1788027600.931410 format_expand1: result is: default
+1788027600.931417 format_expand1: expanding format: default
+1788027600.931423 format_expand1: result is: default
+1788027600.931429 format_replace: compare != left is: default
+1788027600.931436 format_replace: compare != right is: default
+1788027600.931443 format_replace: replaced '!=:#{E:window-status-current-style},default' with '0'
+1788027600.931449 format_expand1: result is: 0
+1788027600.931457 format_replace: condition '#{!=:#{E:window-status-current-style},default}' is false
+1788027600.931465 format_replace: no condition matched in '#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}'; using last arg
+1788027600.931471 format_expand1: expanding format: #{E:window-status-style}
+1788027600.931478 format_expand1: found #{}: E:window-status-style
+1788027600.931484 format_replace: modifier 0 is E
+1788027600.931492 format_replace: format 'window-status-style' found: default
+1788027600.931498 format_expand1: expanding format: default
+1788027600.931504 format_expand1: result is: default
+1788027600.931510 format_replace: replaced 'E:window-status-style' with 'default'
+1788027600.931517 format_expand1: result is: default
+1788027600.931524 format_replace: replaced '?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}' with 'default'
+1788027600.931532 format_expand1: found #{}: ?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},
+1788027600.931541 format_replace: condition is: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027600.931551 format_expand1: expanding format: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027600.931558 format_expand1: found #{}: &&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}
+1788027600.931564 format_replace: modifier 0 is &&
+1788027600.931571 format_expand1: expanding format: #{window_last_flag}
+1788027600.931577 format_expand1: found #{}: window_last_flag
+1788027600.931586 format_replace: format 'window_last_flag' found: 0
+1788027600.931592 format_replace: replaced 'window_last_flag' with '0'
+1788027600.931598 format_expand1: result is: 0
+1788027600.931605 format_bool_op_n: operator && has operand: 0
+1788027600.931612 format_replace: replaced '&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}' with '0'
+1788027600.931619 format_expand1: result is: 0
+1788027600.931627 format_replace: condition '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}' is false
+1788027600.931634 format_replace: no condition matched in '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},'; using last arg
+1788027600.931641 format_replace: replaced '?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},' with ''
+1788027600.931653 format_expand1: found #{}: ?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027600.931661 format_replace: condition is: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027600.931669 format_expand1: expanding format: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027600.931676 format_expand1: found #{}: &&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}
+1788027600.931682 format_replace: modifier 0 is &&
+1788027600.931689 format_expand1: expanding format: #{window_bell_flag}
+1788027600.931695 format_expand1: found #{}: window_bell_flag
+1788027600.931705 format_replace: format 'window_bell_flag' found: 0
+1788027600.931711 format_replace: replaced 'window_bell_flag' with '0'
+1788027600.931717 format_expand1: result is: 0
+1788027600.931723 format_bool_op_n: operator && has operand: 0
+1788027600.931729 format_replace: replaced '&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}' with '0'
+1788027600.931735 format_expand1: result is: 0
+1788027600.931742 format_replace: condition '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}' is false
+1788027600.931752 format_replace: no condition matched in '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}'; using last arg
+1788027600.931759 format_expand1: expanding format: #{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027600.931769 format_expand1: found #{}: ?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},
+1788027600.931777 format_replace: condition is: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027600.931786 format_expand1: expanding format: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027600.931794 format_expand1: found #{}: &&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}
+1788027600.931800 format_replace: modifier 0 is &&
+1788027600.931807 format_expand1: expanding format: #{||:#{window_activity_flag},#{window_silence_flag}}
+1788027600.931814 format_expand1: found #{}: ||:#{window_activity_flag},#{window_silence_flag}
+1788027600.931820 format_replace: modifier 0 is ||
+1788027600.931827 format_expand1: expanding format: #{window_activity_flag}
+1788027600.931833 format_expand1: found #{}: window_activity_flag
+1788027600.931842 format_replace: format 'window_activity_flag' found: 0
+1788027600.931849 format_replace: replaced 'window_activity_flag' with '0'
+1788027600.931855 format_expand1: result is: 0
+1788027600.931861 format_bool_op_n: operator || has operand: 0
+1788027600.931867 format_expand1: expanding format: #{window_silence_flag}
+1788027600.931874 format_expand1: found #{}: window_silence_flag
+1788027600.931883 format_replace: format 'window_silence_flag' found: 0
+1788027600.931890 format_replace: replaced 'window_silence_flag' with '0'
+1788027600.931895 format_expand1: result is: 0
+1788027600.931902 format_bool_op_n: operator || has operand: 0
+1788027600.931908 format_replace: replaced '||:#{window_activity_flag},#{window_silence_flag}' with '0'
+1788027600.931914 format_expand1: result is: 0
+1788027600.931920 format_bool_op_n: operator && has operand: 0
+1788027600.931927 format_replace: replaced '&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}' with '0'
+1788027600.931933 format_expand1: result is: 0
+1788027600.931941 format_replace: condition '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}' is false
+1788027600.931949 format_replace: no condition matched in '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},'; using last arg
+1788027600.931957 format_replace: replaced '?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},' with ''
+1788027600.931963 format_expand1: result is: 
+1788027600.931971 format_replace: replaced '?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}' with ''
+1788027600.931977 format_expand1: found #*1[
+1788027600.931984 format_expand1: found #{}: T:window-status-current-format
+1788027600.931990 format_replace: modifier 0 is T
+1788027600.931998 format_replace: format 'window-status-current-format' found: #I:#W#{?window_flags,#{window_flags}, }
+1788027600.932004 format_expand1: expanding format: #I:#W#{?window_flags,#{window_flags}, }
+1788027600.932011 format_expand1: found #I: window_index
+1788027600.932020 format_replace: format 'window_index' found: 0
+1788027600.932026 format_replace: replaced 'window_index' with '0'
+1788027600.932033 format_expand1: found #W: window_name
+1788027600.932042 format_replace: format 'window_name' found: zsh
+1788027600.932048 format_replace: replaced 'window_name' with 'zsh'
+1788027600.932055 format_expand1: found #{}: ?window_flags,#{window_flags}, 
+1788027600.932061 format_replace: condition is: window_flags
+1788027600.932073 format_replace: condition 'window_flags' found: *
+1788027600.932080 format_replace: condition 'window_flags' is true
+1788027600.932086 format_expand1: expanding format: #{window_flags}
+1788027600.932092 format_expand1: found #{}: window_flags
+1788027600.932101 format_replace: format 'window_flags' found: *
+1788027600.932107 format_replace: replaced 'window_flags' with '*'
+1788027600.932113 format_expand1: result is: *
+1788027600.932120 format_replace: replaced '?window_flags,#{window_flags}, ' with '*'
+1788027600.932126 format_expand1: result is: 0:zsh*
+1788027600.932132 format_replace: replaced 'T:window-status-current-format' with '0:zsh*'
+1788027600.932139 format_expand1: found #*1[
+1788027600.932145 format_expand1: found #*1[
+1788027600.932152 format_expand1: found #{}: ?loop_last_flag,,#{E:window-status-separator}
+1788027600.932159 format_replace: condition is: loop_last_flag
+1788027600.932172 format_replace: condition 'loop_last_flag' found: 1
+1788027600.932178 format_replace: condition 'loop_last_flag' is true
+1788027600.932184 format_replace: replaced '?loop_last_flag,,#{E:window-status-separator}' with ''
+1788027600.932192 format_expand1: result is: #[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]
+1788027600.932200 unref client 0x10d225e00 (3 references)
+1788027600.932219 format_replace: replaced 'W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}' with '#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]'
+1788027600.932227 format_expand1: found #*1[
+1788027600.932233 format_expand1: found #{}: E:status-right-style
+1788027600.932240 format_replace: modifier 0 is E
+1788027600.932249 format_replace: format 'status-right-style' found: default
+1788027600.932255 format_expand1: expanding format: default
+1788027600.932261 format_expand1: result is: default
+1788027600.932268 format_replace: replaced 'E:status-right-style' with 'default'
+1788027600.932274 format_expand1: found #*1[
+1788027600.932281 format_expand1: found #{}: T;=/#{status-right-length}:status-right
+1788027600.932288 format_expand1: expanding format: #{status-right-length}
+1788027600.932294 format_expand1: found #{}: status-right-length
+1788027600.932303 format_replace: format 'status-right-length' found: 40
+1788027600.932309 format_replace: replaced 'status-right-length' with '40'
+1788027600.932315 format_expand1: result is: 40
+1788027600.932322 format_replace: modifier 0 is T
+1788027600.932328 format_replace: modifier 1 is =
+1788027600.932334 format_replace: modifier 1 argument 0: 40
+1788027600.932343 format_replace: format 'status-right' found: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027600.932350 format_expand1: expanding format: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027600.932811 format_expand1: after time expanded: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" 11:20 29-Aug-26
+1788027600.932821 format_expand1: found #{}: ?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,
+1788027600.932828 format_replace: condition is: window_bigger
+1788027600.932837 format_replace: condition 'window_bigger' found: 0
+1788027600.932847 format_replace: condition 'window_bigger' is false
+1788027600.932854 format_replace: no condition matched in 'window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,'; using last arg
+1788027600.932861 format_replace: replaced '?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,' with ''
+1788027600.932868 format_expand1: found #{}: =21:pane_title
+1788027600.932874 format_expand1: expanding format: 21
+1788027600.932880 format_expand1: result is: 21
+1788027600.932886 format_replace: modifier 0 is =
+1788027600.932892 format_replace: modifier 0 argument 0: 21
+1788027600.932904 format_replace: format 'pane_title' found: unknownc6fec8e4399a.attlocal.net
+1788027600.932910 format_replace: applied length limit 21: unknownc6fec8e4399a.a
+1788027600.932918 format_replace: replaced '=21:pane_title' with 'unknownc6fec8e4399a.a'
+1788027600.932925 format_expand1: result is: "unknownc6fec8e4399a.a" 11:20 29-Aug-26
+1788027600.932932 format_replace: applied length limit 40: "unknownc6fec8e4399a.a" 11:20 29-Aug-26
+1788027600.932939 format_replace: replaced 'T;=/#{status-right-length}:status-right' with '"unknownc6fec8e4399a.a" 11:20 29-Aug-26'
+1788027600.932945 format_expand1: found #*1[
+1788027600.932951 format_expand1: found #*1[
+1788027600.932960 format_expand1: result is: #[align=left range=left default]#[push-default][0] #[pop-default]#[norange default]#[list=on align=left]#[list=left-marker]<#[list=right-marker]>#[list=on]#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]#[nolist align=right range=right default]#[push-default]"unknownc6fec8e4399a.a" 11:20 29-Aug-26#[pop-default]#[norange default]
+1788027600.932993 screen_write_cursormove: from 130,0 to 0,0
+1788027600.933009 format_draw: #[align=left range=left default]#[push-default][0] #[pop-default]#[norange default]#[list=on align=left]#[list=left-marker]<#[list=right-marker]>#[list=on]#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]#[nolist align=right range=right default]#[push-default]"unknownc6fec8e4399a.a" 11:20 29-Aug-26#[pop-default]#[norange default]
+1788027600.933018 screen_write_start: size 379x1, no pane
+1788027600.933031 screen_write_start: size 379x1, no pane
+1788027600.933047 screen_write_start: size 379x1, no pane
+1788027600.933058 screen_write_start: size 379x1, no pane
+1788027600.933073 screen_write_start: size 379x1, no pane
+1788027600.933082 screen_write_start: size 379x1, no pane
+1788027600.933220 screen_write_start: size 379x1, no pane
+1788027600.933231 screen_write_start: size 379x1, no pane
+1788027600.933245 style_parse: align=left range=left default
+1788027600.933252 style_parse: align=left
+1788027600.933259 style_parse: range=left
+1788027600.933266 style_parse: default
+1788027600.933294 format_draw: style 'align=left range=left default' -> 'range=left,align=left,fg=black,bg=green'
+1788027600.933305 style_parse: push-default
+1788027600.933311 style_parse: push-default
+1788027600.933321 format_draw: style 'push-default' -> 'range=left,align=left,push-default,fg=black,bg=green'
+1788027600.933328 style_parse: pop-default
+1788027600.933334 style_parse: pop-default
+1788027600.933341 format_draw: style 'pop-default' -> 'range=left,align=left,pop-default,fg=black,bg=green'
+1788027600.933372 style_parse: norange default
+1788027600.933378 style_parse: norange
+1788027600.933384 style_parse: default
+1788027600.933392 format_draw: style 'norange default' -> 'align=left,fg=black,bg=green'
+1788027600.933398 style_parse: list=on align=left
+1788027600.933404 style_parse: list=on
+1788027600.933410 style_parse: align=left
+1788027600.933424 format_draw: style 'list=on align=left' -> 'list=on,align=left,fg=black,bg=green'
+1788027600.933433 format_draw: change LEFT -> LIST
+1788027600.933439 style_parse: list=left-marker
+1788027600.933445 style_parse: list=left-marker
+1788027600.933453 format_draw: style 'list=left-marker' -> 'list=left-marker,align=left,fg=black,bg=green'
+1788027600.933462 format_draw: change LIST -> LIST_LEFT
+1788027600.933469 style_parse: list=right-marker
+1788027600.933475 style_parse: list=right-marker
+1788027600.933483 format_draw: style 'list=right-marker' -> 'list=right-marker,align=left,fg=black,bg=green'
+1788027600.933501 format_draw: change LIST_LEFT -> LIST_RIGHT
+1788027600.933508 style_parse: list=on
+1788027600.933514 style_parse: list=on
+1788027600.933521 format_draw: style 'list=on' -> 'list=on,align=left,fg=black,bg=green'
+1788027600.933527 format_draw: change LIST_RIGHT -> LIST
+1788027600.933533 style_parse: range=window|0 list=focus default
+1788027600.933539 style_parse: range=window|0
+1788027600.933546 style_parse: list=focus
+1788027600.933552 style_parse: default
+1788027600.933564 format_draw: style 'range=window|0 list=focus default' -> 'list=focus,range=window|0,align=left,fg=black,bg=green'
+1788027600.933570 style_parse: push-default
+1788027600.933576 style_parse: push-default
+1788027600.933584 format_draw: style 'push-default' -> 'list=focus,range=window|0,align=left,push-default,fg=black,bg=green'
+1788027600.933590 style_parse: pop-default
+1788027600.933596 style_parse: pop-default
+1788027600.933603 format_draw: style 'pop-default' -> 'list=focus,range=window|0,align=left,pop-default,fg=black,bg=green'
+1788027600.933610 style_parse: norange list=on default
+1788027600.933616 style_parse: norange
+1788027600.933623 style_parse: list=on
+1788027600.933628 style_parse: default
+1788027600.933635 format_draw: style 'norange list=on default' -> 'list=on,align=left,fg=black,bg=green'
+1788027600.933642 style_parse: nolist align=right range=right default
+1788027600.933647 style_parse: nolist
+1788027600.933653 style_parse: align=right
+1788027600.933659 style_parse: range=right
+1788027600.933665 style_parse: default
+1788027600.933674 format_draw: style 'nolist align=right range=right default' -> 'range=right,align=right,fg=black,bg=green'
+1788027600.933681 format_draw: change LIST -> RIGHT
+1788027600.933687 style_parse: push-default
+1788027600.933692 style_parse: push-default
+1788027600.933699 format_draw: style 'push-default' -> 'range=right,align=right,push-default,fg=black,bg=green'
+1788027600.933708 style_parse: pop-default
+1788027600.933713 style_parse: pop-default
+1788027600.933721 format_draw: style 'pop-default' -> 'range=right,align=right,pop-default,fg=black,bg=green'
+1788027600.933726 style_parse: norange default
+1788027600.933731 style_parse: norange
+1788027600.933737 style_parse: default
+1788027600.933744 format_draw: style 'norange default' -> 'align=right,fg=black,bg=green'
+1788027600.933753 collect list: x=0 (last 4294967295), y=0, used=379
+1788027600.933760 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027600.933766 format_draw: width LEFT is 4
+1788027600.933773 collect list: x=0 (last 4294967295), y=0, used=379
+1788027600.933779 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027600.933784 format_draw: width CENTRE is 0
+1788027600.933790 collect list: x=0 (last 4294967295), y=0, used=379
+1788027600.933796 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027600.933802 format_draw: width RIGHT is 39
+1788027600.933808 collect list: x=0 (last 4294967295), y=0, used=379
+1788027600.933813 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027600.933819 format_draw: width ABSOLUTE_CENTRE is 0
+1788027600.933825 collect list: x=0 (last 4294967295), y=0, used=379
+1788027600.933830 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027600.933835 format_draw: width LIST is 6
+1788027600.933841 collect list: x=0 (last 4294967295), y=0, used=379
+1788027600.933846 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027600.933852 format_draw: width LIST_LEFT is 1
+1788027600.933857 collect list: x=0 (last 4294967295), y=0, used=379
+1788027600.933863 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027600.933868 format_draw: width LIST_RIGHT is 1
+1788027600.933874 collect list: x=0 (last 4294967295), y=0, used=379
+1788027600.933879 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027600.933884 format_draw: width AFTER is 0
+1788027600.933890 format_draw: focus 0-6
+1788027600.933896 format_draw: range 1|0 is LEFT 0-5
+1788027600.933901 format_draw: range 4|0 is LIST 0-7
+1788027600.933907 format_draw: range 2|0 is RIGHT 0-40
+1788027600.933913 screen_write_cursormove: from 0,0 to 0,0
+1788027600.933919 screen_write_cursormove: from 0,0 to 91,0
+1788027600.933926 screen_write_cursormove: from 91,0 to 10,0
+1788027600.933932 screen_write_cursormove: from 10,0 to 50,0
+1788027600.933938 screen_write_cursormove: from 50,0 to 4,0
+1788027600.933943 screen_write_cursormove: from 4,0 to 65,0
+1788027600.933967 format_draw: range left at 0-4
+1788027600.933974 format_draw: range window|0 at 4-10
+1788027600.933980 format_draw: range right at 91-130
+1788027600.933988 screen_write_cursormove: from 65,0 to 0,0
+1788027600.933994 screen_write_collect_flush: flushed 0 items (screen_write_stop)
+1788027600.934000 unref client 0x10d225e00 (2 references)
+1788027600.934005 status_redraw exit: force=0, changed=1
+1788027600.934029 /dev/ttys000 sync start
+1788027600.934125 /dev/ttys000: \033[?2026h
+1788027600.934135 /dev/ttys000: \033[?25l
+1788027600.934142 /dev/ttys000: current mode CURSOR,WRAP,BRACKETPASTE
+1788027600.934148 /dev/ttys000: setting mode WRAP,BRACKETPASTE
+1788027600.934154 /dev/ttys000: redrawing status
+1788027600.934160 screen_redraw_draw_status: /dev/ttys000 @0
+1788027600.934167 tty_draw_line: px=0 py=0 nx=4294967295 atx=0 aty=36
+1788027600.934175 tty_draw_line: drawing 0-130,0 (end 130) at 0,36; defaults: fg=8, bg=8
+1788027600.934194 tty_draw_line: cell 0 empty 0, bg 2; state: current FIRST, next SAME
+1788027600.934201 tty_draw_line: cell 1 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934208 tty_draw_line: cell 2 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934214 tty_draw_line: cell 3 empty 1, bg 2; state: current SAME, next EMPTY
+1788027600.934231 /dev/ttys000: \033[30m
+1788027600.934239 /dev/ttys000: \033[42m
+1788027600.934247 /dev/ttys000: \033[37;1H
+1788027600.934252 /dev/ttys000: [0]
+1788027600.934258 tty_draw_line: cell 4 empty 0, bg 2; state: current EMPTY, next SAME
+1788027600.934264 /dev/ttys000:  
+1788027600.934270 tty_draw_line: cell 5 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934276 tty_draw_line: cell 6 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934281 tty_draw_line: cell 7 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934287 tty_draw_line: cell 8 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934292 tty_draw_line: cell 9 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934298 tty_draw_line: cell 10 empty 1, bg 2; state: current SAME, next EMPTY
+1788027600.934304 /dev/ttys000: 0:zsh*
+1788027600.934310 tty_draw_line: cell 11 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934315 tty_draw_line: cell 12 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934321 tty_draw_line: cell 13 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934327 tty_draw_line: cell 14 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934332 tty_draw_line: cell 15 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934338 tty_draw_line: cell 16 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934344 tty_draw_line: cell 17 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934349 tty_draw_line: cell 18 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934355 tty_draw_line: cell 19 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934360 tty_draw_line: cell 20 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934366 tty_draw_line: cell 21 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934372 tty_draw_line: cell 22 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934377 tty_draw_line: cell 23 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934383 tty_draw_line: cell 24 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934388 tty_draw_line: cell 25 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934394 tty_draw_line: cell 26 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934400 tty_draw_line: cell 27 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934405 tty_draw_line: cell 28 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934411 tty_draw_line: cell 29 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934416 tty_draw_line: cell 30 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934422 tty_draw_line: cell 31 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934428 tty_draw_line: cell 32 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934433 tty_draw_line: cell 33 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934439 tty_draw_line: cell 34 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934445 tty_draw_line: cell 35 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934450 tty_draw_line: cell 36 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934456 tty_draw_line: cell 37 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934462 tty_draw_line: cell 38 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934467 tty_draw_line: cell 39 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934473 tty_draw_line: cell 40 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934478 tty_draw_line: cell 41 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934484 tty_draw_line: cell 42 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934490 tty_draw_line: cell 43 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934496 tty_draw_line: cell 44 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934502 tty_draw_line: cell 45 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934507 tty_draw_line: cell 46 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934513 tty_draw_line: cell 47 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934519 tty_draw_line: cell 48 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934525 tty_draw_line: cell 49 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934530 tty_draw_line: cell 50 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934536 tty_draw_line: cell 51 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934542 tty_draw_line: cell 52 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934547 tty_draw_line: cell 53 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934553 tty_draw_line: cell 54 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934559 tty_draw_line: cell 55 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934564 tty_draw_line: cell 56 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934570 tty_draw_line: cell 57 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934576 tty_draw_line: cell 58 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934582 tty_draw_line: cell 59 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934587 tty_draw_line: cell 60 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934593 tty_draw_line: cell 61 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934599 tty_draw_line: cell 62 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934604 tty_draw_line: cell 63 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934610 tty_draw_line: cell 64 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934616 tty_draw_line: cell 65 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934622 tty_draw_line: cell 66 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934627 tty_draw_line: cell 67 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934633 tty_draw_line: cell 68 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934639 tty_draw_line: cell 69 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934644 tty_draw_line: cell 70 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934650 tty_draw_line: cell 71 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934656 tty_draw_line: cell 72 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934668 tty_draw_line: cell 73 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934674 tty_draw_line: cell 74 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934679 tty_draw_line: cell 75 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934685 tty_draw_line: cell 76 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934691 tty_draw_line: cell 77 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934697 tty_draw_line: cell 78 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934702 tty_draw_line: cell 79 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934708 tty_draw_line: cell 80 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934713 tty_draw_line: cell 81 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934719 tty_draw_line: cell 82 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934725 tty_draw_line: cell 83 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934732 tty_draw_line: cell 84 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934738 tty_draw_line: cell 85 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934744 tty_draw_line: cell 86 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934750 tty_draw_line: cell 87 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934755 tty_draw_line: cell 88 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934761 tty_draw_line: cell 89 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934768 tty_draw_line: cell 90 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027600.934774 tty_draw_line: cell 91 empty 0, bg 2; state: current EMPTY, next SAME
+1788027600.934780 /dev/ttys000: \033[81X
+1788027600.934787 tty_draw_line: cell 92 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934793 tty_draw_line: cell 93 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934799 tty_draw_line: cell 94 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934805 tty_draw_line: cell 95 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934811 tty_draw_line: cell 96 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934817 tty_draw_line: cell 97 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934823 tty_draw_line: cell 98 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934829 tty_draw_line: cell 99 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934835 tty_draw_line: cell 100 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934841 tty_draw_line: cell 101 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934847 tty_draw_line: cell 102 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934853 tty_draw_line: cell 103 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934859 tty_draw_line: cell 104 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934865 tty_draw_line: cell 105 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934871 tty_draw_line: cell 106 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934877 tty_draw_line: cell 107 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934883 tty_draw_line: cell 108 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934889 tty_draw_line: cell 109 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934896 tty_draw_line: cell 110 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934902 tty_draw_line: cell 111 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934908 tty_draw_line: cell 112 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934914 tty_draw_line: cell 113 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934920 tty_draw_line: cell 114 empty 1, bg 2; state: current SAME, next EMPTY
+1788027600.934928 /dev/ttys000: \033[37;92H
+1788027600.934934 /dev/ttys000: "unknownc6fec8e4399a.a"
+1788027600.934940 tty_draw_line: cell 115 empty 0, bg 2; state: current EMPTY, next SAME
+1788027600.934945 /dev/ttys000:  
+1788027600.934951 tty_draw_line: cell 116 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934957 tty_draw_line: cell 117 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934962 tty_draw_line: cell 118 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934968 tty_draw_line: cell 119 empty 0, bg 2; state: current SAME, next SAME
+1788027600.934974 tty_draw_line: cell 120 empty 1, bg 2; state: current SAME, next EMPTY
+1788027600.934980 /dev/ttys000: 11:20
+1788027600.934986 tty_draw_line: cell 121 empty 0, bg 2; state: current EMPTY, next SAME
+1788027600.934991 /dev/ttys000:  
+1788027600.934997 tty_draw_line: cell 122 empty 0, bg 2; state: current SAME, next SAME
+1788027600.935003 tty_draw_line: cell 123 empty 0, bg 2; state: current SAME, next SAME
+1788027600.935008 tty_draw_line: cell 124 empty 0, bg 2; state: current SAME, next SAME
+1788027600.935014 tty_draw_line: cell 125 empty 0, bg 2; state: current SAME, next SAME
+1788027600.935019 tty_draw_line: cell 126 empty 0, bg 2; state: current SAME, next SAME
+1788027600.935025 tty_draw_line: cell 127 empty 0, bg 2; state: current SAME, next SAME
+1788027600.935031 tty_draw_line: cell 128 empty 0, bg 2; state: current SAME, next SAME
+1788027600.935036 tty_draw_line: cell 129 empty 0, bg 2; state: current SAME, next SAME
+1788027600.935041 tty_draw_line: cell 130 empty 0, bg 8; state: current SAME, next DONE
+1788027600.935046 /dev/ttys000: 29-Aug-26
+1788027600.935051 /dev/ttys000: \033(B\033[m
+1788027600.935056 /dev/ttys000: \033[?12l\033[?25h
+1788027600.935065 /dev/ttys000: current mode WRAP,BRACKETPASTE
+1788027600.935070 /dev/ttys000: setting mode CURSOR,WRAP,BRACKETPASTE
+1788027600.935076 /dev/ttys000: redraw added 111 bytes
+1788027600.935082 server_client_reset_state: client /dev/ttys000 mode CURSOR,WRAP,BRACKETPASTE
+1788027600.935088 server_client_reset_state: cursor to 49,2
+1788027600.935094 /dev/ttys000: \033[3;50H
+1788027600.935101 /dev/ttys000 sync end
+1788027600.935106 /dev/ttys000: \033[?2026l
+1788027600.935115 server_client_check_pane_buffer: pane %0 is on
+1788027600.935123 @0 active pane not changed
+1788027600.935173 /dev/ttys000: wrote 126 bytes (of 126)
+1788027600.935179 /dev/ttys000: waiting for redraw, 0 bytes left
+1788027600.935185 cmdq_next <global>: empty
+1788027600.935190 cmdq_next </dev/ttys000>: empty
+1788027600.935195 server_client_reset_state: client /dev/ttys000 mode CURSOR,WRAP,BRACKETPASTE
+1788027600.935200 server_client_reset_state: cursor to 49,2
+1788027600.935206 server_client_check_pane_buffer: pane %0 is on
+1788027600.935211 @0 active pane not changed
