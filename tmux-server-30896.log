@@ -138012,3 +138012,1216 @@
 1788027630.936452 server_client_reset_state: cursor to 49,2
 1788027630.936469 server_client_check_pane_buffer: pane %0 is on
 1788027630.936484 @0 active pane not changed
+1788027645.933760 client 0x10d225e00, status interval 15
+1788027645.933860 cmdq_next <global>: empty
+1788027645.933882 cmdq_next </dev/ttys000>: empty
+1788027645.933899 /dev/ttys000: redraw status
+1788027645.933914 /dev/ttys000: redraw needed
+1788027645.933939 screen_redraw_set_context: /dev/ttys000 @0 ox=0 oy=0 sx=130 sy=36 1/0
+1788027645.933951 status_redraw enter
+1788027645.933963 format_defaults: c=/dev/ttys000
+1788027645.933974 format_defaults: s=none
+1788027645.933985 format_defaults: wl=none
+1788027645.933996 format_defaults: wp=none
+1788027645.934016 screen_write_start: size 130x1, no pane
+1788027645.934030 screen_write_cursormove: from 0,0 to 0,0
+1788027645.934072 format_expand1: expanding format: #[align=left range=left #{E:status-left-style}]#[push-default]#{T;=/#{status-left-length}:status-left}#[pop-default]#[norange default]#[list=on align=#{status-justify}]#[list=left-marker]<#[list=right-marker]>#[list=on]#{W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}}#[nolist align=right range=right #{E:status-right-style}]#[push-default]#{T;=/#{status-right-length}:status-right}#[pop-default]#[norange default]
+1788027645.934091 format_expand1: found #*1[
+1788027645.934105 format_expand1: found #{}: E:status-left-style
+1788027645.934118 format_replace: modifier 0 is E
+1788027645.934143 format_replace: format 'status-left-style' found: default
+1788027645.934155 format_expand1: expanding format: default
+1788027645.934166 format_expand1: result is: default
+1788027645.934179 format_replace: replaced 'E:status-left-style' with 'default'
+1788027645.934191 format_expand1: found #*1[
+1788027645.934203 format_expand1: found #{}: T;=/#{status-left-length}:status-left
+1788027645.934216 format_expand1: expanding format: #{status-left-length}
+1788027645.934227 format_expand1: found #{}: status-left-length
+1788027645.934245 format_replace: format 'status-left-length' found: 10
+1788027645.934257 format_replace: replaced 'status-left-length' with '10'
+1788027645.934267 format_expand1: result is: 10
+1788027645.934278 format_replace: modifier 0 is T
+1788027645.934289 format_replace: modifier 1 is =
+1788027645.934299 format_replace: modifier 1 argument 0: 10
+1788027645.934317 format_replace: format 'status-left' found: [#{session_name}] 
+1788027645.934327 format_expand1: expanding format: [#{session_name}] 
+1788027645.934338 format_expand1: found #{}: session_name
+1788027645.934360 format_replace: format 'session_name' found: 0
+1788027645.934371 format_replace: replaced 'session_name' with '0'
+1788027645.934381 format_expand1: result is: [0] 
+1788027645.934394 format_replace: applied length limit 10: [0] 
+1788027645.934405 format_replace: replaced 'T;=/#{status-left-length}:status-left' with '[0] '
+1788027645.934416 format_expand1: found #*1[
+1788027645.934426 format_expand1: found #*1[
+1788027645.934437 format_expand1: found #*1[
+1788027645.934448 format_expand1: found #{}: status-justify
+1788027645.934463 format_replace: format 'status-justify' found: left
+1788027645.934474 format_replace: replaced 'status-justify' with 'left'
+1788027645.934485 format_expand1: found #*1[
+1788027645.934495 format_expand1: found #*1[
+1788027645.934505 format_expand1: found #*1[
+1788027645.934560 format_expand1: found #{}: W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027645.934574 format_replace: modifier 0 is W
+1788027645.934600 format_loop_windows: window loop: 0 @0
+1788027645.934611 format_defaults: c=/dev/ttys000
+1788027645.934621 format_defaults: s=$0
+1788027645.934630 format_defaults: wl=0
+1788027645.934639 format_defaults: wp=none
+1788027645.934663 format_expand1: expanding format: #[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027645.934683 format_expand1: found #*1[
+1788027645.934694 format_expand1: found #{}: window_index
+1788027645.934713 format_replace: format 'window_index' found: 0
+1788027645.934724 format_replace: replaced 'window_index' with '0'
+1788027645.934739 format_expand1: found #{}: ?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}
+1788027645.934752 format_replace: condition is: #{!=:#{E:window-status-current-style},default}
+1788027645.934775 format_expand1: expanding format: #{!=:#{E:window-status-current-style},default}
+1788027645.934787 format_expand1: found #{}: !=:#{E:window-status-current-style},default
+1788027645.934798 format_replace: modifier 0 is !=
+1788027645.934812 format_expand1: expanding format: #{E:window-status-current-style}
+1788027645.934823 format_expand1: found #{}: E:window-status-current-style
+1788027645.934833 format_replace: modifier 0 is E
+1788027645.934869 format_replace: format 'window-status-current-style' found: default
+1788027645.934880 format_expand1: expanding format: default
+1788027645.934890 format_expand1: result is: default
+1788027645.934901 format_replace: replaced 'E:window-status-current-style' with 'default'
+1788027645.934912 format_expand1: result is: default
+1788027645.934922 format_expand1: expanding format: default
+1788027645.934932 format_expand1: result is: default
+1788027645.934942 format_replace: compare != left is: default
+1788027645.934953 format_replace: compare != right is: default
+1788027645.934965 format_replace: replaced '!=:#{E:window-status-current-style},default' with '0'
+1788027645.934975 format_expand1: result is: 0
+1788027645.934987 format_replace: condition '#{!=:#{E:window-status-current-style},default}' is false
+1788027645.935000 format_replace: no condition matched in '#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}'; using last arg
+1788027645.935011 format_expand1: expanding format: #{E:window-status-style}
+1788027645.935022 format_expand1: found #{}: E:window-status-style
+1788027645.935032 format_replace: modifier 0 is E
+1788027645.935045 format_replace: format 'window-status-style' found: default
+1788027645.935055 format_expand1: expanding format: default
+1788027645.935065 format_expand1: result is: default
+1788027645.935076 format_replace: replaced 'E:window-status-style' with 'default'
+1788027645.935086 format_expand1: result is: default
+1788027645.935098 format_replace: replaced '?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}' with 'default'
+1788027645.935112 format_expand1: found #{}: ?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},
+1788027645.935126 format_replace: condition is: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027645.935142 format_expand1: expanding format: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027645.935154 format_expand1: found #{}: &&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}
+1788027645.935165 format_replace: modifier 0 is &&
+1788027645.935176 format_expand1: expanding format: #{window_last_flag}
+1788027645.935187 format_expand1: found #{}: window_last_flag
+1788027645.935207 format_replace: format 'window_last_flag' found: 0
+1788027645.935217 format_replace: replaced 'window_last_flag' with '0'
+1788027645.935227 format_expand1: result is: 0
+1788027645.935238 format_bool_op_n: operator && has operand: 0
+1788027645.935249 format_replace: replaced '&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}' with '0'
+1788027645.935259 format_expand1: result is: 0
+1788027645.935270 format_replace: condition '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}' is false
+1788027645.935283 format_replace: no condition matched in '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},'; using last arg
+1788027645.935295 format_replace: replaced '?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},' with ''
+1788027645.935314 format_expand1: found #{}: ?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027645.935327 format_replace: condition is: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027645.935342 format_expand1: expanding format: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027645.935354 format_expand1: found #{}: &&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}
+1788027645.935364 format_replace: modifier 0 is &&
+1788027645.935375 format_expand1: expanding format: #{window_bell_flag}
+1788027645.935386 format_expand1: found #{}: window_bell_flag
+1788027645.935401 format_replace: format 'window_bell_flag' found: 0
+1788027645.935411 format_replace: replaced 'window_bell_flag' with '0'
+1788027645.935421 format_expand1: result is: 0
+1788027645.935431 format_bool_op_n: operator && has operand: 0
+1788027645.935442 format_replace: replaced '&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}' with '0'
+1788027645.935452 format_expand1: result is: 0
+1788027645.935463 format_replace: condition '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}' is false
+1788027645.935480 format_replace: no condition matched in '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}'; using last arg
+1788027645.935493 format_expand1: expanding format: #{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027645.935515 format_expand1: found #{}: ?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},
+1788027645.935529 format_replace: condition is: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027645.935544 format_expand1: expanding format: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027645.935558 format_expand1: found #{}: &&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}
+1788027645.935569 format_replace: modifier 0 is &&
+1788027645.935581 format_expand1: expanding format: #{||:#{window_activity_flag},#{window_silence_flag}}
+1788027645.935592 format_expand1: found #{}: ||:#{window_activity_flag},#{window_silence_flag}
+1788027645.935603 format_replace: modifier 0 is ||
+1788027645.935615 format_expand1: expanding format: #{window_activity_flag}
+1788027645.935626 format_expand1: found #{}: window_activity_flag
+1788027645.935642 format_replace: format 'window_activity_flag' found: 0
+1788027645.935653 format_replace: replaced 'window_activity_flag' with '0'
+1788027645.935663 format_expand1: result is: 0
+1788027645.935672 format_bool_op_n: operator || has operand: 0
+1788027645.935683 format_expand1: expanding format: #{window_silence_flag}
+1788027645.935694 format_expand1: found #{}: window_silence_flag
+1788027645.935709 format_replace: format 'window_silence_flag' found: 0
+1788027645.935719 format_replace: replaced 'window_silence_flag' with '0'
+1788027645.935729 format_expand1: result is: 0
+1788027645.935739 format_bool_op_n: operator || has operand: 0
+1788027645.935751 format_replace: replaced '||:#{window_activity_flag},#{window_silence_flag}' with '0'
+1788027645.935763 format_expand1: result is: 0
+1788027645.935772 format_bool_op_n: operator && has operand: 0
+1788027645.935784 format_replace: replaced '&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}' with '0'
+1788027645.935794 format_expand1: result is: 0
+1788027645.935806 format_replace: condition '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}' is false
+1788027645.935821 format_replace: no condition matched in '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},'; using last arg
+1788027645.935835 format_replace: replaced '?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},' with ''
+1788027645.935845 format_expand1: result is: 
+1788027645.935858 format_replace: replaced '?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}' with ''
+1788027645.935869 format_expand1: found #*1[
+1788027645.935880 format_expand1: found #{}: T:window-status-current-format
+1788027645.935890 format_replace: modifier 0 is T
+1788027645.935903 format_replace: format 'window-status-current-format' found: #I:#W#{?window_flags,#{window_flags}, }
+1788027645.935914 format_expand1: expanding format: #I:#W#{?window_flags,#{window_flags}, }
+1788027645.935925 format_expand1: found #I: window_index
+1788027645.935940 format_replace: format 'window_index' found: 0
+1788027645.935950 format_replace: replaced 'window_index' with '0'
+1788027645.935961 format_expand1: found #W: window_name
+1788027645.935976 format_replace: format 'window_name' found: zsh
+1788027645.935986 format_replace: replaced 'window_name' with 'zsh'
+1788027645.935997 format_expand1: found #{}: ?window_flags,#{window_flags}, 
+1788027645.936008 format_replace: condition is: window_flags
+1788027645.936024 format_replace: condition 'window_flags' found: *
+1788027645.936035 format_replace: condition 'window_flags' is true
+1788027645.936045 format_expand1: expanding format: #{window_flags}
+1788027645.936056 format_expand1: found #{}: window_flags
+1788027645.936070 format_replace: format 'window_flags' found: *
+1788027645.936080 format_replace: replaced 'window_flags' with '*'
+1788027645.936090 format_expand1: result is: *
+1788027645.936100 format_replace: replaced '?window_flags,#{window_flags}, ' with '*'
+1788027645.936110 format_expand1: result is: 0:zsh*
+1788027645.936121 format_replace: replaced 'T:window-status-current-format' with '0:zsh*'
+1788027645.936132 format_expand1: found #*1[
+1788027645.936142 format_expand1: found #*1[
+1788027645.936154 format_expand1: found #{}: ?loop_last_flag,,#{E:window-status-separator}
+1788027645.936165 format_replace: condition is: loop_last_flag
+1788027645.936183 format_replace: condition 'loop_last_flag' found: 1
+1788027645.936194 format_replace: condition 'loop_last_flag' is true
+1788027645.936205 format_replace: replaced '?loop_last_flag,,#{E:window-status-separator}' with ''
+1788027645.936216 format_expand1: result is: #[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]
+1788027645.936228 unref client 0x10d225e00 (3 references)
+1788027645.936258 format_replace: replaced 'W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}' with '#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]'
+1788027645.936271 format_expand1: found #*1[
+1788027645.936282 format_expand1: found #{}: E:status-right-style
+1788027645.936292 format_replace: modifier 0 is E
+1788027645.936307 format_replace: format 'status-right-style' found: default
+1788027645.936317 format_expand1: expanding format: default
+1788027645.936326 format_expand1: result is: default
+1788027645.936337 format_replace: replaced 'E:status-right-style' with 'default'
+1788027645.936347 format_expand1: found #*1[
+1788027645.936358 format_expand1: found #{}: T;=/#{status-right-length}:status-right
+1788027645.936369 format_expand1: expanding format: #{status-right-length}
+1788027645.936380 format_expand1: found #{}: status-right-length
+1788027645.936394 format_replace: format 'status-right-length' found: 40
+1788027645.936404 format_replace: replaced 'status-right-length' with '40'
+1788027645.936414 format_expand1: result is: 40
+1788027645.936424 format_replace: modifier 0 is T
+1788027645.936434 format_replace: modifier 1 is =
+1788027645.936443 format_replace: modifier 1 argument 0: 40
+1788027645.936460 format_replace: format 'status-right' found: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027645.936471 format_expand1: expanding format: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027645.937133 format_expand1: after time expanded: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" 11:20 29-Aug-26
+1788027645.937151 format_expand1: found #{}: ?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,
+1788027645.937163 format_replace: condition is: window_bigger
+1788027645.937184 format_replace: condition 'window_bigger' found: 0
+1788027645.937195 format_replace: condition 'window_bigger' is false
+1788027645.937206 format_replace: no condition matched in 'window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,'; using last arg
+1788027645.937218 format_replace: replaced '?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,' with ''
+1788027645.937229 format_expand1: found #{}: =21:pane_title
+1788027645.937240 format_expand1: expanding format: 21
+1788027645.937250 format_expand1: result is: 21
+1788027645.937260 format_replace: modifier 0 is =
+1788027645.937270 format_replace: modifier 0 argument 0: 21
+1788027645.937290 format_replace: format 'pane_title' found: unknownc6fec8e4399a.attlocal.net
+1788027645.937301 format_replace: applied length limit 21: unknownc6fec8e4399a.a
+1788027645.937312 format_replace: replaced '=21:pane_title' with 'unknownc6fec8e4399a.a'
+1788027645.937323 format_expand1: result is: "unknownc6fec8e4399a.a" 11:20 29-Aug-26
+1788027645.937336 format_replace: applied length limit 40: "unknownc6fec8e4399a.a" 11:20 29-Aug-26
+1788027645.937348 format_replace: replaced 'T;=/#{status-right-length}:status-right' with '"unknownc6fec8e4399a.a" 11:20 29-Aug-26'
+1788027645.937358 format_expand1: found #*1[
+1788027645.937369 format_expand1: found #*1[
+1788027645.937384 format_expand1: result is: #[align=left range=left default]#[push-default][0] #[pop-default]#[norange default]#[list=on align=left]#[list=left-marker]<#[list=right-marker]>#[list=on]#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]#[nolist align=right range=right default]#[push-default]"unknownc6fec8e4399a.a" 11:20 29-Aug-26#[pop-default]#[norange default]
+1788027645.937399 screen_write_collect_flush: flushed 0 items (screen_write_stop)
+1788027645.937409 unref client 0x10d225e00 (2 references)
+1788027645.937419 status_redraw exit: force=0, changed=0
+1788027645.937431 /dev/ttys000: redraw added 0 bytes
+1788027645.937444 server_client_reset_state: client /dev/ttys000 mode CURSOR,WRAP,BRACKETPASTE
+1788027645.937457 server_client_reset_state: cursor to 49,2
+1788027645.937474 server_client_check_pane_buffer: pane %0 is on
+1788027645.937489 @0 active pane not changed
+1788027660.934021 client 0x10d225e00, status interval 15
+1788027660.934124 cmdq_next <global>: empty
+1788027660.934149 cmdq_next </dev/ttys000>: empty
+1788027660.934165 /dev/ttys000: redraw status
+1788027660.934177 /dev/ttys000: redraw needed
+1788027660.934201 screen_redraw_set_context: /dev/ttys000 @0 ox=0 oy=0 sx=130 sy=36 1/0
+1788027660.934213 status_redraw enter
+1788027660.934226 format_defaults: c=/dev/ttys000
+1788027660.934238 format_defaults: s=none
+1788027660.934247 format_defaults: wl=none
+1788027660.934258 format_defaults: wp=none
+1788027660.934277 screen_write_start: size 130x1, no pane
+1788027660.934290 screen_write_cursormove: from 0,0 to 0,0
+1788027660.934331 format_expand1: expanding format: #[align=left range=left #{E:status-left-style}]#[push-default]#{T;=/#{status-left-length}:status-left}#[pop-default]#[norange default]#[list=on align=#{status-justify}]#[list=left-marker]<#[list=right-marker]>#[list=on]#{W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}}#[nolist align=right range=right #{E:status-right-style}]#[push-default]#{T;=/#{status-right-length}:status-right}#[pop-default]#[norange default]
+1788027660.934348 format_expand1: found #*1[
+1788027660.934360 format_expand1: found #{}: E:status-left-style
+1788027660.934374 format_replace: modifier 0 is E
+1788027660.934400 format_replace: format 'status-left-style' found: default
+1788027660.934412 format_expand1: expanding format: default
+1788027660.934422 format_expand1: result is: default
+1788027660.934436 format_replace: replaced 'E:status-left-style' with 'default'
+1788027660.934448 format_expand1: found #*1[
+1788027660.934459 format_expand1: found #{}: T;=/#{status-left-length}:status-left
+1788027660.934473 format_expand1: expanding format: #{status-left-length}
+1788027660.934484 format_expand1: found #{}: status-left-length
+1788027660.934500 format_replace: format 'status-left-length' found: 10
+1788027660.934511 format_replace: replaced 'status-left-length' with '10'
+1788027660.934522 format_expand1: result is: 10
+1788027660.934532 format_replace: modifier 0 is T
+1788027660.934543 format_replace: modifier 1 is =
+1788027660.934555 format_replace: modifier 1 argument 0: 10
+1788027660.934575 format_replace: format 'status-left' found: [#{session_name}] 
+1788027660.934586 format_expand1: expanding format: [#{session_name}] 
+1788027660.934596 format_expand1: found #{}: session_name
+1788027660.934617 format_replace: format 'session_name' found: 0
+1788027660.934627 format_replace: replaced 'session_name' with '0'
+1788027660.934637 format_expand1: result is: [0] 
+1788027660.934650 format_replace: applied length limit 10: [0] 
+1788027660.934661 format_replace: replaced 'T;=/#{status-left-length}:status-left' with '[0] '
+1788027660.934672 format_expand1: found #*1[
+1788027660.934682 format_expand1: found #*1[
+1788027660.934693 format_expand1: found #*1[
+1788027660.934703 format_expand1: found #{}: status-justify
+1788027660.934719 format_replace: format 'status-justify' found: left
+1788027660.934729 format_replace: replaced 'status-justify' with 'left'
+1788027660.934739 format_expand1: found #*1[
+1788027660.934750 format_expand1: found #*1[
+1788027660.934760 format_expand1: found #*1[
+1788027660.934817 format_expand1: found #{}: W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027660.934829 format_replace: modifier 0 is W
+1788027660.934862 format_loop_windows: window loop: 0 @0
+1788027660.934872 format_defaults: c=/dev/ttys000
+1788027660.934882 format_defaults: s=$0
+1788027660.934891 format_defaults: wl=0
+1788027660.934900 format_defaults: wp=none
+1788027660.934924 format_expand1: expanding format: #[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027660.934946 format_expand1: found #*1[
+1788027660.934957 format_expand1: found #{}: window_index
+1788027660.934976 format_replace: format 'window_index' found: 0
+1788027660.934987 format_replace: replaced 'window_index' with '0'
+1788027660.935002 format_expand1: found #{}: ?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}
+1788027660.935015 format_replace: condition is: #{!=:#{E:window-status-current-style},default}
+1788027660.935039 format_expand1: expanding format: #{!=:#{E:window-status-current-style},default}
+1788027660.935052 format_expand1: found #{}: !=:#{E:window-status-current-style},default
+1788027660.935062 format_replace: modifier 0 is !=
+1788027660.935077 format_expand1: expanding format: #{E:window-status-current-style}
+1788027660.935087 format_expand1: found #{}: E:window-status-current-style
+1788027660.935098 format_replace: modifier 0 is E
+1788027660.935134 format_replace: format 'window-status-current-style' found: default
+1788027660.935145 format_expand1: expanding format: default
+1788027660.935156 format_expand1: result is: default
+1788027660.935166 format_replace: replaced 'E:window-status-current-style' with 'default'
+1788027660.935177 format_expand1: result is: default
+1788027660.935187 format_expand1: expanding format: default
+1788027660.935197 format_expand1: result is: default
+1788027660.935207 format_replace: compare != left is: default
+1788027660.935220 format_replace: compare != right is: default
+1788027660.935232 format_replace: replaced '!=:#{E:window-status-current-style},default' with '0'
+1788027660.935242 format_expand1: result is: 0
+1788027660.935253 format_replace: condition '#{!=:#{E:window-status-current-style},default}' is false
+1788027660.935267 format_replace: no condition matched in '#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}'; using last arg
+1788027660.935277 format_expand1: expanding format: #{E:window-status-style}
+1788027660.935289 format_expand1: found #{}: E:window-status-style
+1788027660.935299 format_replace: modifier 0 is E
+1788027660.935311 format_replace: format 'window-status-style' found: default
+1788027660.935322 format_expand1: expanding format: default
+1788027660.935332 format_expand1: result is: default
+1788027660.935342 format_replace: replaced 'E:window-status-style' with 'default'
+1788027660.935352 format_expand1: result is: default
+1788027660.935364 format_replace: replaced '?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}' with 'default'
+1788027660.935378 format_expand1: found #{}: ?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},
+1788027660.935392 format_replace: condition is: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027660.935408 format_expand1: expanding format: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027660.935421 format_expand1: found #{}: &&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}
+1788027660.935431 format_replace: modifier 0 is &&
+1788027660.935442 format_expand1: expanding format: #{window_last_flag}
+1788027660.935453 format_expand1: found #{}: window_last_flag
+1788027660.935468 format_replace: format 'window_last_flag' found: 0
+1788027660.935479 format_replace: replaced 'window_last_flag' with '0'
+1788027660.935489 format_expand1: result is: 0
+1788027660.935499 format_bool_op_n: operator && has operand: 0
+1788027660.935510 format_replace: replaced '&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}' with '0'
+1788027660.935520 format_expand1: result is: 0
+1788027660.935532 format_replace: condition '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}' is false
+1788027660.935544 format_replace: no condition matched in '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},'; using last arg
+1788027660.935556 format_replace: replaced '?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},' with ''
+1788027660.935576 format_expand1: found #{}: ?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027660.935589 format_replace: condition is: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027660.935604 format_expand1: expanding format: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027660.935616 format_expand1: found #{}: &&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}
+1788027660.935626 format_replace: modifier 0 is &&
+1788027660.935637 format_expand1: expanding format: #{window_bell_flag}
+1788027660.935647 format_expand1: found #{}: window_bell_flag
+1788027660.935662 format_replace: format 'window_bell_flag' found: 0
+1788027660.935673 format_replace: replaced 'window_bell_flag' with '0'
+1788027660.935683 format_expand1: result is: 0
+1788027660.935693 format_bool_op_n: operator && has operand: 0
+1788027660.935704 format_replace: replaced '&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}' with '0'
+1788027660.935714 format_expand1: result is: 0
+1788027660.935725 format_replace: condition '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}' is false
+1788027660.935742 format_replace: no condition matched in '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}'; using last arg
+1788027660.935754 format_expand1: expanding format: #{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027660.935770 format_expand1: found #{}: ?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},
+1788027660.935784 format_replace: condition is: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027660.935802 format_expand1: expanding format: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027660.935817 format_expand1: found #{}: &&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}
+1788027660.935828 format_replace: modifier 0 is &&
+1788027660.935840 format_expand1: expanding format: #{||:#{window_activity_flag},#{window_silence_flag}}
+1788027660.935852 format_expand1: found #{}: ||:#{window_activity_flag},#{window_silence_flag}
+1788027660.935862 format_replace: modifier 0 is ||
+1788027660.935875 format_expand1: expanding format: #{window_activity_flag}
+1788027660.935885 format_expand1: found #{}: window_activity_flag
+1788027660.935901 format_replace: format 'window_activity_flag' found: 0
+1788027660.935911 format_replace: replaced 'window_activity_flag' with '0'
+1788027660.935921 format_expand1: result is: 0
+1788027660.935931 format_bool_op_n: operator || has operand: 0
+1788027660.935941 format_expand1: expanding format: #{window_silence_flag}
+1788027660.935952 format_expand1: found #{}: window_silence_flag
+1788027660.935967 format_replace: format 'window_silence_flag' found: 0
+1788027660.935978 format_replace: replaced 'window_silence_flag' with '0'
+1788027660.935988 format_expand1: result is: 0
+1788027660.935998 format_bool_op_n: operator || has operand: 0
+1788027660.936008 format_replace: replaced '||:#{window_activity_flag},#{window_silence_flag}' with '0'
+1788027660.936018 format_expand1: result is: 0
+1788027660.936028 format_bool_op_n: operator && has operand: 0
+1788027660.936040 format_replace: replaced '&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}' with '0'
+1788027660.936050 format_expand1: result is: 0
+1788027660.936062 format_replace: condition '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}' is false
+1788027660.936075 format_replace: no condition matched in '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},'; using last arg
+1788027660.936088 format_replace: replaced '?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},' with ''
+1788027660.936098 format_expand1: result is: 
+1788027660.936112 format_replace: replaced '?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}' with ''
+1788027660.936122 format_expand1: found #*1[
+1788027660.936133 format_expand1: found #{}: T:window-status-current-format
+1788027660.936144 format_replace: modifier 0 is T
+1788027660.936158 format_replace: format 'window-status-current-format' found: #I:#W#{?window_flags,#{window_flags}, }
+1788027660.936169 format_expand1: expanding format: #I:#W#{?window_flags,#{window_flags}, }
+1788027660.936180 format_expand1: found #I: window_index
+1788027660.936195 format_replace: format 'window_index' found: 0
+1788027660.936205 format_replace: replaced 'window_index' with '0'
+1788027660.936216 format_expand1: found #W: window_name
+1788027660.936231 format_replace: format 'window_name' found: zsh
+1788027660.936241 format_replace: replaced 'window_name' with 'zsh'
+1788027660.936252 format_expand1: found #{}: ?window_flags,#{window_flags}, 
+1788027660.936263 format_replace: condition is: window_flags
+1788027660.936280 format_replace: condition 'window_flags' found: *
+1788027660.936290 format_replace: condition 'window_flags' is true
+1788027660.936300 format_expand1: expanding format: #{window_flags}
+1788027660.936311 format_expand1: found #{}: window_flags
+1788027660.936325 format_replace: format 'window_flags' found: *
+1788027660.936335 format_replace: replaced 'window_flags' with '*'
+1788027660.936345 format_expand1: result is: *
+1788027660.936356 format_replace: replaced '?window_flags,#{window_flags}, ' with '*'
+1788027660.936366 format_expand1: result is: 0:zsh*
+1788027660.936377 format_replace: replaced 'T:window-status-current-format' with '0:zsh*'
+1788027660.936387 format_expand1: found #*1[
+1788027660.936398 format_expand1: found #*1[
+1788027660.936410 format_expand1: found #{}: ?loop_last_flag,,#{E:window-status-separator}
+1788027660.936420 format_replace: condition is: loop_last_flag
+1788027660.936440 format_replace: condition 'loop_last_flag' found: 1
+1788027660.936450 format_replace: condition 'loop_last_flag' is true
+1788027660.936462 format_replace: replaced '?loop_last_flag,,#{E:window-status-separator}' with ''
+1788027660.936474 format_expand1: result is: #[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]
+1788027660.936486 unref client 0x10d225e00 (3 references)
+1788027660.936519 format_replace: replaced 'W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}' with '#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]'
+1788027660.936532 format_expand1: found #*1[
+1788027660.936543 format_expand1: found #{}: E:status-right-style
+1788027660.936553 format_replace: modifier 0 is E
+1788027660.936569 format_replace: format 'status-right-style' found: default
+1788027660.936579 format_expand1: expanding format: default
+1788027660.936589 format_expand1: result is: default
+1788027660.936600 format_replace: replaced 'E:status-right-style' with 'default'
+1788027660.936612 format_expand1: found #*1[
+1788027660.936624 format_expand1: found #{}: T;=/#{status-right-length}:status-right
+1788027660.936635 format_expand1: expanding format: #{status-right-length}
+1788027660.936646 format_expand1: found #{}: status-right-length
+1788027660.936661 format_replace: format 'status-right-length' found: 40
+1788027660.936671 format_replace: replaced 'status-right-length' with '40'
+1788027660.936681 format_expand1: result is: 40
+1788027660.936691 format_replace: modifier 0 is T
+1788027660.936701 format_replace: modifier 1 is =
+1788027660.936711 format_replace: modifier 1 argument 0: 40
+1788027660.936728 format_replace: format 'status-right' found: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027660.936740 format_expand1: expanding format: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027660.937426 format_expand1: after time expanded: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" 11:21 29-Aug-26
+1788027660.937447 format_expand1: found #{}: ?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,
+1788027660.937460 format_replace: condition is: window_bigger
+1788027660.937477 format_replace: condition 'window_bigger' found: 0
+1788027660.937488 format_replace: condition 'window_bigger' is false
+1788027660.937501 format_replace: no condition matched in 'window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,'; using last arg
+1788027660.937513 format_replace: replaced '?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,' with ''
+1788027660.937524 format_expand1: found #{}: =21:pane_title
+1788027660.937535 format_expand1: expanding format: 21
+1788027660.937545 format_expand1: result is: 21
+1788027660.937555 format_replace: modifier 0 is =
+1788027660.937565 format_replace: modifier 0 argument 0: 21
+1788027660.937586 format_replace: format 'pane_title' found: unknownc6fec8e4399a.attlocal.net
+1788027660.937597 format_replace: applied length limit 21: unknownc6fec8e4399a.a
+1788027660.937609 format_replace: replaced '=21:pane_title' with 'unknownc6fec8e4399a.a'
+1788027660.937619 format_expand1: result is: "unknownc6fec8e4399a.a" 11:21 29-Aug-26
+1788027660.937631 format_replace: applied length limit 40: "unknownc6fec8e4399a.a" 11:21 29-Aug-26
+1788027660.937649 format_replace: replaced 'T;=/#{status-right-length}:status-right' with '"unknownc6fec8e4399a.a" 11:21 29-Aug-26'
+1788027660.937661 format_expand1: found #*1[
+1788027660.937672 format_expand1: found #*1[
+1788027660.937688 format_expand1: result is: #[align=left range=left default]#[push-default][0] #[pop-default]#[norange default]#[list=on align=left]#[list=left-marker]<#[list=right-marker]>#[list=on]#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]#[nolist align=right range=right default]#[push-default]"unknownc6fec8e4399a.a" 11:21 29-Aug-26#[pop-default]#[norange default]
+1788027660.937720 screen_write_cursormove: from 130,0 to 0,0
+1788027660.937737 format_draw: #[align=left range=left default]#[push-default][0] #[pop-default]#[norange default]#[list=on align=left]#[list=left-marker]<#[list=right-marker]>#[list=on]#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]#[nolist align=right range=right default]#[push-default]"unknownc6fec8e4399a.a" 11:21 29-Aug-26#[pop-default]#[norange default]
+1788027660.937752 screen_write_start: size 379x1, no pane
+1788027660.937772 screen_write_start: size 379x1, no pane
+1788027660.937792 screen_write_start: size 379x1, no pane
+1788027660.937811 screen_write_start: size 379x1, no pane
+1788027660.937829 screen_write_start: size 379x1, no pane
+1788027660.937847 screen_write_start: size 379x1, no pane
+1788027660.937863 screen_write_start: size 379x1, no pane
+1788027660.937879 screen_write_start: size 379x1, no pane
+1788027660.937898 style_parse: align=left range=left default
+1788027660.937909 style_parse: align=left
+1788027660.937922 style_parse: range=left
+1788027660.937934 style_parse: default
+1788027660.937952 format_draw: style 'align=left range=left default' -> 'range=left,align=left,fg=black,bg=green'
+1788027660.937965 style_parse: push-default
+1788027660.937975 style_parse: push-default
+1788027660.937990 format_draw: style 'push-default' -> 'range=left,align=left,push-default,fg=black,bg=green'
+1788027660.938003 style_parse: pop-default
+1788027660.938013 style_parse: pop-default
+1788027660.938029 format_draw: style 'pop-default' -> 'range=left,align=left,pop-default,fg=black,bg=green'
+1788027660.938041 style_parse: norange default
+1788027660.938050 style_parse: norange
+1788027660.938060 style_parse: default
+1788027660.938073 format_draw: style 'norange default' -> 'align=left,fg=black,bg=green'
+1788027660.938084 style_parse: list=on align=left
+1788027660.938093 style_parse: list=on
+1788027660.938103 style_parse: align=left
+1788027660.938116 format_draw: style 'list=on align=left' -> 'list=on,align=left,fg=black,bg=green'
+1788027660.938127 format_draw: change LEFT -> LIST
+1788027660.938137 style_parse: list=left-marker
+1788027660.938146 style_parse: list=left-marker
+1788027660.938160 format_draw: style 'list=left-marker' -> 'list=left-marker,align=left,fg=black,bg=green'
+1788027660.938171 format_draw: change LIST -> LIST_LEFT
+1788027660.938182 style_parse: list=right-marker
+1788027660.938194 style_parse: list=right-marker
+1788027660.938208 format_draw: style 'list=right-marker' -> 'list=right-marker,align=left,fg=black,bg=green'
+1788027660.938220 format_draw: change LIST_LEFT -> LIST_RIGHT
+1788027660.938232 style_parse: list=on
+1788027660.938242 style_parse: list=on
+1788027660.938254 format_draw: style 'list=on' -> 'list=on,align=left,fg=black,bg=green'
+1788027660.938264 format_draw: change LIST_RIGHT -> LIST
+1788027660.938275 style_parse: range=window|0 list=focus default
+1788027660.938285 style_parse: range=window|0
+1788027660.938295 style_parse: list=focus
+1788027660.938305 style_parse: default
+1788027660.938321 format_draw: style 'range=window|0 list=focus default' -> 'list=focus,range=window|0,align=left,fg=black,bg=green'
+1788027660.938332 style_parse: push-default
+1788027660.938341 style_parse: push-default
+1788027660.938353 format_draw: style 'push-default' -> 'list=focus,range=window|0,align=left,push-default,fg=black,bg=green'
+1788027660.938365 style_parse: pop-default
+1788027660.938374 style_parse: pop-default
+1788027660.938387 format_draw: style 'pop-default' -> 'list=focus,range=window|0,align=left,pop-default,fg=black,bg=green'
+1788027660.938398 style_parse: norange list=on default
+1788027660.938407 style_parse: norange
+1788027660.938417 style_parse: list=on
+1788027660.938426 style_parse: default
+1788027660.938438 format_draw: style 'norange list=on default' -> 'list=on,align=left,fg=black,bg=green'
+1788027660.938450 style_parse: nolist align=right range=right default
+1788027660.938459 style_parse: nolist
+1788027660.938469 style_parse: align=right
+1788027660.938479 style_parse: range=right
+1788027660.938488 style_parse: default
+1788027660.938503 format_draw: style 'nolist align=right range=right default' -> 'range=right,align=right,fg=black,bg=green'
+1788027660.938513 format_draw: change LIST -> RIGHT
+1788027660.938523 style_parse: push-default
+1788027660.938532 style_parse: push-default
+1788027660.938544 format_draw: style 'push-default' -> 'range=right,align=right,push-default,fg=black,bg=green'
+1788027660.938559 style_parse: pop-default
+1788027660.938569 style_parse: pop-default
+1788027660.938581 format_draw: style 'pop-default' -> 'range=right,align=right,pop-default,fg=black,bg=green'
+1788027660.938591 style_parse: norange default
+1788027660.938600 style_parse: norange
+1788027660.938610 style_parse: default
+1788027660.938621 format_draw: style 'norange default' -> 'align=right,fg=black,bg=green'
+1788027660.938634 collect list: x=0 (last 4294967295), y=0, used=379
+1788027660.938645 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027660.938655 format_draw: width LEFT is 4
+1788027660.938665 collect list: x=0 (last 4294967295), y=0, used=379
+1788027660.938675 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027660.938685 format_draw: width CENTRE is 0
+1788027660.938695 collect list: x=0 (last 4294967295), y=0, used=379
+1788027660.938705 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027660.938714 format_draw: width RIGHT is 39
+1788027660.938724 collect list: x=0 (last 4294967295), y=0, used=379
+1788027660.938734 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027660.938744 format_draw: width ABSOLUTE_CENTRE is 0
+1788027660.938754 collect list: x=0 (last 4294967295), y=0, used=379
+1788027660.938763 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027660.938773 format_draw: width LIST is 6
+1788027660.938783 collect list: x=0 (last 4294967295), y=0, used=379
+1788027660.938792 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027660.938802 format_draw: width LIST_LEFT is 1
+1788027660.938812 collect list: x=0 (last 4294967295), y=0, used=379
+1788027660.938821 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027660.938831 format_draw: width LIST_RIGHT is 1
+1788027660.938840 collect list: x=0 (last 4294967295), y=0, used=379
+1788027660.938850 screen_write_collect_flush: flushed 1 items (screen_write_stop)
+1788027660.938860 format_draw: width AFTER is 0
+1788027660.938869 format_draw: focus 0-6
+1788027660.938880 format_draw: range 1|0 is LEFT 0-5
+1788027660.938890 format_draw: range 4|0 is LIST 0-7
+1788027660.938899 format_draw: range 2|0 is RIGHT 0-40
+1788027660.938911 screen_write_cursormove: from 0,0 to 0,0
+1788027660.938923 screen_write_cursormove: from 0,0 to 91,0
+1788027660.938935 screen_write_cursormove: from 91,0 to 10,0
+1788027660.938945 screen_write_cursormove: from 10,0 to 50,0
+1788027660.938955 screen_write_cursormove: from 50,0 to 4,0
+1788027660.938966 screen_write_cursormove: from 4,0 to 65,0
+1788027660.938977 format_draw: range left at 0-4
+1788027660.938988 format_draw: range window|0 at 4-10
+1788027660.939000 format_draw: range right at 91-130
+1788027660.939014 screen_write_cursormove: from 65,0 to 0,0
+1788027660.939024 screen_write_collect_flush: flushed 0 items (screen_write_stop)
+1788027660.939035 unref client 0x10d225e00 (2 references)
+1788027660.939045 status_redraw exit: force=0, changed=1
+1788027660.939055 /dev/ttys000 sync start
+1788027660.939081 /dev/ttys000: \033[?2026h
+1788027660.939094 /dev/ttys000: \033[?25l
+1788027660.939107 /dev/ttys000: current mode CURSOR,WRAP,BRACKETPASTE
+1788027660.939117 /dev/ttys000: setting mode WRAP,BRACKETPASTE
+1788027660.939128 /dev/ttys000: redrawing status
+1788027660.939138 screen_redraw_draw_status: /dev/ttys000 @0
+1788027660.939151 tty_draw_line: px=0 py=0 nx=4294967295 atx=0 aty=36
+1788027660.939163 tty_draw_line: drawing 0-130,0 (end 130) at 0,36; defaults: fg=8, bg=8
+1788027660.939179 tty_draw_line: cell 0 empty 0, bg 2; state: current FIRST, next SAME
+1788027660.939191 tty_draw_line: cell 1 empty 0, bg 2; state: current SAME, next SAME
+1788027660.939202 tty_draw_line: cell 2 empty 0, bg 2; state: current SAME, next SAME
+1788027660.939212 tty_draw_line: cell 3 empty 1, bg 2; state: current SAME, next EMPTY
+1788027660.939230 /dev/ttys000: \033[30m
+1788027660.939242 /dev/ttys000: \033[42m
+1788027660.939255 /dev/ttys000: \033[37;1H
+1788027660.939266 /dev/ttys000: [0]
+1788027660.939276 tty_draw_line: cell 4 empty 0, bg 2; state: current EMPTY, next SAME
+1788027660.939286 /dev/ttys000:  
+1788027660.939297 tty_draw_line: cell 5 empty 0, bg 2; state: current SAME, next SAME
+1788027660.939307 tty_draw_line: cell 6 empty 0, bg 2; state: current SAME, next SAME
+1788027660.939317 tty_draw_line: cell 7 empty 0, bg 2; state: current SAME, next SAME
+1788027660.939327 tty_draw_line: cell 8 empty 0, bg 2; state: current SAME, next SAME
+1788027660.939337 tty_draw_line: cell 9 empty 0, bg 2; state: current SAME, next SAME
+1788027660.939347 tty_draw_line: cell 10 empty 1, bg 2; state: current SAME, next EMPTY
+1788027660.939357 /dev/ttys000: 0:zsh*
+1788027660.939367 tty_draw_line: cell 11 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939378 tty_draw_line: cell 12 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939388 tty_draw_line: cell 13 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939398 tty_draw_line: cell 14 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939408 tty_draw_line: cell 15 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939418 tty_draw_line: cell 16 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939428 tty_draw_line: cell 17 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939438 tty_draw_line: cell 18 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939448 tty_draw_line: cell 19 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939458 tty_draw_line: cell 20 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939467 tty_draw_line: cell 21 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939477 tty_draw_line: cell 22 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939487 tty_draw_line: cell 23 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939497 tty_draw_line: cell 24 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939507 tty_draw_line: cell 25 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939516 tty_draw_line: cell 26 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939526 tty_draw_line: cell 27 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939536 tty_draw_line: cell 28 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939546 tty_draw_line: cell 29 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939556 tty_draw_line: cell 30 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939566 tty_draw_line: cell 31 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939576 tty_draw_line: cell 32 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939586 tty_draw_line: cell 33 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939606 tty_draw_line: cell 34 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939617 tty_draw_line: cell 35 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939628 tty_draw_line: cell 36 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939639 tty_draw_line: cell 37 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939650 tty_draw_line: cell 38 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939661 tty_draw_line: cell 39 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939673 tty_draw_line: cell 40 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939682 tty_draw_line: cell 41 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939692 tty_draw_line: cell 42 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939702 tty_draw_line: cell 43 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939711 tty_draw_line: cell 44 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939721 tty_draw_line: cell 45 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939731 tty_draw_line: cell 46 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939740 tty_draw_line: cell 47 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939750 tty_draw_line: cell 48 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939760 tty_draw_line: cell 49 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939770 tty_draw_line: cell 50 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939780 tty_draw_line: cell 51 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939790 tty_draw_line: cell 52 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939800 tty_draw_line: cell 53 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939810 tty_draw_line: cell 54 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939819 tty_draw_line: cell 55 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939829 tty_draw_line: cell 56 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939839 tty_draw_line: cell 57 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939849 tty_draw_line: cell 58 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939858 tty_draw_line: cell 59 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939868 tty_draw_line: cell 60 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939878 tty_draw_line: cell 61 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939888 tty_draw_line: cell 62 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939897 tty_draw_line: cell 63 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939907 tty_draw_line: cell 64 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939917 tty_draw_line: cell 65 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939927 tty_draw_line: cell 66 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939937 tty_draw_line: cell 67 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939946 tty_draw_line: cell 68 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939956 tty_draw_line: cell 69 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939966 tty_draw_line: cell 70 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939976 tty_draw_line: cell 71 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939986 tty_draw_line: cell 72 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.939996 tty_draw_line: cell 73 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940006 tty_draw_line: cell 74 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940015 tty_draw_line: cell 75 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940025 tty_draw_line: cell 76 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940035 tty_draw_line: cell 77 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940044 tty_draw_line: cell 78 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940054 tty_draw_line: cell 79 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940064 tty_draw_line: cell 80 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940074 tty_draw_line: cell 81 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940084 tty_draw_line: cell 82 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940094 tty_draw_line: cell 83 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940109 tty_draw_line: cell 84 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940119 tty_draw_line: cell 85 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940129 tty_draw_line: cell 86 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940139 tty_draw_line: cell 87 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940149 tty_draw_line: cell 88 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940158 tty_draw_line: cell 89 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940168 tty_draw_line: cell 90 empty 1, bg 2; state: current EMPTY, next EMPTY
+1788027660.940178 tty_draw_line: cell 91 empty 0, bg 2; state: current EMPTY, next SAME
+1788027660.940190 /dev/ttys000: \033[81X
+1788027660.940201 tty_draw_line: cell 92 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940211 tty_draw_line: cell 93 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940221 tty_draw_line: cell 94 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940231 tty_draw_line: cell 95 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940240 tty_draw_line: cell 96 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940250 tty_draw_line: cell 97 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940260 tty_draw_line: cell 98 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940270 tty_draw_line: cell 99 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940280 tty_draw_line: cell 100 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940290 tty_draw_line: cell 101 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940300 tty_draw_line: cell 102 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940310 tty_draw_line: cell 103 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940320 tty_draw_line: cell 104 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940330 tty_draw_line: cell 105 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940339 tty_draw_line: cell 106 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940349 tty_draw_line: cell 107 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940359 tty_draw_line: cell 108 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940369 tty_draw_line: cell 109 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940378 tty_draw_line: cell 110 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940388 tty_draw_line: cell 111 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940398 tty_draw_line: cell 112 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940408 tty_draw_line: cell 113 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940418 tty_draw_line: cell 114 empty 1, bg 2; state: current SAME, next EMPTY
+1788027660.940429 /dev/ttys000: \033[37;92H
+1788027660.940439 /dev/ttys000: "unknownc6fec8e4399a.a"
+1788027660.940449 tty_draw_line: cell 115 empty 0, bg 2; state: current EMPTY, next SAME
+1788027660.940459 /dev/ttys000:  
+1788027660.940469 tty_draw_line: cell 116 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940479 tty_draw_line: cell 117 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940489 tty_draw_line: cell 118 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940499 tty_draw_line: cell 119 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940509 tty_draw_line: cell 120 empty 1, bg 2; state: current SAME, next EMPTY
+1788027660.940519 /dev/ttys000: 11:21
+1788027660.940529 tty_draw_line: cell 121 empty 0, bg 2; state: current EMPTY, next SAME
+1788027660.940539 /dev/ttys000:  
+1788027660.940549 tty_draw_line: cell 122 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940559 tty_draw_line: cell 123 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940569 tty_draw_line: cell 124 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940579 tty_draw_line: cell 125 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940588 tty_draw_line: cell 126 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940598 tty_draw_line: cell 127 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940608 tty_draw_line: cell 128 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940618 tty_draw_line: cell 129 empty 0, bg 2; state: current SAME, next SAME
+1788027660.940627 tty_draw_line: cell 130 empty 0, bg 8; state: current SAME, next DONE
+1788027660.940637 /dev/ttys000: 29-Aug-26
+1788027660.940647 /dev/ttys000: \033(B\033[m
+1788027660.940657 /dev/ttys000: \033[?12l\033[?25h
+1788027660.940671 /dev/ttys000: current mode WRAP,BRACKETPASTE
+1788027660.940681 /dev/ttys000: setting mode CURSOR,WRAP,BRACKETPASTE
+1788027660.940691 /dev/ttys000: redraw added 111 bytes
+1788027660.940702 server_client_reset_state: client /dev/ttys000 mode CURSOR,WRAP,BRACKETPASTE
+1788027660.940713 server_client_reset_state: cursor to 49,2
+1788027660.940723 /dev/ttys000: \033[3;50H
+1788027660.940734 /dev/ttys000 sync end
+1788027660.940746 /dev/ttys000: \033[?2026l
+1788027660.940761 server_client_check_pane_buffer: pane %0 is on
+1788027660.940776 @0 active pane not changed
+1788027660.940829 /dev/ttys000: wrote 126 bytes (of 126)
+1788027660.940842 /dev/ttys000: waiting for redraw, 0 bytes left
+1788027660.940853 cmdq_next <global>: empty
+1788027660.940863 cmdq_next </dev/ttys000>: empty
+1788027660.940874 server_client_reset_state: client /dev/ttys000 mode CURSOR,WRAP,BRACKETPASTE
+1788027660.940884 server_client_reset_state: cursor to 49,2
+1788027660.940896 server_client_check_pane_buffer: pane %0 is on
+1788027660.940907 @0 active pane not changed
+1788027675.934199 client 0x10d225e00, status interval 15
+1788027675.936797 cmdq_next <global>: empty
+1788027675.936829 cmdq_next </dev/ttys000>: empty
+1788027675.936848 /dev/ttys000: redraw status
+1788027675.936862 /dev/ttys000: redraw needed
+1788027675.936890 screen_redraw_set_context: /dev/ttys000 @0 ox=0 oy=0 sx=130 sy=36 1/0
+1788027675.936903 status_redraw enter
+1788027675.936915 format_defaults: c=/dev/ttys000
+1788027675.936926 format_defaults: s=none
+1788027675.936935 format_defaults: wl=none
+1788027675.936945 format_defaults: wp=none
+1788027675.936963 screen_write_start: size 130x1, no pane
+1788027675.936975 screen_write_cursormove: from 0,0 to 0,0
+1788027675.937015 format_expand1: expanding format: #[align=left range=left #{E:status-left-style}]#[push-default]#{T;=/#{status-left-length}:status-left}#[pop-default]#[norange default]#[list=on align=#{status-justify}]#[list=left-marker]<#[list=right-marker]>#[list=on]#{W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}}#[nolist align=right range=right #{E:status-right-style}]#[push-default]#{T;=/#{status-right-length}:status-right}#[pop-default]#[norange default]
+1788027675.937032 format_expand1: found #*1[
+1788027675.937045 format_expand1: found #{}: E:status-left-style
+1788027675.937058 format_replace: modifier 0 is E
+1788027675.937084 format_replace: format 'status-left-style' found: default
+1788027675.937096 format_expand1: expanding format: default
+1788027675.937106 format_expand1: result is: default
+1788027675.937119 format_replace: replaced 'E:status-left-style' with 'default'
+1788027675.937131 format_expand1: found #*1[
+1788027675.937143 format_expand1: found #{}: T;=/#{status-left-length}:status-left
+1788027675.937155 format_expand1: expanding format: #{status-left-length}
+1788027675.937166 format_expand1: found #{}: status-left-length
+1788027675.937183 format_replace: format 'status-left-length' found: 10
+1788027675.937196 format_replace: replaced 'status-left-length' with '10'
+1788027675.937206 format_expand1: result is: 10
+1788027675.937216 format_replace: modifier 0 is T
+1788027675.937227 format_replace: modifier 1 is =
+1788027675.937237 format_replace: modifier 1 argument 0: 10
+1788027675.937255 format_replace: format 'status-left' found: [#{session_name}] 
+1788027675.937265 format_expand1: expanding format: [#{session_name}] 
+1788027675.937275 format_expand1: found #{}: session_name
+1788027675.937295 format_replace: format 'session_name' found: 0
+1788027675.937306 format_replace: replaced 'session_name' with '0'
+1788027675.937316 format_expand1: result is: [0] 
+1788027675.937328 format_replace: applied length limit 10: [0] 
+1788027675.937339 format_replace: replaced 'T;=/#{status-left-length}:status-left' with '[0] '
+1788027675.937350 format_expand1: found #*1[
+1788027675.937360 format_expand1: found #*1[
+1788027675.937371 format_expand1: found #*1[
+1788027675.937381 format_expand1: found #{}: status-justify
+1788027675.937397 format_replace: format 'status-justify' found: left
+1788027675.937407 format_replace: replaced 'status-justify' with 'left'
+1788027675.937418 format_expand1: found #*1[
+1788027675.937428 format_expand1: found #*1[
+1788027675.937438 format_expand1: found #*1[
+1788027675.937492 format_expand1: found #{}: W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027675.937504 format_replace: modifier 0 is W
+1788027675.937532 format_loop_windows: window loop: 0 @0
+1788027675.937542 format_defaults: c=/dev/ttys000
+1788027675.937552 format_defaults: s=$0
+1788027675.937561 format_defaults: wl=0
+1788027675.937570 format_defaults: wp=none
+1788027675.937607 format_expand1: expanding format: #[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027675.937631 format_expand1: found #*1[
+1788027675.937642 format_expand1: found #{}: window_index
+1788027675.937660 format_replace: format 'window_index' found: 0
+1788027675.937671 format_replace: replaced 'window_index' with '0'
+1788027675.937684 format_expand1: found #{}: ?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}
+1788027675.937697 format_replace: condition is: #{!=:#{E:window-status-current-style},default}
+1788027675.937718 format_expand1: expanding format: #{!=:#{E:window-status-current-style},default}
+1788027675.937730 format_expand1: found #{}: !=:#{E:window-status-current-style},default
+1788027675.937741 format_replace: modifier 0 is !=
+1788027675.937754 format_expand1: expanding format: #{E:window-status-current-style}
+1788027675.937765 format_expand1: found #{}: E:window-status-current-style
+1788027675.937776 format_replace: modifier 0 is E
+1788027675.937789 format_replace: format 'window-status-current-style' found: default
+1788027675.937800 format_expand1: expanding format: default
+1788027675.937810 format_expand1: result is: default
+1788027675.937821 format_replace: replaced 'E:window-status-current-style' with 'default'
+1788027675.937830 format_expand1: result is: default
+1788027675.937840 format_expand1: expanding format: default
+1788027675.937850 format_expand1: result is: default
+1788027675.937861 format_replace: compare != left is: default
+1788027675.937870 format_replace: compare != right is: default
+1788027675.937881 format_replace: replaced '!=:#{E:window-status-current-style},default' with '0'
+1788027675.937892 format_expand1: result is: 0
+1788027675.937903 format_replace: condition '#{!=:#{E:window-status-current-style},default}' is false
+1788027675.937916 format_replace: no condition matched in '#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}'; using last arg
+1788027675.937926 format_expand1: expanding format: #{E:window-status-style}
+1788027675.937937 format_expand1: found #{}: E:window-status-style
+1788027675.937947 format_replace: modifier 0 is E
+1788027675.937959 format_replace: format 'window-status-style' found: default
+1788027675.937969 format_expand1: expanding format: default
+1788027675.937978 format_expand1: result is: default
+1788027675.937989 format_replace: replaced 'E:window-status-style' with 'default'
+1788027675.937998 format_expand1: result is: default
+1788027675.938010 format_replace: replaced '?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}' with 'default'
+1788027675.938024 format_expand1: found #{}: ?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},
+1788027675.938037 format_replace: condition is: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027675.938052 format_expand1: expanding format: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027675.938064 format_expand1: found #{}: &&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}
+1788027675.938074 format_replace: modifier 0 is &&
+1788027675.938086 format_expand1: expanding format: #{window_last_flag}
+1788027675.938096 format_expand1: found #{}: window_last_flag
+1788027675.938112 format_replace: format 'window_last_flag' found: 0
+1788027675.938122 format_replace: replaced 'window_last_flag' with '0'
+1788027675.938132 format_expand1: result is: 0
+1788027675.938142 format_bool_op_n: operator && has operand: 0
+1788027675.938153 format_replace: replaced '&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}' with '0'
+1788027675.938163 format_expand1: result is: 0
+1788027675.938177 format_replace: condition '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}' is false
+1788027675.938189 format_replace: no condition matched in '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},'; using last arg
+1788027675.938201 format_replace: replaced '?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},' with ''
+1788027675.938221 format_expand1: found #{}: ?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027675.938240 format_replace: condition is: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027675.938255 format_expand1: expanding format: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027675.938267 format_expand1: found #{}: &&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}
+1788027675.938277 format_replace: modifier 0 is &&
+1788027675.938287 format_expand1: expanding format: #{window_bell_flag}
+1788027675.938298 format_expand1: found #{}: window_bell_flag
+1788027675.938313 format_replace: format 'window_bell_flag' found: 0
+1788027675.938323 format_replace: replaced 'window_bell_flag' with '0'
+1788027675.938332 format_expand1: result is: 0
+1788027675.938342 format_bool_op_n: operator && has operand: 0
+1788027675.938353 format_replace: replaced '&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}' with '0'
+1788027675.938362 format_expand1: result is: 0
+1788027675.938373 format_replace: condition '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}' is false
+1788027675.938389 format_replace: no condition matched in '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}'; using last arg
+1788027675.938402 format_expand1: expanding format: #{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027675.938417 format_expand1: found #{}: ?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},
+1788027675.938431 format_replace: condition is: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027675.938446 format_expand1: expanding format: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027675.938460 format_expand1: found #{}: &&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}
+1788027675.938470 format_replace: modifier 0 is &&
+1788027675.938482 format_expand1: expanding format: #{||:#{window_activity_flag},#{window_silence_flag}}
+1788027675.938493 format_expand1: found #{}: ||:#{window_activity_flag},#{window_silence_flag}
+1788027675.938503 format_replace: modifier 0 is ||
+1788027675.938515 format_expand1: expanding format: #{window_activity_flag}
+1788027675.938526 format_expand1: found #{}: window_activity_flag
+1788027675.938542 format_replace: format 'window_activity_flag' found: 0
+1788027675.938552 format_replace: replaced 'window_activity_flag' with '0'
+1788027675.938562 format_expand1: result is: 0
+1788027675.938572 format_bool_op_n: operator || has operand: 0
+1788027675.938583 format_expand1: expanding format: #{window_silence_flag}
+1788027675.938594 format_expand1: found #{}: window_silence_flag
+1788027675.938609 format_replace: format 'window_silence_flag' found: 0
+1788027675.938619 format_replace: replaced 'window_silence_flag' with '0'
+1788027675.938628 format_expand1: result is: 0
+1788027675.938638 format_bool_op_n: operator || has operand: 0
+1788027675.938649 format_replace: replaced '||:#{window_activity_flag},#{window_silence_flag}' with '0'
+1788027675.938658 format_expand1: result is: 0
+1788027675.938668 format_bool_op_n: operator && has operand: 0
+1788027675.938679 format_replace: replaced '&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}' with '0'
+1788027675.938689 format_expand1: result is: 0
+1788027675.938701 format_replace: condition '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}' is false
+1788027675.938713 format_replace: no condition matched in '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},'; using last arg
+1788027675.938725 format_replace: replaced '?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},' with ''
+1788027675.938734 format_expand1: result is: 
+1788027675.938747 format_replace: replaced '?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}' with ''
+1788027675.938758 format_expand1: found #*1[
+1788027675.938768 format_expand1: found #{}: T:window-status-current-format
+1788027675.938778 format_replace: modifier 0 is T
+1788027675.938791 format_replace: format 'window-status-current-format' found: #I:#W#{?window_flags,#{window_flags}, }
+1788027675.938802 format_expand1: expanding format: #I:#W#{?window_flags,#{window_flags}, }
+1788027675.938813 format_expand1: found #I: window_index
+1788027675.938827 format_replace: format 'window_index' found: 0
+1788027675.938837 format_replace: replaced 'window_index' with '0'
+1788027675.938848 format_expand1: found #W: window_name
+1788027675.938862 format_replace: format 'window_name' found: zsh
+1788027675.938872 format_replace: replaced 'window_name' with 'zsh'
+1788027675.938883 format_expand1: found #{}: ?window_flags,#{window_flags}, 
+1788027675.938894 format_replace: condition is: window_flags
+1788027675.938911 format_replace: condition 'window_flags' found: *
+1788027675.938921 format_replace: condition 'window_flags' is true
+1788027675.938931 format_expand1: expanding format: #{window_flags}
+1788027675.938941 format_expand1: found #{}: window_flags
+1788027675.938955 format_replace: format 'window_flags' found: *
+1788027675.938965 format_replace: replaced 'window_flags' with '*'
+1788027675.938974 format_expand1: result is: *
+1788027675.938985 format_replace: replaced '?window_flags,#{window_flags}, ' with '*'
+1788027675.938995 format_expand1: result is: 0:zsh*
+1788027675.939005 format_replace: replaced 'T:window-status-current-format' with '0:zsh*'
+1788027675.939015 format_expand1: found #*1[
+1788027675.939026 format_expand1: found #*1[
+1788027675.939037 format_expand1: found #{}: ?loop_last_flag,,#{E:window-status-separator}
+1788027675.939048 format_replace: condition is: loop_last_flag
+1788027675.939067 format_replace: condition 'loop_last_flag' found: 1
+1788027675.939077 format_replace: condition 'loop_last_flag' is true
+1788027675.939087 format_replace: replaced '?loop_last_flag,,#{E:window-status-separator}' with ''
+1788027675.939099 format_expand1: result is: #[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]
+1788027675.939112 unref client 0x10d225e00 (3 references)
+1788027675.939141 format_replace: replaced 'W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}' with '#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]'
+1788027675.939153 format_expand1: found #*1[
+1788027675.939164 format_expand1: found #{}: E:status-right-style
+1788027675.939174 format_replace: modifier 0 is E
+1788027675.939188 format_replace: format 'status-right-style' found: default
+1788027675.939198 format_expand1: expanding format: default
+1788027675.939208 format_expand1: result is: default
+1788027675.939218 format_replace: replaced 'E:status-right-style' with 'default'
+1788027675.939228 format_expand1: found #*1[
+1788027675.939239 format_expand1: found #{}: T;=/#{status-right-length}:status-right
+1788027675.939250 format_expand1: expanding format: #{status-right-length}
+1788027675.939260 format_expand1: found #{}: status-right-length
+1788027675.939275 format_replace: format 'status-right-length' found: 40
+1788027675.939285 format_replace: replaced 'status-right-length' with '40'
+1788027675.939294 format_expand1: result is: 40
+1788027675.939304 format_replace: modifier 0 is T
+1788027675.939314 format_replace: modifier 1 is =
+1788027675.939324 format_replace: modifier 1 argument 0: 40
+1788027675.939340 format_replace: format 'status-right' found: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027675.939352 format_expand1: expanding format: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027675.939978 format_expand1: after time expanded: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" 11:21 29-Aug-26
+1788027675.939993 format_expand1: found #{}: ?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,
+1788027675.940004 format_replace: condition is: window_bigger
+1788027675.940020 format_replace: condition 'window_bigger' found: 0
+1788027675.940032 format_replace: condition 'window_bigger' is false
+1788027675.940043 format_replace: no condition matched in 'window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,'; using last arg
+1788027675.940054 format_replace: replaced '?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,' with ''
+1788027675.940065 format_expand1: found #{}: =21:pane_title
+1788027675.940075 format_expand1: expanding format: 21
+1788027675.940085 format_expand1: result is: 21
+1788027675.940096 format_replace: modifier 0 is =
+1788027675.940105 format_replace: modifier 0 argument 0: 21
+1788027675.940124 format_replace: format 'pane_title' found: unknownc6fec8e4399a.attlocal.net
+1788027675.940136 format_replace: applied length limit 21: unknownc6fec8e4399a.a
+1788027675.940146 format_replace: replaced '=21:pane_title' with 'unknownc6fec8e4399a.a'
+1788027675.940157 format_expand1: result is: "unknownc6fec8e4399a.a" 11:21 29-Aug-26
+1788027675.940168 format_replace: applied length limit 40: "unknownc6fec8e4399a.a" 11:21 29-Aug-26
+1788027675.940179 format_replace: replaced 'T;=/#{status-right-length}:status-right' with '"unknownc6fec8e4399a.a" 11:21 29-Aug-26'
+1788027675.940190 format_expand1: found #*1[
+1788027675.940200 format_expand1: found #*1[
+1788027675.940215 format_expand1: result is: #[align=left range=left default]#[push-default][0] #[pop-default]#[norange default]#[list=on align=left]#[list=left-marker]<#[list=right-marker]>#[list=on]#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]#[nolist align=right range=right default]#[push-default]"unknownc6fec8e4399a.a" 11:21 29-Aug-26#[pop-default]#[norange default]
+1788027675.940229 screen_write_collect_flush: flushed 0 items (screen_write_stop)
+1788027675.940240 unref client 0x10d225e00 (2 references)
+1788027675.940249 status_redraw exit: force=0, changed=0
+1788027675.940262 /dev/ttys000: redraw added 0 bytes
+1788027675.940275 server_client_reset_state: client /dev/ttys000 mode CURSOR,WRAP,BRACKETPASTE
+1788027675.940286 server_client_reset_state: cursor to 49,2
+1788027675.940303 server_client_check_pane_buffer: pane %0 is on
+1788027675.940318 @0 active pane not changed
+1788027690.935222 client 0x10d225e00, status interval 15
+1788027690.937590 cmdq_next <global>: empty
+1788027690.937613 cmdq_next </dev/ttys000>: empty
+1788027690.937628 /dev/ttys000: redraw status
+1788027690.937641 /dev/ttys000: redraw needed
+1788027690.937665 screen_redraw_set_context: /dev/ttys000 @0 ox=0 oy=0 sx=130 sy=36 1/0
+1788027690.937678 status_redraw enter
+1788027690.937691 format_defaults: c=/dev/ttys000
+1788027690.937702 format_defaults: s=none
+1788027690.937712 format_defaults: wl=none
+1788027690.937721 format_defaults: wp=none
+1788027690.937740 screen_write_start: size 130x1, no pane
+1788027690.937752 screen_write_cursormove: from 0,0 to 0,0
+1788027690.937792 format_expand1: expanding format: #[align=left range=left #{E:status-left-style}]#[push-default]#{T;=/#{status-left-length}:status-left}#[pop-default]#[norange default]#[list=on align=#{status-justify}]#[list=left-marker]<#[list=right-marker]>#[list=on]#{W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}}#[nolist align=right range=right #{E:status-right-style}]#[push-default]#{T;=/#{status-right-length}:status-right}#[pop-default]#[norange default]
+1788027690.937808 format_expand1: found #*1[
+1788027690.937820 format_expand1: found #{}: E:status-left-style
+1788027690.937833 format_replace: modifier 0 is E
+1788027690.937859 format_replace: format 'status-left-style' found: default
+1788027690.937870 format_expand1: expanding format: default
+1788027690.937881 format_expand1: result is: default
+1788027690.937896 format_replace: replaced 'E:status-left-style' with 'default'
+1788027690.937907 format_expand1: found #*1[
+1788027690.937919 format_expand1: found #{}: T;=/#{status-left-length}:status-left
+1788027690.937932 format_expand1: expanding format: #{status-left-length}
+1788027690.937943 format_expand1: found #{}: status-left-length
+1788027690.937960 format_replace: format 'status-left-length' found: 10
+1788027690.937971 format_replace: replaced 'status-left-length' with '10'
+1788027690.937981 format_expand1: result is: 10
+1788027690.937992 format_replace: modifier 0 is T
+1788027690.938002 format_replace: modifier 1 is =
+1788027690.938013 format_replace: modifier 1 argument 0: 10
+1788027690.938031 format_replace: format 'status-left' found: [#{session_name}] 
+1788027690.938042 format_expand1: expanding format: [#{session_name}] 
+1788027690.938052 format_expand1: found #{}: session_name
+1788027690.938072 format_replace: format 'session_name' found: 0
+1788027690.938082 format_replace: replaced 'session_name' with '0'
+1788027690.938093 format_expand1: result is: [0] 
+1788027690.938105 format_replace: applied length limit 10: [0] 
+1788027690.938116 format_replace: replaced 'T;=/#{status-left-length}:status-left' with '[0] '
+1788027690.938126 format_expand1: found #*1[
+1788027690.938141 format_expand1: found #*1[
+1788027690.938152 format_expand1: found #*1[
+1788027690.938163 format_expand1: found #{}: status-justify
+1788027690.938179 format_replace: format 'status-justify' found: left
+1788027690.938189 format_replace: replaced 'status-justify' with 'left'
+1788027690.938200 format_expand1: found #*1[
+1788027690.938210 format_expand1: found #*1[
+1788027690.938220 format_expand1: found #*1[
+1788027690.938275 format_expand1: found #{}: W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027690.938288 format_replace: modifier 0 is W
+1788027690.938316 format_loop_windows: window loop: 0 @0
+1788027690.938326 format_defaults: c=/dev/ttys000
+1788027690.938336 format_defaults: s=$0
+1788027690.938345 format_defaults: wl=0
+1788027690.938354 format_defaults: wp=none
+1788027690.938377 format_expand1: expanding format: #[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}
+1788027690.938398 format_expand1: found #*1[
+1788027690.938408 format_expand1: found #{}: window_index
+1788027690.938426 format_replace: format 'window_index' found: 0
+1788027690.938437 format_replace: replaced 'window_index' with '0'
+1788027690.938451 format_expand1: found #{}: ?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}
+1788027690.938464 format_replace: condition is: #{!=:#{E:window-status-current-style},default}
+1788027690.938487 format_expand1: expanding format: #{!=:#{E:window-status-current-style},default}
+1788027690.938499 format_expand1: found #{}: !=:#{E:window-status-current-style},default
+1788027690.938509 format_replace: modifier 0 is !=
+1788027690.938524 format_expand1: expanding format: #{E:window-status-current-style}
+1788027690.938535 format_expand1: found #{}: E:window-status-current-style
+1788027690.938546 format_replace: modifier 0 is E
+1788027690.938586 format_replace: format 'window-status-current-style' found: default
+1788027690.938597 format_expand1: expanding format: default
+1788027690.938607 format_expand1: result is: default
+1788027690.938618 format_replace: replaced 'E:window-status-current-style' with 'default'
+1788027690.938628 format_expand1: result is: default
+1788027690.938638 format_expand1: expanding format: default
+1788027690.938648 format_expand1: result is: default
+1788027690.938658 format_replace: compare != left is: default
+1788027690.938670 format_replace: compare != right is: default
+1788027690.938681 format_replace: replaced '!=:#{E:window-status-current-style},default' with '0'
+1788027690.938691 format_expand1: result is: 0
+1788027690.938703 format_replace: condition '#{!=:#{E:window-status-current-style},default}' is false
+1788027690.938716 format_replace: no condition matched in '#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}'; using last arg
+1788027690.938727 format_expand1: expanding format: #{E:window-status-style}
+1788027690.938738 format_expand1: found #{}: E:window-status-style
+1788027690.938748 format_replace: modifier 0 is E
+1788027690.938760 format_replace: format 'window-status-style' found: default
+1788027690.938770 format_expand1: expanding format: default
+1788027690.938780 format_expand1: result is: default
+1788027690.938790 format_replace: replaced 'E:window-status-style' with 'default'
+1788027690.938800 format_expand1: result is: default
+1788027690.938812 format_replace: replaced '?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}' with 'default'
+1788027690.938826 format_expand1: found #{}: ?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},
+1788027690.938839 format_replace: condition is: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027690.938855 format_expand1: expanding format: #{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}
+1788027690.938867 format_expand1: found #{}: &&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}
+1788027690.938877 format_replace: modifier 0 is &&
+1788027690.938888 format_expand1: expanding format: #{window_last_flag}
+1788027690.938899 format_expand1: found #{}: window_last_flag
+1788027690.938914 format_replace: format 'window_last_flag' found: 0
+1788027690.938925 format_replace: replaced 'window_last_flag' with '0'
+1788027690.938934 format_expand1: result is: 0
+1788027690.938945 format_bool_op_n: operator && has operand: 0
+1788027690.938956 format_replace: replaced '&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}' with '0'
+1788027690.938965 format_expand1: result is: 0
+1788027690.938977 format_replace: condition '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}' is false
+1788027690.938988 format_replace: no condition matched in '#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},'; using last arg
+1788027690.939000 format_replace: replaced '?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},' with ''
+1788027690.939019 format_expand1: found #{}: ?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027690.939032 format_replace: condition is: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027690.939046 format_expand1: expanding format: #{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}
+1788027690.939058 format_expand1: found #{}: &&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}
+1788027690.939069 format_replace: modifier 0 is &&
+1788027690.939079 format_expand1: expanding format: #{window_bell_flag}
+1788027690.939090 format_expand1: found #{}: window_bell_flag
+1788027690.939106 format_replace: format 'window_bell_flag' found: 0
+1788027690.939116 format_replace: replaced 'window_bell_flag' with '0'
+1788027690.939126 format_expand1: result is: 0
+1788027690.939135 format_bool_op_n: operator && has operand: 0
+1788027690.939146 format_replace: replaced '&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}' with '0'
+1788027690.939156 format_expand1: result is: 0
+1788027690.939167 format_replace: condition '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}' is false
+1788027690.939183 format_replace: no condition matched in '#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}'; using last arg
+1788027690.939195 format_expand1: expanding format: #{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}
+1788027690.939210 format_expand1: found #{}: ?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},
+1788027690.939224 format_replace: condition is: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027690.939239 format_expand1: expanding format: #{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}
+1788027690.939252 format_expand1: found #{}: &&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}
+1788027690.939263 format_replace: modifier 0 is &&
+1788027690.939274 format_expand1: expanding format: #{||:#{window_activity_flag},#{window_silence_flag}}
+1788027690.939286 format_expand1: found #{}: ||:#{window_activity_flag},#{window_silence_flag}
+1788027690.939296 format_replace: modifier 0 is ||
+1788027690.939308 format_expand1: expanding format: #{window_activity_flag}
+1788027690.939318 format_expand1: found #{}: window_activity_flag
+1788027690.939334 format_replace: format 'window_activity_flag' found: 0
+1788027690.939344 format_replace: replaced 'window_activity_flag' with '0'
+1788027690.939354 format_expand1: result is: 0
+1788027690.939364 format_bool_op_n: operator || has operand: 0
+1788027690.939375 format_expand1: expanding format: #{window_silence_flag}
+1788027690.939386 format_expand1: found #{}: window_silence_flag
+1788027690.939400 format_replace: format 'window_silence_flag' found: 0
+1788027690.939411 format_replace: replaced 'window_silence_flag' with '0'
+1788027690.939420 format_expand1: result is: 0
+1788027690.939430 format_bool_op_n: operator || has operand: 0
+1788027690.939441 format_replace: replaced '||:#{window_activity_flag},#{window_silence_flag}' with '0'
+1788027690.939450 format_expand1: result is: 0
+1788027690.939460 format_bool_op_n: operator && has operand: 0
+1788027690.939471 format_replace: replaced '&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}' with '0'
+1788027690.939481 format_expand1: result is: 0
+1788027690.939493 format_replace: condition '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}' is false
+1788027690.939506 format_replace: no condition matched in '#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},'; using last arg
+1788027690.939518 format_replace: replaced '?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},' with ''
+1788027690.939528 format_expand1: result is: 
+1788027690.939541 format_replace: replaced '?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}' with ''
+1788027690.939552 format_expand1: found #*1[
+1788027690.939563 format_expand1: found #{}: T:window-status-current-format
+1788027690.939573 format_replace: modifier 0 is T
+1788027690.939586 format_replace: format 'window-status-current-format' found: #I:#W#{?window_flags,#{window_flags}, }
+1788027690.939597 format_expand1: expanding format: #I:#W#{?window_flags,#{window_flags}, }
+1788027690.939608 format_expand1: found #I: window_index
+1788027690.939622 format_replace: format 'window_index' found: 0
+1788027690.939633 format_replace: replaced 'window_index' with '0'
+1788027690.939643 format_expand1: found #W: window_name
+1788027690.939657 format_replace: format 'window_name' found: zsh
+1788027690.939667 format_replace: replaced 'window_name' with 'zsh'
+1788027690.939678 format_expand1: found #{}: ?window_flags,#{window_flags}, 
+1788027690.939689 format_replace: condition is: window_flags
+1788027690.939705 format_replace: condition 'window_flags' found: *
+1788027690.939715 format_replace: condition 'window_flags' is true
+1788027690.939725 format_expand1: expanding format: #{window_flags}
+1788027690.939735 format_expand1: found #{}: window_flags
+1788027690.939749 format_replace: format 'window_flags' found: *
+1788027690.939759 format_replace: replaced 'window_flags' with '*'
+1788027690.939768 format_expand1: result is: *
+1788027690.939779 format_replace: replaced '?window_flags,#{window_flags}, ' with '*'
+1788027690.939789 format_expand1: result is: 0:zsh*
+1788027690.939799 format_replace: replaced 'T:window-status-current-format' with '0:zsh*'
+1788027690.939810 format_expand1: found #*1[
+1788027690.939820 format_expand1: found #*1[
+1788027690.939832 format_expand1: found #{}: ?loop_last_flag,,#{E:window-status-separator}
+1788027690.939843 format_replace: condition is: loop_last_flag
+1788027690.939861 format_replace: condition 'loop_last_flag' found: 1
+1788027690.939870 format_replace: condition 'loop_last_flag' is true
+1788027690.939881 format_replace: replaced '?loop_last_flag,,#{E:window-status-separator}' with ''
+1788027690.939892 format_expand1: result is: #[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]
+1788027690.939905 unref client 0x10d225e00 (3 references)
+1788027690.939934 format_replace: replaced 'W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}' with '#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]'
+1788027690.939946 format_expand1: found #*1[
+1788027690.939957 format_expand1: found #{}: E:status-right-style
+1788027690.939967 format_replace: modifier 0 is E
+1788027690.939981 format_replace: format 'status-right-style' found: default
+1788027690.939991 format_expand1: expanding format: default
+1788027690.940001 format_expand1: result is: default
+1788027690.940011 format_replace: replaced 'E:status-right-style' with 'default'
+1788027690.940021 format_expand1: found #*1[
+1788027690.940033 format_expand1: found #{}: T;=/#{status-right-length}:status-right
+1788027690.940044 format_expand1: expanding format: #{status-right-length}
+1788027690.940054 format_expand1: found #{}: status-right-length
+1788027690.940068 format_replace: format 'status-right-length' found: 40
+1788027690.940078 format_replace: replaced 'status-right-length' with '40'
+1788027690.940088 format_expand1: result is: 40
+1788027690.940098 format_replace: modifier 0 is T
+1788027690.940108 format_replace: modifier 1 is =
+1788027690.940122 format_replace: modifier 1 argument 0: 40
+1788027690.940138 format_replace: format 'status-right' found: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027690.940150 format_expand1: expanding format: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" %H:%M %d-%b-%y
+1788027690.940815 format_expand1: after time expanded: #{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}"#{=21:pane_title}" 11:21 29-Aug-26
+1788027690.940830 format_expand1: found #{}: ?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,
+1788027690.940841 format_replace: condition is: window_bigger
+1788027690.940857 format_replace: condition 'window_bigger' found: 0
+1788027690.940869 format_replace: condition 'window_bigger' is false
+1788027690.940880 format_replace: no condition matched in 'window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,'; using last arg
+1788027690.940892 format_replace: replaced '?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,' with ''
+1788027690.940903 format_expand1: found #{}: =21:pane_title
+1788027690.940913 format_expand1: expanding format: 21
+1788027690.940924 format_expand1: result is: 21
+1788027690.940934 format_replace: modifier 0 is =
+1788027690.940951 format_replace: modifier 0 argument 0: 21
+1788027690.941020 format_replace: format 'pane_title' found: unknownc6fec8e4399a.attlocal.net
+1788027690.941079 format_replace: applied length limit 21: unknownc6fec8e4399a.a
+1788027690.941092 format_replace: replaced '=21:pane_title' with 'unknownc6fec8e4399a.a'
+1788027690.941103 format_expand1: result is: "unknownc6fec8e4399a.a" 11:21 29-Aug-26
+1788027690.941112 format_replace: applied length limit 40: "unknownc6fec8e4399a.a" 11:21 29-Aug-26
+1788027690.941120 format_replace: replaced 'T;=/#{status-right-length}:status-right' with '"unknownc6fec8e4399a.a" 11:21 29-Aug-26'
+1788027690.941128 format_expand1: found #*1[
+1788027690.941135 format_expand1: found #*1[
+1788027690.941147 format_expand1: result is: #[align=left range=left default]#[push-default][0] #[pop-default]#[norange default]#[list=on align=left]#[list=left-marker]<#[list=right-marker]>#[list=on]#[range=window|0 list=focus default]#[push-default]0:zsh*#[pop-default]#[norange list=on default]#[nolist align=right range=right default]#[push-default]"unknownc6fec8e4399a.a" 11:21 29-Aug-26#[pop-default]#[norange default]
+1788027690.941157 screen_write_collect_flush: flushed 0 items (screen_write_stop)
+1788027690.941165 unref client 0x10d225e00 (2 references)
+1788027690.941171 status_redraw exit: force=0, changed=0
+1788027690.941180 /dev/ttys000: redraw added 0 bytes
+1788027690.941188 server_client_reset_state: client /dev/ttys000 mode CURSOR,WRAP,BRACKETPASTE
+1788027690.941198 server_client_reset_state: cursor to 49,2
+1788027690.941211 server_client_check_pane_buffer: pane %0 is on
+1788027690.941221 @0 active pane not changed
