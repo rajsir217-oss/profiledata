@@ -99,15 +99,27 @@ async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> di
 
     membership = user.get("membership", {})
 
-    # Check YTD contributions for display purposes (admin screens)
+    # Check YTD contributions (display + 2026 hybrid eligibility rule)
     ytd_total = await get_ytd_contributions(username, db)
 
     # Check largest single payment for membership eligibility
     largest_payment = await get_largest_single_payment(username, db)
     largest_amount = largest_payment.get("amount", 0)
 
-    # If largest single payment ≥ $60, treat as one-time paid with tier benefits
-    if largest_amount >= 60 and not membership.get("treatedAsOneTime"):
+    # Transitional rule:
+    # - 2026: qualify via (largest single payment >= $60) OR (YTD contributions >= $60)
+    # - 2027+: qualify via largest single payment >= $60 only
+    current_year = datetime.now().year
+    qualifies_by_single_payment = largest_amount >= 60
+    qualifies_by_ytd_2026 = current_year == 2026 and ytd_total >= 60
+    qualifies_for_one_time = qualifies_by_single_payment or qualifies_by_ytd_2026
+
+    if qualifies_for_one_time and not membership.get("treatedAsOneTime"):
+        qualification_reason = (
+            "single_payment_threshold_met"
+            if qualifies_by_single_payment
+            else "ytd_threshold_met_2026"
+        )
         try:
             await db.users.update_one(
                 {"username": username},
@@ -117,14 +129,33 @@ async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> di
                         "membership.status": "active",
                         "membership.treatedAsOneTime": True,
                         "membership.largestPayment": largest_amount,
+                        "membership.qualificationReason": qualification_reason,
+                        "membership.qualificationYear": current_year,
                         "membership.startDate": datetime.utcnow()
                     }
                 }
             )
-            logger.info(f"✅ User {username} treated as one-time member (single payment: ${largest_amount:.2f})")
-            return {"hasAccess": True, "type": "one_time", "reason": "single_payment_threshold_met", "largestPayment": largest_amount, "ytdPaid": ytd_total}
+            logger.info(
+                f"✅ User {username} treated as one-time member "
+                f"(largest single: ${largest_amount:.2f}, ytd: ${ytd_total:.2f}, reason: {qualification_reason})"
+            )
+            return {
+                "hasAccess": True,
+                "type": "one_time",
+                "reason": qualification_reason,
+                "largestPayment": largest_amount,
+                "ytdPaid": ytd_total,
+            }
         except Exception as e:
             logger.error(f"Error updating membership status for {username}: {e}")
+            # Do not block access if qualification check passed but persistence failed.
+            return {
+                "hasAccess": True,
+                "type": "one_time",
+                "reason": qualification_reason,
+                "largestPayment": largest_amount,
+                "ytdPaid": ytd_total,
+            }
 
     # No membership
     if membership.get("type") == "none" or not membership.get("type"):
