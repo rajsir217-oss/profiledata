@@ -2103,6 +2103,15 @@ async def get_user_activity_summary(
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
 
+    # Keep membership snapshot fresh for admin viewers (applies hybrid/YTD rules
+    # and backfills fields like totalPaid/endDate when needed).
+    try:
+        from routers.contribution_routes import check_membership_access
+        await check_membership_access(username, db)
+    except Exception:
+        # Activity summary should still load even if membership refresh fails.
+        pass
+
     user = await db.users.find_one(
         {"username": username},
         {"status": 1, "createdAt": 1, "lastLogin": 1, "security.last_login_at": 1, "security.last_login_ip": 1, "accountStatus": 1, "profileCompletionPercentage": 1, "membership": 1}
