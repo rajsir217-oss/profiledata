@@ -57,6 +57,12 @@ const ContributionManagement = () => {
   const [reminderModal, setReminderModal] = useState(null); // { user, channel }
   const [reminderSending, setReminderSending] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+  const [yearOptions, setYearOptions] = useState([]);
+  const [closedYears, setClosedYears] = useState({});
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [archiveForce, setArchiveForce] = useState(false);
 
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
@@ -73,7 +79,15 @@ const ContributionManagement = () => {
       loadUnpaidMembers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, filter, activeTab, activityFilter, searchFilter, activitySearchFilter, unpaidSearchFilter, unpaidSortBy, unpaidSortOrder]);
+  }, [navigate, filter, activeTab, activityFilter, searchFilter, activitySearchFilter, unpaidSearchFilter, unpaidSortBy, unpaidSortOrder, selectedYear]);
+
+  useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole === 'admin') {
+      loadContributionYears();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadContributions = async (page = 1, append = false) => {
     try {
@@ -85,6 +99,9 @@ const ContributionManagement = () => {
       const token = localStorage.getItem('token');
       
       let url = `${getBackendUrl()}/api/contributions/admin/contributions?page=${page}&limit=20`;
+      if (selectedYear !== 'all') {
+        url += `&year=${encodeURIComponent(selectedYear)}`;
+      }
       if (filter !== 'all') {
         url += `&payment_type=${filter}`;
       }
@@ -102,6 +119,15 @@ const ContributionManagement = () => {
         } else {
           setContributions(response.data.contributions);
           setStats(response.data.stats);
+          const years = response.data.years || [];
+          if (years.length > 0) {
+            setYearOptions(years);
+            const closed = {};
+            years.forEach((y) => {
+              if (y.closed) closed[String(y.year)] = true;
+            });
+            setClosedYears(closed);
+          }
         }
         setPagination(response.data.pagination);
         
@@ -116,6 +142,27 @@ const ContributionManagement = () => {
     } finally {
       setLoading(false);
       setIsLoadingMore(false);
+    }
+  };
+
+  const loadContributionYears = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(
+        `${getBackendUrl()}/api/contributions/admin/contribution-years`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        const years = res.data.years || [];
+        setYearOptions(years);
+        const closed = {};
+        years.forEach((y) => {
+          if (y.closed) closed[String(y.year)] = true;
+        });
+        setClosedYears(closed);
+      }
+    } catch (err) {
+      console.error('Error loading contribution years:', err);
     }
   };
 
@@ -381,10 +428,11 @@ const ContributionManagement = () => {
       const token = localStorage.getItem('token');
       
       // Fetch ALL contributions (no pagination limit)
-      const response = await axios.get(
-        `${getBackendUrl()}/api/contributions/admin/export-csv`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      let exportUrl = `${getBackendUrl()}/api/contributions/admin/export-csv`;
+      if (selectedYear !== 'all') {
+        exportUrl += `?year=${encodeURIComponent(selectedYear)}`;
+      }
+      const response = await axios.get(exportUrl, { headers: { Authorization: `Bearer ${token}` } });
       
       if (response.data.success) {
         const contributions = response.data.contributions;
@@ -426,9 +474,10 @@ const ContributionManagement = () => {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         const timestamp = new Date().toISOString().split('T')[0];
+        const yearSuffix = selectedYear === 'all' ? 'all-years' : selectedYear;
         
         link.setAttribute('href', url);
-        link.setAttribute('download', `contributions_export_${timestamp}.csv`);
+        link.setAttribute('download', `contributions_export_${yearSuffix}_${timestamp}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -441,6 +490,34 @@ const ContributionManagement = () => {
       showToast('Failed to export CSV', 'error');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleArchiveYear = async () => {
+    if (selectedYear === 'all') {
+      showToast('Select a specific year before closing books', 'error');
+      return;
+    }
+    try {
+      setIsArchiving(true);
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `${getBackendUrl()}/api/contributions/admin/archive-year`,
+        { year: Number(selectedYear), force: archiveForce },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        showToast(`✅ Closed books for ${selectedYear}. Archived ${res.data.archive?.rowCount || 0} rows.`, 'success');
+        setShowArchiveConfirm(false);
+        setArchiveForce(false);
+        await loadContributionYears();
+        await loadContributions();
+      }
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to archive year';
+      showToast(detail, 'error');
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -463,6 +540,15 @@ const ContributionManagement = () => {
           <p>View and manage all contributions</p>
         </div>
         <div className="header-actions">
+          <button
+            className="add-payment-btn close-books-btn"
+            type="button"
+            onClick={() => setShowArchiveConfirm(true)}
+            disabled={activeTab !== 'contributions' || selectedYear === 'all' || isArchiving}
+            title={selectedYear === 'all' ? 'Select a year to close books' : `Close books for ${selectedYear}`}
+          >
+            <span className="btn-icon">{isArchiving ? '⏳' : '📚'}</span>
+          </button>
           <button
             className="add-payment-btn"
             type="button"
@@ -590,6 +676,23 @@ const ContributionManagement = () => {
                 ×
               </button>
             )}
+            <label htmlFor="year-filter" className="filter-label">Year:</label>
+            <select
+              id="year-filter"
+              className="year-filter-select"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              <option value="all">All years</option>
+              {yearOptions.map((y) => (
+                <option key={y.year} value={String(y.year)}>
+                  {y.year}{y.closed ? ' • Closed' : ''}
+                </option>
+              ))}
+            </select>
+            {selectedYear !== 'all' && closedYears[selectedYear] ? (
+              <span className="year-closed-pill" title="This year is archived and closed">Closed</span>
+            ) : null}
           </div>
         </div>
       )}
@@ -1161,6 +1264,58 @@ const ContributionManagement = () => {
           onClose={() => setShowAddPaymentModal(false)}
           onSuccess={handleManualPaymentSuccess}
         />
+      )}
+
+      {showArchiveConfirm && (
+        <div className="modal-overlay" onClick={() => setShowArchiveConfirm(false)}>
+          <div className="reminder-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="reminder-modal-header">
+              <h3>Close Books for {selectedYear}</h3>
+              <button className="btn-close-modal" onClick={() => setShowArchiveConfirm(false)}>×</button>
+            </div>
+            <div className="reminder-modal-body">
+              <div className="recipient-info bulk-info">
+                <p><strong>Year:</strong> {selectedYear}</p>
+                <p><strong>Action:</strong> Archive contribution rows and mark payment docs with archive metadata.</p>
+                <div className="bulk-warning">
+                  This does not delete payments. It creates a snapshot archive so the year can be considered closed.
+                </div>
+              </div>
+              {closedYears[selectedYear] ? (
+                <label className="archive-force-toggle">
+                  <input
+                    type="checkbox"
+                    checked={archiveForce}
+                    onChange={(e) => setArchiveForce(e.target.checked)}
+                  />
+                  Rebuild existing archive for this year (force overwrite)
+                </label>
+              ) : null}
+              <div className="reminder-actions">
+                <button
+                  className="btn-secondary"
+                  onClick={() => setShowArchiveConfirm(false)}
+                  disabled={isArchiving}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={handleArchiveYear}
+                  disabled={isArchiving || selectedYear === 'all'}
+                >
+                  {isArchiving ? (
+                    <>
+                      <span className="btn-spinner"></span> Closing...
+                    </>
+                  ) : (
+                    <>📚 Close Year {selectedYear}</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Send Reminder Modal */}

@@ -109,6 +109,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .filter-label {
@@ -163,6 +164,44 @@
   color: var(--text-color);
   border-color: var(--danger-color);
   transform: scale(1.05);
+}
+
+.year-filter-select {
+  min-width: 130px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-color);
+  font-size: 13px;
+}
+
+.year-closed-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--warning-background, rgba(245, 158, 11, 0.14));
+  color: var(--warning-color);
+  border: 1px solid var(--warning-color);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.close-books-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.archive-force-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 14px;
+  font-size: 13px;
+  color: var(--text-color);
 }
 
 .error-message button {

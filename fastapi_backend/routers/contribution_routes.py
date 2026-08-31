@@ -7,10 +7,11 @@ Migrated from stripe_payments.py after removing Stripe integration.
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import logging
 from datetime import datetime, timedelta
 import pytz
+from uuid import uuid4
 
 from database import get_database
 from auth.jwt_auth import get_current_user_dependency as get_current_user
@@ -120,6 +121,64 @@ async def get_eligible_contributions_for_year(
             "createdAt": {"$gte": start_of_year, "$lte": end_of_year},
         }
     ).sort("createdAt", 1).to_list(length=None)
+
+
+def _year_bounds(year: int):
+    start = datetime(year, 1, 1)
+    end = datetime(year, 12, 31, 23, 59, 59)
+    return start, end
+
+
+async def get_contribution_year_overview(db: AsyncIOMotorDatabase) -> List[Dict[str, Any]]:
+    """Return available contribution years and archive-close metadata."""
+    year_rows = await db.payments.aggregate([
+        {"$match": {
+            "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
+            "createdAt": {"$type": "date"},
+        }},
+        {"$project": {"year": {"$year": "$createdAt"}}},
+        {"$group": {"_id": "$year", "count": {"$sum": 1}}},
+        {"$sort": {"_id": -1}},
+    ]).to_list(length=None)
+
+    archives = await db.contribution_year_archives.find(
+        {},
+        {"_id": 0, "year": 1, "closedAt": 1, "closedBy": 1, "rowCount": 1, "totalAmount": 1, "archiveBatchId": 1},
+    ).to_list(length=None)
+    archive_map = {int(a.get("year")): a for a in archives if a.get("year") is not None}
+
+    years = []
+    for row in year_rows:
+        year = int(row.get("_id"))
+        archive = archive_map.get(year)
+        years.append({
+            "year": year,
+            "count": int(row.get("count", 0)),
+            "closed": bool(archive),
+            "closedAt": archive.get("closedAt").isoformat() if archive and archive.get("closedAt") else None,
+            "closedBy": archive.get("closedBy") if archive else None,
+            "rowCount": int(archive.get("rowCount", 0)) if archive else 0,
+            "totalAmount": float(archive.get("totalAmount", 0)) if archive else 0.0,
+            "archiveBatchId": archive.get("archiveBatchId") if archive else None,
+        })
+
+    known_years = {y["year"] for y in years}
+    for archived_year, archive in archive_map.items():
+        if archived_year in known_years:
+            continue
+        years.append({
+            "year": int(archived_year),
+            "count": 0,
+            "closed": True,
+            "closedAt": archive.get("closedAt").isoformat() if archive.get("closedAt") else None,
+            "closedBy": archive.get("closedBy"),
+            "rowCount": int(archive.get("rowCount", 0)),
+            "totalAmount": float(archive.get("totalAmount", 0)),
+            "archiveBatchId": archive.get("archiveBatchId"),
+        })
+
+    years.sort(key=lambda y: y["year"], reverse=True)
+    return years
 
 
 async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> dict:
@@ -675,6 +734,7 @@ async def get_all_contributions(
     db: AsyncIOMotorDatabase = Depends(get_database),
     page: int = 1,
     limit: int = 50,
+    year: Optional[int] = None,
     payment_type: Optional[str] = None,
     username: Optional[str] = None,
     search: Optional[str] = None
@@ -687,6 +747,10 @@ async def get_all_contributions(
         # Build query for contributions only
         query = {"paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}}
         
+        if year:
+            start_of_year, end_of_year = _year_bounds(int(year))
+            query["createdAt"] = {"$gte": start_of_year, "$lte": end_of_year}
+
         if payment_type == "one_time":
             query["paymentType"] = "contribution_one_time"
         elif payment_type == "recurring":
@@ -778,6 +842,8 @@ async def get_all_contributions(
         stats_result = await db.payments.aggregate(pipeline).to_list(length=1)
         stats = stats_result[0] if stats_result else {"totalAmount": 0, "totalCount": 0, "oneTimeCount": 0, "recurringCount": 0}
         
+        years = await get_contribution_year_overview(db)
+
         return {
             "success": True,
             "contributions": formatted_contributions,
@@ -792,7 +858,9 @@ async def get_all_contributions(
                 "totalCount": stats.get("totalCount", 0),
                 "oneTimeCount": stats.get("oneTimeCount", 0),
                 "recurringCount": stats.get("recurringCount", 0)
-            }
+            },
+            "years": years,
+            "selectedYear": int(year) if year else None,
         }
     except Exception as e:
         logger.error(f"Error getting contributions: {e}")
@@ -1012,6 +1080,136 @@ async def get_unpaid_members(
         raise HTTPException(status_code=500, detail="Failed to get unpaid members")
 
 
+@router.get("/admin/contribution-years")
+async def get_admin_contribution_years(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Get available contribution years with archive-close metadata (admin only)."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    years = await get_contribution_year_overview(db)
+    return {
+        "success": True,
+        "years": years,
+        "currentYear": datetime.utcnow().year,
+    }
+
+
+@router.post("/admin/archive-year")
+async def archive_contribution_year(
+    year: int = Body(..., embed=True),
+    force: bool = Body(False, embed=True),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Archive and close a contribution year without deleting source payments."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    current_year = datetime.utcnow().year
+    if year < 2020 or year > current_year:
+        raise HTTPException(status_code=400, detail=f"Year must be between 2020 and {current_year}")
+
+    existing = await db.contribution_year_archives.find_one({"year": int(year)})
+    if existing and not force:
+        raise HTTPException(status_code=409, detail=f"Year {year} is already archived")
+
+    start_of_year, end_of_year = _year_bounds(int(year))
+    query = {
+        "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
+        "createdAt": {"$gte": start_of_year, "$lte": end_of_year},
+    }
+    docs = await db.payments.find(query).sort("createdAt", 1).to_list(length=None)
+    if not docs:
+        raise HTTPException(status_code=404, detail=f"No contribution payments found for year {year}")
+
+    rows: List[Dict[str, Any]] = []
+    total_amount = 0.0
+    one_time_count = 0
+    recurring_count = 0
+    status_counts: Dict[str, int] = {}
+    for p in docs:
+        amount = float(p.get("amount") or 0)
+        ptype = p.get("paymentType")
+        status = str(p.get("status") or "unknown")
+        total_amount += amount
+        if ptype == "contribution_recurring":
+            recurring_count += 1
+        else:
+            one_time_count += 1
+        status_counts[status] = status_counts.get(status, 0) + 1
+
+        rows.append({
+            "paymentId": str(p.get("_id")),
+            "username": p.get("username"),
+            "amount": amount,
+            "paymentType": ptype,
+            "status": status,
+            "createdAt": p.get("createdAt").isoformat() if p.get("createdAt") else None,
+            "paymentProvider": p.get("paymentProvider"),
+            "paymentMethod": p.get("paymentMethod"),
+            "description": p.get("description"),
+            "manualEntry": bool(p.get("manualEntry", False)),
+        })
+
+    archive_batch_id = str(uuid4())
+    now = datetime.utcnow()
+    archive_doc = {
+        "year": int(year),
+        "closedAt": now,
+        "closedBy": current_user.get("username"),
+        "archiveBatchId": archive_batch_id,
+        "rowCount": len(rows),
+        "totalAmount": round(total_amount, 2),
+        "stats": {
+            "oneTimeCount": one_time_count,
+            "recurringCount": recurring_count,
+            "statusCounts": status_counts,
+        },
+        "rows": rows,
+        "sourceQuery": {
+            "paymentType": ["contribution_one_time", "contribution_recurring"],
+            "startDate": start_of_year.isoformat(),
+            "endDate": end_of_year.isoformat(),
+        },
+        "updatedAt": now,
+    }
+
+    if existing:
+        await db.contribution_year_archives.update_one(
+            {"year": int(year)},
+            {"$set": archive_doc},
+        )
+    else:
+        await db.contribution_year_archives.insert_one(archive_doc)
+
+    await db.payments.update_many(
+        query,
+        {
+            "$set": {
+                "archive.year": int(year),
+                "archive.batchId": archive_batch_id,
+                "archive.closedAt": now,
+                "archive.closedBy": current_user.get("username"),
+            }
+        },
+    )
+
+    return {
+        "success": True,
+        "message": f"Archived year {year} with {len(rows)} contribution rows",
+        "archive": {
+            "year": int(year),
+            "archiveBatchId": archive_batch_id,
+            "rowCount": len(rows),
+            "totalAmount": round(total_amount, 2),
+            "closedAt": now.isoformat(),
+            "closedBy": current_user.get("username"),
+        },
+    }
+
+
 @router.post("/admin/send-reminder")
 async def send_contribution_reminder(
     request: dict = Body(...),
@@ -1102,7 +1300,8 @@ async def send_bulk_contribution_reminder(
 @router.get("/admin/export-csv")
 async def export_contributions_csv(
     current_user: dict = Depends(get_current_user),
-    db: AsyncIOMotorDatabase = Depends(get_database)
+    db: AsyncIOMotorDatabase = Depends(get_database),
+    year: Optional[int] = None,
 ):
     """Export all users with contribution details for CSV (admin only)"""
     if current_user.get("role") != "admin":
@@ -1133,6 +1332,9 @@ async def export_contributions_csv(
         
         # Get ALL contributions
         query = {"paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}}
+        if year:
+            start_of_year, end_of_year = _year_bounds(int(year))
+            query["createdAt"] = {"$gte": start_of_year, "$lte": end_of_year}
         contributions = await db.payments.find(query).sort("createdAt", -1).to_list(length=None)
         
         # Build contribution map: username -> list of contributions
