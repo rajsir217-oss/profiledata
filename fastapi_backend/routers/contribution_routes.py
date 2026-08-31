@@ -181,6 +181,29 @@ async def get_contribution_year_overview(db: AsyncIOMotorDatabase) -> List[Dict[
     return years
 
 
+def infer_fee_for(payment: dict) -> str:
+    """Infer fee classification from explicit metadata first, then payment hints."""
+    explicit = (payment.get("feeFor") or "").strip().lower()
+    if explicit:
+        return explicit
+
+    payment_type = str(payment.get("paymentType") or "").lower()
+    description = str(payment.get("description") or "").lower()
+    provider = str(payment.get("paymentProvider") or "").lower()
+
+    if payment_type.startswith("membership_"):
+        return "membership"
+    if "zoom" in description or "virtual meet" in description:
+        return "zoom_call"
+    if "poll" in description and "rsvp" in description:
+        return "event_rsvp"
+    if payment_type.startswith("contribution_"):
+        return "contribution"
+    if "manual" in provider:
+        return "manual_other"
+    return "other"
+
+
 async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> dict:
     """Check if user has search access based on membership"""
     user = await db.users.find_one({"username": username})
@@ -820,6 +843,7 @@ async def get_all_contributions(
                 "firstName": user.get("firstName"),
                 "lastName": user.get("lastName"),
                 "amount": c.get("amount"),
+                "feeFor": infer_fee_for(c),
                 "paymentType": "recurring" if c.get("paymentType") == "contribution_recurring" else "one_time",
                 "status": c.get("status", "completed"),
                 "sessionId": c.get("stripeSessionId") or c.get("paypalOrderId") or c.get("cloverChargeId") or c.get("sessionId"),
@@ -1144,6 +1168,7 @@ async def archive_contribution_year(
             "paymentId": str(p.get("_id")),
             "username": p.get("username"),
             "amount": amount,
+            "feeFor": infer_fee_for(p),
             "paymentType": ptype,
             "status": status,
             "createdAt": p.get("createdAt").isoformat() if p.get("createdAt") else None,
@@ -1518,6 +1543,69 @@ class ManualContributionRequest(BaseModel):
     notes: Optional[str] = Field(None, description="Admin notes")
     paymentDate: Optional[str] = Field(None, description="Custom date ISO format")
     sendThankYou: bool = Field(True, description="Send thank you email")
+
+
+class FeeClassificationRequest(BaseModel):
+    feeFor: str = Field(..., description="contribution|membership|zoom_call|event_rsvp|manual_other|other")
+    reason: Optional[str] = Field(None, description="Mandatory admin reason for reclassification")
+
+
+@router.post("/admin/contributions/{contribution_id}/classify-fee")
+async def classify_contribution_fee(
+    contribution_id: str,
+    request: FeeClassificationRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Admin-only classification for what this fee was for (audit-tracked)."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    from bson import ObjectId
+    try:
+        obj_id = ObjectId(contribution_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid contribution ID")
+
+    allowed = {"contribution", "membership", "zoom_call", "event_rsvp", "manual_other", "other"}
+    fee_for = (request.feeFor or "").strip().lower()
+    if fee_for not in allowed:
+        raise HTTPException(status_code=400, detail=f"feeFor must be one of: {', '.join(sorted(allowed))}")
+
+    reason = (request.reason or "").strip()
+    if len(reason) < 3:
+        raise HTTPException(status_code=400, detail="Reason is required (min 3 chars)")
+
+    existing = await db.payments.find_one({"_id": obj_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Contribution not found")
+
+    now = datetime.utcnow()
+    update_doc = {
+        "$set": {
+            "feeFor": fee_for,
+            "feeForReason": reason,
+            "feeForUpdatedAt": now,
+            "feeForUpdatedBy": current_user.get("username"),
+        },
+        "$push": {
+            "feeForAuditTrail": {
+                "previous": existing.get("feeFor"),
+                "next": fee_for,
+                "reason": reason,
+                "by": current_user.get("username"),
+                "at": now,
+            }
+        }
+    }
+    await db.payments.update_one({"_id": obj_id}, update_doc)
+
+    return {
+        "success": True,
+        "message": "Fee classification updated",
+        "feeFor": fee_for,
+        "updatedAt": now.isoformat(),
+    }
 
 
 @router.get("/admin/search-users")

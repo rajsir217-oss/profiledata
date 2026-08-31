@@ -8,6 +8,15 @@ import './ContributionManagement.css';
 import './ContributionThankYou.css';
 import './LoadMore.css';
 
+const FEE_FOR_OPTIONS = [
+  { value: 'contribution', label: 'Contribution' },
+  { value: 'membership', label: 'Membership' },
+  { value: 'zoom_call', label: 'Zoom Call' },
+  { value: 'event_rsvp', label: 'Event RSVP' },
+  { value: 'manual_other', label: 'Manual Other' },
+  { value: 'other', label: 'Other' },
+];
+
 const ContributionManagement = () => {
   const navigate = useNavigate();
   const reminderContributionUrl = `${getFrontendUrl().replace(/\/$/, '')}/preferences?tab=contributions`;
@@ -63,6 +72,9 @@ const ContributionManagement = () => {
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [archiveForce, setArchiveForce] = useState(false);
+  const [feeForUpdating, setFeeForUpdating] = useState({});
+  const [feeEditModal, setFeeEditModal] = useState(null); // { contribution, nextFeeFor }
+  const [feeEditReason, setFeeEditReason] = useState('');
 
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
@@ -521,6 +533,45 @@ const ContributionManagement = () => {
     }
   };
 
+  const handleFeeForChange = async (contribution, nextFeeFor) => {
+    if (!contribution?.id || !nextFeeFor || contribution.feeFor === nextFeeFor) return;
+    setFeeEditReason('');
+    setFeeEditModal({ contribution, nextFeeFor });
+  };
+
+  const submitFeeClassification = async () => {
+    if (!feeEditModal?.contribution?.id || !feeEditModal?.nextFeeFor) return;
+    const reason = feeEditReason.trim();
+    if (reason.length < 3) {
+      showToast('Reason is required (min 3 chars)', 'error');
+      return;
+    }
+    const contribution = feeEditModal.contribution;
+    const nextFeeFor = feeEditModal.nextFeeFor;
+    try {
+      setFeeForUpdating(prev => ({ ...prev, [contribution.id]: true }));
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `${getBackendUrl()}/api/contributions/admin/contributions/${contribution.id}/classify-fee`,
+        { feeFor: nextFeeFor, reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        setContributions(prev => prev.map((row) => (
+          row.id === contribution.id ? { ...row, feeFor: nextFeeFor } : row
+        )));
+        showToast(`Fee classified as ${nextFeeFor.replace('_', ' ')}`, 'success');
+        setFeeEditModal(null);
+        setFeeEditReason('');
+      }
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to update fee classification';
+      showToast(detail, 'error');
+    } finally {
+      setFeeForUpdating(prev => ({ ...prev, [contribution.id]: false }));
+    }
+  };
+
   return (
     <div className="contribution-management">
       {toast && (
@@ -806,6 +857,7 @@ const ContributionManagement = () => {
                     <th>Name</th>
                     <th>Amount</th>
                     <th>Type</th>
+                    <th>Fee For</th>
                     <th>Status</th>
                     <th>Paid</th>
                     <th>Elapsed</th>
@@ -842,6 +894,19 @@ const ContributionManagement = () => {
                         <span className={`type-badge ${contribution.paymentType}`}>
                           {contribution.paymentType === 'recurring' ? '🔄 Monthly' : '💵 One-time'}
                         </span>
+                      </td>
+                      <td className="fee-for-cell">
+                        <select
+                          className="fee-for-select"
+                          value={contribution.feeFor || 'contribution'}
+                          disabled={Boolean(feeForUpdating[contribution.id])}
+                          onChange={(e) => handleFeeForChange(contribution, e.target.value)}
+                          title="Classify what this fee was for"
+                        >
+                          {FEE_FOR_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
                       </td>
                       <td>
                         {(() => {
@@ -1264,6 +1329,51 @@ const ContributionManagement = () => {
           onClose={() => setShowAddPaymentModal(false)}
           onSuccess={handleManualPaymentSuccess}
         />
+      )}
+
+      {feeEditModal && (
+        <div className="modal-overlay" onClick={() => setFeeEditModal(null)}>
+          <div className="reminder-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="reminder-modal-header">
+              <h3>Classify Fee Usage</h3>
+              <button className="btn-close-modal" onClick={() => setFeeEditModal(null)}>×</button>
+            </div>
+            <div className="reminder-modal-body">
+              <div className="recipient-info">
+                <p><strong>User:</strong> {feeEditModal.contribution.username}</p>
+                <p><strong>Amount:</strong> {formatAmount(feeEditModal.contribution.amount)}</p>
+                <p><strong>New Class:</strong> {feeEditModal.nextFeeFor.replace('_', ' ')}</p>
+              </div>
+              <div className="archive-reason-wrap">
+                <label htmlFor="fee-reason" className="filter-label">Reason (required)</label>
+                <textarea
+                  id="fee-reason"
+                  className="fee-reason-input"
+                  value={feeEditReason}
+                  onChange={(e) => setFeeEditReason(e.target.value)}
+                  placeholder="Why are you reclassifying this transaction?"
+                  rows={3}
+                />
+              </div>
+              <div className="reminder-actions">
+                <button
+                  className="btn-secondary"
+                  onClick={() => setFeeEditModal(null)}
+                  disabled={Boolean(feeForUpdating[feeEditModal.contribution.id])}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={submitFeeClassification}
+                  disabled={Boolean(feeForUpdating[feeEditModal.contribution.id])}
+                >
+                  {feeForUpdating[feeEditModal.contribution.id] ? 'Saving...' : 'Save Classification'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {showArchiveConfirm && (
