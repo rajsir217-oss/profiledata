@@ -43,13 +43,13 @@ const SMSDeliveryLog = () => {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${getBackendUrl()}/api/notifications/logs`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { limit: 500 }
+        params: { channel: 'sms', limit: 500 }
       });
       
       const allLogs = response.data.logs || response.data || [];
-      // Filter for SMS channel only
-      const smsLogs = allLogs.filter(log => 
-        log.channel === 'sms' || 
+      // Endpoint is now channel-filtered server-side; keep legacy guard for old rows.
+      const smsLogs = allLogs.filter(log =>
+        log.channel === 'sms' ||
         log.channels?.includes('sms')
       );
       setLogs(smsLogs);

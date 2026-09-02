@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List
 from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo.errors import NetworkTimeout
 from services.messenger_service import send_to_l3v3lagent
 
 from models.notification_models import (
@@ -483,25 +484,71 @@ async def get_notification_logs(
     logger = logging.getLogger(__name__)
     logger.info(f"📋 Fetching notification logs - user: {username}, is_admin: {is_admin}, channel: {channel}, query: {query}")
 
-    try:
-        # Ensure index exists for efficient sorting by sentAt
-        # This is a no-op if the index already exists
-        await service.db["notification_log"].create_index([("sentAt", -1)], background=True)
+    # Keep response size bounded for large datasets.
+    effective_limit = min(limit, 100)
+    projection = {
+        "_id": 1,
+        "username": 1,
+        "trigger": 1,
+        "type": 1,
+        "status": 1,
+        "sentAt": 1,
+        "sent_at": 1,
+        "createdAt": 1,
+        "created_at": 1,
+        "lineage": 1,
+        "error": 1,
+        "attempts": 1,
+        "templateId": 1,
+        "channel": 1,
+        "channels": 1,
+        "recipient": 1,
+        "subject": 1,
+        "preview": 1,
+        "metadata.lineage_token": 1,
+        "templateData.lineage_token": 1,
+        "templateData.recipient_firstName": 1,
+        "templateData.firstname": 1,
+        "templateData.full_name": 1,
+        "templateData.match.firstName": 1,
+    }
 
+    def _sanitize_bson(value):
+        """Recursively convert BSON-only values to JSON-friendly values."""
+        from bson import ObjectId
+        if isinstance(value, ObjectId):
+            return str(value)
+        if isinstance(value, dict):
+            return {k: _sanitize_bson(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [_sanitize_bson(v) for v in value]
+        return value
+
+    try:
+        # Primary path: newest by sentAt (if indexed).
         logs = await service.db["notification_log"].find(
-            query
-        ).sort("sentAt", -1).skip(skip).limit(limit).to_list(length=limit)
+            query, projection
+        ).sort("sentAt", -1).skip(skip).limit(effective_limit).max_time_ms(8000).to_list(length=effective_limit)
 
         logger.info(f"📋 Found {len(logs)} notification logs")
-
-        # Serialize ObjectId
-        for log in logs:
-            log["_id"] = str(log["_id"])
-
-        return logs
+        return [_sanitize_bson(log) for log in logs]
     except Exception as e:
-        logger.error(f"❌ Failed to fetch notification logs: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to fetch logs: {str(e)}")
+        # Fallback: _id sort always uses the default index and avoids sort timeouts.
+        logger.warning(f"⚠️ sentAt query failed; falling back to _id sort: {e}")
+        try:
+            logs = await service.db["notification_log"].find(
+                query, projection
+            ).sort("_id", -1).skip(skip).limit(effective_limit).max_time_ms(8000).to_list(length=effective_limit)
+            logger.info(f"📋 Fallback _id query returned {len(logs)} notification logs")
+            return [_sanitize_bson(log) for log in logs]
+        except NetworkTimeout as timeout_error:
+            # Final degradation path: avoid hard failing admin UI during transient
+            # Mongo shard/network instability and return an empty dataset.
+            logger.error(f"❌ Notification logs fallback timed out: {timeout_error}", exc_info=True)
+            return []
+        except Exception as fallback_error:
+            logger.error(f"❌ Failed to fetch notification logs: {fallback_error}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to fetch logs: {str(fallback_error)}")
 
 
 @router.delete("/logs/{log_id}")
