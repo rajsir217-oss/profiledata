@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import DeleteButton from './DeleteButton';
+import { startImpersonation } from '../utils/impersonation';
 import './ActivitySummaryPanel.css';
 
 const ActivitySummaryPanel = ({ username, onClose }) => {
@@ -20,6 +21,8 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
   const [grantLoading, setGrantLoading] = useState(false);
   const [revokeLoading, setRevokeLoading] = useState(false);
   const [revokeConfirming, setRevokeConfirming] = useState(false);
+  const [impersonateConfirming, setImpersonateConfirming] = useState(false);
+  const [impersonateLoading, setImpersonateLoading] = useState(false);
   const navigate = useNavigate();
 
   // Fire a single contribution reminder (email or SMS) to this profile's user.
@@ -48,6 +51,36 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
       setReminderSending(null);
       // Auto-clear the toast after 4s so the panel doesn't accumulate stale msgs.
       setTimeout(() => setReminderToast(null), 4000);
+    }
+  };
+
+  // Admin-only: impersonate this user. Two-step confirmation inline, then
+  // stash admin session and reload the app as the target user (same flow as
+  // the admin page). Backend issues a fresh impersonation JWT.
+  const handleImpersonate = async () => {
+    if (!username || impersonateLoading) return;
+    setImpersonateLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${getBackendUrl()}/api/admin/impersonate/${username}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload.success) {
+        throw new Error(payload.detail || payload.message || 'Failed to impersonate');
+      }
+      startImpersonation(payload.token, payload.username, payload.role);
+      window.location.href = '/dashboard';
+    } catch (e) {
+      setReminderToast({
+        type: 'error',
+        text: e?.message || 'Failed to impersonate user',
+      });
+      setTimeout(() => setReminderToast(null), 4000);
+    } finally {
+      setImpersonateLoading(false);
+      setImpersonateConfirming(false);
     }
   };
 
@@ -360,6 +393,25 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
                       disabled={activatingStatus}
                     >
                       {activatingStatus ? 'Activating...' : 'Activate'}
+                    </button>
+                  )}
+                  {isAdminViewer && (
+                    <button
+                      type="button"
+                      className={`activity-impersonate-btn${impersonateConfirming ? ' confirming' : ''}`}
+                      title={impersonateConfirming ? 'Click again to confirm — you will be logged in as this user' : 'Impersonate this user (admin only)'}
+                      disabled={impersonateLoading}
+                      onClick={() => {
+                        if (impersonateConfirming) {
+                          handleImpersonate();
+                        } else {
+                          setImpersonateConfirming(true);
+                          // Auto-reset the two-step confirm after 4s.
+                          setTimeout(() => setImpersonateConfirming(false), 4000);
+                        }
+                      }}
+                    >
+                      {impersonateLoading ? '…' : impersonateConfirming ? 'Confirm?' : '👤 Impersonate'}
                     </button>
                   )}
                 </div>
