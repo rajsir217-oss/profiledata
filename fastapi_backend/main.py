@@ -536,6 +536,49 @@ app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
+# Global exception handler to ensure CORS headers on all error responses
+# This catches unhandled exceptions and adds CORS headers so the browser
+# can read the error response instead of blocking it with a CORS error.
+from fastapi.responses import JSONResponse
+from fastapi import HTTPException
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin", "")
+    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {exc}", exc_info=True)
+
+    # Build CORS headers for the error response
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Vary"] = "Origin"
+
+    # Return a generic error with CORS headers
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "message": str(exc)},
+        headers=headers
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    origin = request.headers.get("origin", "")
+    logger.warning(f"HTTP exception on {request.method} {request.url.path}: {exc.status_code} - {exc.detail}")
+
+    # Build CORS headers for the error response
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Vary"] = "Origin"
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=headers
+    )
+
 # Mount static files for uploads only in non-production
 if env != "production" and os.path.exists(settings.upload_dir):
     from fastapi.staticfiles import StaticFiles

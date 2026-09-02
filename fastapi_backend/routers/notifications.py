@@ -470,30 +470,34 @@ async def get_notification_logs(
     # Check if user is admin
     is_admin = (current_user.get("role_name") or current_user.get("role")) == "admin"
     username = current_user.get("username", "")
-    
+
     # Build query based on role
     query = {} if is_admin else {"username": username}
-    
+
     # Add channel filter if specified
     if channel:
         query["channel"] = channel
-    
+
     # Debug logging
     import logging
     logger = logging.getLogger(__name__)
     logger.info(f"📋 Fetching notification logs - user: {username}, is_admin: {is_admin}, channel: {channel}, query: {query}")
-    
-    logs = await service.db["notification_log"].find(
-        query
-    ).sort("sentAt", -1).skip(skip).limit(limit).to_list(length=limit)
-    
-    logger.info(f"📋 Found {len(logs)} notification logs")
-    
-    # Serialize ObjectId
-    for log in logs:
-        log["_id"] = str(log["_id"])
-    
-    return logs
+
+    try:
+        logs = await service.db["notification_log"].find(
+            query
+        ).sort("sentAt", -1).skip(skip).limit(limit).to_list(length=limit)
+
+        logger.info(f"📋 Found {len(logs)} notification logs")
+
+        # Serialize ObjectId
+        for log in logs:
+            log["_id"] = str(log["_id"])
+
+        return logs
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch notification logs: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch logs: {str(e)}")
 
 
 @router.delete("/logs/{log_id}")
