@@ -484,6 +484,10 @@ async def get_notification_logs(
     logger.info(f"📋 Fetching notification logs - user: {username}, is_admin: {is_admin}, channel: {channel}, query: {query}")
 
     try:
+        # Ensure index exists for efficient sorting by sentAt
+        # This is a no-op if the index already exists
+        await service.db["notification_log"].create_index([("sentAt", -1)], background=True)
+
         logs = await service.db["notification_log"].find(
             query
         ).sort("sentAt", -1).skip(skip).limit(limit).to_list(length=limit)
