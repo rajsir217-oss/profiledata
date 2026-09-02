@@ -320,6 +320,26 @@ async def lifespan(app: FastAPI):
         await db.messages.create_index(
             [("createdAt", 1)], background=True
         )
+        # Notification log hot-path indexes for admin Email/SMS delivery logs.
+        # Covers:
+        # - global recent logs sorted by sentAt desc
+        # - channel filtered logs (email/sms) sorted by sentAt desc
+        # - per-user log lookups sorted by sentAt desc
+        await db.notification_log.create_index(
+            [("sentAt", -1)],
+            background=True,
+            name="notification_log_sentAt_desc",
+        )
+        await db.notification_log.create_index(
+            [("channel", 1), ("sentAt", -1)],
+            background=True,
+            name="notification_log_channel_sentAt_desc",
+        )
+        await db.notification_log.create_index(
+            [("username", 1), ("sentAt", -1)],
+            background=True,
+            name="notification_log_username_sentAt_desc",
+        )
         # TTL index for scheduled message deletion after conversation close/acknowledge.
         # Messages with scheduledDeleteAt set are hard-deleted 24h after the timestamp.
         await db.messages.create_index(

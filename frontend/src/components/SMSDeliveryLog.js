@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
@@ -9,13 +9,16 @@ const SMSDeliveryLog = () => {
   const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState('all');
   const [searchLineage, setSearchLineage] = useState('');
+  const [dateScope, setDateScope] = useState('current_month');
   const [error, setError] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'sentAt', direction: 'desc' });
-  const [displayCount, setDisplayCount] = useState(20);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const [stats, setStats] = useState({ today: 0, week: 0, month: 0 });
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 50;
   
   // SimpleTexting live stats state
   const [stStats, setStStats] = useState({
@@ -36,47 +39,62 @@ const SMSDeliveryLog = () => {
   const [chartLoading, setChartLoading] = useState(false);
   const MONTHLY_LIMIT = 500;
 
-  const loadLogs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadLogs = useCallback(async ({ append = false, skipOverride = 0 } = {}) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${getBackendUrl()}/api/notifications/logs`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { channel: 'sms', limit: 500 }
+        params: { channel: 'sms', limit: PAGE_SIZE, skip: skipOverride, paginated: true, date_scope: dateScope }
       });
       
-      const allLogs = response.data.logs || response.data || [];
+      const allLogs = Array.isArray(response.data?.logs) ? response.data.logs : (Array.isArray(response.data) ? response.data : []);
       // Endpoint is now channel-filtered server-side; keep legacy guard for old rows.
       const smsLogs = allLogs.filter(log =>
         log.channel === 'sms' ||
         log.channels?.includes('sms')
       );
-      setLogs(smsLogs);
-      
-      // Calculate stats
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const weekStart = new Date(todayStart);
-      weekStart.setDate(weekStart.getDate() - 7);
-      
-      let today = 0, week = 0;
-      smsLogs.forEach(log => {
-        const logDate = new Date(log.sentAt || log.sent_at || log.createdAt);
-        if (logDate >= todayStart) today++;
-        if (logDate >= weekStart) week++;
+      setLogs(prev => {
+        const mergedLogs = append ? [...prev, ...smsLogs] : smsLogs;
+        // Calculate stats from loaded rows; month comes from chart data.
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const weekStart = new Date(todayStart);
+        weekStart.setDate(weekStart.getDate() - 7);
+        let today = 0;
+        let week = 0;
+        mergedLogs.forEach((log) => {
+          const logDate = new Date(log.sentAt || log.sent_at || log.createdAt);
+          if (logDate >= todayStart) today++;
+          if (logDate >= weekStart) week++;
+        });
+        setStats(s => ({ ...s, today, week }));
+        return mergedLogs;
       });
-      // Only update today and week - month comes from chart data (more accurate)
-      setStats(prev => ({ ...prev, today, week }));
+      setHasMore(Boolean(response.data?.hasMore));
+      setTotalCount(typeof response.data?.total === 'number'
+        ? response.data.total
+        : (skipOverride + smsLogs.length + (response.data?.hasMore ? 1 : 0)));
       
     } catch (err) {
       console.error('Failed to load SMS logs:', err);
       setError('Failed to load SMS logs');
-      setLogs([]);
+      if (!append) {
+        setLogs([]);
+      }
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [PAGE_SIZE, dateScope]);
 
   // Load SMS by month chart data
   const loadChartData = useCallback(async (year) => {
@@ -149,11 +167,20 @@ const SMSDeliveryLog = () => {
     }
   }, []);
 
+  // Reload logs when range/sorting source changes.
   useEffect(() => {
     loadLogs();
-    loadChartData(selectedYear);
+  }, [loadLogs]);
+
+  // Load live provider stats once.
+  useEffect(() => {
     loadStStats();
-  }, [loadLogs, loadChartData, loadStStats, selectedYear]);
+  }, [loadStStats]);
+
+  // Only reload chart data when year changes.
+  useEffect(() => {
+    loadChartData(selectedYear);
+  }, [loadChartData, selectedYear]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
@@ -188,44 +215,51 @@ const SMSDeliveryLog = () => {
     return sortConfig.direction === 'asc' ? '↑' : '↓';
   };
 
-  const filteredLogs = logs.filter(log => {
-    // Status filter
-    if (filter !== 'all') {
-      const status = log.status?.toLowerCase();
-      if (filter === 'sent' && status !== 'sent' && status !== 'delivered') return false;
-      if (filter === 'failed' && status !== 'failed') return false;
-    }
-    // Lineage search
-    if (searchLineage) {
-      const lineage = log.templateData?.lineage_token || log.metadata?.lineage_token || '';
-      const username = log.username || '';
-      const trigger = log.trigger || '';
-      const searchLower = searchLineage.toLowerCase();
-      if (!lineage.toLowerCase().includes(searchLower) &&
-          !username.toLowerCase().includes(searchLower) &&
-          !trigger.toLowerCase().includes(searchLower)) {
-        return false;
+  const filteredLogs = useMemo(() => {
+    const filtered = logs.filter(log => {
+      // Status filter
+      if (filter !== 'all') {
+        const status = log.status?.toLowerCase();
+        if (filter === 'sent' && status !== 'sent' && status !== 'delivered') return false;
+        if (filter === 'failed' && status !== 'failed') return false;
       }
-    }
-    return true;
-  }).sort((a, b) => {
-    let aVal, bVal;
-    
-    if (sortConfig.key === 'sentAt') {
-      aVal = new Date(a.sentAt || a.sent_at || a.createdAt || 0);
-      bVal = new Date(b.sentAt || b.sent_at || b.createdAt || 0);
-    } else {
-      aVal = a[sortConfig.key] || '';
-      bVal = b[sortConfig.key] || '';
-    }
-    
-    if (typeof aVal === 'string') aVal = aVal.toLowerCase();
-    if (typeof bVal === 'string') bVal = bVal.toLowerCase();
-    
-    if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-    return 0;
-  });
+      // Lineage/user/trigger search
+      if (searchLineage) {
+        const lineage = log.templateData?.lineage_token || log.metadata?.lineage_token || '';
+        const username = log.username || '';
+        const trigger = log.trigger || '';
+        const searchLower = searchLineage.toLowerCase();
+        if (!lineage.toLowerCase().includes(searchLower) &&
+            !username.toLowerCase().includes(searchLower) &&
+            !trigger.toLowerCase().includes(searchLower)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    filtered.sort((a, b) => {
+      let aVal;
+      let bVal;
+
+      if (sortConfig.key === 'sentAt') {
+        aVal = new Date(a.sentAt || a.sent_at || a.createdAt || 0).getTime();
+        bVal = new Date(b.sentAt || b.sent_at || b.createdAt || 0).getTime();
+      } else {
+        aVal = a[sortConfig.key] || '';
+        bVal = b[sortConfig.key] || '';
+      }
+
+      if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+      if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [logs, filter, searchLineage, sortConfig]);
 
   return (
     <div className="sms-delivery-log">
@@ -387,6 +421,14 @@ const SMSDeliveryLog = () => {
           </select>
         </div>
 
+        <div className="control-group">
+          <label>Range:</label>
+          <select value={dateScope} onChange={(e) => setDateScope(e.target.value)}>
+            <option value="current_month">Current Month</option>
+            <option value="all_time">All Time</option>
+          </select>
+        </div>
+
         <div className="control-group search-group">
           <label>🔍 Search:</label>
           <input
@@ -439,7 +481,7 @@ const SMSDeliveryLog = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredLogs.slice(0, displayCount).map((log, index) => {
+              {filteredLogs.map((log, index) => {
                 const lineageToken = log.templateData?.lineage_token || log.metadata?.lineage_token;
                 const recipientUsername = log.username || log.recipient || 'N/A';
                 // Get profile name from templateData
@@ -509,9 +551,14 @@ const SMSDeliveryLog = () => {
           </table>
           
           <LoadMore
-            currentCount={Math.min(displayCount, filteredLogs.length)}
-            totalCount={filteredLogs.length}
-            onLoadMore={() => setDisplayCount(prev => prev + PAGE_SIZE)}
+            currentCount={logs.length}
+            totalCount={totalCount}
+            onLoadMore={() => {
+              if (hasMore && !loadingMore) {
+                loadLogs({ append: true, skipOverride: logs.length });
+              }
+            }}
+            loading={loadingMore}
             itemsPerLoad={PAGE_SIZE}
             itemLabel="SMS logs"
             buttonText="View more"

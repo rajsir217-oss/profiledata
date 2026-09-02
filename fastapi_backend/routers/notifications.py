@@ -464,6 +464,8 @@ async def get_notification_logs(
     current_user: dict = Depends(get_current_user),
     limit: int = Query(100, ge=1, le=500),
     skip: int = Query(0, ge=0),
+    paginated: bool = Query(False, description="Return paginated payload with logs/total/hasMore"),
+    date_scope: Optional[str] = Query(None, description="Date scope filter: current_month or all_time"),
     channel: Optional[str] = Query(None, description="Filter by channel (email, sms, push)"),
     service: NotificationService = Depends(get_notification_service)
 ):
@@ -478,6 +480,17 @@ async def get_notification_logs(
     # Add channel filter if specified
     if channel:
         query["channel"] = channel
+
+    # Optional date scope filter for faster admin views.
+    # `current_month` uses UTC month boundaries.
+    if date_scope == "current_month":
+        now = datetime.utcnow()
+        month_start = datetime(now.year, now.month, 1)
+        if now.month == 12:
+            month_end = datetime(now.year + 1, 1, 1)
+        else:
+            month_end = datetime(now.year, now.month + 1, 1)
+        query["sentAt"] = {"$gte": month_start, "$lt": month_end}
 
     # Debug logging
     import logging
@@ -524,23 +537,54 @@ async def get_notification_logs(
             return [_sanitize_bson(v) for v in value]
         return value
 
+    async def _format_logs_response(raw_logs):
+        has_more = False
+        if paginated and len(raw_logs) > effective_limit:
+            has_more = True
+            raw_logs = raw_logs[:effective_limit]
+
+        sanitized_logs = [_sanitize_bson(log) for log in raw_logs]
+        if not paginated:
+            return sanitized_logs
+
+        total = None
+        try:
+            # Count only when explicitly asked for paginated payload.
+            # This avoids extra DB work for legacy callers that only need list data.
+            total = await service.db["notification_log"].count_documents(query, maxTimeMS=8000)
+        except Exception as count_err:
+            logger.warning(f"⚠️ notification_log total count failed: {count_err}")
+
+        if total is None:
+            total = skip + len(sanitized_logs) + (1 if has_more else 0)
+
+        return {
+            "logs": sanitized_logs,
+            "total": total,
+            "hasMore": has_more,
+            "skip": skip,
+            "limit": effective_limit,
+        }
+
     try:
         # Primary path: newest by sentAt (if indexed).
+        fetch_limit = effective_limit + 1 if paginated else effective_limit
         logs = await service.db["notification_log"].find(
             query, projection
-        ).sort("sentAt", -1).skip(skip).limit(effective_limit).max_time_ms(8000).to_list(length=effective_limit)
+        ).sort("sentAt", -1).skip(skip).limit(fetch_limit).max_time_ms(8000).to_list(length=fetch_limit)
 
         logger.info(f"📋 Found {len(logs)} notification logs")
-        return [_sanitize_bson(log) for log in logs]
+        return await _format_logs_response(logs)
     except Exception as e:
         # Fallback: _id sort always uses the default index and avoids sort timeouts.
         logger.warning(f"⚠️ sentAt query failed; falling back to _id sort: {e}")
         try:
+            fetch_limit = effective_limit + 1 if paginated else effective_limit
             logs = await service.db["notification_log"].find(
                 query, projection
-            ).sort("_id", -1).skip(skip).limit(effective_limit).max_time_ms(8000).to_list(length=effective_limit)
+            ).sort("_id", -1).skip(skip).limit(fetch_limit).max_time_ms(8000).to_list(length=fetch_limit)
             logger.info(f"📋 Fallback _id query returned {len(logs)} notification logs")
-            return [_sanitize_bson(log) for log in logs]
+            return await _format_logs_response(logs)
         except NetworkTimeout as timeout_error:
             # Final degradation path: avoid hard failing admin UI during transient
             # Mongo shard/network instability and return an empty dataset.

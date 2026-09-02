@@ -62,23 +62,37 @@ const EmailDeliveryLog = () => {
   // Direct state management (replacing useNotificationData hook)
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [dateScope, setDateScope] = useState('current_month');
   
   // Load logs function
-  const loadLogs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const PAGE_SIZE = 50;
+
+  const loadLogs = useCallback(async ({ append = false, skipOverride = 0 } = {}) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         setError('Not authenticated');
-        setLoading(false);
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
         return;
       }
       
       const backendUrl = getBackendUrl();
-      const url = `${backendUrl}/api/notifications/logs?channel=email&limit=500`;
+      const url = `${backendUrl}/api/notifications/logs?channel=email&limit=${PAGE_SIZE}&skip=${skipOverride}&paginated=true&date_scope=${dateScope}`;
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -90,7 +104,7 @@ const EmailDeliveryLog = () => {
       const data = await response.json();
       
       // Transform log data
-      const rawData = data?.logs || data || [];
+      const rawData = Array.isArray(data?.logs) ? data.logs : (Array.isArray(data) ? data : []);
       const transformed = rawData.map(log => ({
         ...log,
         id: log._id || log.id,
@@ -105,14 +119,20 @@ const EmailDeliveryLog = () => {
         templateId: log.templateId || null
       }));
       
-      setLogs(transformed);
+      setLogs(prev => append ? [...prev, ...transformed] : transformed);
+      setHasMore(Boolean(data?.hasMore));
+      setTotalCount(typeof data?.total === 'number' ? data.total : (skipOverride + transformed.length + (data?.hasMore ? 1 : 0)));
       
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [PAGE_SIZE, dateScope]);
   
   // Load on mount
   useEffect(() => {
@@ -121,15 +141,13 @@ const EmailDeliveryLog = () => {
   
   // Refresh function
   const refresh = useCallback(() => {
-    loadLogs();
+    loadLogs({ append: false, skipOverride: 0 });
   }, [loadLogs]);
 
   // State management
   const [filter, setFilter] = useState('all');
   const [searchLineage, setSearchLineage] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'sentAt', direction: 'desc' });
-  const [displayCount, setDisplayCount] = useState(50);
-  const PAGE_SIZE = 50;
   
   // Multi-select trigger filter
   const [selectedTriggers, setSelectedTriggers] = useState([]);
@@ -217,9 +235,7 @@ const EmailDeliveryLog = () => {
   }, [logs, filter, selectedTriggers, searchLineage, sortConfig]);
 
   // Memoized displayed logs (with pagination)
-  const displayedLogs = useMemo(() => {
-    return filteredLogs.slice(0, displayCount);
-  }, [filteredLogs, displayCount]);
+  const displayedLogs = useMemo(() => filteredLogs, [filteredLogs]);
 
   // Memoized trigger options
   const triggerOptions = useMemo(() => {
@@ -289,8 +305,9 @@ const EmailDeliveryLog = () => {
   }, []);
 
   const loadMore = useCallback(() => {
-    setDisplayCount(prev => Math.min(prev + PAGE_SIZE, filteredLogs.length));
-  }, [filteredLogs.length]);
+    if (!hasMore || loadingMore) return;
+    loadLogs({ append: true, skipOverride: logs.length });
+  }, [hasMore, loadingMore, loadLogs, logs.length]);
 
   const handleRefresh = useCallback(() => {
     refresh(true); // Force refresh
@@ -337,6 +354,16 @@ const EmailDeliveryLog = () => {
               <option value="failed">Failed</option>
               <option value="pending">Pending</option>
               <option value="processing">Processing</option>
+            </select>
+
+            <select
+              value={dateScope}
+              onChange={(e) => setDateScope(e.target.value)}
+              className="filter-select"
+              title="Time range"
+            >
+              <option value="current_month">Current Month</option>
+              <option value="all_time">All Time</option>
             </select>
 
             <div className="multi-select-dropdown">
@@ -488,12 +515,12 @@ const EmailDeliveryLog = () => {
                 {/* Load More Button */}
                 <LoadMore
                   onLoadMore={loadMore}
-                  loading={loading}
-                  currentCount={displayedLogs.length}
-                  totalCount={filteredLogs.length}
+                  currentCount={logs.length}
+                  totalCount={totalCount}
                   itemsPerLoad={PAGE_SIZE}
                   itemLabel="logs"
                   buttonText="Load more logs"
+                  loading={loadingMore}
                 />
               </>
             )}
