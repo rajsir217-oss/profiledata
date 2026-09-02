@@ -275,9 +275,17 @@ const EmailDeliveryLog = () => {
   }, [sortConfig]);
 
   const formatDate = useCallback((dateStr) => {
-    if (!dateStr) return 'N/A';
+    if (!dateStr) return '—';
     const date = new Date(dateStr);
-    return date.toLocaleString();
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
   }, []);
 
   const loadMore = useCallback(() => {
@@ -381,8 +389,10 @@ const EmailDeliveryLog = () => {
                   direction: prev.direction === 'asc' ? 'desc' : 'asc'
                 }))}
                 className="sort-direction"
+                title={sortConfig.direction === 'asc' ? 'Sort descending' : 'Sort ascending'}
+                aria-label={sortConfig.direction === 'asc' ? 'Sort descending' : 'Sort ascending'}
               >
-                {getSortIcon(sortConfig.key)}
+                {sortConfig.direction === 'asc' ? '🔼' : '🔽'}
               </button>
             </div>
           </div>
@@ -449,7 +459,7 @@ const EmailDeliveryLog = () => {
                               {log.status}
                             </span>
                           </td>
-                          <td>{formatDate(log.sentAt || log.createdAt)}</td>
+                          <td className="time-cell">{formatDate(log.sentAt || log.createdAt)}</td>
                           <td>
                             <div className="log-details">
                               {log.lineage && (
