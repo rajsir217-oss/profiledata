@@ -109,6 +109,7 @@ const EmailDeliveryLog = () => {
         ...log,
         id: log._id || log.id,
         username: log.username || 'unknown',
+        emailId: log.emailId || log.recipientEmail || log.templateData?.recipientEmail || log.templateData?.email || '',
         trigger: log.trigger || log.type,
         status: log.status || 'unknown',
         sentAt: log.sentAt || log.createdAt || log.created_at,
@@ -464,6 +465,7 @@ const EmailDeliveryLog = () => {
                         <th onClick={() => handleSort('username')} className="sortable">
                           Username {getSortIcon('username')}
                         </th>
+                        <th>Email ID</th>
                         <th onClick={() => handleSort('trigger')} className="sortable">
                           Trigger {getSortIcon('trigger')}
                         </th>
@@ -480,6 +482,7 @@ const EmailDeliveryLog = () => {
                       {displayedLogs.map((log, index) => (
                         <tr key={log.id || index}>
                           <td>{log.username}</td>
+                          <td>{log.emailId || '—'}</td>
                           <td>{log.trigger || log.type}</td>
                           <td>
                             <span className={getStatusClass(log.status)}>

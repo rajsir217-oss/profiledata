@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.errors import NetworkTimeout
 from services.messenger_service import send_to_l3v3lagent
+from crypto_utils import PIIEncryption
 
 from models.notification_models import (
     NotificationPreferences,
@@ -518,8 +519,17 @@ async def get_notification_logs(
         "recipient": 1,
         "subject": 1,
         "preview": 1,
+        "recipientEmail": 1,
+        "recipientPhone": 1,
         "metadata.lineage_token": 1,
         "templateData.lineage_token": 1,
+        "templateData.recipientEmail": 1,
+        "templateData.recipient_email": 1,
+        "templateData.email": 1,
+        "templateData.recipientPhone": 1,
+        "templateData.recipient_phone": 1,
+        "templateData.phone": 1,
+        "templateData.contactNumber": 1,
         "templateData.recipient_firstName": 1,
         "templateData.firstname": 1,
         "templateData.full_name": 1,
@@ -537,13 +547,100 @@ async def get_notification_logs(
             return [_sanitize_bson(v) for v in value]
         return value
 
+    def _decrypt_if_needed(value: Optional[str], encryptor: Optional[PIIEncryption]) -> Optional[str]:
+        if value in (None, ""):
+            return None
+        if not isinstance(value, str):
+            return str(value)
+        if value.startswith("gAAAAA") and encryptor:
+            return encryptor.decrypt(value) or None
+        return value
+
+    def _extract_best_phone(user_doc: dict, encryptor: Optional[PIIEncryption]) -> Optional[str]:
+        # Prefer explicit single-value fields first.
+        for key in ("phone", "contactPhone", "contactNumber"):
+            val = _decrypt_if_needed(user_doc.get(key), encryptor)
+            if val:
+                return val
+
+        # Fallback to contactNumbers array format.
+        numbers = user_doc.get("contactNumbers")
+        if isinstance(numbers, list):
+            for entry in numbers:
+                if isinstance(entry, dict):
+                    val = _decrypt_if_needed(entry.get("number"), encryptor)
+                    if val:
+                        return val
+                elif isinstance(entry, str):
+                    val = _decrypt_if_needed(entry, encryptor)
+                    if val:
+                        return val
+        return None
+
+    async def _enrich_logs_with_contact_info(raw_logs: List[dict]) -> List[dict]:
+        if not raw_logs:
+            return raw_logs
+
+        usernames = list({(l.get("username") or "").strip() for l in raw_logs if l.get("username")})
+        user_map = {}
+        encryptor = None
+        try:
+            encryptor = PIIEncryption()
+        except Exception:
+            # If encryption key is unavailable, fall back to raw values.
+            encryptor = None
+
+        if usernames:
+            users = await service.db["users"].find(
+                {"username": {"$in": usernames}},
+                {
+                    "_id": 0,
+                    "username": 1,
+                    "email": 1,
+                    "contactEmail": 1,
+                    "phone": 1,
+                    "contactPhone": 1,
+                    "contactNumber": 1,
+                    "contactNumbers": 1,
+                },
+            ).to_list(length=len(usernames))
+            user_map = {u.get("username"): u for u in users if u.get("username")}
+
+        enriched = []
+        for log in raw_logs:
+            template_data = log.get("templateData") or {}
+            user_doc = user_map.get(log.get("username"), {})
+
+            email_id = (
+                log.get("recipientEmail")
+                or template_data.get("recipientEmail")
+                or template_data.get("recipient_email")
+                or template_data.get("email")
+                or _decrypt_if_needed(user_doc.get("email") or user_doc.get("contactEmail"), encryptor)
+            )
+            phone_number = (
+                log.get("recipientPhone")
+                or template_data.get("recipientPhone")
+                or template_data.get("recipient_phone")
+                or template_data.get("phone")
+                or template_data.get("contactNumber")
+                or _extract_best_phone(user_doc, encryptor)
+            )
+
+            log["emailId"] = email_id or None
+            log["phoneNumber"] = phone_number or None
+            enriched.append(log)
+        return enriched
+
     async def _format_logs_response(raw_logs):
         has_more = False
         if paginated and len(raw_logs) > effective_limit:
             has_more = True
             raw_logs = raw_logs[:effective_limit]
 
-        sanitized_logs = [_sanitize_bson(log) for log in raw_logs]
+        # Enrich email/phone so admin log tables can display direct contact columns.
+        enriched_logs = await _enrich_logs_with_contact_info(raw_logs)
+        sanitized_logs = [_sanitize_bson(log) for log in enriched_logs]
         if not paginated:
             return sanitized_logs
 

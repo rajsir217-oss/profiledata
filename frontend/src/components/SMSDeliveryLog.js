@@ -59,8 +59,12 @@ const SMSDeliveryLog = () => {
         log.channel === 'sms' ||
         log.channels?.includes('sms')
       );
+      const normalizedSmsLogs = smsLogs.map((log) => ({
+        ...log,
+        phoneNumber: log.phoneNumber || log.recipientPhone || log.templateData?.recipientPhone || log.templateData?.recipient_phone || log.templateData?.phone || log.templateData?.contactNumber || '',
+      }));
       setLogs(prev => {
-        const mergedLogs = append ? [...prev, ...smsLogs] : smsLogs;
+        const mergedLogs = append ? [...prev, ...normalizedSmsLogs] : normalizedSmsLogs;
         // Calculate stats from loaded rows; month comes from chart data.
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -79,7 +83,7 @@ const SMSDeliveryLog = () => {
       setHasMore(Boolean(response.data?.hasMore));
       setTotalCount(typeof response.data?.total === 'number'
         ? response.data.total
-        : (skipOverride + smsLogs.length + (response.data?.hasMore ? 1 : 0)));
+        : (skipOverride + normalizedSmsLogs.length + (response.data?.hasMore ? 1 : 0)));
       
     } catch (err) {
       console.error('Failed to load SMS logs:', err);
@@ -470,6 +474,7 @@ const SMSDeliveryLog = () => {
                 <th className="sortable" onClick={() => handleSort('username')}>
                   Recipient {getSortIcon('username')}
                 </th>
+                <th>Phone</th>
                 <th className="sortable" onClick={() => handleSort('trigger')}>
                   Trigger {getSortIcon('trigger')}
                 </th>
@@ -514,6 +519,7 @@ const SMSDeliveryLog = () => {
                         )}
                       </div>
                     </td>
+                    <td>{log.phoneNumber || '—'}</td>
                     <td className="trigger-cell">
                       <span className="trigger-badge sms">
                         {log.trigger || log.type || 'N/A'}

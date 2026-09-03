@@ -5018,11 +5018,12 @@ async def delete_user_profile(
     # 🛑 CRITICAL SECURITY CHECK
     # Allow delete if:
     # 1. User is deleting their own profile
-    # 2. User is an admin
-    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    # 2. User is an admin or moderator
+    role = (current_user.get("role") or current_user.get("role_name") or "").lower()
+    is_admin_or_moderator = role in {"admin", "moderator"}
     is_owner = current_user.get("username") == username
     
-    if not (is_owner or is_admin):
+    if not (is_owner or is_admin_or_moderator):
         logger.warning(f"⚠️ Unauthorized delete attempt: User '{current_user.get('username')}' tried to delete '{username}'")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
