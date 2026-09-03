@@ -478,7 +478,7 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
           </div>
 
           {/* PII Requests */}
-          <div className="activity-section">
+          <div className="activity-section micro">
             <h4>🔒 Data Requests (PII)</h4>
             <div className="activity-stats-row">
               <div className="activity-stat">
@@ -625,6 +625,37 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
               <div className="activity-item">
                 <span className="activity-label">Last Search</span>
                 <span className="activity-value">{formatDate(d.searches?.lastSearch)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Support Tickets */}
+          <div className="activity-section">
+            <h4>📧 Support Tickets</h4>
+            <div className="activity-stats-row">
+              <div className="activity-stat">
+                <span className="stat-number">{d.supportTickets?.openCount || 0}</span>
+                <span className="stat-label">Open</span>
+              </div>
+              <div className="activity-stat">
+                <span className="stat-number">{d.supportTickets?.count || 0}</span>
+                <span className="stat-label">Total</span>
+              </div>
+            </div>
+            <div className="activity-grid">
+              <div className="activity-item activity-link-row">
+                <span className="activity-label">Last Ticket</span>
+                <span className="activity-value">{formatDate(d.supportTickets?.lastTicket)}</span>
+              </div>
+              <div className="activity-item activity-link-row">
+                <span className="activity-label">Actions</span>
+                <button
+                  type="button"
+                  className="activity-text-link"
+                  onClick={() => navigate('/support?tab=admin-contact')}
+                >
+                  View tickets
+                </button>
               </div>
             </div>
           </div>

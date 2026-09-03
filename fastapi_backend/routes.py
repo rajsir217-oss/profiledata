@@ -2243,6 +2243,16 @@ async def get_user_activity_summary(
         sort=[("timestamp", -1)]
     )
 
+    # --- 8b. Support tickets ---
+    support_ticket_count = await db.contact_tickets.count_documents({"username": username})
+    open_support_ticket_count = await db.contact_tickets.count_documents({
+        "username": username,
+        "status": {"$in": ["open", "in_progress"]}
+    })
+    last_support_ticket = await db.contact_tickets.find_one(
+        {"username": username}, sort=[("createdAt", -1)]
+    )
+
     # --- 9. Recent activity count (last 7 days) ---
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
     recent_activity_count = await db.activity_logs.count_documents(
@@ -2362,6 +2372,11 @@ async def get_user_activity_summary(
         "searches": {
             "count": searches_count,
             "lastSearch": ts(last_search.get("timestamp")) if last_search else None,
+        },
+        "supportTickets": {
+            "count": support_ticket_count,
+            "openCount": open_support_ticket_count,
+            "lastTicket": ts(last_support_ticket.get("createdAt")) if last_support_ticket else None,
         },
         "recentActivity": {
             "last7Days": recent_activity_count,
