@@ -776,6 +776,11 @@ EOF
   # Configure port forwarding so the app can reach host backend at localhost:8000 if needed.
   setup_adb_reverse
 
+  # Allow cleartext to localhost/10.0.2.2 in the debug build
+  if command -v ./configure_android_network.sh >/dev/null 2>&1; then
+    ANDROID_PROJECT_DIR="$MSG_WEB_DIR" ./configure_android_network.sh >/dev/null 2>&1 || true
+  fi
+
   echo "🟢 Starting messenger-web dev server (background)..."
   local webpack_log="$REPO_ROOT/messenger-web/webpack.log"
   : > "$webpack_log"
@@ -811,9 +816,11 @@ EOF
   local debug_apk_path="$MSG_WEB_DIR/android/app/build/outputs/apk/debug/msgr-app-debug-${new_build_num}.apk"
   if [[ -f "$debug_apk_path" ]]; then
     echo "📦 Installing $debug_apk_path to emulator..."
+    # Remove any legacy .debug-suffixed package so there is no ambiguity
+    adb uninstall "${MSGR_APP_PACKAGE}.debug" >/dev/null 2>&1 || true
     adb install -r "$debug_apk_path"
     echo "🚀 Launching app..."
-    adb shell am start -n ${MSGR_APP_PACKAGE}.debug/${MSGR_APP_PACKAGE}.MainActivity
+    adb shell am start -n ${MSGR_APP_PACKAGE}/${MSGR_APP_PACKAGE}.MainActivity
     echo "✅ Debug APK installed and launched"
   else
     echo "⚠️  Debug APK not found at expected path: $debug_apk_path"

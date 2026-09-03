@@ -84,6 +84,15 @@ fi
 echo -e "${GREEN}✅ Android project created${NC}"
 echo ""
 
+# Remove debug applicationIdSuffix so package name stays com.l3v3lmessenger
+# and matches google-services.json for FCM builds.
+gradle_file="android/app/build.gradle"
+if [[ -f "$gradle_file" ]]; then
+  sed -i.bak '/applicationIdSuffix "\.debug"/d' "$gradle_file"
+  rm -f "${gradle_file}.bak"
+  echo -e "${GREEN}✅ Removed debug applicationIdSuffix${NC}"
+fi
+
 # Step 6: Update gitignore
 echo -e "${BLUE}📋 Step 5: Updating .gitignore...${NC}"
 if ! grep -q "android/" .gitignore 2>/dev/null; then
