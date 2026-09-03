@@ -6,13 +6,22 @@
 # Run this after: ./setup_android.sh
 ##############################################
 
-echo "🔧 Configuring Android network security..."
+ANDROID_PROJECT_DIR="${ANDROID_PROJECT_DIR:-../frontend}"
+
+# Validate that the project has an Android directory
+if [ ! -d "$ANDROID_PROJECT_DIR/android" ]; then
+  echo "❌ Android project not found at: $ANDROID_PROJECT_DIR/android"
+  echo "   Set ANDROID_PROJECT_DIR to the project root (e.g. ../messenger-web)"
+  exit 1
+fi
+
+echo "🔧 Configuring Android network security in $ANDROID_PROJECT_DIR..."
 
 # Create network security config directory
-mkdir -p ../frontend/android/app/src/main/res/xml
+mkdir -p "$ANDROID_PROJECT_DIR/android/app/src/main/res/xml"
 
 # Create network security config file
-cat > ../frontend/android/app/src/main/res/xml/network_security_config.xml << 'EOF'
+cat > "$ANDROID_PROJECT_DIR/android/app/src/main/res/xml/network_security_config.xml" << 'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <!-- Allow cleartext traffic for local development -->
@@ -27,7 +36,7 @@ EOF
 echo "✅ Network security config created"
 
 # Update AndroidManifest.xml if not already configured
-MANIFEST="../frontend/android/app/src/main/AndroidManifest.xml"
+MANIFEST="$ANDROID_PROJECT_DIR/android/app/src/main/AndroidManifest.xml"
 
 if grep -q "networkSecurityConfig" "$MANIFEST"; then
     echo "✅ AndroidManifest.xml already configured"

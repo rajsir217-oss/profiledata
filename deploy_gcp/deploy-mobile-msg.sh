@@ -560,6 +560,13 @@ run_capacitor_android() {
       echo "   Copy gradle.properties.template to gradle.properties and fill in keystore details"
     fi
     
+    # Ensure production env is available to the webpack build.
+    # Webpack loads messenger-web/.env.production; write it from shell env.
+    cat > "$MSG_WEB_DIR/.env.production" <<EOF
+MESSENGER_BACKEND_URL=${MESSENGER_BACKEND_URL:-https://api.l3v3lmatches.com}
+MESSENGER_MAIN_APP_URL=${MESSENGER_MAIN_APP_URL:-https://l3v3lmatches.com}
+EOF
+
     # Use Gradle directly for release builds to properly handle signing
     echo "🏗️  Building messenger-web dist (production)..."
     (cd "$MSG_WEB_DIR" && npm run build)

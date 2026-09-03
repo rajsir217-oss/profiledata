@@ -9,6 +9,10 @@
  * - Local dev (localhost): http://localhost:8000
  * - Production (messenger.l3v3lmatches.com): https://api.l3v3lmatches.com
  */
+const isProductionHost = (hostname) => {
+  return hostname === 'l3v3lmatches.com' || hostname === 'messenger.l3v3lmatches.com';
+};
+
 export const getBackendUrl = () => {
   const raw = process.env.MESSENGER_BACKEND_URL;
   const cleaned = String(raw || '').replace(/\/+$/, '');
@@ -19,6 +23,9 @@ export const getBackendUrl = () => {
       const hostname = window.location.hostname;
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return 'http://localhost:8000';
+      }
+      if (isProductionHost(hostname)) {
+        return 'https://api.l3v3lmatches.com';
       }
     }
   } catch (_) {
@@ -82,12 +89,14 @@ export const getMainAppUrl = () => {
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return 'http://localhost:3000';
       }
+      if (isProductionHost(hostname)) {
+        return 'https://l3v3lmatches.com';
+      }
     }
   } catch (_) {
   }
 
-  // Production fallback for Capacitor builds where env var is not available
-  return 'https://l3v3lmatches.com';
+  return '';
 };
 
 /**

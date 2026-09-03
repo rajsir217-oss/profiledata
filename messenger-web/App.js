@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View, Platform } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
+import { Capacitor } from '@capacitor/core';
 import { AppUpdate } from '@capawesome/capacitor-app-update';
 
 import useAuthStore from '@messenger/stores/authStore';
 import messengerSocket from '@messenger/services/socketService';
+import logger from './src/utils/logger';
 import { setTokenGetter } from '@messenger/utils/imageHelper';
 import { initializePushNotifications } from './src/services/pushNotificationService';
 import {
@@ -28,10 +30,10 @@ import NewChatScreen from './src/screens/NewChatScreen';
 const checkForUpdates = async () => {
   try {
     const result = await AppUpdate.getAppUpdateInfo();
-    
+
     if (result.updateAvailability === 2) { // UPDATE_AVAILABLE
-      console.log('[AppUpdate] Update available:', result.availableVersion);
-      
+      logger.info('[AppUpdate] Update available:', result.availableVersion);
+
       if (result.immediateUpdateAllowed) {
         // Perform immediate update (blocks user until complete)
         await AppUpdate.performImmediateUpdate();
@@ -40,10 +42,10 @@ const checkForUpdates = async () => {
         await AppUpdate.startFlexibleUpdate();
       }
     } else {
-      console.log('[AppUpdate] App is up to date');
+      logger.info('[AppUpdate] App is up to date');
     }
   } catch (error) {
-    console.error('[AppUpdate] Failed to check for updates:', error);
+    logger.error('[AppUpdate] Failed to check for updates:', error);
   }
 };
 
@@ -90,7 +92,7 @@ export default function App() {
     bootstrap();
 
     // Check for app updates on Android
-    if (Platform.OS === 'android') {
+    if (Capacitor.getPlatform() === 'android') {
       checkForUpdates();
     }
   }, []);
