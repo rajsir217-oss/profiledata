@@ -3,8 +3,14 @@
 # Keeps only the latest N revisions per service
 # Usage: ./cleanup-old-revisions.sh [--all]
 #   --all : Skip confirmation prompts and delete all old revisions
+#   --log-file <path> : Write logs to custom file (default enabled)
+# Exit codes:
+#   0 success, non-zero on script/config/runtime failures.
 
-set -e
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_LOG_FILE="$SCRIPT_DIR/logs/cleanup-old-revisions.log"
 
 PROJECT_ID="matrimonial-staging"
 REGION="us-central1"
@@ -14,8 +20,53 @@ MAX_IMAGE_DELETE=50  # Safety limit: max images to delete per service per run
 
 # Parse arguments
 AUTO_YES=false
-if [[ "$1" == "--all" ]] || [[ "$1" == "-a" ]]; then
-  AUTO_YES=true
+LOG_FILE="$DEFAULT_LOG_FILE"
+ENABLE_LOGGING=true
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --all|-a)
+      AUTO_YES=true
+      ;;
+    --log-file)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "❌ Missing value for --log-file"
+        exit 1
+      fi
+      LOG_FILE="$1"
+      ;;
+    --no-log)
+      ENABLE_LOGGING=false
+      ;;
+    --help|-h)
+      echo "Usage: $0 [--all] [--log-file <path>] [--no-log]"
+      echo "  --all, -a   Skip prompts and run non-interactive"
+      echo "  --log-file  Custom log file path (default: $DEFAULT_LOG_FILE)"
+      echo "  --no-log    Disable file logging for this run"
+      exit 0
+      ;;
+    *)
+      echo "❌ Unknown argument: $1"
+      echo "Use --help for usage."
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+if ! command -v gcloud >/dev/null 2>&1; then
+  echo "❌ gcloud CLI not found in PATH"
+  exit 1
+fi
+
+if [[ "$ENABLE_LOGGING" == true ]]; then
+  mkdir -p "$(dirname "$LOG_FILE")"
+  touch "$LOG_FILE"
+  if [[ -t 1 ]]; then
+    exec > >(tee -a "$LOG_FILE") 2>&1
+  else
+    exec >> "$LOG_FILE" 2>&1
+  fi
 fi
 
 # Services to clean up
@@ -28,6 +79,9 @@ echo ""
 echo "Project: $PROJECT_ID"
 echo "Region: $REGION"
 echo "Strategy: Keep latest $KEEP_COUNT revisions per service"
+if [[ "$ENABLE_LOGGING" == true ]]; then
+  echo "Log file: $LOG_FILE"
+fi
 echo ""
 
 TOTAL_DELETED=0
