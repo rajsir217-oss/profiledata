@@ -63,6 +63,7 @@
 ### 2.3 UI / UX patterns
 
 - Never use browser modals: `alert()`, `confirm()`, `prompt()`.
+- Also forbidden: `window.alert()`, `window.confirm()`, `window.prompt()` (including temporary debug code).
 - Use `Toast` for non-blocking feedback, `DeleteButton` for destructive actions, and custom styled modals only for critical confirmations or multi-step forms.
 - All CSS must be theme-aware and use variables from `frontend/src/themes/themes.css`.
   - No hardcoded hex colors, rgb/rgba, or fixed gradients.
@@ -81,6 +82,12 @@
   - `logger.debug(...)` for dev-only diagnostics.
   - `logger.info(...)` for production-safe user actions.
   - `logger.error(...)` for errors.
+
+Quick pre-merge checks:
+```bash
+grep -RIn "alert\\(|confirm\\(|prompt\\(|window\\.alert\\(|window\\.confirm\\(|window\\.prompt\\(" frontend/src
+grep -RIn "console\\.log\\(" frontend/src
+```
 
 ### 2.5 File lifecycle
 

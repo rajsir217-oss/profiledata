@@ -564,7 +564,7 @@ function AppContent() {
               <Route path="/admin/contact" element={<Navigate to="/support?tab=admin-contact" replace />} />
               {/* Backward compatibility - redirect old utility routes to unified page */}
               <Route path="/admin/notifications" element={<Navigate to="/admin-utilities?tab=saved-search-notifications" replace />} />
-              <Route path="/admin/settings" element={<Navigate to="/preferences" replace />} />
+              <Route path="/admin/settings" element={<Navigate to="/admin-hub?section=system-config" replace />} />
               <Route path="/matching-criteria" element={<ProtectedRoute><MatchingCriteria /></ProtectedRoute>} />
               <Route path="/top-matches" element={<ProtectedRoute><TopMatches /></ProtectedRoute>} />
               {/* Hybrid Search - filters + L3V3L scoring (premium) */}

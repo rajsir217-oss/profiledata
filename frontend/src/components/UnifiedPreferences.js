@@ -23,7 +23,7 @@ import {
   isPushNotificationSupported 
 } from '../services/pushNotificationService';
 
-const UnifiedPreferences = () => {
+const UnifiedPreferences = ({ includeAdminTab = false, adminOnlyMode = false }) => {
   const location = useLocation();
   const [toast, setToast] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -36,7 +36,7 @@ const UnifiedPreferences = () => {
     return tab || 'account';
   };
 
-  const [defaultTab] = useState(getInitialTab());
+  const [defaultTab] = useState(adminOnlyMode ? 'admin' : getInitialTab());
 
   // Account Settings State
   const [selectedTheme, setSelectedTheme] = useState('light-blue');
@@ -557,14 +557,14 @@ const UnifiedPreferences = () => {
 
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin && includeAdminTab) {
       loadAdminSettings();
       loadContributionSettings();
     }
     // Load user contribution data for all users
     loadContributionHistory();
     loadPaymentMethods();
-  }, [isAdmin]);
+  }, [isAdmin, includeAdminTab]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -1077,8 +1077,10 @@ const UnifiedPreferences = () => {
 
       <UniversalTabContainer
         variant="pills"
-        defaultTab={defaultTab}
+        defaultTab={adminOnlyMode ? 'admin' : defaultTab}
+        hideNav={adminOnlyMode}
         tabs={[
+          ...(!adminOnlyMode ? [
           {
             id: 'account',
             icon: '👤',
@@ -1699,42 +1701,6 @@ const UnifiedPreferences = () => {
                   )}
                 </section>
 
-                {/* Admin-only Contribution Settings */}
-                {isAdmin && (
-                  <section className="settings-section admin-section">
-                    <h2>⚙️ Contribution Settings (Admin)</h2>
-                    <p className="section-description">Configure platform-wide contribution settings</p>
-                    
-                    <div className="contribution-settings-form">
-                      <div className="form-row">
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                            Enable Contribution Popup
-                          </label>
-                          <label className="toggle-switch">
-                            <input
-                              type="checkbox"
-                              checked={contributionEnabled}
-                              onChange={(e) => setContributionEnabled(e.target.checked)}
-                              disabled={savingContributionSettings}
-                            />
-                            <span className="toggle-slider"></span>
-                          </label>
-                        </div>
-
-                      </div>
-
-                      <button
-                        onClick={handleSaveContributionSettings}
-                        disabled={savingContributionSettings}
-                        className="btn-primary"
-                        style={{ whiteSpace: 'nowrap' }}
-                      >
-                        {savingContributionSettings ? '💾 Saving...' : '💾 Save Contribution Settings'}
-                      </button>
-                    </div>
-                  </section>
-                )}
               </div>
             )
           },
@@ -2175,7 +2141,8 @@ const UnifiedPreferences = () => {
         </div>
             )
           },
-          ...(isAdmin ? [{
+          ] : []),
+          ...(isAdmin && includeAdminTab ? [{
             id: 'admin',
             icon: '⚙️',
             label: 'SysConfig',

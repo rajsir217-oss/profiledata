@@ -9,7 +9,12 @@ import BlogManagement from './BlogManagement';
 import TestSuite from './TestSuite';
 import Automation from './Automation';
 import MemberRoles from './MemberRoles';
+import UnifiedPreferences from './UnifiedPreferences';
 import './AdminHub.css';
+
+const SystemConfigSection = () => (
+  <UnifiedPreferences includeAdminTab adminOnlyMode />
+);
 
 const SECTION_CONFIG = {
   contributions: {
@@ -57,9 +62,14 @@ const SECTION_CONFIG = {
     subtitle: 'Users and permissions',
     component: MemberRoles,
   },
+  'system-config': {
+    label: 'System Config',
+    subtitle: 'Global system settings and backend service controls',
+    component: SystemConfigSection,
+  },
 };
 
-const ADMIN_SECTIONS = ['contributions', 'announcements', 'reports', 'utilities', 'marketing', 'blog', 'test-suite', 'automation', 'member-roles'];
+const ADMIN_SECTIONS = ['contributions', 'announcements', 'reports', 'utilities', 'marketing', 'blog', 'test-suite', 'automation', 'member-roles', 'system-config'];
 
 const AdminHub = () => {
   const navigate = useNavigate();
