@@ -80,8 +80,10 @@ async def simpletexting_stats_public_v2(request: Request):
 
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    week_start = today_start - timedelta(days=7)
     month_start = today_start.replace(day=1)
+    # Clamp week window to month start so "This Week" is always <= "This Month".
+    calendar_week_start = today_start - timedelta(days=today_start.weekday())
+    week_start = max(calendar_week_start, month_start)
 
     today_count = await fetch_count(today_start, now)
     await asyncio.sleep(1)
@@ -715,8 +717,10 @@ async def simpletexting_stats_public():
 
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    week_start = today_start - timedelta(days=7)
     month_start = today_start.replace(day=1)
+    # Keep semantics aligned with the authenticated stats endpoint.
+    calendar_week_start = today_start - timedelta(days=today_start.weekday())
+    week_start = max(calendar_week_start, month_start)
 
     today_count = await fetch_count(today_start, now)
     await asyncio.sleep(1)

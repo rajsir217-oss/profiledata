@@ -47,9 +47,6 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   });
   const [memberStatsLoading, setMemberStatsLoading] = useState(false);
   const [contributionStatus, setContributionStatus] = useState(null);
-  const [dismissCount, setDismissCount] = useState(0);
-  const [requiredDismissals, setRequiredDismissals] = useState(0);
-  const [isDismissing, setIsDismissing] = useState(false);
   const [showTierInfo, setShowTierInfo] = useState(false);
 
   const loadMemberStats = useCallback(async () => {
@@ -116,23 +113,6 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, []);
 
-  // Load dismiss count from localStorage
-  const loadDismissCount = useCallback(() => {
-    const username = localStorage.getItem('username');
-    if (!username) return;
-    const saved = localStorage.getItem(`contribution_dismiss_count:${username}`);
-    const parsed = saved ? parseInt(saved, 10) : 0;
-    setDismissCount(Number.isNaN(parsed) ? 0 : parsed);
-  }, []);
-
-  // Save dismiss count to localStorage
-  const saveDismissCount = useCallback((count) => {
-    const username = localStorage.getItem('username');
-    if (!username) return;
-    localStorage.setItem(`contribution_dismiss_count:${username}`, count.toString());
-    setDismissCount(count);
-  }, []);
-
   const loadContributionStatus = useCallback(async () => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -146,47 +126,13 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         const data = await response.json();
         setContributionStatus(data);
         logger.debug('Contribution status loaded:', data);
-
-        // Calculate required dismissals
-        const approvedDate = data.approvedDate ? new Date(data.approvedDate) : null;
-        const lastContributionDate = data.lastContributionDate ? new Date(data.lastContributionDate) : null;
-
-        if (approvedDate) {
-          const now = new Date();
-          const daysSinceApproved = Math.floor((now - approvedDate) / (1000 * 60 * 60 * 24));
-
-          // Validate dates are not in the future
-          if (daysSinceApproved < 0) {
-            logger.warn('approvedDate is in the future, skipping dismissal calculation');
-            return;
-          }
-
-          let requiredDismissals;
-          if (lastContributionDate) {
-            const daysSinceLastContribution = Math.floor((now - lastContributionDate) / (1000 * 60 * 60 * 24));
-            const daysWithoutContribution = daysSinceApproved - daysSinceLastContribution;
-            requiredDismissals = Math.max(1, Math.round(daysWithoutContribution / 30));
-            logger.debug(`Dismissal calculation: daysSinceApproved=${daysSinceApproved}, daysSinceLastContribution=${daysSinceLastContribution}, daysWithoutContribution=${daysWithoutContribution}, requiredDismissals=${requiredDismissals}`);
-          } else {
-            requiredDismissals = Math.max(1, Math.round(daysSinceApproved / 30));
-            logger.debug(`Dismissal calculation (no contribution): daysSinceApproved=${daysSinceApproved}, requiredDismissals=${requiredDismissals}`);
-          }
-          setRequiredDismissals(requiredDismissals);
-
-          // Reset dismissCount if it already exceeds requiredDismissals
-          const currentDismissCount = parseInt(localStorage.getItem(`contribution_dismiss_count:${username}`) || '0', 10);
-          if (!Number.isNaN(currentDismissCount) && currentDismissCount >= requiredDismissals) {
-            logger.debug(`Resetting dismissCount from ${currentDismissCount} to 0 (exceeds requiredDismissals=${requiredDismissals})`);
-            saveDismissCount(0);
-          }
-        }
       } else {
         logger.warn('Contribution status response not ok:', response.status);
       }
     } catch (err) {
       logger.warn('Failed to load contribution status', err);
     }
-  }, [saveDismissCount]);
+  }, []);
 
   // Membership prompt tiers (optimized to appeal while preserving min $60).
   // After activation (hasAccess), keep donation options at $100 and $30.
@@ -449,22 +395,14 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, [paypalKey, isOpen, paypalReady, paymentMethod, renderPayPalButtons]);
 
-  // ESC key handler
-  useEffect(() => {
-    const handleEscKey = (event) => {
-      if (event.key === 'Escape' && !loading) {
-        handleDismiss();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscKey);
+  // Handle dismiss. onClose() delegates to the hook, which writes the
+  // per-session SESSION_POPUP_DISMISSED flag.
+  const handleDismiss = useCallback(() => {
+    if (!loading) {
+      logActivity('popup_dismissed');
+      onClose();
     }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscKey);
-    };
-  }, [isOpen, loading]);
+  }, [loading, logActivity, onClose]);
 
   // Handle body scroll lock when popup opens/closes
   useEffect(() => {
@@ -473,14 +411,13 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
       logActivity('popup_shown');
       loadMemberStats();
       loadContributionStatus();
-      loadDismissCount();
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, logActivity, loadMemberStats, loadContributionStatus, loadDismissCount]);
+  }, [isOpen, logActivity, loadMemberStats, loadContributionStatus]);
 
   // Load PayPal SDK once and render buttons on first open
   useEffect(() => {
@@ -669,26 +606,6 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     }
   }, [getAmount, logActivity, onClose, cloverRecurring, activationFlow]);
 
-  // Handle dismiss. onClose() delegates to the hook, which writes the
-  // per-session SESSION_POPUP_DISMISSED flag. No localStorage write here.
-  const handleDismiss = useCallback(() => {
-    if (!loading && !isDismissing) {
-      setIsDismissing(true);
-      logActivity('popup_dismissed');
-      const newCount = dismissCount + 1;
-      saveDismissCount(newCount);
-
-      // Only close popup after required dismissals reached
-      if (newCount >= requiredDismissals) {
-        onClose();
-      }
-      // Otherwise, popup stays open (user can click close again)
-
-      // Reset dismissing flag after short delay
-      setTimeout(() => setIsDismissing(false), 300);
-    }
-  }, [loading, isDismissing, dismissCount, requiredDismissals, logActivity, saveDismissCount, onClose]);
-
   // ESC key handler
   useEffect(() => {
     const handleEscKey = (event) => {
@@ -710,15 +627,11 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
 
   return (
     <div className="contribution-popup-overlay" onClick={(e) => {
-      // Lifetime supporters can close immediately; others must satisfy the nag count.
       if (isLifetimeSupporter) {
         onClose();
         return;
       }
-      const newCount = dismissCount + 1;
-      if (newCount >= requiredDismissals) {
-        handleDismiss();
-      }
+      handleDismiss();
     }} style={{ display: isOpen ? 'flex' : 'none' }}>
       <div className="contribution-popup" onClick={(e) => e.stopPropagation()}>
         <div className="contribution-popup-body">
@@ -1094,11 +1007,6 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             disabled={loading}
           >
             Close
-            {requiredDismissals > 0 && (
-              <span className="dismiss-count-text">
-                {Math.min(dismissCount + 1, requiredDismissals)} of {requiredDismissals} times to close...
-              </span>
-            )}
           </button>
             </>
           )}

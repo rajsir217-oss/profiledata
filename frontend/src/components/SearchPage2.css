@@ -12,6 +12,39 @@
   background: var(--background-color);
 }
 
+.search-membership-alert {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.search-paynow-link-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin-left: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--danger-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.search-paynow-link-btn:hover {
+  color: var(--text-color);
+}
+
+.search-paynow-link-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--danger-color) 55%, white);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
 .near-me-status-popup {
   position: sticky;
   top: 10px;

@@ -69,7 +69,15 @@ const SMSDeliveryLog = () => {
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const weekStart = new Date(todayStart);
-        weekStart.setDate(weekStart.getDate() - 7);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        // Calendar week start (Monday) for "This Week" semantics.
+        const dayOfWeek = weekStart.getDay(); // 0=Sun..6=Sat
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        weekStart.setDate(weekStart.getDate() - daysFromMonday);
+        // Align with backend semantics: week is clamped within current month.
+        if (weekStart < monthStart) {
+          weekStart.setTime(monthStart.getTime());
+        }
         let today = 0;
         let week = 0;
         mergedLogs.forEach((log) => {
@@ -295,7 +303,12 @@ const SMSDeliveryLog = () => {
               </div>
               <div className="st-stat">
                 <span className="st-val">{stStats.realtime.week ?? '—'}</span>
-                <span className="st-lbl">This Week</span>
+                <span
+                  className="st-lbl"
+                  title="This Week = current calendar week (Mon-Sun), clamped to current month"
+                >
+                  This Week
+                </span>
               </div>
               <div className="st-stat">
                 <span className="st-val">{stStats.realtime.month ?? '—'}</span>
@@ -328,7 +341,12 @@ const SMSDeliveryLog = () => {
         </div>
         <div className="stat-item">
           <span className="stat-value">{stats.week}</span>
-          <span className="stat-label">This Week</span>
+          <span
+            className="stat-label"
+            title="This Week = current calendar week (Mon-Sun), clamped to current month"
+          >
+            This Week
+          </span>
         </div>
         <div className="stat-item">
           <span className="stat-value">{stats.month}</span>

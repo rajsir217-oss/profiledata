@@ -568,13 +568,6 @@
   cursor: not-allowed;
 }
 
-.dismiss-count-text {
-  margin-left: 6px;
-  font-size: 8px;
-  font-weight: 200;
-  opacity: 0.8;
-}
-
 .payment-method-toggle {
   display: flex;
   gap: 4px;

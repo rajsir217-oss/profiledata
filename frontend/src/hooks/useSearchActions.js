@@ -243,7 +243,7 @@ export const useSearchActions = (searchState, userState, filterState) => {
         if (!canSearch) {
           setLoading(false);
           setLoadingMore(false);
-          return;
+          return false;
         }
       }
       
@@ -368,6 +368,7 @@ export const useSearchActions = (searchState, userState, filterState) => {
       setError('');
       
       logger.info(`✅ Search completed - found ${newUsers?.length || 0} users (total: ${total})`);
+      return true;
       
     } catch (err) {
       if (err.name !== 'AbortError') {
@@ -387,6 +388,7 @@ export const useSearchActions = (searchState, userState, filterState) => {
         // (empty state / error) instead of staying blank forever.
         setInitialSearchComplete(true);
       }
+      return false;
     } finally {
       setLoading(false);
       setLoadingMore(false);

@@ -119,8 +119,10 @@ const useInitialSearchBootstrap = ({
           setSelectedSearch(defaultSearch);
 
           logger.info('🔍 Auto-executing default saved search');
-          handleSearchHook(1, loadedMinScore, defaultSearch.criteria);
-          toastService.info(`⭐ Default search "${defaultSearch.name}" executed`);
+          const didExecute = await handleSearchHook(1, loadedMinScore, defaultSearch.criteria);
+          if (didExecute) {
+            toastService.info(`⭐ Default search "${defaultSearch.name}" executed`);
+          }
         } else {
           // No default saved search - execute search with partnerCriteria defaults
           logger.info('🔍 No default search found - building criteria from partnerCriteria');
@@ -129,7 +131,7 @@ const useInitialSearchBootstrap = ({
 
           setSearchCriteria(partnerCriteriaDefaults);
           logger.info('🔍 Auto-executing search with partnerCriteria defaults');
-          handleSearchHook(1, 0, partnerCriteriaDefaults);
+          await handleSearchHook(1, 0, partnerCriteriaDefaults);
         }
       } catch (err) {
         logger.error('Error loading default saved search:', err);
@@ -139,7 +141,7 @@ const useInitialSearchBootstrap = ({
         logger.info('🔍 Fallback: executing search with partnerCriteria after error');
         const fallbackCriteria = buildPartnerCriteriaCriteria(profileDefaults);
         setSearchCriteria(fallbackCriteria);
-        handleSearchHook(1, 0, fallbackCriteria);
+        await handleSearchHook(1, 0, fallbackCriteria);
       }
     };
 

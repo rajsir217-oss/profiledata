@@ -128,48 +128,6 @@ const useContributionPopup = () => {
         return;
       }
 
-      // Gate: dismiss count check (nag mechanism)
-      const username = localStorage.getItem('username');
-      let dismissCount = parseInt(localStorage.getItem(`contribution_dismiss_count:${username}`) || '0', 10);
-
-      const approvedDate = data.approvedDate ? new Date(data.approvedDate) : null;
-      const lastContributionDate = data.lastContributionDate ? new Date(data.lastContributionDate) : null;
-
-      logger.debug(`🔔 Dismiss check: dismissCount=${dismissCount}, approvedDate=${approvedDate}, lastContributionDate=${lastContributionDate}`);
-
-      if (approvedDate) {
-        const now = new Date();
-        const daysSinceApproved = Math.floor((now - approvedDate) / (1000 * 60 * 60 * 24));
-
-        let requiredDismissals;
-        if (lastContributionDate) {
-          // User has contributed before: calculate based on time since last contribution
-          const daysSinceLastContribution = Math.floor((now - lastContributionDate) / (1000 * 60 * 60 * 24));
-          const daysWithoutContribution = daysSinceApproved - daysSinceLastContribution;
-          requiredDismissals = Math.max(1, Math.round(daysWithoutContribution / 30));
-          logger.debug(`🔔 Dismissal calc: daysSinceApproved=${daysSinceApproved}, daysSinceLastContribution=${daysSinceLastContribution}, daysWithoutContribution=${daysWithoutContribution}, requiredDismissals=${requiredDismissals}`);
-        } else {
-          // User has never contributed: calculate based on time since approval
-          requiredDismissals = Math.max(1, Math.round(daysSinceApproved / 30));
-          logger.debug(`🔔 Dismissal calc (no contribution): daysSinceApproved=${daysSinceApproved}, requiredDismissals=${requiredDismissals}`);
-        }
-
-        // Reset dismissCount if it already exceeds requiredDismissals
-        if (dismissCount >= requiredDismissals) {
-          logger.debug(`🔔 Resetting dismissCount from ${dismissCount} to 0 (exceeds requiredDismissals=${requiredDismissals})`);
-          localStorage.setItem(`contribution_dismiss_count:${username}`, '0');
-          dismissCount = 0;
-        }
-
-        if (dismissCount >= requiredDismissals) {
-          logger.debug(
-            `🔔 Contribution: dismissed ${dismissCount}/${requiredDismissals} times, popup suppressed`
-          );
-          setLoading(false);
-          return;
-        }
-      }
-
       // Eligible — banners activate.
       setShouldShowContribution(true);
 

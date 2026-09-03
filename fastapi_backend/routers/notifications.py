@@ -1646,8 +1646,10 @@ async def get_simpletexting_stats():
 
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    week_start = today_start - timedelta(days=7)
     month_start = today_start.replace(day=1)
+    # Clamp week window to month start so "This Week" is always a subset of "This Month".
+    calendar_week_start = today_start - timedelta(days=today_start.weekday())
+    week_start = max(calendar_week_start, month_start)
 
     def fmt(dt: datetime) -> str:
         return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
