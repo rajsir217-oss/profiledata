@@ -9,6 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import logging
+import asyncio
 from datetime import datetime, timedelta
 import pytz
 from uuid import uuid4
@@ -216,11 +217,12 @@ async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> di
 
     membership = user.get("membership", {})
 
-    # Check YTD contributions (display + 2026 hybrid eligibility rule)
-    ytd_total = await get_ytd_contributions(username, db)
-
-    # Check largest single payment for membership eligibility
-    largest_payment = await get_largest_single_payment(username, db)
+    # Check YTD contributions and largest single payment in parallel
+    # (display + 2026 hybrid eligibility rule)
+    ytd_total, largest_payment = await asyncio.gather(
+        get_ytd_contributions(username, db),
+        get_largest_single_payment(username, db)
+    )
     largest_amount = float(largest_payment.get("amount") or 0)
 
     # Transitional rule:

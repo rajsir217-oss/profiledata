@@ -2171,92 +2171,88 @@ async def get_user_activity_summary(
             last_login_location = ", ".join(parts) if parts else None
 
     # --- 2. PII Requests ---
-    pii_sent_count = await db.pii_requests.count_documents({"requesterUsername": username})
-    pii_received_count = await db.pii_requests.count_documents({"requestedUsername": username})
-    last_pii_sent = await db.pii_requests.find_one(
-        {"requesterUsername": username}, sort=[("createdAt", -1)]
+    (
+        pii_sent_count, pii_received_count,
+        pii_approved_count, pii_denied_count, pii_pending_count,
+        last_pii_sent, last_pii_received
+    ) = await asyncio.gather(
+        db.pii_requests.count_documents({"requesterUsername": username}),
+        db.pii_requests.count_documents({"requestedUsername": username}),
+        db.pii_requests.count_documents({"requestedUsername": username, "status": "approved"}),
+        db.pii_requests.count_documents({"requestedUsername": username, "status": "denied"}),
+        db.pii_requests.count_documents({"requestedUsername": username, "status": "pending"}),
+        db.pii_requests.find_one({"requesterUsername": username}, sort=[("createdAt", -1)]),
+        db.pii_requests.find_one({"requestedUsername": username}, sort=[("createdAt", -1)]),
     )
-    last_pii_received = await db.pii_requests.find_one(
-        {"requestedUsername": username}, sort=[("createdAt", -1)]
-    )
-    pii_approved_count = await db.pii_requests.count_documents({"requestedUsername": username, "status": "approved"})
-    pii_denied_count = await db.pii_requests.count_documents({"requestedUsername": username, "status": "denied"})
-    pii_pending_count = await db.pii_requests.count_documents({"requestedUsername": username, "status": "pending"})
 
     # --- 3. Notifications (email/sms received) ---
-    last_email = await db.notification_log.find_one(
-        {"username": username, "channel": "email"}, sort=[("sentAt", -1)]
+    (
+        last_email, last_sms, email_count, sms_count
+    ) = await asyncio.gather(
+        db.notification_log.find_one({"username": username, "channel": "email"}, sort=[("sentAt", -1)]),
+        db.notification_log.find_one({"username": username, "channel": "sms"}, sort=[("sentAt", -1)]),
+        db.notification_log.count_documents({"username": username, "channel": "email"}),
+        db.notification_log.count_documents({"username": username, "channel": "sms"}),
     )
-    last_sms = await db.notification_log.find_one(
-        {"username": username, "channel": "sms"}, sort=[("sentAt", -1)]
-    )
-    email_count = await db.notification_log.count_documents({"username": username, "channel": "email"})
-    sms_count = await db.notification_log.count_documents({"username": username, "channel": "sms"})
 
     # --- 4. Messages ---
-    msgs_sent = await db.messages.count_documents({"from_username": username})
-    msgs_received = await db.messages.count_documents({"to_username": username})
-    last_msg_sent = await db.messages.find_one(
-        {"from_username": username}, sort=[("timestamp", -1)]
+    (
+        msgs_sent, msgs_received, last_msg_sent, last_msg_received, unique_conversations_list
+    ) = await asyncio.gather(
+        db.messages.count_documents({"from_username": username}),
+        db.messages.count_documents({"to_username": username}),
+        db.messages.find_one({"from_username": username}, sort=[("timestamp", -1)]),
+        db.messages.find_one({"to_username": username}, sort=[("timestamp", -1)]),
+        db.messages.distinct("to_username", {"from_username": username}),
     )
-    last_msg_received = await db.messages.find_one(
-        {"to_username": username}, sort=[("timestamp", -1)]
-    )
-    unique_conversations = len(await db.messages.distinct("to_username", {"from_username": username}))
+    unique_conversations = len(unique_conversations_list)
 
     # --- 5. Favorites ---
-    favorites_count = await db.favorites.count_documents({"userUsername": username})
-    favorited_by_count = await db.favorites.count_documents({"favoriteUsername": username})
-    last_favorite = await db.favorites.find_one(
-        {"userUsername": username}, sort=[("createdAt", -1)]
-    )
-    last_favorited_by = await db.favorites.find_one(
-        {"favoriteUsername": username}, sort=[("createdAt", -1)]
+    (
+        favorites_count, favorited_by_count, last_favorite, last_favorited_by
+    ) = await asyncio.gather(
+        db.favorites.count_documents({"userUsername": username}),
+        db.favorites.count_documents({"favoriteUsername": username}),
+        db.favorites.find_one({"userUsername": username}, sort=[("createdAt", -1)]),
+        db.favorites.find_one({"favoriteUsername": username}, sort=[("createdAt", -1)]),
     )
 
     # --- 6. Shortlists ---
-    shortlisted_count = await db.shortlists.count_documents({"userUsername": username})
-    shortlisted_by_count = await db.shortlists.count_documents({"shortlistedUsername": username})
-    last_shortlisted = await db.shortlists.find_one(
-        {"userUsername": username}, sort=[("createdAt", -1)]
-    )
-    last_shortlisted_by = await db.shortlists.find_one(
-        {"shortlistedUsername": username}, sort=[("createdAt", -1)]
+    (
+        shortlisted_count, shortlisted_by_count, last_shortlisted, last_shortlisted_by
+    ) = await asyncio.gather(
+        db.shortlists.count_documents({"userUsername": username}),
+        db.shortlists.count_documents({"shortlistedUsername": username}),
+        db.shortlists.find_one({"userUsername": username}, sort=[("createdAt", -1)]),
+        db.shortlists.find_one({"shortlistedUsername": username}, sort=[("createdAt", -1)]),
     )
 
     # --- 7. Profile views ---
-    views_received = await db.profile_views.count_documents({"profileUsername": username})
-    views_made = await db.profile_views.count_documents({"viewer_username": username})
-    last_view_received = await db.profile_views.find_one(
-        {"profileUsername": username}, sort=[("viewed_at", -1)]
-    )
-    last_view_made = await db.profile_views.find_one(
-        {"viewer_username": username}, sort=[("viewed_at", -1)]
-    )
-
-    # --- 8. Searches performed ---
-    searches_count = await db.activity_logs.count_documents(
-        {"username": username, "action_type": "search_performed"}
-    )
-    last_search = await db.activity_logs.find_one(
-        {"username": username, "action_type": "search_performed"},
-        sort=[("timestamp", -1)]
+    (
+        views_received, views_made, last_view_received, last_view_made
+    ) = await asyncio.gather(
+        db.profile_views.count_documents({"profileUsername": username}),
+        db.profile_views.count_documents({"viewer_username": username}),
+        db.profile_views.find_one({"profileUsername": username}, sort=[("viewed_at", -1)]),
+        db.profile_views.find_one({"viewer_username": username}, sort=[("viewed_at", -1)]),
     )
 
-    # --- 8b. Support tickets ---
-    support_ticket_count = await db.contact_tickets.count_documents({"username": username})
-    open_support_ticket_count = await db.contact_tickets.count_documents({
-        "username": username,
-        "status": {"$in": ["open", "in_progress"]}
-    })
-    last_support_ticket = await db.contact_tickets.find_one(
-        {"username": username}, sort=[("createdAt", -1)]
-    )
-
-    # --- 9. Recent activity count (last 7 days) ---
+    # --- 8. Searches performed, support tickets, and recent activity ---
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    recent_activity_count = await db.activity_logs.count_documents(
-        {"username": username, "timestamp": {"$gte": seven_days_ago}}
+    (
+        searches_count, last_search,
+        support_ticket_count, open_support_ticket_count, last_support_ticket,
+        recent_activity_count
+    ) = await asyncio.gather(
+        db.activity_logs.count_documents({"username": username, "action_type": "search_performed"}),
+        db.activity_logs.find_one(
+            {"username": username, "action_type": "search_performed"},
+            sort=[("timestamp", -1)]
+        ),
+        db.contact_tickets.count_documents({"username": username}),
+        db.contact_tickets.count_documents({"username": username, "status": {"$in": ["open", "in_progress"]}}),
+        db.contact_tickets.find_one({"username": username}, sort=[("createdAt", -1)]),
+        db.activity_logs.count_documents({"username": username, "timestamp": {"$gte": seven_days_ago}}),
     )
 
     # Helper: safely convert datetime to ISO string (defined early so contributions block below can use it)
@@ -2271,27 +2267,29 @@ async def get_user_activity_summary(
     # --- 9b. Contributions (payments collection) ---
     contribution_query = {
         "username": username,
-        "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}
+        "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
+        "status": {"$in": ["completed", "complete", "COMPLETED", "COMPLETE", "succeeded", "paid", None]},
     }
-    contribution_count = await db.payments.count_documents(contribution_query)
-    # Aggregate totals
-    contribution_total = 0.0
-    recurring_count = 0
-    if contribution_count > 0:
-        agg_cursor = db.payments.aggregate([
+    (
+        contribution_count, contribution_agg_list, recent_contributions_docs
+    ) = await asyncio.gather(
+        db.payments.count_documents(contribution_query),
+        db.payments.aggregate([
             {"$match": contribution_query},
             {"$group": {
                 "_id": None,
                 "total": {"$sum": "$amount"},
                 "recurring": {"$sum": {"$cond": [{"$eq": ["$paymentType", "contribution_recurring"]}, 1, 0]}}
             }}
-        ])
-        async for agg in agg_cursor:
-            contribution_total = float(agg.get("total") or 0)
-            recurring_count = int(agg.get("recurring") or 0)
+        ]).to_list(length=1),
+        db.payments.find(contribution_query).sort("createdAt", -1).limit(10).to_list(10),
+    )
+    contribution_total = 0.0
+    recurring_count = 0
+    if contribution_agg_list:
+        contribution_total = float(contribution_agg_list[0].get("total") or 0)
+        recurring_count = int(contribution_agg_list[0].get("recurring") or 0)
     avg_contribution = (contribution_total / contribution_count) if contribution_count else 0.0
-    # Latest 10 for the grid
-    recent_contributions_docs = await db.payments.find(contribution_query).sort("createdAt", -1).limit(10).to_list(10)
     recent_contributions = [
         {
             "id": str(c.get("_id")),
