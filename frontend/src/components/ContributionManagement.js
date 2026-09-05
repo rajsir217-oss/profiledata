@@ -17,6 +17,21 @@ const FEE_FOR_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 
+const MONTH_OPTIONS = [
+  { value: '1', label: 'January' },
+  { value: '2', label: 'February' },
+  { value: '3', label: 'March' },
+  { value: '4', label: 'April' },
+  { value: '5', label: 'May' },
+  { value: '6', label: 'June' },
+  { value: '7', label: 'July' },
+  { value: '8', label: 'August' },
+  { value: '9', label: 'September' },
+  { value: '10', label: 'October' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'December' },
+];
+
 const ContributionManagement = () => {
   const navigate = useNavigate();
   const reminderContributionUrl = `${getFrontendUrl().replace(/\/$/, '')}/preferences?tab=contributions`;
@@ -67,6 +82,7 @@ const ContributionManagement = () => {
   const [reminderSending, setReminderSending] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+  const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1));
   const [yearOptions, setYearOptions] = useState([]);
   const [closedYears, setClosedYears] = useState({});
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
@@ -91,7 +107,7 @@ const ContributionManagement = () => {
       loadUnpaidMembers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, filter, activeTab, activityFilter, searchFilter, activitySearchFilter, unpaidSearchFilter, unpaidSortBy, unpaidSortOrder, selectedYear]);
+  }, [navigate, filter, activeTab, activityFilter, searchFilter, activitySearchFilter, unpaidSearchFilter, unpaidSortBy, unpaidSortOrder, selectedYear, selectedMonth]);
 
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
@@ -113,6 +129,9 @@ const ContributionManagement = () => {
       let url = `${getBackendUrl()}/api/contributions/admin/contributions?page=${page}&limit=20`;
       if (selectedYear !== 'all') {
         url += `&year=${encodeURIComponent(selectedYear)}`;
+        if (selectedMonth !== 'all') {
+          url += `&month=${encodeURIComponent(selectedMonth)}`;
+        }
       }
       if (filter !== 'all') {
         url += `&payment_type=${filter}`;
@@ -443,6 +462,9 @@ const ContributionManagement = () => {
       let exportUrl = `${getBackendUrl()}/api/contributions/admin/export-csv`;
       if (selectedYear !== 'all') {
         exportUrl += `?year=${encodeURIComponent(selectedYear)}`;
+        if (selectedMonth !== 'all') {
+          exportUrl += `&month=${encodeURIComponent(selectedMonth)}`;
+        }
       }
       const response = await axios.get(exportUrl, { headers: { Authorization: `Bearer ${token}` } });
       
@@ -486,7 +508,9 @@ const ContributionManagement = () => {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         const timestamp = new Date().toISOString().split('T')[0];
-        const yearSuffix = selectedYear === 'all' ? 'all-years' : selectedYear;
+        const yearSuffix = selectedYear === 'all'
+          ? 'all-years'
+          : (selectedMonth === 'all' ? selectedYear : `${selectedYear}-${selectedMonth.padStart(2, '0')}`);
         
         link.setAttribute('href', url);
         link.setAttribute('download', `contributions_export_${yearSuffix}_${timestamp}.csv`);
@@ -727,6 +751,22 @@ const ContributionManagement = () => {
                 ×
               </button>
             )}
+            <label htmlFor="month-filter" className="filter-label">Month:</label>
+            <select
+              id="month-filter"
+              className="year-filter-select"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              disabled={selectedYear === 'all'}
+              title={selectedYear === 'all' ? 'Select a specific year to filter by month' : 'Filter by month'}
+            >
+              <option value="all">All months</option>
+              {MONTH_OPTIONS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
             <label htmlFor="year-filter" className="filter-label">Year:</label>
             <select
               id="year-filter"

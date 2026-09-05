@@ -130,6 +130,18 @@ def _year_bounds(year: int):
     return start, end
 
 
+def _period_bounds(year: int, month: Optional[int] = None):
+    """Return (start, end) for a month within a year, or the full year if no valid month."""
+    if month and 1 <= int(month) <= 12:
+        start = datetime(year, int(month), 1)
+        if int(month) == 12:
+            end = datetime(year, 12, 31, 23, 59, 59)
+        else:
+            end = datetime(year, int(month) + 1, 1) - timedelta(seconds=1)
+        return start, end
+    return _year_bounds(year)
+
+
 async def get_contribution_year_overview(db: AsyncIOMotorDatabase) -> List[Dict[str, Any]]:
     """Return available contribution years and archive-close metadata."""
     year_rows = await db.payments.aggregate([
@@ -760,6 +772,7 @@ async def get_all_contributions(
     page: int = 1,
     limit: int = 50,
     year: Optional[int] = None,
+    month: Optional[int] = None,
     payment_type: Optional[str] = None,
     username: Optional[str] = None,
     search: Optional[str] = None
@@ -767,14 +780,14 @@ async def get_all_contributions(
     """Get all contributions (admin only)"""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
-    
+
     try:
         # Build query for contributions only
         query = {"paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}}
-        
+
         if year:
-            start_of_year, end_of_year = _year_bounds(int(year))
-            query["createdAt"] = {"$gte": start_of_year, "$lte": end_of_year}
+            start, end = _period_bounds(int(year), month)
+            query["createdAt"] = {"$gte": start, "$lte": end}
 
         if payment_type == "one_time":
             query["paymentType"] = "contribution_one_time"
@@ -1329,6 +1342,7 @@ async def export_contributions_csv(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database),
     year: Optional[int] = None,
+    month: Optional[int] = None,
 ):
     """Export all users with contribution details for CSV (admin only)"""
     if current_user.get("role") != "admin":
@@ -1360,8 +1374,8 @@ async def export_contributions_csv(
         # Get ALL contributions
         query = {"paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}}
         if year:
-            start_of_year, end_of_year = _year_bounds(int(year))
-            query["createdAt"] = {"$gte": start_of_year, "$lte": end_of_year}
+            start, end = _period_bounds(int(year), month)
+            query["createdAt"] = {"$gte": start, "$lte": end}
         contributions = await db.payments.find(query).sort("createdAt", -1).to_list(length=None)
         
         # Build contribution map: username -> list of contributions
