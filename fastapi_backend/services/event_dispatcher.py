@@ -1236,6 +1236,57 @@ class EventDispatcher:
         if isinstance(retention_hours, int) and retention_hours > 0:
             msg["expireAt"] = now + timedelta(hours=retention_hours)
 
+        # Dedup: the Portal Members feed should show one card per profile.
+        # Remove any previous agent profile cards for this user and tell
+        # connected clients to drop them from their local store.
+        try:
+            conv_id_str = str(conv_oid)
+            stale_cards = await self.db.messenger_messages.find(
+                {
+                    "conversationId": conv_oid,
+                    "senderUsername": "L3V3LMatchAgent",
+                    "contentType": "profile_card",
+                    "cardSnapshot.username": activated_username,
+                    "isDeleted": {"$ne": True},
+                },
+                {"_id": 1},
+            ).to_list(None)
+            stale_ids = [doc.get("_id") for doc in stale_cards if doc.get("_id")]
+            if stale_ids:
+                await self.db.messenger_messages.delete_many({"_id": {"$in": stale_ids}})
+                stale_recipients = {
+                    p.get("username")
+                    for p in (conv.get("participants") or [])
+                    if isinstance(conv, dict) and p.get("username")
+                }
+                stale_recipients.add(activated_username)
+                for stale_id in stale_ids:
+                    del_payload = {"conversationId": conv_id_str, "messageId": str(stale_id)}
+                    try:
+                        await sio.emit(
+                            "messenger:message_deleted",
+                            del_payload,
+                            room=f"conversation:{conv_id_str}",
+                        )
+                    except Exception as emit_err:
+                        logger.warning(f"⚠️ Profile-card dedup room emit failed: {emit_err}")
+                    await asyncio.gather(
+                        *(
+                            sio.emit(
+                                "messenger:message_deleted",
+                                del_payload,
+                                room=f"user:{recipient}",
+                            )
+                            for recipient in stale_recipients
+                        ),
+                        return_exceptions=True,
+                    )
+                logger.info(
+                    f"🧹 Removed {len(stale_ids)} previous profile card(s) for {activated_username}"
+                )
+        except Exception as dedup_err:
+            logger.warning(f"⚠️ Profile-card dedup failed for {activated_username}: {dedup_err}")
+
         result = await self.db.messenger_messages.insert_one(msg)
         msg_id = str(result.inserted_id)
 
