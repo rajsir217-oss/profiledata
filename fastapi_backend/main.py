@@ -437,6 +437,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️ Messenger index creation failed (non-critical): {e}")
 
+    # SSO code indexes — created once here instead of on every /api/auth/sso/issue
+    # request (that endpoint used to call create_index() on each call, adding an
+    # extra round-trip to the messenger/dashboard SSO login critical path).
+    try:
+        await db.sso_codes.create_index("expiresAt", expireAfterSeconds=0, background=True)
+        await db.sso_codes.create_index("codeHash", unique=True, background=True)
+        logger.info("✅ SSO code indexes created")
+    except Exception as e:
+        logger.warning(f"⚠️ SSO code index creation failed (non-critical): {e}")
+
     # Eagerly initialize face detection backends so they're ready before requests arrive.
     # Strategy: Vision API (primary) → OpenCV (fallback) → reject if both unavailable.
     if settings.face_detection_enabled:
