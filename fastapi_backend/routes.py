@@ -39,6 +39,27 @@ from middleware.rate_limiter import limiter, RATE_LIMITS
 router = APIRouter(prefix="/api/users", tags=["users"])
 logger = logging.getLogger(__name__)
 
+
+async def _dispatch_profile_view_event_background(
+    db,
+    actor_username: str,
+    target_username: str,
+    metadata: dict,
+) -> None:
+    """Fire-and-forget dispatcher for profile-view events."""
+    try:
+        from services.event_dispatcher import get_event_dispatcher, UserEventType
+        event_dispatcher = await get_event_dispatcher(db)
+        await event_dispatcher.dispatch(
+            event_type=UserEventType.PROFILE_VIEWED,
+            actor_username=actor_username,
+            target_username=target_username,
+            metadata=metadata,
+        )
+        logger.debug(f"📤 Dispatched profile_viewed event: {actor_username} → {target_username}")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to dispatch profile_viewed event: {e}")
+
 # Simple test endpoint to verify SimpleTexting API config (no auth)
 @router.get("/simpletexting-test")
 async def simpletexting_test():
@@ -2790,23 +2811,18 @@ async def get_user_profile(
     # Dispatch profile view event if viewing someone else's profile
     if not is_own_profile and requester_username:
         dispatch_started = time.perf_counter()
-        try:
-            from services.event_dispatcher import get_event_dispatcher, UserEventType
-            event_dispatcher = await get_event_dispatcher(db)
-            
-            await event_dispatcher.dispatch(
-                event_type=UserEventType.PROFILE_VIEWED,
+        asyncio.create_task(
+            _dispatch_profile_view_event_background(
+                db,
                 actor_username=requester_username,
                 target_username=username,
                 metadata={
                     "viewer_ip": request.client.host if request.client else "unknown",
                     "user_agent": request.headers.get("user-agent", "unknown"),
                     "timestamp": datetime.utcnow().isoformat()
-                }
+                },
             )
-            logger.debug(f"📤 Dispatched profile_viewed event: {requester_username} → {username}")
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to dispatch profile_viewed event: {e}")
+        )
         _mark_timing("dispatch_profile_viewed_event", dispatch_started)
 
     total_ms = round((time.perf_counter() - profile_start) * 1000, 2)
