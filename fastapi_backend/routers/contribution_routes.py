@@ -217,15 +217,55 @@ def infer_fee_for(payment: dict) -> str:
     return "other"
 
 
+def _cache_membership_access(username: str, result: dict) -> dict:
+    """Cache membership access result in Redis for 5 minutes"""
+    try:
+        from redis_manager import get_redis_manager
+        rm = get_redis_manager()
+        if rm and rm.redis_client:
+            import json
+            cache_key = f"membership_access:{username}"
+            rm.redis_client.setex(cache_key, 300, json.dumps(result))
+    except Exception as cache_err:
+        logger.debug(f"Redis cache write skipped for membership_access: {cache_err}")
+    return result
+
+
+def _invalidate_membership_cache(username: str) -> None:
+    """Invalidate membership access cache for a user"""
+    try:
+        from redis_manager import get_redis_manager
+        rm = get_redis_manager()
+        if rm and rm.redis_client:
+            cache_key = f"membership_access:{username}"
+            rm.redis_client.delete(cache_key)
+            logger.debug(f"Invalidated membership cache for {username}")
+    except Exception as cache_err:
+        logger.debug(f"Redis cache invalidation skipped for membership_access: {cache_err}")
+
+
 async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> dict:
-    """Check if user has search access based on membership"""
+    """Check if user has search access based on membership (cached for 5 minutes)"""
+    # Try Redis cache first
+    try:
+        from redis_manager import get_redis_manager
+        rm = get_redis_manager()
+        if rm and rm.redis_client:
+            cache_key = f"membership_access:{username}"
+            cached = rm.redis_client.get(cache_key)
+            if cached:
+                import json
+                return json.loads(cached)
+    except Exception as cache_err:
+        logger.debug(f"Redis cache read skipped for membership_access: {cache_err}")
+
     user = await db.users.find_one({"username": username})
     if not user:
-        return {"hasAccess": False, "reason": "user_not_found"}
+        return _cache_membership_access(username, {"hasAccess": False, "reason": "user_not_found"})
 
     # Bypass membership check for admins and moderators
     if user.get("role") == "admin" or user.get("role_name") == "moderator":
-        return {"hasAccess": True, "type": "privileged", "reason": "admin_or_moderator"}
+        return _cache_membership_access(username, {"hasAccess": True, "type": "privileged", "reason": "admin_or_moderator"})
 
     membership = user.get("membership", {})
 
@@ -309,35 +349,35 @@ async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> di
                 f"✅ User {username} treated as one-time member "
                 f"(largest single: ${largest_amount:.2f}, ytd: ${ytd_total:.2f}, reason: {qualification_reason})"
             )
-            return {
+            return _cache_membership_access(username, {
                 "hasAccess": True,
                 "type": "one_time",
                 "reason": qualification_reason,
                 "largestPayment": largest_amount,
                 "ytdPaid": ytd_total,
                 "months": qualifying_months,
-            }
+            })
         except Exception as e:
             logger.error(f"Error updating membership status for {username}: {e}")
             # Do not block access if qualification check passed but persistence failed.
-            return {
+            return _cache_membership_access(username, {
                 "hasAccess": True,
                 "type": "one_time",
                 "reason": qualification_reason,
                 "largestPayment": largest_amount,
                 "ytdPaid": ytd_total,
                 "months": qualifying_months,
-            }
+            })
 
     # No membership
     if membership.get("type") == "none" or not membership.get("type"):
-        return {"hasAccess": False, "reason": "no_membership", "largestPayment": largest_amount, "ytdPaid": ytd_total}
-    
+        return _cache_membership_access(username, {"hasAccess": False, "reason": "no_membership", "largestPayment": largest_amount, "ytdPaid": ytd_total})
+
     # Check grace period
     if membership.get("status") == "grace_period":
         if membership.get("gracePeriodEnds") and membership.get("gracePeriodEnds") > datetime.utcnow():
             days_remaining = (membership["gracePeriodEnds"] - datetime.utcnow()).days
-            return {"hasAccess": True, "type": membership.get("type"), "reason": "grace_period", "daysRemaining": days_remaining}
+            return _cache_membership_access(username, {"hasAccess": True, "type": membership.get("type"), "reason": "grace_period", "daysRemaining": days_remaining})
         else:
             # Grace period ended, mark as expired
             try:
@@ -347,12 +387,12 @@ async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> di
                 )
             except Exception as e:
                 logger.error(f"Error marking membership as expired for {username}: {e}")
-            return {"hasAccess": False, "reason": "grace_period_ended"}
-    
+            return _cache_membership_access(username, {"hasAccess": False, "reason": "grace_period_ended"})
+
     # Expired membership
     if membership.get("status") == "expired":
-        return {"hasAccess": False, "reason": "membership_expired"}
-    
+        return _cache_membership_access(username, {"hasAccess": False, "reason": "membership_expired"})
+
     # Check end date for any active membership that has an expiry timestamp.
     if membership.get("status") == "active" and membership.get("endDate") and membership.get("endDate") < datetime.utcnow():
         # Enter grace period
@@ -365,10 +405,10 @@ async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> di
             logger.info(f"⏰ User {username} entered grace period (ends: {grace_end})")
         except Exception as e:
             logger.error(f"Error entering grace period for {username}: {e}")
-        return {"hasAccess": True, "type": membership.get("type"), "reason": "entered_grace_period"}
-    
+        return _cache_membership_access(username, {"hasAccess": True, "type": membership.get("type"), "reason": "entered_grace_period"})
+
     # One-time or active subscription
-    return {"hasAccess": True, "type": membership.get("type"), "reason": "active_membership"}
+    return _cache_membership_access(username, {"hasAccess": True, "type": membership.get("type"), "reason": "active_membership"})
 
 
 async def send_contribution_thank_you_email(
@@ -1930,7 +1970,8 @@ async def process_membership_payment(
             {"username": username},
             {"$set": {"membership": membership_update}}
         )
-        
+        _invalidate_membership_cache(username)
+
         # Update contributions tracking
         await db.users.update_one(
             {"username": username},
@@ -2060,6 +2101,7 @@ async def grant_membership_admin(
             {"username": username},
             {"$set": {"membership": membership_update}}
         )
+        _invalidate_membership_cache(username)
 
         # Update contributions tracking only when amount is > 0
         if amount > 0:

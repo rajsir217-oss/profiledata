@@ -156,6 +156,13 @@
 .admin-hub .contribution-management .add-payment-btn {
   flex: 0 0 auto !important;
   align-self: center !important;
+  width: 27px !important;
+  min-width: 27px !important;
+  max-width: 27px !important;
+  height: 27px !important;
+  min-height: 27px !important;
+  padding: 0 !important;
+  border-radius: 7px !important;
 }
 
 .admin-hub .contribution-management .main-tab .tab-icon,
@@ -169,6 +176,13 @@
 
 .admin-hub .contribution-management .add-payment-btn .btn-icon {
   font-size: 10px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  border-radius: 0 !important;
 }
 
 .admin-hub .contribution-management .main-tab .tab-label,

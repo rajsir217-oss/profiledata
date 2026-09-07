@@ -494,14 +494,28 @@ def _is_admin_user(user_doc: Dict[str, Any]) -> bool:
     return role == "admin" or role_name == "admin" or username == "admin"
 
 async def _has_images_access(db, requester_username: str, owner_username: str, image_filename: str = None) -> bool:
-    """Check if requester has access to owner's images.
-    
+    """Check if requester has access to owner's images (cached for 5 minutes).
+
     If image_filename is provided, also checks per-image access rules including one-time views.
     """
     if not requester_username:
         return False
     if requester_username.lower() == owner_username.lower():
         return True
+
+    # Check cache first (only for general access, not per-image)
+    if not image_filename:
+        try:
+            from redis_manager import get_redis_manager
+            rm = get_redis_manager()
+            if rm and rm.redis_client:
+                cache_key = f"pii_images_access:{requester_username}:{owner_username}"
+                cached = rm.redis_client.get(cache_key)
+                if cached is not None:
+                    import json
+                    return json.loads(cached)
+        except Exception as cache_err:
+            logger.debug(f"Redis cache read skipped for images access: {cache_err}")
 
     requester_user = await db.users.find_one(get_username_query(requester_username), {"role": 1, "role_name": 1, "username": 1})
     if _is_admin_user(requester_user):
@@ -514,8 +528,18 @@ async def _has_images_access(db, requester_username: str, owner_username: str, i
         "accessType": "images",
         "isActive": True
     }).sort("grantedAt", -1).to_list(10)  # Most recent first
-    
+
     if not access_docs:
+        # Cache the negative result
+        if not image_filename:
+            try:
+                from redis_manager import get_redis_manager
+                rm = get_redis_manager()
+                if rm and rm.redis_client:
+                    cache_key = f"pii_images_access:{requester_username}:{owner_username}"
+                    rm.redis_client.setex(cache_key, 300, "false")
+            except Exception as cache_err:
+                logger.debug(f"Redis cache write skipped for images access: {cache_err}")
         return False
     
     # Use the most recent access doc for general checks
@@ -530,12 +554,30 @@ async def _has_images_access(db, requester_username: str, owner_username: str, i
                 expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
             if expires_dt <= datetime.utcnow():
                 await db.pii_access.update_one({"_id": access_doc.get("_id")}, {"$set": {"isActive": False}})
+                # Invalidate cache on expiry
+                try:
+                    from redis_manager import get_redis_manager
+                    rm = get_redis_manager()
+                    if rm and rm.redis_client:
+                        cache_key = f"pii_images_access:{requester_username}:{owner_username}"
+                        rm.redis_client.delete(cache_key)
+                except Exception as cache_err:
+                    logger.debug(f"Failed to invalidate images access cache on expiry: {cache_err}")
                 return False
         except Exception:
             pass
     
     # If no specific image requested, just check general access
     if not image_filename:
+        # Cache the positive result
+        try:
+            from redis_manager import get_redis_manager
+            rm = get_redis_manager()
+            if rm and rm.redis_client:
+                cache_key = f"pii_images_access:{requester_username}:{owner_username}"
+                rm.redis_client.setex(cache_key, 300, "true")
+        except Exception as cache_err:
+            logger.debug(f"Redis cache write skipped for images access: {cache_err}")
         return True
     
     # Find the image index by matching filename in owner's images
@@ -2637,26 +2679,47 @@ async def get_user_profile(
     
     if include_context and requester_username and not is_own_profile:
         try:
-            # 1. Relationship status
-            # Check favorites using new schema (individual documents per favorite)
-            favorite_doc = await db.favorites.find_one({
-                "userUsername": requester_username,
-                "favoriteUsername": username
-            })
+            # Run all context queries in parallel to reduce latency
+            results = await asyncio.gather(
+                # 1. Relationship status
+                db.favorites.find_one({
+                    "userUsername": requester_username,
+                    "favoriteUsername": username
+                }),
+                db.shortlists.find_one({
+                    "userUsername": requester_username,
+                    "shortlistedUsername": username
+                }),
+                db.exclusions.find_one({
+                    "userUsername": requester_username,
+                    "excludedUsername": username
+                }),
+                # 2. KPI Stats (counts)
+                db.profile_views.count_documents({"profileUsername": username}),
+                db.favorites.count_documents({"favoriteUsername": username}),
+                db.shortlists.count_documents({"shortlistedUsername": username}),
+                # 3. PII Request Status (pending requests)
+                db.pii_requests.find({
+                    "requesterUsername": requester_username,
+                    "requestedUsername": username,
+                    "status": "pending"
+                }).to_list(length=10),
+                db.pii_requests.find({
+                    "requesterUsername": requester_username,
+                    "profileUsername": username,
+                    "status": "pending"
+                }).to_list(length=10),
+                # 4. Online Status
+                db.online_status.find_one({"username": username}),
+                return_exceptions=True
+            )
+
+            favorite_doc, shortlist_doc, exclusion_doc, views_count, fav_by_count, short_by_count, pii_reqs1, pii_reqs2, online_status = results
+
+            # Process relationship status
             user["isFavorited"] = favorite_doc is not None
-            
-            # Check shortlist using correct collection (shortlists) and field (shortlistedUsername)
-            shortlist_doc = await db.shortlists.find_one({
-                "userUsername": requester_username,
-                "shortlistedUsername": username
-            })
             user["isShortlisted"] = shortlist_doc is not None
-            
-            # Check exclusions (may still use old schema - check both)
-            exclusion_doc = await db.exclusions.find_one({
-                "userUsername": requester_username,
-                "excludedUsername": username
-            })
+
             if exclusion_doc is None:
                 # Fallback to old schema
                 exclusions = await db.exclusions.find_one({"username": requester_username})
@@ -2665,56 +2728,35 @@ async def get_user_profile(
             else:
                 user["isExcluded"] = True
 
-            # 2. KPI Stats (counts)
-            # Profile views
-            views_count = await db.profile_views.count_documents({"profileUsername": username})
-            # Their favorites (who favorited THIS user) - use new schema
-            fav_by_count = await db.favorites.count_documents({"favoriteUsername": username})
-            # Their shortlists (who shortlisted THIS user) - use correct collection and field
-            short_by_count = await db.shortlists.count_documents({"shortlistedUsername": username})
-            
+            # Process KPI stats
             user["kpiStats"] = {
-                "profileViews": views_count,
-                "favoritedBy": fav_by_count,
-                "shortlistedBy": short_by_count
+                "profileViews": views_count if not isinstance(views_count, Exception) else 0,
+                "favoritedBy": fav_by_count if not isinstance(fav_by_count, Exception) else 0,
+                "shortlistedBy": short_by_count if not isinstance(short_by_count, Exception) else 0
             }
 
-            # 3. PII Request Status (pending requests)
+            # Process PII request status
             pii_request_status = {}
-            # Use correct field names: requesterUsername and requestedUsername
-            outgoing_cursor = db.pii_requests.find({
-                "requesterUsername": requester_username,
-                "requestedUsername": username,
-                "status": "pending"
-            })
-            async for req in outgoing_cursor:
+            for req in (pii_reqs1 if not isinstance(pii_reqs1, Exception) else []):
                 rtype = req.get("requestType")
                 if rtype:
                     pii_request_status[rtype] = "pending"
-            
-            # Also check profileUsername/requesterUsername format used in some places
-            outgoing_cursor2 = db.pii_requests.find({
-                "requesterUsername": requester_username,
-                "profileUsername": username,
-                "status": "pending"
-            })
-            async for req in outgoing_cursor2:
+            for req in (pii_reqs2 if not isinstance(pii_reqs2, Exception) else []):
                 rtype = req.get("requestType")
                 if rtype:
                     pii_request_status[rtype] = "pending"
-            
+
             # Add approved status from per_field_access
             if per_field_access:
                 for field, granted in per_field_access.items():
                     if granted and pii_request_status.get(field) != "pending":
                         pii_request_status[field] = "approved"
-            
+
             user["piiRequestStatus"] = pii_request_status
             user["piiAccess"] = per_field_access
 
-            # 4. Online Status
-            online_status = await db.online_status.find_one({"username": username})
-            user["isOnline"] = online_status.get("isOnline", False) if online_status else False
+            # Process online status
+            user["isOnline"] = online_status.get("isOnline", False) if online_status and not isinstance(online_status, Exception) else False
             
         except Exception as context_err:
             logger.error(f"⚠️ Error fetching profile context: {context_err}")
@@ -8205,6 +8247,13 @@ async def add_to_exclusions(
         cleanup_summary["pii_access_revoked"] = pii_access_result.modified_count
         if pii_access_result.modified_count > 0:
             logger.info(f"🔒 Revoked {pii_access_result.modified_count} PII access grants between {username} ↔ {target_username}")
+            # Invalidate PII access cache for both users
+            try:
+                from pii_security import _invalidate_pii_access_cache
+                _invalidate_pii_access_cache(username, target_username)
+                _invalidate_pii_access_cache(target_username, username)
+            except Exception as cache_err:
+                logger.debug(f"Failed to invalidate PII access cache after revocation: {cache_err}")
         
         # 4. REMOVE FROM FAVORITES (Both sides) - Optimized single query
         fav_result = await db.favorites.delete_many({
@@ -11900,6 +11949,14 @@ async def approve_pii_request(
         
         logger.info(f"📝 Inserting PII access record: {access_data}")
         await db.pii_access.insert_one(access_data)
+
+        # Invalidate PII access cache for both users
+        try:
+            from pii_security import _invalidate_pii_access_cache
+            _invalidate_pii_access_cache(request["requesterUsername"], username)
+            _invalidate_pii_access_cache(username, request["requesterUsername"])
+        except Exception as cache_err:
+            logger.debug(f"Failed to invalidate PII access cache: {cache_err}")
         
         # =================================================================
         # RECIPROCAL ACCESS: When User A approves User B's request,
@@ -11932,6 +11989,14 @@ async def approve_pii_request(
             logger.info(f"🔄 Creating reciprocal access: {request['requesterUsername']} → {username} for {request['requestType']}")
             await db.pii_access.insert_one(reciprocal_access_data)
             logger.info(f"🔑 Reciprocal access granted: {request['requesterUsername']} → {username} for {request['requestType']}")
+
+            # Invalidate PII access cache for reciprocal grant
+            try:
+                from pii_security import _invalidate_pii_access_cache
+                _invalidate_pii_access_cache(request["requesterUsername"], username)
+                _invalidate_pii_access_cache(username, request["requesterUsername"])
+            except Exception as cache_err:
+                logger.debug(f"Failed to invalidate PII access cache for reciprocal: {cache_err}")
         else:
             logger.info(f"🔄 Reciprocal access already exists, skipping duplicate")
         

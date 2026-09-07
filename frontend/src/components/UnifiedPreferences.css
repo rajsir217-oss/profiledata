@@ -373,11 +373,16 @@
  * ======================================= */
 
 /* Settings Section */
+.account-settings {
+  margin: 0;
+  padding: 0;
+}
+
 .settings-section {
   background: var(--card-background);
   border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 15px;
+  padding: 10px;
+  margin-bottom: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -410,22 +415,22 @@
 
 .section-description {
   color: var(--text-secondary);
-  margin-bottom: 12.5px;
+  margin-bottom: 8px;
   font-size: 0.9rem;
 }
 
 /* Home Page Selector */
 .home-page-selector {
   display: flex;
-  gap: 7.5px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
 .home-page-option {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 4px;
+  padding: 6px 8px;
   background: var(--surface-color);
   border: 2px solid var(--border-color);
   border-radius: 12px;
@@ -479,15 +484,15 @@
 .themes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 6px;
-  margin-top: 6px;
+  gap: 4px;
+  margin-top: 4px;
 }
 
 .theme-card {
   background: var(--surface-color);
   border: 2px solid var(--border-color);
   border-radius: 8px;
-  padding: 4px 5px;
+  padding: 3px 4px;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
@@ -990,7 +995,7 @@
 @media (max-width: 768px) {
   .unified-preferences-container {
     width: 95%;
-    padding: 15px;
+    padding: 10px;
   }
 
   .preferences-header h1 {
@@ -1810,11 +1815,11 @@
 @media (max-width: 480px) {
   .unified-preferences-container {
     width: 95%;
-    padding: 15px;
+    padding: 10px;
   }
 
   .settings-section {
-    padding: 20px;
+    padding: 10px;
   }
 
   .data-export-description {

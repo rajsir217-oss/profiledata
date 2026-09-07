@@ -314,7 +314,7 @@ const Profile = ({
         }
         
         // Debug: Log relationship status from API
-        console.log('💜 Profile relationship status from API:', {
+        logger.debug('💜 Profile relationship status from API:', {
           isFavorited: profileData.isFavorited,
           isShortlisted: profileData.isShortlisted,
           isExcluded: profileData.isExcluded,
@@ -334,7 +334,7 @@ const Profile = ({
         }
         
         // Debug: Log visibility settings
-        console.log('👁️ Profile data received - visibility settings:', {
+        logger.debug('👁️ Profile data received - visibility settings:', {
           contactEmailVisible: profileData.contactEmailVisible,
           contactNumberVisible: profileData.contactNumberVisible,
           linkedinUrlVisible: profileData.linkedinUrlVisible,
@@ -347,6 +347,9 @@ const Profile = ({
         // Check if this is the current user's profile
         setIsOwnProfile(currentUsername === username);
         
+        // Main profile payload is ready; stop blocking UI on secondary calls.
+        setLoading(false);
+
         // Track profile view (only if viewing someone else's profile)
         if (currentUsername && currentUsername !== username) {
           // Guard against React StrictMode double-invocation (and rapid re-renders):
@@ -355,76 +358,74 @@ const Profile = ({
           if (!trackedViewsRef.current.has(trackKey)) {
             trackedViewsRef.current.add(trackKey);
 
-            // Fetch viewer metrics FIRST so "Last viewed" reflects the PREVIOUS view,
-            // not the one we are about to record.
-            try {
-              const metricsRes = await api.get(`/profile-views/${username}/viewer-metrics`);
-              const data = metricsRes?.data || {};
-              setViewerViewMetrics({
-                lastViewedAt: data.lastViewedAt || null,
-                viewCount: Number.isFinite(data.viewCount) ? data.viewCount : 0
-              });
-            } catch (metricsErr) {
-              logger.debug('Error loading viewer view metrics:', metricsErr);
-            }
-
-            try {
-              await api.post('/profile-views', {
-                profileUsername: username,
-                viewedByUsername: currentUsername
-              });
-            } catch (viewErr) {
-              // Silently fail - don't block profile loading if tracking fails
-              console.error("Error tracking profile view:", viewErr);
-            }
+            // Fire non-critical tracking calls in background.
+            (async () => {
+              try {
+                const metricsRes = await api.get(`/profile-views/${username}/viewer-metrics`);
+                const data = metricsRes?.data || {};
+                setViewerViewMetrics({
+                  lastViewedAt: data.lastViewedAt || null,
+                  viewCount: Number.isFinite(data.viewCount) ? data.viewCount : 0
+                });
+              } catch (metricsErr) {
+                logger.debug('Error loading viewer view metrics:', metricsErr);
+              }
+              try {
+                await api.post('/profile-views', {
+                  profileUsername: username,
+                  viewedByUsername: currentUsername
+                });
+              } catch (viewErr) {
+                logger.debug('Error tracking profile view:', viewErr);
+              }
+            })();
           }
           
           // Fetch current user's profile for PII request validation
           // (Still needed if not already cached, but could be optimized later)
           if (!currentUserProfile) {
-            try {
-              const myProfileRes = await api.get(`/profile/${currentUsername}?requester=${currentUsername}`);
-              setCurrentUserProfile(myProfileRes.data);
-            } catch (profileErr) {
-              console.error("Error fetching current user profile:", profileErr);
-            }
+            api.get(`/profile/${currentUsername}?requester=${currentUsername}`)
+              .then((myProfileRes) => setCurrentUserProfile(myProfileRes.data))
+              .catch((profileErr) => logger.debug("Error fetching current user profile:", profileErr));
           }
-          
-          // Load accessible images with privacy settings (Legacy system check)
-          await loadAccessibleImages();
-          
-          // Fallback: If API didn't return relationship status, fetch it separately
-          if (profileData.isFavorited === undefined || profileData.isShortlisted === undefined) {
-            try {
-              const [favResponse, shortlistResponse] = await Promise.all([
-                api.get(`/favorites/${currentUsername}`),
-                api.get(`/shortlist/${currentUsername}`)
-              ]);
-              
-              const favorites = favResponse.data.favorites || favResponse.data || [];
-              const shortlist = shortlistResponse.data.shortlist || shortlistResponse.data || [];
-              
-              setIsFavorited(favorites.some(u => (u.username || u) === username));
-              setIsShortlisted(shortlist.some(u => (u.username || u) === username));
-            } catch (relErr) {
-              console.error("Error checking user relationship:", relErr);
-            }
+
+          // Use backend-provided context data instead of redundant API calls
+          // Backend now returns: isFavorited, isShortlisted, kpiStats, piiRequestStatus, piiAccess, isOnline
+          if (profileData.isFavorited !== undefined) {
+            setIsFavorited(profileData.isFavorited);
           }
-          
+          if (profileData.isShortlisted !== undefined) {
+            setIsShortlisted(profileData.isShortlisted);
+          }
+          if (profileData.kpiStats) {
+            setKpiStats(profileData.kpiStats);
+          }
+          if (profileData.piiRequestStatus) {
+            setPiiRequestStatus(profileData.piiRequestStatus);
+          }
+          if (profileData.piiAccess) {
+            setPiiAccess(profileData.piiAccess);
+          }
+          if (profileData.isOnline !== undefined) {
+            setIsOnline(profileData.isOnline);
+          }
+
+          // Load accessible images with privacy settings (Legacy system check) in background
+          loadAccessibleImages();
+
           // Check if there are existing messages with this user
-          try {
-            const messagesResponse = await api.get(`/messages/conversation/${username}?username=${currentUsername}`);
-            const messages = messagesResponse.data.messages || messagesResponse.data || [];
-            console.log('💬 Messages check:', { username, currentUsername, hasMessages: messages.length > 0, count: messages.length });
-            setHasMessages(messages.length > 0);
-          } catch (msgErr) {
-            console.error("Error checking messages:", msgErr);
-          }
+          api.get(`/messages/conversation/${username}?username=${currentUsername}`)
+            .then((messagesResponse) => {
+              const messages = messagesResponse.data.messages || messagesResponse.data || [];
+              logger.debug('💬 Messages check:', { username, currentUsername, hasMessages: messages.length > 0, count: messages.length });
+              setHasMessages(messages.length > 0);
+            })
+            .catch((msgErr) => logger.debug("Error checking messages:", msgErr));
         }
         
         // Activation status if viewing own profile
         if (currentUsername === username) {
-          await fetchActivationStatus();
+          fetchActivationStatus();
         }
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -447,22 +448,23 @@ const Profile = ({
           setError(`Unable to load profile: ${err.message || 'Unknown error'}`);
         }
       } finally {
+        // Keep this as a safety fallback when primary request fails before setLoading(false).
         setLoading(false);
       }
     };
     fetchProfile();
     
-    // Poll for PII access changes every 10 seconds
+    // Poll for PII access changes every 30 seconds (reduced from 10s)
     const accessCheckInterval = setInterval(() => {
       if (currentUsername && currentUsername !== username) {
         checkPIIAccess();
       }
-    }, 10000);
-    
-    // Poll for KPI stats updates every 15 seconds
+    }, 30000);
+
+    // Poll for KPI stats updates every 60 seconds (reduced from 15s)
     const kpiStatsInterval = setInterval(() => {
       fetchKPIStats();
-    }, 15000);
+    }, 60000);
     
     // Refresh KPI stats when page regains focus
     const handleFocus = () => {
@@ -566,7 +568,7 @@ const Profile = ({
 
   const checkPIIAccess = async () => {
     if (!currentUsername || isOwnProfile) return;
-    
+
     // ✅ ADMIN BYPASS - Admins have full access to all PII
     if (isAdmin) {
       logger.debug('Admin user - full PII access');
@@ -580,96 +582,64 @@ const Profile = ({
       });
       return;
     }
-    
+
     try {
-      const [imagesRes, contactNumberRes, contactEmailRes, dobRes, linkedinRes] = await Promise.all([
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=images`),
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_number`),
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_email`),
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=date_of_birth`),
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=linkedin_url`)
-      ]);
-      
-      logger.debug('PII Access Check Results:', {
-        images: imagesRes.data.hasAccess,
-        contact_number: contactNumberRes.data.hasAccess,
-        contact_email: contactEmailRes.data.hasAccess,
-        date_of_birth: dobRes.data.hasAccess,
-        linkedin_url: linkedinRes.data.hasAccess
-      });
-      
-      setPiiAccess({
-        images: imagesRes.data.hasAccess,
-        contact_info: contactNumberRes.data.hasAccess || contactEmailRes.data.hasAccess, // Legacy: true if either contact field has access
-        contact_number: contactNumberRes.data.hasAccess,
-        contact_email: contactEmailRes.data.hasAccess,
-        date_of_birth: dobRes.data.hasAccess,
-        linkedin_url: linkedinRes.data.hasAccess
-      });
-      
-      // Check pending request status for each type
-      const requestStatus = {};
-      
-      // Fetch pending outgoing requests to this profile
-      try {
-        const outgoingRes = await api.get(`/pii-requests/${currentUsername}/outgoing`);
-        const outgoingRequests = outgoingRes.data.requests || [];
-        
-        // Find pending requests to this specific profile
-        outgoingRequests.forEach(req => {
-          if (req.profileUsername === username && req.status === 'pending') {
-            // Map requestType to our status keys
-            const typeMap = {
-              'images': 'images',
-              'contact_number': 'contact_number',
-              'contact_email': 'contact_email',
-              'date_of_birth': 'date_of_birth',
-              'linkedin_url': 'linkedin_url'
-            };
-            const statusKey = typeMap[req.requestType];
-            if (statusKey) {
-              requestStatus[statusKey] = 'pending';
-            }
-          }
+      // Use backend-provided piiAccess and piiRequestStatus from profile response
+      // Only fetch fresh data if not already available
+      if (user.piiAccess) {
+        setPiiAccess(user.piiAccess);
+      } else {
+        // Fallback to API calls if backend doesn't provide piiAccess
+        const [imagesRes, contactNumberRes, contactEmailRes, dobRes, linkedinRes] = await Promise.all([
+          api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=images`),
+          api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_number`),
+          api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_email`),
+          api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=date_of_birth`),
+          api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=linkedin_url`)
+        ]);
+
+        setPiiAccess({
+          images: imagesRes.data.hasAccess,
+          contact_info: contactNumberRes.data.hasAccess || contactEmailRes.data.hasAccess,
+          contact_number: contactNumberRes.data.hasAccess,
+          contact_email: contactEmailRes.data.hasAccess,
+          date_of_birth: dobRes.data.hasAccess,
+          linkedin_url: linkedinRes.data.hasAccess
         });
-      } catch (err) {
-        logger.error('Error fetching outgoing requests:', err);
       }
-      
-      // For images, check per-image access if not pending
-      if (!requestStatus['images'] && imagesRes.data.hasAccess) {
+
+      // Use backend-provided piiRequestStatus if available
+      if (user.piiRequestStatus) {
+        setPiiRequestStatus(user.piiRequestStatus);
+      } else {
+        // Fallback to fetching request status
+        const requestStatus = {};
+
         try {
-          const perImageRes = await api.get(`/pii-access/check-images`, {
-            params: { requester: currentUsername, profile_owner: username }
+          const outgoingRes = await api.get(`/pii-requests/${currentUsername}/outgoing`);
+          const outgoingRequests = outgoingRes.data.requests || [];
+
+          outgoingRequests.forEach(req => {
+            if (req.profileUsername === username && req.status === 'pending') {
+              const typeMap = {
+                'images': 'images',
+                'contact_number': 'contact_number',
+                'contact_email': 'contact_email',
+                'date_of_birth': 'date_of_birth',
+                'linkedin_url': 'linkedin_url'
+              };
+              const statusKey = typeMap[req.requestType];
+              if (statusKey) {
+                requestStatus[statusKey] = 'pending';
+              }
+            }
           });
-          const imageAccessList = perImageRes.data.images || [];
-          const hasAnyActiveAccess = imageAccessList.some(img => img.hasAccess && img.reason === 'granted');
-          
-          if (hasAnyActiveAccess) {
-            requestStatus['images'] = 'approved';
-          } else {
-            requestStatus['images'] = 'expired';
-          }
         } catch (err) {
-          requestStatus['images'] = 'approved';
+          logger.error('Error fetching outgoing requests:', err);
         }
+
+        setPiiRequestStatus(requestStatus);
       }
-      
-      // Other PII types - set approved if has access and not pending
-      if (!requestStatus['contact_number'] && contactNumberRes.data.hasAccess) {
-        requestStatus['contact_number'] = 'approved';
-      }
-      if (!requestStatus['contact_email'] && contactEmailRes.data.hasAccess) {
-        requestStatus['contact_email'] = 'approved';
-      }
-      if (!requestStatus['date_of_birth'] && dobRes.data.hasAccess) {
-        requestStatus['date_of_birth'] = 'approved';
-      }
-      if (!requestStatus['linkedin_url'] && linkedinRes.data.hasAccess) {
-        requestStatus['linkedin_url'] = 'approved';
-      }
-      
-      setPiiRequestStatus(requestStatus);
     } catch (err) {
       console.error("Error checking PII access:", err);
     }
@@ -834,27 +804,6 @@ const Profile = ({
       loadAccessibleImages();
     }
   }, [piiAccess.images, user, isOwnProfile]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Check if user has favorited/shortlisted this profile
-  // eslint-disable-next-line no-unused-vars
-  const checkUserRelationship = async () => {
-    if (isOwnProfile || !currentUsername) return;
-
-    try {
-      const [favResponse, shortlistResponse] = await Promise.all([
-        api.get(`/favorites/${currentUsername}`),
-        api.get(`/shortlist/${currentUsername}`)
-      ]);
-
-      const favorites = favResponse.data.favorites || favResponse.data || [];
-      const shortlist = shortlistResponse.data.shortlist || shortlistResponse.data || [];
-
-      setIsFavorited(favorites.some(u => (u.username || u) === username));
-      setIsShortlisted(shortlist.some(u => (u.username || u) === username));
-    } catch (err) {
-      console.error("Error checking user relationship:", err);
-    }
-  };
 
   // Handle access request
   // eslint-disable-next-line no-unused-vars
@@ -3503,4 +3452,3 @@ const Profile = ({
 };
 
 export default Profile;
-

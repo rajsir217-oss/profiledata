@@ -18,18 +18,18 @@ const FEE_FOR_OPTIONS = [
 ];
 
 const MONTH_OPTIONS = [
-  { value: '1', label: 'January' },
-  { value: '2', label: 'February' },
-  { value: '3', label: 'March' },
-  { value: '4', label: 'April' },
+  { value: '1', label: 'Jan' },
+  { value: '2', label: 'Feb' },
+  { value: '3', label: 'Mar' },
+  { value: '4', label: 'Apr' },
   { value: '5', label: 'May' },
-  { value: '6', label: 'June' },
-  { value: '7', label: 'July' },
-  { value: '8', label: 'August' },
-  { value: '9', label: 'September' },
-  { value: '10', label: 'October' },
-  { value: '11', label: 'November' },
-  { value: '12', label: 'December' },
+  { value: '6', label: 'Jun' },
+  { value: '7', label: 'Jul' },
+  { value: '8', label: 'Aug' },
+  { value: '9', label: 'Sep' },
+  { value: '10', label: 'Oct' },
+  { value: '11', label: 'Nov' },
+  { value: '12', label: 'Dec' },
 ];
 
 const ContributionManagement = () => {
@@ -733,7 +733,7 @@ const ContributionManagement = () => {
       {activeTab === 'contributions' && (
         <div className="user-filter-container">
           <div className="filter-row">
-            <label htmlFor="search-filter" className="filter-label">Search:</label>
+            {/* <label htmlFor="search-filter" className="filter-label">Search:</label> */}
             <input
               id="search-filter"
               type="text"
@@ -751,7 +751,7 @@ const ContributionManagement = () => {
                 ×
               </button>
             )}
-            <label htmlFor="month-filter" className="filter-label">Month:</label>
+  
             <select
               id="month-filter"
               className="year-filter-select"
@@ -760,14 +760,14 @@ const ContributionManagement = () => {
               disabled={selectedYear === 'all'}
               title={selectedYear === 'all' ? 'Select a specific year to filter by month' : 'Filter by month'}
             >
-              <option value="all">All months</option>
+              <option value="all">All</option>
               {MONTH_OPTIONS.map((m) => (
                 <option key={m.value} value={m.value}>
                   {m.label}
                 </option>
               ))}
             </select>
-            <label htmlFor="year-filter" className="filter-label">Year:</label>
+ 
             <select
               id="year-filter"
               className="year-filter-select"
@@ -950,7 +950,7 @@ const ContributionManagement = () => {
                       </td>
                       <td>
                         {(() => {
-                          const s = contribution.status || 'completed';
+                          const s = contribution.status || '√';
                           // Short 1-char labels for alternate/legacy statuses;
                           // full words for the canonical set.
                           const shortLabels = { succeeded: 'S', paid: 'P', refunded: 'R' };
