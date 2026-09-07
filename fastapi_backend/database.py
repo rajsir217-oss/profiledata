@@ -17,7 +17,10 @@ async def connect_to_mongo():
             # Server selection
             serverSelectionTimeoutMS=5000,
             # Connection pool settings
-            maxPoolSize=50,              # Max connections in pool (default 100, reduced to avoid Atlas limits)
+            maxPoolSize=15,              # Max connections in pool per instance (reduced from 50; with
+                                         # Cloud Run maxScale=6 this caps worst-case total at 6*15=90
+                                         # connections, close to the prior 2*50=100 ceiling, to avoid
+                                         # exhausting Atlas connection limits)
             minPoolSize=5,               # Keep 5 warm connections ready
             maxIdleTimeMS=45000,         # Close idle connections after 45s (prevents stale connections)
             # Timeouts to prevent hung connections
@@ -34,7 +37,7 @@ async def connect_to_mongo():
         # Test the connection with short timeout
         await client.admin.command('ping')
         logger.info(f"✅ Successfully connected to MongoDB database: {settings.database_name}")
-        logger.info(f"   Pool: maxPoolSize=50, minPoolSize=5, maxIdleTimeMS=45s, socketTimeoutMS=30s")
+        logger.info(f"   Pool: maxPoolSize=15, minPoolSize=5, maxIdleTimeMS=45s, socketTimeoutMS=30s")
     except Exception as e:
         logger.warning(f"⚠️ Failed to connect to MongoDB: {e}")
         logger.warning("⚠️ App will start without database connection. Some features may not work.")
