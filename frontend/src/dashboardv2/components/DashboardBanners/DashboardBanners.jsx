@@ -405,10 +405,16 @@ const DashboardBanners = ({
             <button type="button" className="dv2-banner-btn dv2-banner-btn--primary" onClick={handleInviteFriends}>
               Invite friends
             </button>
-            <button type="button" className="dv2-banner-btn dv2-banner-btn--ghost" onClick={handleRemindInviteFriendsLater}>
-              Remind me later
-            </button>
           </div>
+          <button
+            type="button"
+            className="dv2-banner-close"
+            onClick={handleRemindInviteFriendsLater}
+            title="Remind me later"
+            aria-label="Remind me later"
+          >
+            ×
+          </button>
         </div>
       ) : null}
 
