@@ -124,6 +124,56 @@ async function findNextPick(orderedSearches, startSearchIndex, startPage) {
 }
 
 /**
+ * Fast-path for the initial/reload case (always page=1 for every saved
+ * search): instead of awaiting each saved search's /api/search call one at
+ * a time (latency = sum of all calls), fire them all in parallel and pick
+ * the first (lowest index / highest priority) one with results. Latency
+ * becomes max(all calls) instead of sum(all calls), which is the dominant
+ * fix for dashboardv2 hero load delay when a user has multiple saved
+ * searches.
+ *
+ * Falls back to null (caller can fall back to sequential) if nothing found
+ * or a 429 is hit (so rate-limit errors still propagate like before).
+ */
+async function findFirstPickParallel(orderedSearches) {
+  const settled = await Promise.allSettled(
+    orderedSearches.map((savedSearch) =>
+      searchProfilesStrict(savedSearch.criteria || {}, {
+        sortBy: 'newest',
+        sortOrder: 'desc',
+        limit: 1,
+        page: 1,
+      })
+    )
+  );
+
+  for (const result of settled) {
+    if (result.status === 'rejected' && result.reason?.response?.status === 429) {
+      throw result.reason;
+    }
+  }
+
+  for (let i = 0; i < settled.length; i += 1) {
+    const outcome = settled[i];
+    if (outcome.status !== 'fulfilled') {
+      logger.warn('findFirstPickParallel: search failed for', orderedSearches[i]?.name, outcome.reason);
+      continue;
+    }
+    const results = outcome.value?.results || outcome.value?.users || [];
+    if (results.length > 0) {
+      return {
+        profile: results[0],
+        savedSearch: orderedSearches[i],
+        searchIndex: i,
+        page: 1,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Hook entry point.
  *
  * @param {Array} savedSearches  full list from useDashboardData
@@ -204,7 +254,14 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
           criteria: coerceCriteriaForSearch(s.criteria, defaults, currentUserProfile),
         }));
 
-        const result = await findNextPick(searchesWithOverrides, startIndex, startPage);
+        // Initial load / reload always starts at searchIndex=0, page=1 for every
+        // saved search — safe to parallelize for latency (see findFirstPickParallel).
+        // Skip (startIndex/startPage from a prior position) keeps the sequential
+        // path since it must respect the exact fallback order/position.
+        const result =
+          startIndex === 0 && startPage === 1
+            ? await findFirstPickParallel(searchesWithOverrides)
+            : await findNextPick(searchesWithOverrides, startIndex, startPage);
         if (result) {
           setPick({
             profile: result.profile,
