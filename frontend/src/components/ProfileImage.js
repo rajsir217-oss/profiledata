@@ -255,6 +255,8 @@ const ProfileImage = ({
           src={getAuthenticatedImageUrl(image.imageUrl)}
           alt="Profile"
           className="profile-image"
+          loading="lazy"
+          decoding="async"
           style={{
             filter: `blur(${imageState.blur}px)${imageState.blur > 15 ? ' grayscale(80%)' : ''}`,
             opacity: imageState.blur > 15 ? 0.7 : 1

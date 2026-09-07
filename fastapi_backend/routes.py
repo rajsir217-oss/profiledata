@@ -2450,6 +2450,12 @@ async def get_user_profile(
     db = Depends(get_database)
 ):
     """Get user profile by username with PII masking"""
+    profile_start = time.perf_counter()
+    timing_ms: Dict[str, float] = {}
+
+    def _mark_timing(step: str, started_at: float) -> None:
+        timing_ms[step] = round((time.perf_counter() - started_at) * 1000, 2)
+
     requester_username = current_user.get("username")
     logger.info(f"👤 Profile request for username: {username} (requester: {requester_username})")
     
@@ -2468,8 +2474,10 @@ async def get_user_profile(
     is_privileged_requester = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
     
     if not is_own_profile and not is_privileged_requester:
+        membership_started = time.perf_counter()
         from routers.contribution_routes import check_membership_access
         membership_access = await check_membership_access(requester_username, db)
+        _mark_timing("membership_access_check", membership_started)
         
         if not membership_access["hasAccess"]:
             raise HTTPException(
@@ -2479,7 +2487,9 @@ async def get_user_profile(
     
     # Find user (case-insensitive)
     logger.debug(f"Fetching profile for user '{username}'...")
+    user_fetch_started = time.perf_counter()
     user = await db.users.find_one(get_username_query(username))
+    _mark_timing("fetch_user", user_fetch_started)
     if not user:
         logger.warning(f"⚠️ Profile not found for username: {username}")
         # For admins, check if the account was permanently deleted
@@ -2525,6 +2535,7 @@ async def get_user_profile(
     logger.info(f"🔍 RELIGION RETRIEVE: Religion value from DB for user {username}: '{user.get('religion', 'NOT SET')}'")
     
     # 🔓 DECRYPT PII fields (if encrypted)
+    decrypt_started = time.perf_counter()
     try:
         encryptor = get_encryptor()
         user = encryptor.decrypt_user_pii(user)
@@ -2532,6 +2543,7 @@ async def get_user_profile(
     except Exception as decrypt_err:
         logger.warning(f"⚠️ Decryption skipped (encryption may not be enabled): {decrypt_err}")
         # Continue without decryption if encryption not configured
+    _mark_timing("decrypt_pii", decrypt_started)
     
     # Remove consent metadata (backend-only fields)
     remove_consent_metadata(user)
@@ -2553,11 +2565,15 @@ async def get_user_profile(
     access_granted = False
     per_field_access = None
     if requester_username:
+        pii_access_started = time.perf_counter()
         access_granted = await check_access_granted(db, requester_username, username)
         per_field_access = await get_per_field_access(db, requester_username, username)
+        _mark_timing("pii_access_checks", pii_access_started)
         logger.info(f"🔐 PII access for {requester_username} viewing {username}: general={access_granted}, per_field={per_field_access}")
     
+    pii_mask_started = time.perf_counter()
     user = mask_user_pii(user, requester_username, access_granted, per_field_access)
+    _mark_timing("mask_pii", pii_mask_started)
     
     # Debug: Log visibility flags after masking
     logger.info(f"👁️ After mask_user_pii - contactNumberVisible: {user.get('contactNumberVisible')}, contactEmailVisible: {user.get('contactEmailVisible')}, contactNumberMasked: {user.get('contactNumberMasked')}, contactEmailMasked: {user.get('contactEmailMasked')}")
@@ -2573,7 +2589,9 @@ async def get_user_profile(
     
     image_visibility_raw = user.get("imageVisibility", {})
     has_images_pii_access = per_field_access.get('images', False) if per_field_access else False
+    image_access_started = time.perf_counter()
     has_legacy_image_access = await _has_images_access(db, requester_username, username)
+    _mark_timing("legacy_image_access_check", image_access_started)
     
     # Check if requester has access to onRequest images
     has_on_request_access = has_images_pii_access or has_legacy_image_access
@@ -2585,6 +2603,7 @@ async def get_user_profile(
     
     logger.info(f"📸 Profile {username} image access: pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, has_on_request_access={has_on_request_access}, onRequestCount={len(original_on_request)}")
     
+    image_filter_started = time.perf_counter()
     if image_visibility_raw:
         # NEW SYSTEM: Filter images based on 3-bucket visibility
         visible_images = []
@@ -2638,6 +2657,7 @@ async def get_user_profile(
             user["imageReasons"] = []
             user["imagesMasked"] = False
             logger.info(f"📸 {username}: LEGACY - No images")
+    _mark_timing("image_filtering", image_filter_started)
     
     # ALWAYS set profilePicVisible flag when user has images (profile pic is always visible in new system)
     if normalized_images:
@@ -2678,6 +2698,7 @@ async def get_user_profile(
     include_context = request.query_params.get("include_context", "false").lower() == "true"
     
     if include_context and requester_username and not is_own_profile:
+        include_context_started = time.perf_counter()
         try:
             # Run all context queries in parallel to reduce latency
             results = await asyncio.gather(
@@ -2762,11 +2783,13 @@ async def get_user_profile(
             logger.error(f"⚠️ Error fetching profile context: {context_err}")
             # Don't fail the whole request if context fetching fails
             user["contextError"] = str(context_err)
+        _mark_timing("include_context", include_context_started)
 
     logger.info(f"✅ Profile successfully retrieved for user '{username}' (PII masked: {user.get('piiMasked', False)})")
     
     # Dispatch profile view event if viewing someone else's profile
     if not is_own_profile and requester_username:
+        dispatch_started = time.perf_counter()
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
             event_dispatcher = await get_event_dispatcher(db)
@@ -2784,6 +2807,14 @@ async def get_user_profile(
             logger.debug(f"📤 Dispatched profile_viewed event: {requester_username} → {username}")
         except Exception as e:
             logger.warning(f"⚠️ Failed to dispatch profile_viewed event: {e}")
+        _mark_timing("dispatch_profile_viewed_event", dispatch_started)
+
+    total_ms = round((time.perf_counter() - profile_start) * 1000, 2)
+    timing_parts = ", ".join([f"{k}={v}ms" for k, v in timing_ms.items()])
+    logger.info(
+        f"⏱️ profile_timing username={username} requester={requester_username} include_context={include_context} "
+        f"total={total_ms}ms {timing_parts}"
+    )
     
     return user
 

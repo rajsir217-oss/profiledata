@@ -1631,13 +1631,23 @@ const Profile = ({
                 >
                   {/* Show actual image if own profile, has access, or is admin */}
                   {(canOpenAvatar && avatarSrc) ? (
-                    <img src={getAuthenticatedImageUrl(avatarSrc)} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img
+                      src={getAuthenticatedImageUrl(avatarSrc)}
+                      alt={user.firstName}
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                   ) : user.images?.[0] ? (
                     /* Show blurred image if user has photos but viewer has no access */
                     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                       <img 
                         src={getAuthenticatedImageUrl(user.images[0])} 
                         alt={user.firstName} 
+                        loading="eager"
+                        fetchPriority="high"
+                        decoding="async"
                         style={{ 
                           width: '100%', 
                           height: '100%', 
@@ -2051,6 +2061,9 @@ const Profile = ({
                       src={getAuthenticatedImageUrl(user.images[0])}
                       alt="Profile"
                       className="gallery-image"
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
                       onClick={() => {
                         openLightbox(user.images[0], user.images.filter(Boolean));
                       }}
@@ -2077,6 +2090,8 @@ const Profile = ({
                           src={getAuthenticatedImageUrl(image)}
                           alt={`Gallery item ${index + 1}`}
                           className="gallery-image"
+                          loading="lazy"
+                          decoding="async"
                           onClick={() => {
                             openLightbox(image, user.images.filter(Boolean));
                           }}
@@ -2899,6 +2914,8 @@ const Profile = ({
                   <img
                     src={getAuthenticatedImageUrl(img)}
                     alt={`${user.firstName}'s profile ${idx + 1}`}
+                    loading={idx === 0 ? "eager" : "lazy"}
+                    decoding="async"
                     style={{ 
                       width: '100%', 
                       height: '100%', 
