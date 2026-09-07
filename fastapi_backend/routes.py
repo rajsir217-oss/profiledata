@@ -2811,10 +2811,15 @@ async def get_user_profile(
 
     total_ms = round((time.perf_counter() - profile_start) * 1000, 2)
     timing_parts = ", ".join([f"{k}={v}ms" for k, v in timing_ms.items()])
-    logger.info(
+    timing_line = (
         f"⏱️ profile_timing username={username} requester={requester_username} include_context={include_context} "
         f"total={total_ms}ms {timing_parts}"
     )
+    # Emit slow traces at warning level so they always show up in Cloud Logging even if INFO logs are filtered.
+    if total_ms >= 1000:
+        logger.warning(timing_line)
+    else:
+        logger.info(timing_line)
     
     return user
 
