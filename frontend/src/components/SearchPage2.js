@@ -2176,15 +2176,15 @@ const SearchPage2 = () => {
       {error && (
         <div style={{ maxWidth: '600px', margin: '10px auto' }}>
           <div className="alert alert-danger search-membership-alert">
-            {error === 'Membership required for search. Please complete your activation payment.' ? (
+            {error.includes('Membership required') ? (
               <>
-                Membership required for search. Please complete your activation payment.
+                To keep searching, please complete your activation payment.
                 <button
                   type="button"
                   className="search-paynow-link-btn"
                   onClick={openContributionPopup}
                 >
-                  PayNow
+                  Complete my payment
                 </button>
               </>
             ) : error}
