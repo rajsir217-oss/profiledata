@@ -70,6 +70,14 @@ export const getTurnstileSiteKey = () => {
     }
   } catch (_) {
   }
+
+  // Keep the production public site key available in bundled Capacitor builds.
+  // The browser build has the same fallback; without this, Android release
+  // builds render no Turnstile widget when .env.production omits the key.
+  if (isProductionHost(typeof window !== 'undefined' ? window.location?.hostname : '')) {
+    return '0x4AAAAAACAeADZnXAaS1tep';
+  }
+
   return undefined;
 };
 

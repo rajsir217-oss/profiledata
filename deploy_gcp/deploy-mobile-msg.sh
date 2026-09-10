@@ -526,7 +526,11 @@ run_capacitor_android() {
         const cfg = JSON.parse(fs.readFileSync('$capacitor_config'));
         cfg.server = {
           androidScheme: 'https',
-          hostname: 'l3v3lmatches.com'
+          // Match the working browser origin and Cloudflare Turnstile
+          // hostname allowlist. Using l3v3lmatches.com here can make the
+          // Android WebView origin fail a site key configured for the
+          // messenger subdomain.
+          hostname: 'messenger.l3v3lmatches.com'
         };
         fs.writeFileSync('$capacitor_config', JSON.stringify(cfg, null, 2));
         if (fs.existsSync('$capacitor_assets_config')) {
@@ -565,6 +569,7 @@ run_capacitor_android() {
     cat > "$MSG_WEB_DIR/.env.production" <<EOF
 MESSENGER_BACKEND_URL=${MESSENGER_BACKEND_URL:-https://api.l3v3lmatches.com}
 MESSENGER_MAIN_APP_URL=${MESSENGER_MAIN_APP_URL:-https://l3v3lmatches.com}
+MESSENGER_TURNSTILE_SITE_KEY=${MESSENGER_TURNSTILE_SITE_KEY:-0x4AAAAAACAeADZnXAaS1tep}
 EOF
 
     # Use Gradle directly for release builds to properly handle signing
