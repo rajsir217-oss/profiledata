@@ -36,6 +36,8 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   const [cloverConfig, setCloverConfig] = useState(null);
   const cloverInstanceRef = useRef(null);
   const cloverMountedRef = useRef(false);
+  const hasLoggedShownRef = useRef(false);
+  const hasLoggedDismissedRef = useRef(false);
   const [cloverSuccess, setCloverSuccess] = useState(false);
   const [cloverRecurring, setCloverRecurring] = useState(false);
   const [memberStats, setMemberStats] = useState({
@@ -398,7 +400,8 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   // Handle dismiss. onClose() delegates to the hook, which writes the
   // per-session SESSION_POPUP_DISMISSED flag.
   const handleDismiss = useCallback(() => {
-    if (!loading) {
+    if (!loading && !hasLoggedDismissedRef.current) {
+      hasLoggedDismissedRef.current = true;
       logActivity('popup_dismissed');
       onClose();
     }
@@ -408,11 +411,16 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      logActivity('popup_shown');
+      hasLoggedDismissedRef.current = false;
+      if (!hasLoggedShownRef.current) {
+        hasLoggedShownRef.current = true;
+        logActivity('popup_shown');
+      }
       loadMemberStats();
       loadContributionStatus();
     } else {
       document.body.style.overflow = 'unset';
+      hasLoggedShownRef.current = false;
     }
     return () => {
       document.body.style.overflow = 'unset';

@@ -4,6 +4,8 @@ import { getBackendUrl } from '../config/apiConfig';
 import logger from '../utils/logger';
 import toastService from '../services/toastService';
 
+const SESSION_POPUP_DISMISSED = 'contribution_popup_dismissed_session';
+
 /**
  * useSearchActions - Manages all search-related API calls and actions
  * Handles search execution, data loading, and user interactions
@@ -211,7 +213,9 @@ export const useSearchActions = (searchState, userState, filterState) => {
       if (!hasAccess) {
         setError('Membership required for search. Please complete your activation payment.');
         setInitialSearchComplete(true);
-        window.dispatchEvent(new CustomEvent('force-contribution-popup'));
+        if (!sessionStorage.getItem(SESSION_POPUP_DISMISSED)) {
+          window.dispatchEvent(new CustomEvent('force-contribution-popup'));
+        }
         return false;
       }
 
@@ -378,7 +382,9 @@ export const useSearchActions = (searchState, userState, filterState) => {
         if (err.response?.status === 403 && err.response?.data?.detail?.includes('Membership required')) {
           // Show contribution popup instead of error
           logger.info('🔔 Membership required for search, showing contribution popup');
-          window.dispatchEvent(new CustomEvent('force-contribution-popup'));
+          if (!sessionStorage.getItem(SESSION_POPUP_DISMISSED)) {
+            window.dispatchEvent(new CustomEvent('force-contribution-popup'));
+          }
           setError('Membership required for search. Please complete your membership payment.');
         } else {
           setError(err.response?.data?.detail || err.message || 'Search failed');
