@@ -659,7 +659,7 @@
 .profile-avatar-updated-at {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 8px;
   line-height: 1.2;
   opacity: 0.9;
 }
@@ -1755,10 +1755,6 @@
   .profile-avatar-image-shell {
     width: 140px;
     height: 140px;
-  }
-
-  .profile-avatar-updated-at {
-    font-size: 10px;
   }
 
   .profile-identity-row {

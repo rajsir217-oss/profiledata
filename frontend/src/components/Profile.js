@@ -1684,6 +1684,18 @@ const Profile = ({
                 {getProfileUpdatedText(user.updatedAt)}
               </div>
             )}
+            {!isOwnProfile && (() => {
+              const lastActiveAt = user.status?.last_seen || user.lastActive || user.lastActiveAt || user.lastLogin;
+              if (!lastActiveAt) return null;
+              return (
+                <div
+                  className="profile-avatar-updated-at"
+                  title={`Last active: ${formatFullDateTime(lastActiveAt)}`}
+                >
+                  Last active: {formatFullDateTime(lastActiveAt)}
+                </div>
+              );
+            })()}
           </div>
           
           {/* Profile Info */}
