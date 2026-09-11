@@ -9,16 +9,17 @@
 }
 
 .legal-content {
-  background: white;
+  background: var(--card-background, #fff);
+  color: var(--text-color, #374151);
   padding: 40px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Dark theme support */
+/* Theme overrides remain consistent with the selected palette */
 .theme-dark .legal-content {
-  background: #2a2438;
-  color: #e5e7eb;
+  background: var(--card-background, #2a2438);
+  color: var(--text-color, #e5e7eb);
 }
 
 .legal-content h1 {
@@ -29,7 +30,7 @@
 }
 
 .legal-content .last-updated {
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   font-size: 0.95rem;
   margin-bottom: 30px;
   font-style: italic;
@@ -120,8 +121,9 @@
 }
 
 .acceptance-notice {
-  background: #f0fdf4;
-  border: 2px solid #10b981;
+  background: var(--success-light, #f0fdf4);
+  border: 2px solid var(--success-color, #10b981);
+  color: var(--text-color, #374151);
   padding: 25px;
   margin-top: 40px;
   border-radius: 8px;
@@ -130,7 +132,7 @@
 
 .theme-dark .acceptance-notice {
   background: rgba(16, 185, 129, 0.15);
-  border-color: #34d399;
+  border-color: var(--success-color, #34d399);
 }
 
 .acceptance-notice p {
@@ -142,16 +144,16 @@
 }
 
 .contact-info {
-  background: #f9fafb;
+  background: var(--surface-color, #f9fafb);
   padding: 20px;
   border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color, #e5e7eb);
   margin-top: 15px;
 }
 
 .theme-dark .contact-info {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--surface-color, rgba(255, 255, 255, 0.05));
+  border-color: var(--border-color, rgba(255, 255, 255, 0.1));
 }
 
 /* Cookie table */
