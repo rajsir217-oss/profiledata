@@ -493,13 +493,6 @@ class NotificationResponse(BaseModel):
     error: Optional[str] = None
 
 
-class NotificationPreviewRequest(BaseModel):
-    """Request to render a notification template without sending"""
-    trigger: str
-    channel: str = "email"
-    templateData: Optional[Dict[str, Any]] = None
-
-
 # ============================================
 # Scheduled Notification Models
 # ============================================
