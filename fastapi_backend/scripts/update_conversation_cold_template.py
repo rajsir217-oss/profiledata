@@ -29,7 +29,7 @@ UPDATED_TEMPLATE_BODY = """
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .logo-container { text-align: center; padding: 20px 0; }
-        .logo-container img { width: 120px; height: auto; }
+        .logo-container img { width: 200px; height: auto; }
         .header { background: linear-gradient(135deg, #3b82f6 0%, #3b82f6dd 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
         .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
         .card { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -49,7 +49,7 @@ UPDATED_TEMPLATE_BODY = """
 <body>
     <div class="container">
         <div class="logo-container">
-            <div style="font-size: 32px; font-weight: bold; color: #667eea;">🦋 L3V3L</div>
+            <img src="{app.logoUrl}" alt="L3V3L Matches" />
         </div>
         <div class="header">
             <h1>❄️ Re-ignite your conversation with {match.firstName}</h1>

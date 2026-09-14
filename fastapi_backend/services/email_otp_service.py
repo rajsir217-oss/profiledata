@@ -120,7 +120,8 @@ class EmailOTPService:
                 "message": message_text,
                 "expiry_minutes": expiry_minutes,
                 "app_name": self.app_name,
-                "purpose": purpose
+                "purpose": purpose,
+                "logo_url": f"{settings.frontend_url}/landing-page-logo-clear.png"
             }
             
             # Load and render templates

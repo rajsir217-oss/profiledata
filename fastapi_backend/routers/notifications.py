@@ -17,6 +17,7 @@ from models.notification_models import (
     NotificationQueueCreate,
     NotificationQueueItem,
     NotificationResponse,
+    NotificationPreviewRequest,
     NotificationTrigger,
     NotificationChannel,
     NotificationAnalytics,
@@ -141,6 +142,118 @@ async def send_notification(
         return NotificationResponse(
             success=False,
             message="Failed to queue notification",
+            error=str(e)
+        )
+
+
+@router.post("/preview", response_model=NotificationResponse)
+async def preview_notification(
+    request: NotificationPreviewRequest,
+    current_user: dict = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service)
+):
+    """
+    Render a notification template with sample data without sending (admin only).
+    Returns the rendered subject and body HTML so the admin can visually verify branding.
+    """
+    is_admin = (current_user.get("role_name") or current_user.get("role")) == "admin"
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    try:
+        template = await service.db.notification_templates.find_one({
+            "trigger": request.trigger,
+            "$or": [
+                {"channel": request.channel},
+                {"channel": request.channel.upper()}
+            ]
+        })
+
+        if not template:
+            # Fall back to any channel for that trigger
+            template = await service.db.notification_templates.find_one({"trigger": request.trigger})
+            if not template:
+                raise HTTPException(status_code=404, detail=f"Template '{request.trigger}' not found")
+
+        # Build a preview template data set
+        preview_data = request.templateData.copy() if request.templateData else {}
+        preview_data.setdefault("recipient", {
+            "firstName": current_user.get("firstName") or "Admin",
+            "username": current_user.get("username") or "admin"
+        })
+        preview_data.setdefault("match", {
+            "firstName": "Sample Match",
+            "age": 28,
+            "matchScore": 95,
+            "location": "San Francisco, CA",
+            "profession": "Engineer",
+            "profileId": "SAMPLE123",
+            "username": "samplematch"
+        })
+        preview_data.setdefault("event", {
+            "type": request.trigger,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
+        # Inject the same app variables the email notifier uses
+        from config import settings
+        from urllib.parse import quote
+        frontend_url = settings.frontend_url
+        backend_url = settings.backend_url
+        tracking_id = "preview"
+
+        actor_username = preview_data.get("match", {}).get("username")
+        profile_path = f"/profile/{actor_username}" if actor_username else ""
+        profile_url = f"{frontend_url}{profile_path}" if profile_path else frontend_url
+        encoded_profile_url = quote(profile_url, safe="")
+
+        preview_data["app"] = {
+            "logoUrl": f"{frontend_url}/landing-page-logo-clear.png",
+            "trackingPixelUrl": f"{backend_url}/api/email-tracking/pixel/{tracking_id}",
+            "profileUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={encoded_profile_url}&link_type=profile",
+            "chatUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/messages', safe='')}&link_type=chat",
+            "unsubscribeUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/preferences', safe='')}&link_type=unsubscribe",
+            "preferencesUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/preferences', safe='')}&link_type=preferences",
+            "dashboardUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/dashboard', safe='')}&link_type=dashboard",
+            "contactUrl": f"{frontend_url}/contact",
+            "searchUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/search', safe='')}&link_type=search",
+            "securityUrl": f"{frontend_url}/preferences",
+            "chatUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/messages', safe='')}&link_type=chat",
+            "unsubscribeUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/preferences', safe='')}&link_type=unsubscribe",
+            "preferencesUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/preferences', safe='')}&link_type=preferences",
+            "profileUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={encoded_profile_url}&link_type=profile"
+        }
+
+        # Flattened URL variables for older template syntax
+        preview_data["dashboard_url"] = preview_data["app"]["dashboardUrl"]
+        preview_data["preferences_url"] = preview_data["app"]["preferencesUrl"]
+        preview_data["unsubscribe_url"] = preview_data["app"]["unsubscribeUrl"]
+        preview_data["tracking_pixel_url"] = preview_data["app"]["trackingPixelUrl"]
+        preview_data["profile_url"] = preview_data["app"]["profileUrl"]
+
+        subject_template = template.get("subject", "")
+        body_template = template.get("body", template.get("bodyTemplate", ""))
+
+        subject = service.render_template(subject_template, preview_data)
+        body = service.render_template(body_template, preview_data)
+
+        return NotificationResponse(
+            success=True,
+            message="Preview rendered successfully",
+            data={
+                "trigger": request.trigger,
+                "channel": request.channel,
+                "subject": subject,
+                "body": body
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Preview error: {e}")
+        return NotificationResponse(
+            success=False,
+            message="Failed to render preview",
             error=str(e)
         )
 

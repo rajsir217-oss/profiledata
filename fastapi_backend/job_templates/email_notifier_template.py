@@ -360,7 +360,7 @@ class EmailNotifierTemplate(JobTemplate):
         unsubscribe_url_encoded = quote(f"{frontend_url}/preferences", safe="")
         
         template_data["app"] = {
-            "logoUrl": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjEwIiB5PSI0MCIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2NjdlZWEiPvCfposkIEwzVjNMPC90ZXh0Pjwvc3ZnPg==",
+            "logoUrl": f"{frontend_url}/landing-page-logo-clear.png",
             "trackingPixelUrl": f"{backend_url}/api/email-tracking/pixel/{tracking_id}",
             "profileUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={encoded_profile_url}&link_type=profile",
             "chatUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/messages', safe='')}&link_type=chat",
@@ -700,8 +700,8 @@ class EmailNotifierTemplate(JobTemplate):
         
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: 600;">💜 L3V3L MATCHES</h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">🦋 L3V3L</p>
+            <img src="{app_url}/landing-page-logo-clear.png" alt="L3V3L Matches" width="200" style="width: 200px; height: auto; display: block; margin: 0 auto 12px auto;" />
+            <p style="margin: 0; font-size: 16px; opacity: 0.9;">New matches for your saved search!</p>
         </div>
         
         <!-- Content -->
@@ -901,7 +901,7 @@ class EmailNotifierTemplate(JobTemplate):
         
         <!-- Logo -->
         <div style="text-align: center; padding: 25px 20px 15px 20px; background: white;">
-            <div style="font-size: 44px; line-height: 1;" aria-label="Butterfly logo">🦋</div>
+            <img src="{app_url}/landing-page-logo-clear.png" alt="L3V3L Matches" width="200" style="width: 200px; height: auto; display: block; margin: 0 auto;" />
         </div>
         
         <!-- Header -->
@@ -1047,8 +1047,7 @@ class EmailNotifierTemplate(JobTemplate):
                     <!-- Header -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
-                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">💜 L3V3L MATCHES</h1>
-                            <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">🦋 L3V3L</p>
+                            <img src="{frontend_url}/landing-page-logo-clear.png" alt="L3V3L Matches" width="200" style="width: 200px; height: auto; display: block; margin: 0 auto;" />
                         </td>
                     </tr>
                     

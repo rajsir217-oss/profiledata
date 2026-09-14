@@ -407,7 +407,8 @@ EMAIL_TEMPLATE = """
 </head>
 <body>
     <div class="header">
-        <h1>� L3V3LMATCH</h1>
+        <h1>�</h1>
+        <img src="{app_url}/landing-page-logo-clear.png" alt="L3V3L Matches" width="200" style="width: 200px; height: auto; display: block; margin: 0 auto 12px auto;" />
         <p style="margin: 10px 0 0 0; opacity: 0.9;">New matches for your saved search!</p>
     </div>
     
@@ -426,9 +427,9 @@ EMAIL_TEMPLATE = """
     {matches_html}
     
     <div class="footer">
-        <p>You're receiving this email because you have saved searches on ProfileData.</p>
+        <p>You're receiving this email because you have saved searches on L3V3L Matches.</p>
         <p>To manage your saved searches or notification preferences, visit your <a href="{app_url}/preferences" style="color: #667eea;">account settings</a>.</p>
-        <p style="margin-top: 20px;">© 2025 ProfileData. All rights reserved.</p>
+        <p style="margin-top: 20px;">© 2025 L3V3L MATCHES. All rights reserved.</p>
     </div>
 </body>
 </html>

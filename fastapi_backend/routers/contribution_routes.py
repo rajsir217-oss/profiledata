@@ -516,8 +516,7 @@ async def send_contribution_thank_you_email(
         <body>
             <div class="container">
                 <div class="brand-banner">
-                    <span>🦋</span>
-                    <span class="brand-text">L3V3L Matches</span>
+                    <img src="{app_url}/landing-page-logo-clear.png" alt="L3V3L Matches" width="200" style="width: 200px; height: auto;" />
                 </div>
                 <div class="header">
                     <h1>Thank You! 💝</h1>

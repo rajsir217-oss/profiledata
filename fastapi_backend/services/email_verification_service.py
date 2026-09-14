@@ -187,6 +187,7 @@ class EmailVerificationService:
             <body>
                 <div class="container">
                     <div class="header">
+                        <img src="{settings.frontend_url}/landing-page-logo-clear.png" alt="L3V3L Matches" width="200" style="width: 200px; height: auto; margin-bottom: 12px;" />
                         <h1>Welcome to L3V3L Matches Platform!</h1>
                         <p>Just one more step to activate your account</p>
                     </div>
@@ -624,6 +625,7 @@ class EmailVerificationService:
             <body>
                 <div class="container">
                     <div class="header">
+                        <img src="{settings.frontend_url}/landing-page-logo-clear.png" alt="L3V3L Matches" width="200" style="width: 200px; height: auto; margin-bottom: 12px;" />
                         <div class="celebration">🎉</div>
                         <h1>You're All Set!</h1>
                         <p style="font-size: 18px; margin: 10px 0 0 0;">Your profile has been activated</p>

@@ -26,6 +26,8 @@ EMAIL_TEMPLATES = [
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .logo-container { text-align: center; padding: 20px 0; }
+        .logo-container img { width: 200px; height: auto; }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
         .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
         .match-card { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -36,6 +38,9 @@ EMAIL_TEMPLATES = [
 </head>
 <body>
     <div class="container">
+        <div class="logo-container">
+            <img src="{app.logoUrl}" alt="L3V3L Matches" />
+        </div>
         <div class="header">
             <h1>🎉 Congratulations!</h1>
             <p>You have a new match</p>
@@ -87,6 +92,8 @@ EMAIL_TEMPLATES = [
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .logo-container { text-align: center; padding: 20px 0; }
+        .logo-container img { width: 200px; height: auto; }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
         .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
         .profile-card { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
@@ -99,6 +106,9 @@ EMAIL_TEMPLATES = [
 </head>
 <body>
     <div class="container">
+        <div class="logo-container">
+            <img src="{app.logoUrl}" alt="L3V3L Matches" />
+        </div>
         <div class="header">
             <h1>👀 Someone's Interested!</h1>
         </div>
@@ -159,6 +169,8 @@ EMAIL_TEMPLATES = [
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .logo-container { text-align: center; padding: 20px 0; }
+        .logo-container img { width: 200px; height: auto; }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
         .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
         .message-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #667eea; }
@@ -170,6 +182,9 @@ EMAIL_TEMPLATES = [
 </head>
 <body>
     <div class="container">
+        <div class="logo-container">
+            <img src="{app.logoUrl}" alt="L3V3L Matches" />
+        </div>
         <div class="header">
             <h1>💬 New Message</h1>
         </div>
@@ -224,6 +239,8 @@ EMAIL_TEMPLATES = [
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .logo-container { text-align: center; padding: 20px 0; }
+        .logo-container img { width: 200px; height: auto; }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
         .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
         .request-card { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -236,6 +253,9 @@ EMAIL_TEMPLATES = [
 </head>
 <body>
     <div class="container">
+        <div class="logo-container">
+            <img src="{app.logoUrl}" alt="L3V3L Matches" />
+        </div>
         <div class="header">
             <h1>🔒 Contact Request</h1>
         </div>
@@ -291,6 +311,8 @@ EMAIL_TEMPLATES = [
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .logo-container { text-align: center; padding: 20px 0; }
+        .logo-container img { width: 200px; height: auto; }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
         .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
         .stats-card { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
@@ -303,6 +325,9 @@ EMAIL_TEMPLATES = [
 </head>
 <body>
     <div class="container">
+        <div class="logo-container">
+            <img src="{app.logoUrl}" alt="L3V3L Matches" />
+        </div>
         <div class="header">
             <h1>⏰ Don't Miss Out!</h1>
         </div>

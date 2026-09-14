@@ -56,7 +56,7 @@ BODY = """
   <div class="container">
     <div class="card">
       <div class="logo-container">
-        <div class="brand">🦋 L3V3L</div>
+        <img src="{app.logoUrl}" alt="L3V3L Matches" style="width: 200px; height: auto;" />
       </div>
       <div class="header">
         <div class="flag">🇺🇸</div>
