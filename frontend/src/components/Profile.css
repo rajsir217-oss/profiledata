@@ -656,12 +656,30 @@
   gap: 8px;
 }
 
+.profile-avatar-updated-at-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  max-width: 200px;
+}
+
 .profile-avatar-updated-at {
   margin: 0;
   color: var(--text-secondary);
   font-size: 8px;
   line-height: 1.2;
   opacity: 0.9;
+  padding: 3px 6px;
+  background: var(--surface-color, #f5f5f5);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .status-bulb-profile {

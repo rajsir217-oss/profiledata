@@ -152,9 +152,9 @@ const Profile = ({
     if (!dateValue) return null;
     const relative = formatRelativeTime(dateValue);
     if (!relative || relative === 'Never') return null;
-    if (relative === 'Just now') return 'Updated just now';
-    if (relative === 'Yesterday') return 'Updated yesterday';
-    return `Updated ${relative}`;
+    if (relative === 'Just now') return 'just now';
+    if (relative === 'Yesterday') return 'yesterday';
+    return relative;
   };
   
   // Extract search carousel context from navigation state
@@ -1819,26 +1819,28 @@ Sent from L3V3L Matches`;
               })()}
             </div>
 
-            {getProfileUpdatedText(user.updatedAt) && (
-              <div
-                className="profile-avatar-updated-at"
-                title={`Last updated: ${formatFullDateTime(user.updatedAt)}`}
-              >
-                {getProfileUpdatedText(user.updatedAt)}
-              </div>
-            )}
-            {!isOwnProfile && (() => {
-              const lastActiveAt = user.status?.last_seen || user.lastActive || user.lastActiveAt || user.lastLogin;
-              if (!lastActiveAt) return null;
-              return (
+            <div className="profile-avatar-updated-at-row">
+              {getProfileUpdatedText(user.updatedAt) && (
                 <div
                   className="profile-avatar-updated-at"
-                  title={`Last active: ${formatFullDateTime(lastActiveAt)}`}
+                  title={`Updated: ${formatFullDateTime(user.updatedAt)}`}
                 >
-                  Last active: {formatFullDateTime(lastActiveAt)}
+                  🕐 {getProfileUpdatedText(user.updatedAt)}
                 </div>
-              );
-            })()}
+              )}
+              {!isOwnProfile && (() => {
+                const lastActiveAt = user.status?.last_seen || user.lastActive || user.lastActiveAt || user.lastLogin;
+                if (!lastActiveAt) return null;
+                return (
+                  <div
+                    className="profile-avatar-updated-at"
+                    title={`Last active: ${formatFullDateTime(lastActiveAt)}`}
+                  >
+                    👁️ {formatFullDateTime(lastActiveAt)}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
           
           {/* Profile Info */}
