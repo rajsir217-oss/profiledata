@@ -11072,15 +11072,19 @@ async def send_profile_share_sms(
 @router.get("/profile-shares")
 async def get_profile_shares(
     current_user: dict = Depends(get_current_user),
+    shared_profile_username: str = Query(None),
     db = Depends(get_database)
 ):
-    """Get profile share history for the current user"""
+    """Get profile share history for the current user, optionally filtered by shared profile"""
     try:
         username = current_user["username"]
+        
+        # Build filter query
+        filter_query = {"senderUsername": username}
+        if shared_profile_username:
+            filter_query["sharedProfileUsername"] = shared_profile_username
 
-        cursor = db.profile_shares.find(
-            {"senderUsername": username}
-        ).sort("sentAt", -1).limit(50)
+        cursor = db.profile_shares.find(filter_query).sort("sentAt", -1).limit(50)
 
         shares = []
         async for doc in cursor:

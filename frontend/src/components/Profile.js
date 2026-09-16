@@ -605,7 +605,7 @@ const Profile = ({
     try {
       // Use backend-provided piiAccess and piiRequestStatus from profile response
       // Only fetch fresh data if not already available
-      if (user.piiAccess) {
+      if (user && user.piiAccess) {
         setPiiAccess(user.piiAccess);
       } else {
         // Fallback to API calls if backend doesn't provide piiAccess
@@ -748,10 +748,14 @@ const Profile = ({
     }
   };
 
-  // Load profile share history
+  // Load profile share history for the currently viewed profile
   const loadProfileShares = async (currentUser) => {
     try {
-      const res = await api.get('/profile-shares');
+      const res = await api.get('/profile-shares', {
+        params: {
+          shared_profile_username: user?.username
+        }
+      });
       setProfileShares(res.data.shares || []);
     } catch (err) {
       logger.error('Failed to load profile shares:', err);
@@ -761,10 +765,14 @@ const Profile = ({
   // Handle recipient selection change
   const handleRecipientChange = (recipientType) => {
     setShareRecipient(recipientType);
-    const contact = currentUserContacts.find(c => c.label.toLowerCase() === recipientType.toLowerCase());
+    if (!recipientType) {
+      setSharePhone('');
+      return;
+    }
+    const contact = currentUserContacts.find(c => c.label && c.label.toLowerCase() === recipientType.toLowerCase());
     const phone = contact?.number || '';
     setSharePhone(phone);
-    logger.debug('Recipient changed:', { recipientType, contact, phone, allContacts: currentUserContacts });
+    logger.debug('Recipient changed:', { recipientType, contact, phone, allContacts: currentUserContacts, contactFound: !!contact });
   };
 
   // Generate default message
@@ -790,10 +798,12 @@ Sent from L3V3L Matches`;
   const handleSendSMS = async (messageOverride = null) => {
     if (!shareRecipient || !sharePhone) {
       setError('Please select a recipient and enter a phone number');
+      setTimeout(() => setError(''), 3000);
       return;
     }
 
     setShareSending(true);
+    setError(''); // Clear any previous errors
     try {
       const currentUser = localStorage.getItem('username');
       const message = messageOverride || customMessage || generateDefaultMessage();
@@ -3472,8 +3482,8 @@ Sent from L3V3L Matches`;
             </div>
           )}
 
-          {/* Shared Profiles History */}
-          {profileShares.length > 0 && (
+          {/* Shared Profiles History - Only on own profile */}
+          {isOwnProfile && profileShares.length > 0 && (
             <div className="profile-shares-history">
               <h5>📋 Recently Shared Profiles</h5>
               <table className="profile-shares-table">
