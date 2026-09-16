@@ -2918,63 +2918,68 @@
 .share-contacts-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 20px;
 }
 
 .share-contact-item {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(110px, 1fr) auto auto;
   align-items: center;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px 12px;
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 8px;
 }
 
 .share-contact-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: contents;
 }
 
 .share-contact-label {
   font-weight: 600;
   color: var(--text-color);
   text-transform: capitalize;
-  min-width: 100px;
 }
 
 .share-contact-phone {
   font-size: 14px;
-  color: var(--text-color);
+  color: var(--text-secondary);
 }
 
 .share-contact-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  align-items: center;
 }
 
-.share-contact-actions .btn {
-  padding: 6px 12px;
-  font-size: 13px;
-  border-radius: 6px;
+.share-contact-actions .btn-micro {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 .add-new-contact-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(110px, 1fr) auto auto;
+  align-items: center;
   gap: 10px;
-  padding-top: 15px;
-  border-top: 1px solid var(--border-color);
+  padding: 12px;
+  margin-bottom: 20px;
+  background: var(--surface-color);
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
 }
 
 .add-new-contact-row .form-control {
-  flex: 1;
-  background: var(--surface-color);
+  width: 100%;
+  background: var(--card-background);
   border: 1px solid var(--border-color);
   color: var(--text-color);
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: 8px;
+  font-size: 14px;
 }
 
 .add-new-contact-row .form-control:focus {
@@ -2982,10 +2987,10 @@
   outline: none;
 }
 
-.add-new-contact-row .btn {
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-weight: 600;
+.add-new-contact-row .btn-micro {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 /* Message Editor Modal */
@@ -3087,15 +3092,9 @@
   }
 
   .share-contact-item {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding: 10px;
-  }
-
-  .share-contact-info {
-    justify-content: space-between;
-    gap: 8px;
+    grid-template-columns: minmax(70px, 1fr) minmax(90px, 1fr) auto auto;
+    gap: 6px;
+    padding: 8px;
   }
 
   .share-contact-label {
@@ -3107,28 +3106,27 @@
     font-size: 13px;
   }
 
-  .share-contact-actions {
-    justify-content: flex-end;
-  }
-
-  .share-contact-actions .btn {
-    flex: 1;
-    max-width: 120px;
-    text-align: center;
+  .share-contact-actions .btn-micro {
+    width: 28px;
+    height: 28px;
   }
 
   .add-new-contact-row {
-    flex-direction: column;
-    gap: 8px;
+    grid-template-columns: 1fr 1fr auto auto;
+    gap: 6px;
+    padding: 8px;
   }
 
   .add-new-contact-row .form-control {
     width: 100%;
-    flex: none;
+    min-width: 0;
+    font-size: 13px;
+    padding: 6px 8px;
   }
 
-  .add-new-contact-row .btn {
-    width: 100%;
+  .add-new-contact-row .btn-micro {
+    width: 28px;
+    height: 28px;
   }
 
   .profile-shares-history .profile-shares-table {
@@ -3207,25 +3205,9 @@
   background: var(--surface-color);
 }
 
-.btn-reshare-tiny {
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-reshare-tiny:hover:not(:disabled) {
-  background: var(--secondary-color);
-  transform: scale(1.1);
-}
-
-.btn-reshare-tiny:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.profile-shares-history td .btn-micro {
+  width: 26px;
+  height: 26px;
 }
 
 @media (max-width: 768px) {

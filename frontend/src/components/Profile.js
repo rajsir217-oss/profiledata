@@ -11,6 +11,7 @@ import ActivationBadge from "./ActivationBadge";
 import onlineStatusService from "../services/onlineStatusService";
 import L3V3LMatchingTable from "./L3V3LMatchingTable";
 import MessageModal from "./MessageModal";
+import DeleteButton from "./DeleteButton";
 import { onPIIAccessChange } from "../utils/piiAccessEvents";
 import { getActivityBadgeProps, getRelativeActivityTime } from "../utils/activityFormatter";
 import { generateAboutMe, generatePartnerPreference, generateLookingForSummary } from "../utils/profileDescriptionGenerator";
@@ -856,6 +857,29 @@ Sent from L3V3L Matches`;
       setError(errorMsg);
     } finally {
       setShareSending(false);
+    }
+  };
+
+  // Delete a profile share record
+  const handleDeleteShare = async (share) => {
+    try {
+      const currentUser = localStorage.getItem('username');
+      await api.delete(`/profile-shares/${share.sharedProfileUsername}`, {
+        params: {
+          recipient_type: share.recipientType,
+          recipient_phone: share.recipientPhone
+        }
+      });
+
+      setSuccessMessage('✅ Share record deleted');
+      setTimeout(() => setSuccessMessage(''), 3000);
+
+      // Reload share history
+      loadProfileShares(currentUser);
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to delete';
+      logger.error('Delete share error:', errorMsg);
+      setError(errorMsg);
     }
   };
 
@@ -3349,7 +3373,7 @@ Sent from L3V3L Matches`;
                   </div>
                   <div className="share-contact-actions">
                     <button
-                      className="btn btn-secondary btn-sm"
+                      className="btn-micro btn-micro-warning"
                       onClick={() => {
                         setShareRecipient(contact.label);
                         setSharePhone(contact.number || '');
@@ -3357,10 +3381,10 @@ Sent from L3V3L Matches`;
                       }}
                       disabled={!contact.number}
                     >
-                      ✏️ Edit
+                      ✏️
                     </button>
                     <button
-                      className="btn btn-primary btn-sm"
+                      className="btn-micro btn-micro-primary"
                       onClick={() => {
                         setShareRecipient(contact.label);
                         setSharePhone(contact.number || '');
@@ -3368,7 +3392,7 @@ Sent from L3V3L Matches`;
                       }}
                       disabled={shareSending || !contact.number}
                     >
-                      {shareSending ? '⏳' : '📤 Share'}
+                      {shareSending ? '⏳' : '📤'}
                     </button>
                   </div>
                 </div>
@@ -3380,7 +3404,7 @@ Sent from L3V3L Matches`;
             <select
               className="form-control"
               value={shareRecipient}
-              onChange={(e) => setShareRecipient(e.target.value)}
+              onChange={(e) => handleRecipientChange(e.target.value)}
             >
               <option value="">Select recipient...</option>
               {CONTACT_LABELS.map(label => (
@@ -3397,18 +3421,18 @@ Sent from L3V3L Matches`;
               onChange={(e) => setSharePhone(e.target.value)}
             />
             <button
-              className="btn btn-secondary"
+              className="btn-micro btn-micro-warning"
               onClick={handleEditMessage}
               disabled={!shareRecipient || !sharePhone}
             >
-              ✏️ Edit
+              ✏️
             </button>
             <button
-              className="btn btn-primary"
+              className="btn-micro btn-micro-primary"
               onClick={() => handleSendSMS()}
               disabled={shareSending || !shareRecipient || !sharePhone}
             >
-              {shareSending ? '⏳' : '📤 Send'}
+              {shareSending ? '⏳' : '📤'}
             </button>
           </div>
 
@@ -3470,14 +3494,24 @@ Sent from L3V3L Matches`;
                       <td>{share.recipientPhone}</td>
                       <td>{new Date(share.sentAt).toLocaleString()}</td>
                       <td>
-                        <button
-                          className="btn-reshare-tiny"
-                          onClick={() => handleReshare(share)}
-                          disabled={shareSending}
-                          title="Reshare this profile"
-                        >
-                          📤
-                        </button>
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center' }}>
+                          <button
+                            className="btn-micro btn-micro-primary"
+                            onClick={() => handleReshare(share)}
+                            disabled={shareSending}
+                            title="Reshare this profile"
+                          >
+                            📤
+                          </button>
+                          <DeleteButton
+                            onDelete={() => handleDeleteShare(share)}
+                            itemName={`share record for ${share.sharedProfileUsername}`}
+                            size="small"
+                            icon="🗑️"
+                            confirmIcon="✓"
+                            className="btn-micro btn-micro-danger"
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

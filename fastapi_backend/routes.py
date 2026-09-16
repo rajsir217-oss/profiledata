@@ -11035,16 +11035,23 @@ async def send_profile_share_sms(
                     )
                     logger.info(f"✅ Added new contact {recipientType} for {username}")
 
-            # Log the share to profile_shares collection
-            await db.profile_shares.insert_one({
-                "senderUsername": username,
-                "sharedProfileUsername": sharedProfileUsername,
-                "recipientType": recipientType,
-                "recipientPhone": recipientPhone,
-                "message": message,
-                "sentAt": datetime.utcnow(),
-                "status": "sent"
-            })
+            # Log the share to profile_shares collection (upsert - keep only latest)
+            await db.profile_shares.update_one(
+                {
+                    "senderUsername": username,
+                    "sharedProfileUsername": sharedProfileUsername,
+                    "recipientType": recipientType,
+                    "recipientPhone": recipientPhone,
+                },
+                {
+                    "$set": {
+                        "message": message,
+                        "sentAt": datetime.utcnow(),
+                        "status": "sent"
+                    }
+                },
+                upsert=True
+            )
 
             return {
                 "success": True,
@@ -11088,6 +11095,61 @@ async def get_profile_shares(
         return {"shares": shares}
     except Exception as e:
         logger.error(f"❌ Error fetching profile shares: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/profile-shares/{shared_profile_username}")
+async def delete_profile_share(
+    shared_profile_username: str,
+    recipient_type: str = Query(...),
+    recipient_phone: str = Query(...),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Delete a specific profile share record"""
+    try:
+        username = current_user["username"]
+        
+        result = await db.profile_shares.delete_one({
+            "senderUsername": username,
+            "sharedProfileUsername": shared_profile_username,
+            "recipientType": recipient_type,
+            "recipientPhone": recipient_phone
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Share record not found")
+        
+        logger.info(f"✅ Deleted profile share: {username} → {shared_profile_username} ({recipient_type})")
+        return {"success": True, "message": "Share record deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting profile share: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/profile-shares")
+async def delete_all_profile_shares(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Delete all profile share history for the current user"""
+    try:
+        username = current_user["username"]
+        
+        result = await db.profile_shares.delete_many({
+            "senderUsername": username
+        })
+        
+        logger.info(f"✅ Deleted {result.deleted_count} profile share records for {username}")
+        return {
+            "success": True,
+            "message": f"Deleted {result.deleted_count} share records",
+            "deletedCount": result.deleted_count
+        }
+    except Exception as e:
+        logger.error(f"❌ Error deleting profile shares: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
