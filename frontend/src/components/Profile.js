@@ -753,7 +753,7 @@ const Profile = ({
     try {
       const res = await api.get('/profile-shares', {
         params: {
-          shared_profile_username: user?.username
+          shared_profile_username: username
         }
       });
       setProfileShares(res.data.shares || []);
@@ -795,8 +795,11 @@ Sent from L3V3L Matches`;
   };
 
   // Send profile share via SMS
-  const handleSendSMS = async (messageOverride = null) => {
-    if (!shareRecipient || !sharePhone) {
+  const handleSendSMS = async (messageOverride = null, recipientTypeOverride = null, phoneOverride = null) => {
+    const finalRecipient = recipientTypeOverride || shareRecipient;
+    const finalPhone = phoneOverride || sharePhone;
+    
+    if (!finalRecipient || !finalPhone) {
       setError('Please select a recipient and enter a phone number');
       setTimeout(() => setError(''), 3000);
       return;
@@ -809,10 +812,10 @@ Sent from L3V3L Matches`;
       const message = messageOverride || customMessage || generateDefaultMessage();
 
       await api.post('/send-sms', {
-        recipientPhone: sharePhone,
+        recipientPhone: finalPhone,
         message: message,
         username: currentUser,
-        recipientType: shareRecipient,
+        recipientType: finalRecipient,
         sharedProfileUsername: username
       });
 
@@ -3396,9 +3399,7 @@ Sent from L3V3L Matches`;
                     <button
                       className="btn-micro btn-micro-primary"
                       onClick={() => {
-                        setShareRecipient(contact.label);
-                        setSharePhone(contact.number || '');
-                        handleSendSMS();
+                        handleSendSMS(null, contact.label, contact.number || '');
                       }}
                       disabled={shareSending || !contact.number}
                     >
@@ -3482,8 +3483,8 @@ Sent from L3V3L Matches`;
             </div>
           )}
 
-          {/* Shared Profiles History - Only on own profile */}
-          {isOwnProfile && profileShares.length > 0 && (
+          {/* Shared Profiles History - Shows for any profile being viewed */}
+          {profileShares.length > 0 && (
             <div className="profile-shares-history">
               <h5>📋 Recently Shared Profiles</h5>
               <table className="profile-shares-table">
