@@ -36,6 +36,7 @@ const QUICK_REPLY_TEMPLATES = [
 const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted, onBack, conversationStatus, onCloseConversation, onArchiveConversation, isGroupChat, groupInfo }) => {
   const messagesEndRef = useRef(null);
   const [messageText, setMessageText] = useState('');
+  const [sendViaSms, setSendViaSms] = useState(false);
   const [deletingMessage, setDeletingMessage] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   
@@ -290,8 +291,9 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
         return;
       }
       
-      onSendMessage(messageText.trim());
+      onSendMessage(messageText.trim(), { sendViaSms });
       setMessageText('');
+      setSendViaSms(false);
     }
   };
 
@@ -826,6 +828,20 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
                   maxLength={1000}
                   disabled={otherUser.accountStatus === 'paused'}
                 />
+                {!isGroupChat && (
+                  <label
+                    className="sms-toggle"
+                    title="Also send this message via SMS to their primary contact number"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={sendViaSms}
+                      onChange={(e) => setSendViaSms(e.target.checked)}
+                      disabled={otherUser.accountStatus === 'paused'}
+                    />
+                    📱 SMS
+                  </label>
+                )}
                 <button
                   type="submit"
                   className={`send-button${isInviteFlow ? ' send-button-invite' : ''}`}

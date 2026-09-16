@@ -853,6 +853,40 @@
   cursor: not-allowed;
 }
 
+/* SMS Toggle Checkbox */
+.sms-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 12px;
+  background: var(--surface-color, #f5f5f5);
+  border: 1px solid var(--border-color, #e0e0e0);
+  transition: all 0.2s ease;
+}
+
+.sms-toggle:hover {
+  background: var(--hover-background, #e8e8e8);
+  border-color: var(--text-color, #667eea);
+}
+
+.sms-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--primary-color, #667eea);
+}
+
+.sms-toggle input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* When the message contains @{email} mentions and the user is an
    admin/moderator, switch the Send button to an "invite" affordance so it's
    visually clear that the next click opens the external-recipient modal. */

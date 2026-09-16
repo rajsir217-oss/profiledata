@@ -45,6 +45,7 @@ class NotificationTrigger(str, Enum):
     NEW_MESSAGE = "new_message"
     MESSAGE_READ = "message_read"
     CONVERSATION_COLD = "conversation_cold"
+    MESSAGE_SMS = "message_sms"  # Sender explicitly chose to also deliver message via SMS
     US_VEDIKA_MESSAGE = "us_vedika_message"  # External email invitation from US Vedika public group
     
     # Privacy/PII

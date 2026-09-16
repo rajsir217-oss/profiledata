@@ -690,11 +690,17 @@ class EventDispatcher:
                     sender_age = ""
             
             recipient_firstName = recipient.get("firstName", target) if recipient else target
-            
+
+            # If sender explicitly queued an SMS (alsoSendSms), skip the ordinary
+            # new_message SMS channel to avoid a duplicate text
+            new_message_channels = ["email", "sms", "push"]
+            if metadata.get("suppress_sms"):
+                new_message_channels = [ch for ch in new_message_channels if ch != "sms"]
+
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="new_message",
-                channels=["email", "sms", "push"],  # All channels; pre-filter removes those user hasn't opted into
+                channels=new_message_channels,  # Pre-filter removes those user hasn't opted into
                 template_data={
                     "recipient": {
                         "firstName": recipient_firstName,

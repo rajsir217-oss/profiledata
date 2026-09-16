@@ -9917,11 +9917,62 @@ async def send_message_enhanced(
         }
         logger.info(f"✅ Enhanced message sent: {username} → {message_data.toUsername}")
         
+        # Optionally queue the message as an SMS to the recipient's primary contact
+        sms_queued = False
+        sms_error = None
+        if getattr(message_data, "alsoSendSms", False):
+            try:
+                # Resolve recipient's primary contact number (mirrors SMS notifier lookup:
+                # contactNumbers[label="primary"] → phone → contactNumber)
+                recipient_phone = None
+                contact_numbers = recipient.get("contactNumbers") or []
+                if isinstance(contact_numbers, list):
+                    for c in contact_numbers:
+                        if isinstance(c, dict) and str(c.get("label", "")).lower() == "primary" and c.get("number"):
+                            recipient_phone = c["number"]
+                            break
+                if not recipient_phone:
+                    recipient_phone = recipient.get("phone") or recipient.get("contactNumber")
+
+                if not recipient_phone:
+                    sms_error = "Recipient has no primary contact number"
+                    logger.warning(f"⚠️ SMS skipped for {message_data.toUsername}: no primary contact")
+                else:
+                    from services.notification_service import NotificationService
+                    service = NotificationService(db)
+                    queue_item = await service.queue_notification(
+                        username=message_data.toUsername,
+                        trigger="message_sms",
+                        channels=["sms"],
+                        template_data={
+                            "message": message_data.content.strip(),
+                            "recipient": {
+                                "firstName": recipient.get("firstName", message_data.toUsername),
+                                "username": message_data.toUsername,
+                            },
+                            "match": {
+                                "firstName": (sender or {}).get("firstName", username),
+                                "username": username,
+                            },
+                            "profile_link": f"https://l3v3lmatches.com/profile/{username}",
+                        },
+                        priority="high",
+                        force_send=True,  # Explicit sender opt-in per message
+                    )
+                    sms_queued = queue_item is not None
+                    if sms_queued:
+                        logger.info(f"📱 Queued message_sms SMS for {message_data.toUsername} (from {username})")
+                    else:
+                        sms_error = "Failed to queue SMS notification"
+            except Exception as sms_err:
+                sms_error = str(sms_err)
+                logger.error(f"❌ Error queuing message SMS: {sms_err}", exc_info=True)
+
         # Dispatch message sent event for notifications
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
             event_dispatcher = await get_event_dispatcher(db)
-            
+
             await event_dispatcher.dispatch(
                 event_type=UserEventType.MESSAGE_SENT,
                 actor_username=username,
@@ -9929,14 +9980,20 @@ async def send_message_enhanced(
                 metadata={
                     "preview": message_data.content[:100],
                     "message_id": str(result.inserted_id),
-                    "is_visible": is_visible
+                    "is_visible": is_visible,
+                    "suppress_sms": sms_queued  # avoid duplicate SMS via new_message trigger
                 }
             )
             logger.debug(f"📤 Dispatched message_sent event: {username} → {message_data.toUsername}")
         except Exception as e:
             logger.warning(f"⚠️ Failed to dispatch message_sent event: {e}")
-        
-        return {"message": "Message sent successfully", "data": message_response}
+
+        return {
+            "message": "Message sent successfully",
+            "data": message_response,
+            "smsQueued": sms_queued,
+            "smsError": sms_error,
+        }
     except Exception as e:
         logger.error(f"❌ Error sending message: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
