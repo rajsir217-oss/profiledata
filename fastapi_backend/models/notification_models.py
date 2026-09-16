@@ -55,6 +55,7 @@ class NotificationTrigger(str, Enum):
     PII_REVOKED = "pii_revoked"
     PII_EXPIRING = "pii_expiring"
     SUSPICIOUS_LOGIN = "suspicious_login"
+    PROFILE_SHARE = "profile_share"  # User shared a profile via SMS
     
     # Engagement
     UNREAD_MESSAGES = "unread_messages"

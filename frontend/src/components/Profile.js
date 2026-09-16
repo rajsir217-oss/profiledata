@@ -116,6 +116,9 @@ const Profile = ({
   const [showMessageEditor, setShowMessageEditor] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
 
+  // Contact labels matching profile edit
+  const CONTACT_LABELS = ['primary', 'secondary', 'self', 'parent', 'spouse', 'daughter', 'son', 'work', 'other'];
+
   logger.debug('Profile component loaded for:', username);
   
   // Check for status message from ProtectedRoute
@@ -734,10 +737,11 @@ const Profile = ({
   // Load current user's contact numbers for SMS sharing
   const loadCurrentUserContacts = async (currentUser) => {
     try {
+      logger.debug('Loading contacts for current user:', { currentUser, viewingProfile: username });
       const res = await api.get(`/profile/${currentUser}`);
       const contacts = res.data.contactNumbers || [];
       setCurrentUserContacts(contacts);
-      logger.debug('Loaded user contacts:', { currentUser, contacts });
+      logger.debug('Loaded user contacts:', { currentUser, contacts, count: contacts.length });
     } catch (err) {
       logger.error('Failed to load user contacts:', err);
     }
@@ -3330,7 +3334,7 @@ Sent from L3V3L Matches`;
           {/* Contacts List with Share Buttons */}
           <div className="share-contacts-list">
             {currentUserContacts
-              .filter(c => ['daughter', 'son', 'spouse'].includes(c.label.toLowerCase()))
+              .filter(c => c.number) // Show all contacts with phone numbers
               .map((contact, index) => (
                 <div key={index} className="share-contact-item">
                   <div className="share-contact-info">
@@ -3369,39 +3373,48 @@ Sent from L3V3L Matches`;
               ))}
             </div>
 
-          {/* Add New Contact */}
-          <div className="add-new-contact-row">
-            <input
-              type="tel"
-              className="form-control"
-              placeholder="Add new phone number..."
-              value={sharePhone}
-              onChange={(e) => setSharePhone(e.target.value)}
-            />
-            <select
-              className="form-control"
-              value={shareRecipient}
-              onChange={(e) => setShareRecipient(e.target.value)}
-            >
-              <option value="">Type...</option>
-              <option value="daughter">Daughter</option>
-              <option value="son">Son</option>
-              <option value="spouse">Spouse</option>
-            </select>
-            <button
-              className="btn btn-secondary"
-              onClick={handleEditMessage}
-              disabled={!shareRecipient || !sharePhone}
-            >
-              ✏️ Edit
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={() => handleSendSMS()}
-              disabled={shareSending || !shareRecipient || !sharePhone}
-            >
-              {shareSending ? '⏳' : '📤 Send'}
-            </button>
+          <div className="share-sms-form">
+            <div className="share-sms-row">
+              <label>Recipient:</label>
+              <select
+                className="form-control"
+                value={shareRecipient}
+                onChange={(e) => handleRecipientChange(e.target.value)}
+              >
+                <option value="">Select recipient...</option>
+                {CONTACT_LABELS.map(label => (
+                  <option key={label} value={label}>
+                    {label.charAt(0).toUpperCase() + label.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="share-sms-row">
+              <label>Phone:</label>
+              <input
+                type="tel"
+                className="form-control"
+                placeholder="Phone number"
+                value={sharePhone}
+                onChange={(e) => setSharePhone(e.target.value)}
+              />
+            </div>
+            <div className="share-sms-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={handleEditMessage}
+                disabled={!shareRecipient || !sharePhone}
+              >
+                ✏️ Edit Message
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => handleSendSMS()}
+                disabled={shareSending || !shareRecipient || !sharePhone}
+              >
+                {shareSending ? '⏳ Sending...' : '📤 Send SMS'}
+              </button>
+            </div>
           </div>
 
           {/* Message Editor Modal */}

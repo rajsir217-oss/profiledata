@@ -10937,64 +10937,71 @@ async def send_profile_share_sms(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Queue profile share SMS to the existing notification system and log the share"""
+    """Send profile share SMS directly via SimpleTexting and save contact to user's profile"""
     try:
-        from services.notification_service import NotificationService
-        from models.notification_models import NotificationQueueCreate, NotificationChannel, NotificationPriority
+        from services.simpletexting_service import SimpleTextingService
 
         # Verify the sender is the authenticated user
         if current_user["username"] != username:
             raise HTTPException(status_code=403, detail="You can only send SMS as yourself")
 
-        # Queue SMS through the existing notification system
-        service = NotificationService(db)
-
-        notification = NotificationQueueCreate(
-            username=username,
-            trigger="profile_share",
-            channels=[NotificationChannel.SMS],
-            priority=NotificationPriority.HIGH,
-            templateData={
-                "recipient": {
-                    "firstName": recipientType,
-                    "phone": recipientPhone
-                },
-                "sharedProfile": {
-                    "username": sharedProfileUsername
-                },
-                "message": message,
-                "senderUsername": username
-            },
-            scheduledFor=None  # Send immediately
+        # Send SMS directly via SimpleTexting (bypasses notification system SMS opt-in)
+        sms_service = SimpleTextingService()
+        result = await sms_service.send_notification(
+            phone=recipientPhone,
+            message=message
         )
 
-        queue_item = await service.enqueue_notification(notification)
+        if result.get("success"):
+            logger.info(f"✅ Profile share SMS sent from {username} to {recipientPhone[:3]}***")
 
-        logger.info(f"✅ Profile share SMS queued from {username} to {recipientPhone[:3]}***")
+            # Save/update the contact number in user's profile
+            if recipientType and recipientPhone:
+                # Check if contact already exists with this label
+                existing_contact = await db.users.find_one({
+                    "username": username,
+                    "contactNumbers.label": recipientType
+                })
 
-        # Log the share to profile_shares collection
-        await db.profile_shares.insert_one({
-            "senderUsername": username,
-            "sharedProfileUsername": sharedProfileUsername,
-            "recipientType": recipientType,
-            "recipientPhone": recipientPhone,
-            "message": message,
-            "sentAt": datetime.utcnow(),
-            "status": "queued",
-            "notificationId": str(queue_item.id)
-        })
+                if existing_contact:
+                    # Update existing contact
+                    await db.users.update_one(
+                        {"username": username, "contactNumbers.label": recipientType},
+                        {"$set": {"contactNumbers.$.number": recipientPhone}}
+                    )
+                    logger.info(f"✅ Updated existing contact {recipientType} for {username}")
+                else:
+                    # Add new contact
+                    await db.users.update_one(
+                        {"username": username},
+                        {"$push": {"contactNumbers": {"label": recipientType, "number": recipientPhone, "visible": True}}}
+                    )
+                    logger.info(f"✅ Added new contact {recipientType} for {username}")
 
-        return {
-            "success": True,
-            "message": "SMS queued successfully",
-            "recipient": recipientPhone,
-            "notificationId": str(queue_item.id)
-        }
+            # Log the share to profile_shares collection
+            await db.profile_shares.insert_one({
+                "senderUsername": username,
+                "sharedProfileUsername": sharedProfileUsername,
+                "recipientType": recipientType,
+                "recipientPhone": recipientPhone,
+                "message": message,
+                "sentAt": datetime.utcnow(),
+                "status": "sent"
+            })
+
+            return {
+                "success": True,
+                "message": "SMS sent successfully",
+                "recipient": recipientPhone
+            }
+        else:
+            logger.error(f"❌ Failed to send SMS: {result.get('error')}")
+            raise HTTPException(status_code=500, detail=result.get("error", "Failed to send SMS"))
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error queuing profile share SMS: {e}", exc_info=True)
+        logger.error(f"❌ Error sending profile share SMS: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
