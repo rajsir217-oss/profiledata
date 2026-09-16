@@ -3305,23 +3305,23 @@ Sent from L3V3L Matches`;
       {/* Action Buttons - Mobile Only (bottom bar) */}
       {!isOwnProfile && (
         <div className="profile-action-buttons">
-          <button className={`btn-profile-action btn-action-message ${hasMessages ? 'active' : ''}`} onClick={() => setShowMessageModal(true)} disabled={user.accountStatus === 'paused'} title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}>
+          <button className={`btn-profile-action btn-micro-primary ${hasMessages ? 'active' : ''}`} onClick={() => setShowMessageModal(true)} disabled={user.accountStatus === 'paused'} title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}>
             <span className="action-icon">{hasMessages ? ACTION_ICONS.MESSAGE_ACTIVE : ACTION_ICONS.MESSAGE}</span>
             <span className="action-label">{hasMessages ? 'Messages' : 'Message'}</span>
           </button>
-          <button className={`btn-profile-action btn-action-favorite ${isFavorited ? 'active' : ''}`} onClick={handleToggleFavorite} title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}>
+          <button className={`btn-profile-action ${isFavorited ? 'btn-micro-success' : 'btn-micro-secondary'}`} onClick={handleToggleFavorite} title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}>
             <span className="action-icon">{isFavorited ? ACTION_ICONS.UNFAVORITE : ACTION_ICONS.FAVORITE}</span>
             <span className="action-label">{isFavorited ? 'Favorited' : 'Favorite'}</span>
           </button>
-          <button className={`btn-profile-action btn-action-shortlist ${isShortlisted ? 'active' : ''}`} onClick={handleToggleShortlist} title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}>
+          <button className={`btn-profile-action ${isShortlisted ? 'btn-micro-info' : 'btn-micro-secondary'}`} onClick={handleToggleShortlist} title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}>
             <span className="action-icon">{isShortlisted ? ACTION_ICONS.SHORTLIST_ACTIVE : ACTION_ICONS.SHORTLIST}</span>
             <span className="action-label">{isShortlisted ? 'Shortlisted' : 'Shortlist'}</span>
           </button>
-          <button className="btn-profile-action btn-action-pii" onClick={handleOpenPIIRequest} disabled={hasAllAccess} title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}>
+          <button className="btn-profile-action btn-micro-warning" onClick={handleOpenPIIRequest} disabled={hasAllAccess} title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}>
             <span className="action-icon">{hasAllAccess ? ACTION_ICONS.HAS_ACCESS : ACTION_ICONS.REQUEST_CONTACT}</span>
             <span className="action-label">{hasAllAccess ? 'Full Access' : 'Request PII'}</span>
           </button>
-          <button className={`btn-profile-action btn-action-exclude ${isExcluded ? 'active' : ''}`} onClick={handleToggleExclude} disabled={exclusionLoading} title={isExcluded ? 'Unhide' : 'Hide'}>
+          <button className={`btn-profile-action ${isExcluded ? 'btn-micro-danger' : 'btn-micro-secondary'}`} onClick={handleToggleExclude} disabled={exclusionLoading} title={isExcluded ? 'Unhide' : 'Hide'}>
             <span className="action-icon">{exclusionLoading ? '⏳' : (isExcluded ? ACTION_ICONS.UNHIDE : ACTION_ICONS.HIDE)}</span>
             <span className="action-label">{isExcluded ? 'Unhide' : 'Hide'}</span>
           </button>

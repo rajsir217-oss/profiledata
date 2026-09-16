@@ -393,42 +393,106 @@
 }
 
 .btn-profile-action {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  background: var(--surface-color, #f5f5f5);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50px !important;
-  border: none;
-  background: var(--card-background);
-  color: var(--text-color);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  font-size: 10px;
+  line-height: 1;
+  padding: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
 }
 
 .btn-profile-action:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-color: var(--primary-color);
+  transform: scale(1.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .btn-profile-action:active:not(:disabled) {
-  transform: translateY(-1px);
+  transform: scale(0.95);
 }
 
 .btn-profile-action:disabled {
-  opacity: 0.6;
+  opacity: 0.35;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .btn-profile-action .action-icon {
-  font-size: 20px;
+  font-size: 10px;
   line-height: 1;
 }
 
 .btn-profile-action .action-label {
   display: none;
+}
+
+/* Button color variants - btn-micro style */
+.btn-profile-action.btn-micro-primary {
+  border-color: var(--primary-color, #2563eb);
+  color: var(--primary-color, #2563eb);
+}
+
+.btn-profile-action.btn-micro-primary:hover:not(:disabled) {
+  background: var(--primary-color, #2563eb);
+  color: #fff;
+}
+
+.btn-profile-action.btn-micro-info {
+  border-color: var(--info-color, #3b82f6);
+  color: var(--info-color, #3b82f6);
+}
+
+.btn-profile-action.btn-micro-info:hover:not(:disabled) {
+  background: var(--info-color, #3b82f6);
+  color: #fff;
+}
+
+.btn-profile-action.btn-micro-warning {
+  border-color: var(--warning-color, #f59e0b);
+  color: var(--warning-color, #f59e0b);
+}
+
+.btn-profile-action.btn-micro-warning:hover:not(:disabled) {
+  background: var(--warning-color, #f59e0b);
+  color: #fff;
+}
+
+.btn-profile-action.btn-micro-danger {
+  border-color: var(--danger-color, #ef4444);
+  color: var(--danger-color, #ef4444);
+}
+
+.btn-profile-action.btn-micro-danger:hover:not(:disabled) {
+  background: var(--danger-color, #ef4444);
+  color: #fff;
+}
+
+.btn-profile-action.btn-micro-secondary {
+  border-color: var(--text-muted, #6b7280);
+  color: var(--text-muted, #6b7280);
+}
+
+.btn-profile-action.btn-micro-secondary:hover:not(:disabled) {
+  background: var(--text-muted, #6b7280);
+  color: #fff;
+}
+
+.btn-profile-action.btn-micro-success {
+  border-color: var(--success-color, #22c55e);
+  color: var(--success-color, #22c55e);
+}
+
+.btn-profile-action.btn-micro-success:hover:not(:disabled) {
+  background: var(--success-color, #22c55e);
+  color: #fff;
 }
 
 /* Specific button colors - rounded square style */
@@ -629,12 +693,12 @@
   }
 
   .btn-profile-action {
-    width: 50px;
-    height: 50px;
+    width: 30px;
+    height: 30px;
   }
 
   .btn-profile-action .action-icon {
-    font-size: 22px;
+    font-size: 12px;
   }
 
   .profile-action-buttons {
