@@ -348,7 +348,7 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
           logActivity('payment_cancelled');
         },
         onError: (err) => {
-          setError('PayPal encountered an error. Please try again.');
+          setError('PayPal encountered an error. Please try Clover card payment instead.');
         }
       }).render(paypalContainerRef.current)
         .then(() => {
@@ -564,10 +564,15 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
     setCloverLoading(true);
     setError('');
     try {
+      // Small delay to ensure all fields are properly validated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const result = await cloverInstanceRef.current.createToken();
+      logger.debug('Clover createToken result:', result);
       if (result.errors) {
         const errMsgs = Object.values(result.errors).map(e => typeof e === 'string' ? e : (e?.message || JSON.stringify(e)));
-        setError(errMsgs.join(', '));
+        logger.error('Clover validation errors:', result.errors);
+        setError(`${errMsgs.join(', ')}. Please try PayPal if card payment continues to fail.`);
         setCloverLoading(false);
         return;
       }
@@ -604,11 +609,12 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
         const detail = chargeData.detail;
         const msg = typeof detail === 'string' ? detail
           : Array.isArray(detail) ? detail.map(d => d.msg || JSON.stringify(d)).join(', ')
-          : (detail?.msg || 'Card charge failed. Please try again.');
+          : (detail?.msg || 'Card charge failed. Please try PayPal instead.');
         setError(msg);
       }
     } catch (err) {
-      setError('Failed to process card payment. Please try again.');
+      logger.error('Clover payment error:', err);
+      setError('Failed to process card payment. Please try PayPal instead.');
     } finally {
       setCloverLoading(false);
     }
@@ -684,7 +690,47 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig }) => {
             </div>
           )}
 
-          {error && <div className="contribution-error">{error}</div>}
+          {error && (
+            <div className="contribution-error">
+              {error}
+              {paymentMethod === 'clover' && (
+                <button
+                  className="try-paypal-btn"
+                  onClick={() => setPaymentMethod('paypal')}
+                  style={{
+                    marginTop: '8px',
+                    padding: '6px 12px',
+                    background: '#0070ba',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  Try PayPal Instead
+                </button>
+              )}
+              {paymentMethod === 'paypal' && (
+                <button
+                  className="try-clover-btn"
+                  onClick={() => setPaymentMethod('clover')}
+                  style={{
+                    marginTop: '8px',
+                    padding: '6px 12px',
+                    background: '#6f42c1',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  Try Card Payment Instead
+                </button>
+              )}
+            </div>
+          )}
 
           <section className="contribution-block contribution-amounts-block" aria-label="Contribution amount options">
             <div className="contribution-block-title">{hasMembershipAccess ? 'Support L3V3L Matches' : 'Choose Your Contribution'}</div>
