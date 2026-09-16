@@ -20,7 +20,7 @@ import { getWorkingStatus } from "../utils/workStatusHelper";
 import RichTextEditor from "./shared/RichTextEditor";
 import { getAuthenticatedImageUrl } from "../utils/imageUtils";
 import logger from "../utils/logger";
-import { formatFullDateTime, formatRelativeTime } from "../utils/timeFormatter";
+import { formatFullDateTime, formatRelativeTime, formatCompactDateTime } from "../utils/timeFormatter";
 import ActivitySummaryPanel from "./ActivitySummaryPanel";
 import { useContribution } from "../contexts/ContributionContext";
 import "./Profile.css";
@@ -1836,7 +1836,7 @@ Sent from L3V3L Matches`;
                     className="profile-avatar-updated-at"
                     title={`Last active: ${formatFullDateTime(lastActiveAt)}`}
                   >
-                    👁️ {formatFullDateTime(lastActiveAt)}
+                    👁️ {formatCompactDateTime(lastActiveAt)}
                   </div>
                 );
               })()}

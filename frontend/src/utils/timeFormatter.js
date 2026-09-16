@@ -135,3 +135,24 @@ export const formatShortDateTime = (dateValue) => {
     hour12: true
   });
 };
+
+/**
+ * Format compact numeric date + time (e.g., "10/26/2026 03:33 pm")
+ * @param {string|Date} dateValue - ISO string or Date object
+ * @returns {string} - Formatted date and time
+ */
+export const formatCompactDateTime = (dateValue) => {
+  if (!dateValue) return 'N/A';
+
+  const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+
+  const month = (date.getMonth() + 1).toString();
+  const day = date.getDate().toString();
+  const year = date.getFullYear().toString();
+  const hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'pm' : 'am';
+  const displayHours = hours % 12 || 12;
+
+  return `${month}/${day}/${year} ${displayHours}:${minutes} ${ampm}`;
+};
