@@ -2833,25 +2833,61 @@
   font-weight: 600;
 }
 
-.share-sms-form {
+.share-contacts-list {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.share-contact-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.share-contact-info {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
-.share-sms-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.share-contact-label {
+  font-weight: 600;
+  color: var(--text-color);
+  text-transform: capitalize;
+  min-width: 100px;
 }
 
-.share-sms-row label {
+.share-contact-phone {
   font-size: 14px;
-  font-weight: 500;
   color: var(--text-color);
 }
 
-.share-sms-row .form-control {
+.share-contact-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.share-contact-actions .btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.add-new-contact-row {
+  display: flex;
+  gap: 10px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+}
+
+.add-new-contact-row .form-control {
+  flex: 1;
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   color: var(--text-color);
@@ -2859,20 +2895,13 @@
   border-radius: 8px;
 }
 
-.share-sms-row .form-control:focus {
+.add-new-contact-row .form-control:focus {
   border-color: var(--primary-color);
   outline: none;
 }
 
-.share-sms-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.share-sms-actions .btn {
-  flex: 1;
-  padding: 10px 20px;
+.add-new-contact-row .btn {
+  padding: 10px 16px;
   border-radius: 8px;
   font-weight: 600;
 }

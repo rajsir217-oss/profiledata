@@ -3373,48 +3373,41 @@ Sent from L3V3L Matches`;
               ))}
             </div>
 
-          <div className="share-sms-form">
-            <div className="share-sms-row">
-              <label>Recipient:</label>
-              <select
-                className="form-control"
-                value={shareRecipient}
-                onChange={(e) => handleRecipientChange(e.target.value)}
-              >
-                <option value="">Select recipient...</option>
-                {CONTACT_LABELS.map(label => (
-                  <option key={label} value={label}>
-                    {label.charAt(0).toUpperCase() + label.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="share-sms-row">
-              <label>Phone:</label>
-              <input
-                type="tel"
-                className="form-control"
-                placeholder="Phone number"
-                value={sharePhone}
-                onChange={(e) => setSharePhone(e.target.value)}
-              />
-            </div>
-            <div className="share-sms-actions">
-              <button
-                className="btn btn-secondary"
-                onClick={handleEditMessage}
-                disabled={!shareRecipient || !sharePhone}
-              >
-                ✏️ Edit Message
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={() => handleSendSMS()}
-                disabled={shareSending || !shareRecipient || !sharePhone}
-              >
-                {shareSending ? '⏳ Sending...' : '📤 Send SMS'}
-              </button>
-            </div>
+          {/* Add New Contact Row */}
+          <div className="add-new-contact-row">
+            <select
+              className="form-control"
+              value={shareRecipient}
+              onChange={(e) => setShareRecipient(e.target.value)}
+            >
+              <option value="">Select recipient...</option>
+              {CONTACT_LABELS.map(label => (
+                <option key={label} value={label}>
+                  {label.charAt(0).toUpperCase() + label.slice(1)}
+                </option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              className="form-control"
+              placeholder="Phone number"
+              value={sharePhone}
+              onChange={(e) => setSharePhone(e.target.value)}
+            />
+            <button
+              className="btn btn-secondary"
+              onClick={handleEditMessage}
+              disabled={!shareRecipient || !sharePhone}
+            >
+              ✏️ Edit
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => handleSendSMS()}
+              disabled={shareSending || !shareRecipient || !sharePhone}
+            >
+              {shareSending ? '⏳' : '📤 Send'}
+            </button>
           </div>
 
           {/* Message Editor Modal */}
