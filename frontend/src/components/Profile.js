@@ -106,7 +106,16 @@ const Profile = ({
   const [isRephrasing, setIsRephrasing] = useState(false);
   const [rephraseStyle, setRephraseStyle] = useState('concise');
   const [aiProvider, setAiProvider] = useState('groq'); // 'groq' (recommended) or 'gemini'
-  
+
+  // SMS Share state
+  const [shareRecipient, setShareRecipient] = useState('');
+  const [sharePhone, setSharePhone] = useState('');
+  const [shareSending, setShareSending] = useState(false);
+  const [currentUserContacts, setCurrentUserContacts] = useState([]);
+  const [profileShares, setProfileShares] = useState([]);
+  const [showMessageEditor, setShowMessageEditor] = useState(false);
+  const [customMessage, setCustomMessage] = useState('');
+
   logger.debug('Profile component loaded for:', username);
   
   // Check for status message from ProtectedRoute
@@ -312,7 +321,13 @@ const Profile = ({
         if (profileData.isOnline !== undefined) {
           setIsOnline(profileData.isOnline);
         }
-        
+
+        // Load current user's contact numbers for SMS sharing
+        if (currentUsername && !isOwnProfile) {
+          loadCurrentUserContacts(currentUsername);
+          loadProfileShares(currentUsername);
+        }
+
         // Debug: Log relationship status from API
         logger.debug('💜 Profile relationship status from API:', {
           isFavorited: profileData.isFavorited,
@@ -713,6 +728,130 @@ const Profile = ({
     } catch (err) {
       setExclusionLoading(false);
       setError('Failed to update not interested');
+    }
+  };
+
+  // Load current user's contact numbers for SMS sharing
+  const loadCurrentUserContacts = async (currentUser) => {
+    try {
+      const res = await api.get(`/profile/${currentUser}`);
+      const contacts = res.data.contactNumbers || [];
+      setCurrentUserContacts(contacts);
+      logger.debug('Loaded user contacts:', { currentUser, contacts });
+    } catch (err) {
+      logger.error('Failed to load user contacts:', err);
+    }
+  };
+
+  // Load profile share history
+  const loadProfileShares = async (currentUser) => {
+    try {
+      const res = await api.get('/profile-shares');
+      setProfileShares(res.data.shares || []);
+    } catch (err) {
+      logger.error('Failed to load profile shares:', err);
+    }
+  };
+
+  // Handle recipient selection change
+  const handleRecipientChange = (recipientType) => {
+    setShareRecipient(recipientType);
+    const contact = currentUserContacts.find(c => c.label.toLowerCase() === recipientType.toLowerCase());
+    const phone = contact?.number || '';
+    setSharePhone(phone);
+    logger.debug('Recipient changed:', { recipientType, contact, phone, allContacts: currentUserContacts });
+  };
+
+  // Generate default message
+  const generateDefaultMessage = () => {
+    const profileUrl = `${window.location.origin}/profile/${username}`;
+    return `Hi! I found this profile on L3V3L Matches that might be a good match.
+
+${user.firstName}, ${user.age} - ${user.location} - ${user.height}
+${user.profession}
+
+View profile: ${profileUrl}
+
+Sent from L3V3L Matches`;
+  };
+
+  // Open message editor with default message
+  const handleEditMessage = () => {
+    setCustomMessage(generateDefaultMessage());
+    setShowMessageEditor(true);
+  };
+
+  // Send profile share via SMS
+  const handleSendSMS = async (messageOverride = null) => {
+    if (!shareRecipient || !sharePhone) {
+      setError('Please select a recipient and enter a phone number');
+      return;
+    }
+
+    setShareSending(true);
+    try {
+      const currentUser = localStorage.getItem('username');
+      const message = messageOverride || customMessage || generateDefaultMessage();
+
+      await api.post('/send-sms', {
+        recipientPhone: sharePhone,
+        message: message,
+        username: currentUser,
+        recipientType: shareRecipient,
+        sharedProfileUsername: username
+      });
+
+      setSuccessMessage('✅ Profile shared via SMS');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      setShowMessageEditor(false);
+      setCustomMessage('');
+
+      // Reload share history
+      loadProfileShares(currentUser);
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to send SMS';
+      logger.error('SMS send error:', errorMsg);
+      setError(errorMsg);
+    } finally {
+      setShareSending(false);
+    }
+  };
+
+  // Reshare profile from history
+  const handleReshare = async (share) => {
+    setShareRecipient(share.recipientType);
+    setSharePhone(share.recipientPhone);
+    setShareSending(true);
+
+    try {
+      const currentUser = localStorage.getItem('username');
+      const profileUrl = `${window.location.origin}/profile/${share.sharedProfileUsername}`;
+
+      const message = `Hi! I found this profile on L3V3L Matches that might be a good match for ${share.recipientType}:
+
+View profile: ${profileUrl}
+
+Sent from L3V3L Matches`;
+
+      await api.post('/send-sms', {
+        recipientPhone: share.recipientPhone,
+        message: message,
+        username: currentUser,
+        recipientType: share.recipientType,
+        sharedProfileUsername: share.sharedProfileUsername
+      });
+
+      setSuccessMessage('✅ Profile reshared via SMS');
+      setTimeout(() => setSuccessMessage(''), 3000);
+
+      // Reload share history
+      loadProfileShares(currentUser);
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to reshare';
+      logger.error('Reshare error:', errorMsg);
+      setError(errorMsg);
+    } finally {
+      setShareSending(false);
     }
   };
 
@@ -3180,6 +3319,164 @@ const Profile = ({
             <span className="action-icon">{exclusionLoading ? '⏳' : (isExcluded ? ACTION_ICONS.UNHIDE : ACTION_ICONS.HIDE)}</span>
             <span className="action-label">{isExcluded ? 'Unhide' : 'Hide'}</span>
           </button>
+        </div>
+      )}
+
+      {/* Share via SMS Section */}
+      {!isOwnProfile && (
+        <div className="profile-share-sms-section">
+          <h4>📱 Share Profile via SMS</h4>
+
+          {/* Contacts List with Share Buttons */}
+          <div className="share-contacts-list">
+            {currentUserContacts
+              .filter(c => ['daughter', 'son', 'spouse'].includes(c.label.toLowerCase()))
+              .map((contact, index) => (
+                <div key={index} className="share-contact-item">
+                  <div className="share-contact-info">
+                    <span className="share-contact-label">
+                      {contact.label.charAt(0).toUpperCase() + contact.label.slice(1)}
+                    </span>
+                    {contact.number && (
+                      <span className="share-contact-phone">{contact.number}</span>
+                    )}
+                  </div>
+                  <div className="share-contact-actions">
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        setShareRecipient(contact.label);
+                        setSharePhone(contact.number || '');
+                        handleEditMessage();
+                      }}
+                      disabled={!contact.number}
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        setShareRecipient(contact.label);
+                        setSharePhone(contact.number || '');
+                        handleSendSMS();
+                      }}
+                      disabled={shareSending || !contact.number}
+                    >
+                      {shareSending ? '⏳' : '📤 Share'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          {/* Add New Contact */}
+          <div className="add-new-contact-row">
+            <input
+              type="tel"
+              className="form-control"
+              placeholder="Add new phone number..."
+              value={sharePhone}
+              onChange={(e) => setSharePhone(e.target.value)}
+            />
+            <select
+              className="form-control"
+              value={shareRecipient}
+              onChange={(e) => setShareRecipient(e.target.value)}
+            >
+              <option value="">Type...</option>
+              <option value="daughter">Daughter</option>
+              <option value="son">Son</option>
+              <option value="spouse">Spouse</option>
+            </select>
+            <button
+              className="btn btn-secondary"
+              onClick={handleEditMessage}
+              disabled={!shareRecipient || !sharePhone}
+            >
+              ✏️ Edit
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => handleSendSMS()}
+              disabled={shareSending || !shareRecipient || !sharePhone}
+            >
+              {shareSending ? '⏳' : '📤 Send'}
+            </button>
+          </div>
+
+          {/* Message Editor Modal */}
+          {showMessageEditor && (
+            <div className="modal-overlay" onClick={() => setShowMessageEditor(false)}>
+              <div className="message-editor-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h3>✏️ Edit SMS Message</h3>
+                  <button className="modal-close" onClick={() => setShowMessageEditor(false)}>✕</button>
+                </div>
+                <div className="modal-body">
+                  <textarea
+                    className="form-control message-editor-textarea"
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    rows={8}
+                    placeholder="Enter your custom message..."
+                  />
+                  <div className="message-editor-actions">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setShowMessageEditor(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleSendSMS(customMessage)}
+                      disabled={shareSending || !customMessage.trim()}
+                    >
+                      {shareSending ? '⏳ Sending...' : '📤 Send Custom Message'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Shared Profiles History */}
+          {profileShares.length > 0 && (
+            <div className="profile-shares-history">
+              <h5>📋 Recently Shared Profiles</h5>
+              <table className="profile-shares-table">
+                <thead>
+                  <tr>
+                    <th>Shared Profile</th>
+                    <th>Recipient</th>
+                    <th>Phone</th>
+                    <th>Sent At</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {profileShares.map((share, index) => (
+                    <tr key={index}>
+                      <td>{share.sharedProfileUsername}</td>
+                      <td style={{ textTransform: 'capitalize' }}>{share.recipientType}</td>
+                      <td>{share.recipientPhone}</td>
+                      <td>{new Date(share.sentAt).toLocaleString()}</td>
+                      <td>
+                        <button
+                          className="btn-reshare-tiny"
+                          onClick={() => handleReshare(share)}
+                          disabled={shareSending}
+                          title="Reshare this profile"
+                        >
+                          📤
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

@@ -885,8 +885,8 @@ const Register3 = ({ mode = 'register', editUsername = null }) => {
   };
 
   // ========== MULTI-CONTACT NUMBER HANDLERS ==========
-  const CONTACT_LABELS = ['primary', 'secondary', 'self', 'parent', 'spouse', 'work', 'other'];
-  const CONTACT_LABEL_ABBR = { primary: 'P', secondary: 'S', self: 'Me', parent: 'Par', spouse: 'Sp', work: 'W', other: 'O' };
+  const CONTACT_LABELS = ['primary', 'secondary', 'self', 'parent', 'spouse', 'daughter', 'son', 'work', 'other'];
+  const CONTACT_LABEL_ABBR = { primary: 'P', secondary: 'S', self: 'Me', parent: 'Par', spouse: 'Sp', daughter: 'Dau', son: 'Son', work: 'W', other: 'O' };
   const isMobileView = typeof window !== 'undefined' && window.innerWidth <= 576;
 
   // Normalize phone number for duplicate comparison (strip non-digits)

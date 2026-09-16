@@ -871,7 +871,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   };
 
   // ========== MULTI-CONTACT NUMBER HANDLERS ==========
-  const CONTACT_LABELS = ['primary', 'secondary', 'self', 'parent', 'spouse', 'work', 'other'];
+  const CONTACT_LABELS = ['primary', 'secondary', 'self', 'parent', 'spouse', 'daughter', 'son', 'work', 'other'];
 
   // Normalize phone number for duplicate comparison (strip non-digits)
   const normalizePhone = (num) => (num || '').replace(/[^\d]/g, '');

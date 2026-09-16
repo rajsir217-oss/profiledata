@@ -2817,3 +2817,284 @@
   }
 }
 
+/* Share via SMS Section */
+.profile-share-sms-section {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.profile-share-sms-section h4 {
+  color: var(--text-color);
+  margin-bottom: 15px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.share-contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.share-contact-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.share-contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.share-contact-label {
+  font-weight: 600;
+  color: var(--text-color);
+  text-transform: capitalize;
+}
+
+.share-contact-phone {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.share-contact-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.share-contact-actions .btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.add-new-contact-row {
+  display: flex;
+  gap: 10px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+}
+
+.add-new-contact-row .form-control {
+  flex: 1;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.add-new-contact-row .form-control:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.add-new-contact-row .btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* Message Editor Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.message-editor-modal {
+  background: var(--card-background);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.message-editor-modal .modal-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 16px 16px 0 0;
+}
+
+.message-editor-modal .modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.message-editor-modal .modal-close {
+  background: rgba(0, 0, 0, 0.3);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  color: white;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.message-editor-modal .modal-body {
+  padding: 24px;
+}
+
+.message-editor-textarea {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--surface-color);
+  color: var(--text-color);
+  margin-bottom: 16px;
+}
+
+.message-editor-textarea:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.message-editor-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.message-editor-actions .btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .profile-share-sms-section {
+    padding: 15px;
+  }
+
+  .share-sms-form {
+    gap: 10px;
+  }
+}
+
+/* Profile Shares History Table */
+.profile-shares-history {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.profile-shares-history .table thead {
+  display: table-header-group !important;
+  visibility: visible !important;
+}
+
+.profile-shares-history .table thead tr {
+  display: table-row !important;
+  visibility: visible !important;
+}
+
+.profile-shares-history .table th {
+  display: table-cell !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.profile-shares-history h5 {
+  color: var(--text-color) !important;
+  margin-bottom: 15px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profile-shares-history .profile-shares-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: var(--card-background);
+}
+
+.profile-shares-history .profile-shares-table thead {
+  background: var(--primary-color);
+}
+
+.profile-shares-history .profile-shares-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 700;
+  color: white;
+  border-bottom: 2px solid var(--border-color);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.profile-shares-history .profile-shares-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color);
+  background: var(--card-background);
+}
+
+.profile-shares-history .profile-shares-table tbody tr:hover {
+  background: var(--surface-color);
+}
+
+.btn-reshare-tiny {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-reshare-tiny:hover:not(:disabled) {
+  background: var(--secondary-color);
+  transform: scale(1.1);
+}
+
+.btn-reshare-tiny:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .profile-shares-history .table {
+    font-size: 12px;
+  }
+
+  .profile-shares-history .table th,
+  .profile-shares-history .table td {
+    padding: 8px;
+  }
+}
+

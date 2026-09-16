@@ -10927,6 +10927,106 @@ async def toggle_sms_optin(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/send-sms")
+async def send_profile_share_sms(
+    recipientPhone: str = Body(..., embed=True),
+    message: str = Body(..., embed=True),
+    username: str = Body(..., embed=True),
+    recipientType: str = Body(None, embed=True),
+    sharedProfileUsername: str = Body(None, embed=True),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Queue profile share SMS to the existing notification system and log the share"""
+    try:
+        from services.notification_service import NotificationService
+        from models.notification_models import NotificationQueueCreate, NotificationChannel, NotificationPriority
+
+        # Verify the sender is the authenticated user
+        if current_user["username"] != username:
+            raise HTTPException(status_code=403, detail="You can only send SMS as yourself")
+
+        # Queue SMS through the existing notification system
+        service = NotificationService(db)
+
+        notification = NotificationQueueCreate(
+            username=username,
+            trigger="profile_share",
+            channels=[NotificationChannel.SMS],
+            priority=NotificationPriority.HIGH,
+            templateData={
+                "recipient": {
+                    "firstName": recipientType,
+                    "phone": recipientPhone
+                },
+                "sharedProfile": {
+                    "username": sharedProfileUsername
+                },
+                "message": message,
+                "senderUsername": username
+            },
+            scheduledFor=None  # Send immediately
+        )
+
+        queue_item = await service.enqueue_notification(notification)
+
+        logger.info(f"✅ Profile share SMS queued from {username} to {recipientPhone[:3]}***")
+
+        # Log the share to profile_shares collection
+        await db.profile_shares.insert_one({
+            "senderUsername": username,
+            "sharedProfileUsername": sharedProfileUsername,
+            "recipientType": recipientType,
+            "recipientPhone": recipientPhone,
+            "message": message,
+            "sentAt": datetime.utcnow(),
+            "status": "queued",
+            "notificationId": str(queue_item.id)
+        })
+
+        return {
+            "success": True,
+            "message": "SMS queued successfully",
+            "recipient": recipientPhone,
+            "notificationId": str(queue_item.id)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error queuing profile share SMS: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/profile-shares")
+async def get_profile_shares(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Get profile share history for the current user"""
+    try:
+        username = current_user["username"]
+
+        cursor = db.profile_shares.find(
+            {"senderUsername": username}
+        ).sort("sentAt", -1).limit(50)
+
+        shares = []
+        async for doc in cursor:
+            shares.append({
+                "sharedProfileUsername": doc.get("sharedProfileUsername"),
+                "recipientType": doc.get("recipientType"),
+                "recipientPhone": doc.get("recipientPhone"),
+                "sentAt": doc.get("sentAt"),
+                "status": doc.get("status")
+            })
+
+        return {"shares": shares}
+    except Exception as e:
+        logger.error(f"❌ Error fetching profile shares: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # NOTE: /messages/conversations endpoint has been moved to line 1821 
 # to ensure it matches BEFORE /messages/{username} generic route
 
