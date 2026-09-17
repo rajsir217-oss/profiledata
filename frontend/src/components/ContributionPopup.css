@@ -198,8 +198,8 @@
 /* Amount Options - Column Layout */
 .contribution-amounts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
-  gap: 4px;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
   margin: 2px 0 0;
 }
 
@@ -210,20 +210,13 @@
   border-radius: 4px;
   cursor: pointer;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 8px;
-  transition: all 0.2s ease;
-  min-height: 28px;
-  width: 100%;
-}
-
-.membership-amount-option {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-height: 40px;
+  padding: 8px;
+  transition: all 0.2s ease;
+  min-height: 50px;
+  width: 100%;
 }
 
 .contribution-amount-option:hover {
@@ -241,8 +234,8 @@
 }
 
 .contribution-amount-label {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: #e5e5e5;
   display: flex;
   align-items: center;
@@ -255,6 +248,15 @@
   font-weight: 600;
   width: 100%;
   justify-content: flex-start;
+}
+
+.contribution-months-text {
+  font-size: 8px;
+  font-weight: 500;
+  color: #888;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .heart-badge {
@@ -1338,4 +1340,81 @@
 .select-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Embedded Contribution Form Styles */
+.contribution-form-embedded {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.contribution-activity-stats {
+  text-align: center;
+  padding: 20px;
+  background: var(--surface-color);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.activity-thanks {
+  font-size: 16px;
+  color: var(--text-color);
+  margin-bottom: 12px;
+}
+
+.activity-metrics {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.activity-metrics span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.contribution-ytd {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface-color);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+.ytd-label {
+  color: var(--text-secondary);
+}
+
+.ytd-amount {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.contribution-form-embedded .contribution-block {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.contribution-form-embedded .contribution-block:last-child {
+  border-bottom: none;
+}
+
+.contribution-form-embedded .contribution-pay-btn {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 16px;
+  margin-top: 16px;
 }

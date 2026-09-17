@@ -5,6 +5,7 @@ import UniversalTabContainer from './UniversalTabContainer';
 import { useContribution } from '../contexts/ContributionContext';
 import SystemStatus from './SystemStatus';
 import PauseSettings from './PauseSettings';
+import ContributionPopup from './ContributionPopup';
 import { getBackendUrl } from '../config/apiConfig';
 import './UnifiedPreferences.css';
 import { 
@@ -27,7 +28,7 @@ const UnifiedPreferences = ({ includeAdminTab = false, adminOnlyMode = false }) 
   const location = useLocation();
   const [toast, setToast] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const { showPopup, openPopup, closePopup, contributionConfig } = useContribution();
+  const { showPopup, closePopup, contributionConfig } = useContribution(); // eslint-disable-line no-unused-vars
 
   // Get initial tab from URL parameter
   const getInitialTab = () => {
@@ -1664,33 +1665,39 @@ const UnifiedPreferences = ({ includeAdminTab = false, adminOnlyMode = false }) 
             label: 'Contributions',
             content: (
               <div className="contributions-settings">
-                {/* Contribution Overview */}
-                <section className="settings-section">
-                  <h2>💝 Contribution History</h2>
-                  <p className="section-description">Support the platform with a contribution</p>
-                  
-                  {/* Make a Contribution Button - Top Center */}
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-                    <button
-                      className="btn-primary contribution-btn"
-                      onClick={openPopup}
-                      style={{ fontSize: '16px', padding: '12px 32px' }}
-                    >
-                      💝 Make a Contribution
-                    </button>
-                  </div>
+                {/* Inline Contribution Form (reuses ContributionPopup) */}
+                <ContributionPopup 
+                  embedded={true}
+                  isOpen={true}
+                  onClose={() => {}}
+                  onSuccess={() => {
+                    loadContributionHistory();
+                    showToast('Contribution successful! Thank you for your support.', 'success');
+                  }}
+                />
 
-                  {/* Last Contribution Info */}
-                  {contributionHistory.length > 0 ? (
-                    <div className="last-contribution-card">
-                      <div className="last-contribution-row">
-                        <span className="last-contribution-label">💰 Last Contribution:</span>
-                        <span className="last-contribution-value">${contributionHistory[0].amount.toFixed(2)}</span>
-                      </div>
-                      <div className="last-contribution-row">
-                        <span className="last-contribution-label">📅 Date:</span>
-                        <span className="last-contribution-value">{new Date(contributionHistory[0].date).toLocaleDateString()}</span>
-                      </div>
+                {/* Contribution History (below form) */}
+                <section className="settings-section" style={{ marginTop: '32px' }}>
+                  <h2>💝 Contribution History</h2>
+                  <p className="section-description">Your past contributions</p>
+                  
+                  {loadingContributionHistory ? (
+                    <p>Loading contribution history...</p>
+                  ) : contributionHistory.length > 0 ? (
+                    <div className="contribution-history-list">
+                      {contributionHistory.slice(0, 2).map((contribution, index) => (
+                        <div key={index} className="contribution-history-item">
+                          <span className="contribution-history-date">
+                            {new Date(contribution.date).toLocaleDateString()}
+                          </span>
+                          <span className="contribution-history-type">
+                            {contribution.paymentType === 'recurring' ? 'Monthly Recurring' : 'One-time'}
+                          </span>
+                          <span className="contribution-history-amount">
+                            ${contribution.amount.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="last-contribution-card">
