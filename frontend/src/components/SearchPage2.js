@@ -2182,7 +2182,7 @@ const SearchPage2 = () => {
                 <button
                   type="button"
                   className="search-paynow-link-btn"
-                  onClick={openContributionPopup}
+                  onClick={() => navigate('/preferences?tab=contributions')}
                 >
                   Complete my payment
                 </button>

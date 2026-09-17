@@ -472,85 +472,111 @@ const ContributionPopup = ({ isOpen, onClose, contributionConfig, embedded = fal
         logger.info('Clover SDK config loaded:', { public_key: config.public_key, sdk_url: config.sdk_url });
         setCloverConfig(config);
 
-        // Load Clover SDK script if not already loaded
+        // Load Clover SDK script and wait for the global to be available
         if (!window.Clover) {
-          await new Promise((resolve, reject) => {
-            const existing = document.querySelector(`script[src="${config.sdk_url}"]`);
-            if (existing) { resolve(); return; }
-            const script = document.createElement('script');
-            script.src = config.sdk_url;
-            script.async = true;
-            script.onload = () => {
-              logger.info('Clover SDK script loaded');
-              resolve();
-            };
-            script.onerror = () => {
-              logger.error('Failed to load Clover SDK script');
-              reject(new Error('Failed to load Clover SDK'));
-            };
-            document.head.appendChild(script);
-          });
+          const existing = document.querySelector(`script[src="${config.sdk_url}"]`);
+          if (!existing) {
+            await new Promise((resolve, reject) => {
+              const script = document.createElement('script');
+              script.src = config.sdk_url;
+              script.async = true;
+              script.onload = () => {
+                logger.info('Clover SDK script loaded');
+                resolve();
+              };
+              script.onerror = () => {
+                logger.error('Failed to load Clover SDK script');
+                reject(new Error('Failed to load Clover SDK script'));
+              };
+              document.head.appendChild(script);
+            });
+          }
+
+          // Poll for window.Clover to become available (up to 5 seconds)
+          let attempts = 0;
+          while (!window.Clover && attempts < 50) {
+            await new Promise(r => setTimeout(r, 100));
+            attempts++;
+          }
         }
 
         // Verify Clover SDK is available
         if (!window.Clover) {
+          logger.error('window.Clover is undefined after script load. sdk_url:', config.sdk_url);
           setError('Clover SDK failed to load. Please try PayPal instead.');
           return;
         }
 
-        // Initialize Clover instance
-        const clover = new window.Clover(config.public_key);
-        cloverInstanceRef.current = clover;
-        const elements = clover.elements();
-        logger.info('Clover instance initialized');
+        // Initialize Clover instance with merchantId (required by SDK)
+        try {
+          const isProduction = config.environment === 'production';
+          const cloverOpts = {
+            merchantId: config.merchant_id,
+            environment: config.environment,
+            baseUrl: isProduction ? 'https://token.clover.com' : 'https://token-sandbox.dev.clover.com',
+            targetOrigin: isProduction ? 'https://checkout.clover.com' : 'https://checkout.sandbox.dev.clover.com',
+            cors: true
+          };
+          const clover = new window.Clover(config.public_key, cloverOpts);
+          cloverInstanceRef.current = clover;
+          const elements = clover.elements();
+          logger.info('Clover instance initialized');
 
-        // Mount card elements into DOM containers
-        const styles = {
-          body: { fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontSize: '14px' },
-          input: { fontSize: '15px', padding: '10px 8px' }
-        };
-        const cardNumber = elements.create('CARD_NUMBER', styles);
-        const cardDate = elements.create('CARD_DATE', styles);
-        const cardCvv = elements.create('CARD_CVV', styles);
-        const cardPostalCode = elements.create('CARD_POSTAL_CODE', styles);
+          // Mount card elements into DOM containers
+          const styles = {
+            body: { fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontSize: '14px' },
+            input: { fontSize: '15px', padding: '10px 8px' }
+          };
+          const cardNumber = elements.create('CARD_NUMBER', styles);
+          const cardDate = elements.create('CARD_DATE', styles);
+          const cardCvv = elements.create('CARD_CVV', styles);
+          const cardPostalCode = elements.create('CARD_POSTAL_CODE', styles);
 
-        // Small delay to ensure DOM containers are rendered
-        setTimeout(() => {
-          try {
-            // Check if DOM elements exist before mounting
-            const cardNumberEl = document.querySelector('#clover-card-number');
-            const cardDateEl = document.querySelector('#clover-card-date');
-            const cardCvvEl = document.querySelector('#clover-card-cvv');
-            const cardZipEl = document.querySelector('#clover-card-zip');
+          // Small delay to ensure DOM containers are rendered
+          setTimeout(() => {
+            try {
+              // Check if DOM elements exist before mounting
+              const cardNumberEl = document.querySelector('#clover-card-number');
+              const cardDateEl = document.querySelector('#clover-card-date');
+              const cardCvvEl = document.querySelector('#clover-card-cvv');
+              const cardZipEl = document.querySelector('#clover-card-zip');
 
-            if (!cardNumberEl || !cardDateEl || !cardCvvEl || !cardZipEl) {
-              setError('Card form containers not found. Please try again.');
-              return;
+              if (!cardNumberEl || !cardDateEl || !cardCvvEl || !cardZipEl) {
+                setError('Card form containers not found. Please try again.');
+                return;
+              }
+
+              cardNumber.mount('#clover-card-number');
+              cardDate.mount('#clover-card-date');
+              cardCvv.mount('#clover-card-cvv');
+              cardPostalCode.mount('#clover-card-zip');
+              cloverMountedRef.current = true;
+              setCloverReady(true);
+            } catch (mountErr) {
+              logger.error('Clover mount error:', mountErr);
+              setError(`Failed to mount card form: ${mountErr.message || 'Unknown error'}`);
             }
-
-            cardNumber.mount('#clover-card-number');
-            cardDate.mount('#clover-card-date');
-            cardCvv.mount('#clover-card-cvv');
-            cardPostalCode.mount('#clover-card-zip');
-            cloverMountedRef.current = true;
-            setCloverReady(true);
-          } catch (mountErr) {
-            logger.error('Clover mount error:', mountErr);
-            setError(`Failed to mount card form: ${mountErr.message || 'Unknown error'}`);
-          }
-        }, 300);
+          }, 300);
+        } catch (initErr) {
+          logger.error('Clover initialization error:', initErr);
+          setError(`Clover initialization failed: ${initErr.message || 'Invalid API key or configuration'}. Please try PayPal instead.`);
+          return;
+        }
       } catch (err) {
-        logger.error('Clover initialization error:', err);
-        setError(`Failed to initialize card payment form: ${err.message || 'Unknown error'}`);
+        logger.error('Clover setup error:', err);
+        setError('Failed to initialize card payment form. Please try PayPal instead.');
       }
     };
-    initClover();
+    initClover().catch(err => {
+      logger.error('Clover initialization failed:', err);
+      setError('Failed to initialize card payment form. Please try PayPal instead.');
+    });
 
     return () => {
       cloverMountedRef.current = false;
       setCloverReady(false);
     };
-  }, [isOpen, paymentMethod]);
+  }, [isOpen, paymentMethod, embedded]);
 
   // Handle Clover card payment submission
   const handleCloverPay = useCallback(async () => {
