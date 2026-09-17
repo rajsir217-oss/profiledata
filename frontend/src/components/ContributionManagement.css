@@ -133,7 +133,7 @@
   padding: 6px 8px;
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  font-size: 7px;
+  font-size: 14px;
   background: var(--input-bg);
   color: var(--text-color);
   transition: all 0.2s ease;
@@ -180,7 +180,7 @@
   border-radius: 6px;
   background: var(--input-bg);
   color: var(--text-color);
-  font-size: 6.5px;
+  font-size: 13px;
 }
 
 /* Keep contribution filters on one line even when generic .filter-row rules exist elsewhere */
