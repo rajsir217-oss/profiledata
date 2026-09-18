@@ -3,6 +3,7 @@ import { getBackendApiUrl } from '../utils/urlHelper';
 import api from '../api';
 import SEO from './SEO';
 import { getPageSEO } from '../utils/seo';
+import DeleteButton from './DeleteButton';
 import './ContactUs.css';
 
 /**
@@ -111,6 +112,26 @@ const ContactUs = () => {
       } catch (err) {
         console.error('Error marking ticket as read:', err);
       }
+    }
+  };
+
+  const handleDeleteAttachment = async (storedFilename) => {
+    if (!selectedTicket || !currentUser) return;
+    try {
+      await api.delete(
+        `/contact/${selectedTicket._id}/attachment/${encodeURIComponent(storedFilename)}`,
+        { params: { username: currentUser } }
+      );
+      // Remove the attachment from local state
+      const updatedTicket = {
+        ...selectedTicket,
+        attachments: (selectedTicket.attachments || []).filter(a => a.stored_filename !== storedFilename)
+      };
+      setSelectedTicket(updatedTicket);
+      setUserTickets(userTickets.map(t => t._id === selectedTicket._id ? updatedTicket : t));
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to delete attachment';
+      setError(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
     }
   };
 
@@ -612,16 +633,22 @@ const ContactUs = () => {
                         {msg.key === 'original' && selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
                           <div className="message-attachments">
                             {selectedTicket.attachments.map((att, idx) => (
-                              <a 
-                                key={idx}
-                                href={getBackendApiUrl(`/api/users/contact/download/${selectedTicket._id}/${att.stored_filename}`)}
-                                download={att.filename}
-                                className="attachment-link"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                📎 {att.filename} <span className="att-size">({(att.size / 1024).toFixed(1)} KB)</span>
-                              </a>
+                              <div key={idx} className="attachment-item-row">
+                                <a 
+                                  href={getBackendApiUrl(`/api/users/contact/download/${selectedTicket._id}/${att.stored_filename}`)}
+                                  download={att.filename}
+                                  className="attachment-link"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  📎 {att.filename} <span className="att-size">({(att.size / 1024).toFixed(1)} KB)</span>
+                                </a>
+                                <DeleteButton
+                                  onDelete={() => handleDeleteAttachment(att.stored_filename)}
+                                  itemName="attachment"
+                                  size="small"
+                                />
+                              </div>
                             ))}
                           </div>
                         )}

@@ -14572,6 +14572,109 @@ async def download_attachment(
         logger.error(f"❌ Error downloading attachment: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.delete("/contact/{ticket_id}/attachment/{stored_filename}")
+async def delete_ticket_attachment(
+    ticket_id: str,
+    stored_filename: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Delete a single attachment from a ticket (ticket owner only)"""
+    logger.info(f"🗑️ User {username} deleting attachment {stored_filename} from ticket {ticket_id}")
+
+    try:
+        from bson import ObjectId
+        from services.storage_service import get_storage_service
+
+        # Verify ticket exists and belongs to the requesting user
+        ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+
+        if ticket.get("username") != username:
+            raise HTTPException(status_code=403, detail="You can only delete attachments on your own ticket")
+
+        # Find the attachment in the ticket
+        attachment = None
+        if ticket.get("attachments"):
+            for att in ticket["attachments"]:
+                if att.get("stored_filename") == stored_filename:
+                    attachment = att
+                    break
+
+        if not attachment:
+            raise HTTPException(status_code=404, detail="Attachment not found")
+
+        # Delete the file from storage (GCS or local)
+        storage = get_storage_service()
+        deleted = await storage.delete_attachment(stored_filename)
+        if not deleted:
+            logger.warning(f"⚠️ File {stored_filename} not found in storage, removing DB reference only")
+
+        # Remove attachment from ticket's attachments array
+        result = await db.contact_tickets.update_one(
+            {"_id": ObjectId(ticket_id)},
+            {"$pull": {"attachments": {"stored_filename": stored_filename}}}
+        )
+
+        logger.info(f"✅ Attachment {stored_filename} deleted from ticket {ticket_id}")
+        return {"message": "Attachment deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting attachment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/contact/admin/{ticket_id}/attachment/{stored_filename}")
+async def delete_ticket_attachment_admin(
+    ticket_id: str,
+    stored_filename: str,
+    current_user: dict = Depends(require_moderator_or_admin),
+    db = Depends(get_database)
+):
+    """Delete a single attachment from a ticket (admin/moderator only)"""
+    logger.info(f"🗑️ Admin {current_user.get('username')} deleting attachment {stored_filename} from ticket {ticket_id}")
+
+    try:
+        from bson import ObjectId
+        from services.storage_service import get_storage_service
+
+        # Verify ticket exists
+        ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+
+        # Find the attachment in the ticket
+        attachment = None
+        if ticket.get("attachments"):
+            for att in ticket["attachments"]:
+                if att.get("stored_filename") == stored_filename:
+                    attachment = att
+                    break
+
+        if not attachment:
+            raise HTTPException(status_code=404, detail="Attachment not found")
+
+        # Delete the file from storage (GCS or local)
+        storage = get_storage_service()
+        deleted = await storage.delete_attachment(stored_filename)
+        if not deleted:
+            logger.warning(f"⚠️ File {stored_filename} not found in storage, removing DB reference only")
+
+        # Remove attachment from ticket's attachments array
+        await db.contact_tickets.update_one(
+            {"_id": ObjectId(ticket_id)},
+            {"$pull": {"attachments": {"stored_filename": stored_filename}}}
+        )
+
+        logger.info(f"✅ Attachment {stored_filename} deleted from ticket {ticket_id} by admin")
+        return {"message": "Attachment deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting attachment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.delete("/contact/{ticket_id}")
 async def delete_ticket(
     ticket_id: str,

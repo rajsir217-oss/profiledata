@@ -1040,6 +1040,17 @@ body.theme-dark .disclaimer-content p {
   gap: 8px;
 }
 
+.attachment-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attachment-item-row .attachment-link {
+  flex: 1;
+  min-width: 0;
+}
+
 .attachment-link {
   display: inline-flex;
   align-items: center;

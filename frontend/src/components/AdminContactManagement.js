@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBackendApiUrl } from '../utils/urlHelper';
 import api from '../api';
+import DeleteButton from './DeleteButton';
 import './AdminContactManagement.css';
 
 /**
@@ -182,25 +183,14 @@ const AdminContactManagement = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      // Update local state — append to adminReplies array
-      const newReply = {
-        message: replyText,
-        adminName: localStorage.getItem('username'),
-        timestamp: new Date().toISOString()
-      };
-      const updatedTicket = {
-        ...selectedTicket,
-        adminReply: replyText,
-        adminReplies: [...(selectedTicket.adminReplies || []), newReply],
-        repliedAt: new Date().toISOString(),
-        status: 'in_progress'
-      };
-      
-      setTickets(tickets.map(t => t._id === selectedTicket._id ? updatedTicket : t));
-      setSelectedTicket(updatedTicket);
+      // Clear the reply form immediately
       setReplyText('');
       setReplyAttachments([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      
+      // Refresh the ticket from backend to get authoritative state
+      // (includes new reply + uploaded attachments with proper download links)
+      await refreshTicket(selectedTicket._id);
       
       showStatus('success', '✅ Reply sent successfully!');
     } catch (err) {
@@ -240,6 +230,27 @@ const AdminContactManagement = () => {
   // Remove a selected attachment
   const removeAttachment = (index) => {
     setReplyAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Delete an existing ticket attachment (admin/moderator)
+  const handleDeleteAttachment = async (storedFilename) => {
+    if (!selectedTicket) return;
+    try {
+      await api.delete(
+        `/contact/admin/${selectedTicket._id}/attachment/${encodeURIComponent(storedFilename)}`
+      );
+      // Remove the attachment from local state
+      const updatedTicket = {
+        ...selectedTicket,
+        attachments: (selectedTicket.attachments || []).filter(a => a.stored_filename !== storedFilename)
+      };
+      setSelectedTicket(updatedTicket);
+      setTickets(tickets.map(t => t._id === selectedTicket._id ? updatedTicket : t));
+      showStatus('success', '✅ Attachment deleted successfully');
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to delete attachment';
+      showStatus('error', 'Failed to delete attachment: ' + (typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg)));
+    }
   };
 
   // 2-click delete: first click sets pending, second click confirms
@@ -659,16 +670,22 @@ const AdminContactManagement = () => {
                       {msg.key === 'original' && selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
                         <div className="message-attachments">
                           {selectedTicket.attachments.map((att, idx) => (
-                            <a 
-                              key={idx}
-                              href={getBackendApiUrl(`/api/users/contact/download/${selectedTicket._id}/${att.stored_filename}`)}
-                              download={att.filename}
-                              className="attachment-link"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              📎 {att.filename} <span className="att-size">({(att.size / 1024).toFixed(1)} KB)</span>
-                            </a>
+                            <div key={idx} className="attachment-item-row">
+                              <a 
+                                href={getBackendApiUrl(`/api/users/contact/download/${selectedTicket._id}/${att.stored_filename}`)}
+                                download={att.filename}
+                                className="attachment-link"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                📎 {att.filename} <span className="att-size">({(att.size / 1024).toFixed(1)} KB)</span>
+                              </a>
+                              <DeleteButton
+                                onDelete={() => handleDeleteAttachment(att.stored_filename)}
+                                itemName="attachment"
+                                size="small"
+                              />
+                            </div>
                           ))}
                         </div>
                       )}
