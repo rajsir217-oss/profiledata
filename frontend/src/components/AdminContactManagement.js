@@ -30,6 +30,10 @@ const AdminContactManagement = () => {
   // 2-click delete pattern - no browser modals
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
+  // Resizable panels
+  const [ticketPanelWidth, setTicketPanelWidth] = useState(430);
+  const isResizingRef = useRef(false);
+
   const categories = [
     { value: 'all', label: 'All Categories' },
     { value: 'technical', label: '🔧 Technical Support' },
@@ -261,6 +265,38 @@ const AdminContactManagement = () => {
 
   const stats = getStats();
 
+  // Vertical panel resize handlers
+  const startResize = (e) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizingRef.current) return;
+      // Clamp width between 250px and 70% of viewport
+      const minWidth = 250;
+      const maxWidth = Math.floor(window.innerWidth * 0.7);
+      const newWidth = Math.min(Math.max(e.clientX, minWidth), maxWidth);
+      setTicketPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
   return (
     <div className="admin-contact-page">
       {/* Status Bubble Notification */}
@@ -299,54 +335,54 @@ const AdminContactManagement = () => {
         </div>
       </div>
 
-      <div className="inbox-layout">
+      {/* Filters - below stats grid */}
+      <div className="filters-bar">
+        <input
+          type="text"
+          placeholder="🔍 Search tickets..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="search-input"
+        />
+        
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="filter-select"
+        >
+          <option value="all">All Status</option>
+          <option value="open">🔵 Open</option>
+          <option value="in_progress">🟡 In Progress</option>
+          <option value="resolved">🟢 Resolved</option>
+          <option value="closed">⚫ Closed</option>
+        </select>
+        
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="filter-select"
+        >
+          {categories.map(cat => (
+            <option key={cat.value} value={cat.value}>{cat.label}</option>
+          ))}
+        </select>
+        
+        <select
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+          className="filter-select"
+        >
+          <option value="all">All Priority</option>
+          <option value="low">🔵 Low</option>
+          <option value="medium">🟡 Medium</option>
+          <option value="high">🟠 High</option>
+          <option value="urgent">🔴 Urgent</option>
+        </select>
+      </div>
+
+      <div className="inbox-layout" style={{ '--ticket-panel-width': `${ticketPanelWidth}px` }}>
         {/* Left: Ticket List */}
         <div className="tickets-panel">
-          {/* Filters */}
-          <div className="filters-bar">
-            <input
-              type="text"
-              placeholder="🔍 Search tickets..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-            
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">All Status</option>
-              <option value="open">🔵 Open</option>
-              <option value="in_progress">🟡 In Progress</option>
-              <option value="resolved">🟢 Resolved</option>
-              <option value="closed">⚫ Closed</option>
-            </select>
-            
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="filter-select"
-            >
-              {categories.map(cat => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
-              ))}
-            </select>
-            
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">All Priority</option>
-              <option value="low">🔵 Low</option>
-              <option value="medium">🟡 Medium</option>
-              <option value="high">🟠 High</option>
-              <option value="urgent">🔴 Urgent</option>
-            </select>
-          </div>
-
           {/* Ticket List */}
           <div className="ticket-list">
             {loading ? (
@@ -415,6 +451,15 @@ const AdminContactManagement = () => {
               })
             )}
           </div>
+        </div>
+
+        {/* Vertical Resize Handle */}
+        <div
+          className="panel-resize-handle"
+          onMouseDown={startResize}
+          title="Drag to resize panels"
+        >
+          <div className="panel-resize-grip" />
         </div>
 
         {/* Right: Ticket Detail */}
@@ -598,28 +643,29 @@ const AdminContactManagement = () => {
                   <button
                     onClick={() => setReplyText('')}
                     className="btn btn-outline-secondary clear-btn-hidden"
+                    title="Clear"
+                    aria-label="Clear"
                   >
-                    Clear
+                    🧹
                   </button>
                   <textarea
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Type your response here... (User will receive this via email)"
-                    rows="3"
+                    rows="1"
                     className="reply-textarea"
                   />
                   <button
                     onClick={sendReply}
                     disabled={sending || !replyText.trim()}
                     className="btn btn-primary send-reply-btn"
+                    title="Send"
+                    aria-label="Send"
                   >
                     {sending ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2"></span>
-                        Sending...
-                      </>
+                      <span className="spinner-border spinner-border-sm"></span>
                     ) : (
-                      <>📤 Send</>
+                      <>📤</>
                     )}
                   </button>
                 </div>
