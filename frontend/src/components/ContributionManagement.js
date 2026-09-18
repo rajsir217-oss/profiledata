@@ -895,8 +895,11 @@ const ContributionManagement = () => {
                   <tr>
                     <th>User</th>
                     <th>Name</th>
+                    <th>Gender</th>
+                    <th>Age</th>
                     <th>Amount</th>
                     <th>Type</th>
+                    <th>PayType</th>
                     <th>Fee For</th>
                     <th>Status</th>
                     <th>Paid</th>
@@ -927,13 +930,26 @@ const ContributionManagement = () => {
                           '-'
                         }
                       </td>
+                      <td className="gender-cell">
+                        {contribution.gender || '-'}
+                      </td>
+                      <td className="age-cell">
+                        {contribution.age != null ? contribution.age : '-'}
+                      </td>
                       <td className="amount-cell">
                         <span className="amount">{formatAmount(contribution.amount)}</span>
                       </td>
                       <td>
-                        <span className={`type-badge ${contribution.paymentType}`}>
-                          {contribution.paymentType === 'recurring' ? '🔄 Monthly' : '💵 One-time'}
+                        <span className={`type-badge ${contribution.paymentType}`} title={contribution.paymentType === 'recurring' ? 'Recurring' : 'One-time'}>
+                          {contribution.paymentType === 'recurring' ? '🔄' : '💵'}
                         </span>
+                      </td>
+                      <td className="paytype-cell">
+                        {contribution.paymentProvider ? (
+                          <span className={`paytype-badge ${String(contribution.paymentProvider).toLowerCase()}`}>
+                            {contribution.paymentProvider}
+                          </span>
+                        ) : '-'}
                       </td>
                       <td className="fee-for-cell">
                         <select

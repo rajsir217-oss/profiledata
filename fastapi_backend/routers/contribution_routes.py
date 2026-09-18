@@ -882,7 +882,7 @@ async def get_all_contributions(
         if usernames:
             users = await db.users.find(
                 {"username": {"$in": usernames}},
-                {"username": 1, "firstName": 1, "lastName": 1, "_id": 0}
+                {"username": 1, "firstName": 1, "lastName": 1, "gender": 1, "birthMonth": 1, "birthYear": 1, "_id": 0}
             ).to_list(length=len(usernames))
             user_details = {u["username"]: u for u in users}
         
@@ -891,14 +891,31 @@ async def get_all_contributions(
         for c in contributions:
             uname = c.get("username")
             user = user_details.get(uname, {})
+            # Compute age from birthMonth/birthYear if available
+            age = None
+            birth_year = user.get("birthYear")
+            birth_month = user.get("birthMonth")
+            if birth_year not in (None, "", 0):
+                try:
+                    birth_year = int(birth_year)
+                    now = datetime.utcnow()
+                    age = now.year - birth_year
+                    if birth_month not in (None, "", 0):
+                        if now.month < int(birth_month):
+                            age -= 1
+                except (ValueError, TypeError):
+                    age = None
             formatted_contributions.append({
                 "id": str(c.get("_id")),
                 "username": uname,
                 "firstName": user.get("firstName"),
                 "lastName": user.get("lastName"),
+                "gender": user.get("gender"),
+                "age": age,
                 "amount": c.get("amount"),
                 "feeFor": infer_fee_for(c),
                 "paymentType": "recurring" if c.get("paymentType") == "contribution_recurring" else "one_time",
+                "paymentProvider": c.get("paymentProvider") or c.get("paymentMethod"),
                 "status": c.get("status", "completed"),
                 "sessionId": c.get("stripeSessionId") or c.get("paypalOrderId") or c.get("cloverChargeId") or c.get("sessionId"),
                 "createdAt": c.get("createdAt").isoformat() if c.get("createdAt") else None,
