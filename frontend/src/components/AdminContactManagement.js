@@ -16,6 +16,8 @@ const AdminContactManagement = () => {
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
+  const [replyAttachments, setReplyAttachments] = useState([]);
+  const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   
   // Status notification
@@ -169,9 +171,15 @@ const AdminContactManagement = () => {
     
     try {
       setSending(true);
-      await api.post(`/contact/${selectedTicket._id}/reply`, {
-        adminReply: replyText,
-        adminName: localStorage.getItem('username')
+      const formData = new FormData();
+      formData.append('adminReply', replyText);
+      formData.append('adminName', localStorage.getItem('username'));
+      replyAttachments.forEach(file => {
+        formData.append('attachments', file);
+      });
+      
+      await api.post(`/contact/${selectedTicket._id}/reply`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       
       // Update local state — append to adminReplies array
@@ -191,6 +199,8 @@ const AdminContactManagement = () => {
       setTickets(tickets.map(t => t._id === selectedTicket._id ? updatedTicket : t));
       setSelectedTicket(updatedTicket);
       setReplyText('');
+      setReplyAttachments([]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       
       showStatus('success', '✅ Reply sent successfully!');
     } catch (err) {
@@ -199,6 +209,37 @@ const AdminContactManagement = () => {
     } finally {
       setSending(false);
     }
+  };
+
+  // Handle file selection for reply attachments
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    const MAX_FILES = 3;
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+    // Validate total count
+    if (replyAttachments.length + files.length > MAX_FILES) {
+      showStatus('error', `Maximum ${MAX_FILES} files allowed`);
+      e.target.value = '';
+      return;
+    }
+
+    // Validate each file size
+    for (const file of files) {
+      if (file.size > MAX_SIZE) {
+        showStatus('error', `File "${file.name}" exceeds 5MB limit`);
+        e.target.value = '';
+        return;
+      }
+    }
+
+    setReplyAttachments(prev => [...prev, ...files]);
+    e.target.value = '';
+  };
+
+  // Remove a selected attachment
+  const removeAttachment = (index) => {
+    setReplyAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   // 2-click delete: first click sets pending, second click confirms
@@ -656,6 +697,15 @@ const AdminContactManagement = () => {
                     className="reply-textarea"
                   />
                   <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn btn-outline-secondary attach-btn"
+                    title="Attach files (max 3, 5MB each)"
+                    aria-label="Attach files"
+                    disabled={replyAttachments.length >= 3}
+                  >
+                    📎
+                  </button>
+                  <button
                     onClick={sendReply}
                     disabled={sending || !replyText.trim()}
                     className="btn btn-primary send-reply-btn"
@@ -669,6 +719,30 @@ const AdminContactManagement = () => {
                     )}
                   </button>
                 </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                />
+                {replyAttachments.length > 0 && (
+                  <div className="reply-attachments">
+                    {replyAttachments.map((file, idx) => (
+                      <span key={idx} className="reply-attachment-chip">
+                        📎 {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                        <button
+                          onClick={() => removeAttachment(idx)}
+                          className="reply-attachment-remove"
+                          title="Remove"
+                          aria-label="Remove attachment"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}

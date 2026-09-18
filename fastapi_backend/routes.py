@@ -14393,16 +14393,56 @@ async def update_ticket_status(
 @router.post("/contact/{ticket_id}/reply")
 async def reply_to_ticket(
     ticket_id: str,
-    adminReply: str = Body(...),
-    adminName: str = Body(...),
+    adminReply: str = Form(...),
+    adminName: str = Form(...),
+    attachments: List[UploadFile] = File(default=[]),
     current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
-    """Send admin reply to ticket (admin/moderator only)"""
+    """Send admin reply to ticket (admin/moderator only) with optional attachments"""
     logger.info(f"💬 Admin {adminName} replying to ticket {ticket_id}")
     
     try:
         from bson import ObjectId
+        import os
+        import aiofiles
+        from pathlib import Path
+
+        MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+        MAX_FILES = 3
+
+        # Validate file count
+        if len(attachments) > MAX_FILES:
+            raise HTTPException(status_code=400, detail=f"Maximum {MAX_FILES} files allowed")
+
+        # Process attachments
+        attachment_files = []
+        if attachments:
+            upload_dir = Path("uploads/contact_tickets")
+            upload_dir.mkdir(parents=True, exist_ok=True)
+
+            for file in attachments:
+                if not file.filename:
+                    continue
+                content = await file.read()
+                # Validate file size
+                if len(content) > MAX_FILE_SIZE:
+                    raise HTTPException(status_code=400, detail=f"File '{file.filename}' exceeds 5MB limit")
+                file_ext = Path(file.filename).suffix
+                unique_filename = f"{datetime.utcnow().timestamp()}_{file.filename}"
+                file_path = upload_dir / unique_filename
+                async with aiofiles.open(file_path, 'wb') as f:
+                    await f.write(content)
+                attachment_files.append({
+                    "filename": file.filename,
+                    "stored_filename": unique_filename,
+                    "file_path": str(file_path),
+                    "size": len(content),
+                    "content_type": file.content_type,
+                    "uploaded_at": datetime.utcnow(),
+                    "uploaded_by": adminName
+                })
+                logger.info(f"📎 Admin attachment saved: {file.filename} ({len(content)} bytes)")
 
         reply_obj = {
             "message": adminReply,
@@ -14410,17 +14450,21 @@ async def reply_to_ticket(
             "timestamp": datetime.utcnow()
         }
 
+        update_doc = {
+            "$push": {"adminReplies": reply_obj},
+            "$set": {
+                "adminReply": adminReply,
+                "repliedAt": datetime.utcnow(),
+                "status": "in_progress",
+                "updatedAt": datetime.utcnow()
+            }
+        }
+        if attachment_files:
+            update_doc["$push"]["attachments"] = {"$each": attachment_files}
+
         result = await db.contact_tickets.update_one(
             {"_id": ObjectId(ticket_id)},
-            {
-                "$push": {"adminReplies": reply_obj},
-                "$set": {
-                    "adminReply": adminReply,
-                    "repliedAt": datetime.utcnow(),
-                    "status": "in_progress",
-                    "updatedAt": datetime.utcnow()
-                }
-            }
+            update_doc
         )
         
         if result.modified_count == 0:
