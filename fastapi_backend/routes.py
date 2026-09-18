@@ -14091,39 +14091,39 @@ async def submit_contact_ticket(
     logger.info(f"📧 New contact ticket from {name} ({email})")
     
     try:
-        import os
-        import aiofiles
-        from pathlib import Path
-        
-        # Create uploads directory if it doesn't exist
-        upload_dir = Path("uploads/contact_tickets")
-        upload_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Process attachments
+        from services.storage_service import get_storage_service
+
+        storage = get_storage_service()
+        MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+        MAX_FILES = 3
+
+        # Process attachments via StorageService (GCS-aware, like profile photos)
         attachment_files = []
         if attachments and len(attachments) > 0:
-            for file in attachments[:2]:  # Max 2 files
-                if file.filename:
-                    # Generate unique filename
-                    file_ext = Path(file.filename).suffix
-                    unique_filename = f"{datetime.utcnow().timestamp()}_{file.filename}"
-                    file_path = upload_dir / unique_filename
-                    
-                    # Save file
-                    async with aiofiles.open(file_path, 'wb') as f:
-                        content = await file.read()
-                        await f.write(content)
-                    
-                    attachment_files.append({
-                        "filename": file.filename,
-                        "stored_filename": unique_filename,
-                        "file_path": str(file_path),
-                        "size": len(content),
-                        "content_type": file.content_type,
-                        "uploaded_at": datetime.utcnow()
-                    })
-                    
-                    logger.info(f"📎 Saved attachment: {file.filename} ({len(content)} bytes)")
+            if len(attachments) > MAX_FILES:
+                raise HTTPException(status_code=400, detail=f"Maximum {MAX_FILES} files allowed")
+            for file in attachments:
+                if not file.filename:
+                    continue
+                content = await file.read()
+                if len(content) > MAX_FILE_SIZE:
+                    raise HTTPException(status_code=400, detail=f"File '{file.filename}' exceeds 5MB limit")
+                await file.seek(0)
+                storage_path = await storage.save_file(
+                    file,
+                    folder="uploads/contact_tickets",
+                    content_type=file.content_type,
+                    compress=False
+                )
+                attachment_files.append({
+                    "filename": file.filename,
+                    "stored_filename": storage_path.split('/')[-1],
+                    "file_path": storage_path,
+                    "size": len(content),
+                    "content_type": file.content_type,
+                    "uploaded_at": datetime.utcnow()
+                })
+                logger.info(f"📎 Saved attachment: {file.filename} ({len(content)} bytes)")
         
         ticket = {
             "name": name,
@@ -14404,10 +14404,9 @@ async def reply_to_ticket(
     
     try:
         from bson import ObjectId
-        import os
-        import aiofiles
-        from pathlib import Path
+        from services.storage_service import get_storage_service
 
+        storage = get_storage_service()
         MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
         MAX_FILES = 3
 
@@ -14415,12 +14414,9 @@ async def reply_to_ticket(
         if len(attachments) > MAX_FILES:
             raise HTTPException(status_code=400, detail=f"Maximum {MAX_FILES} files allowed")
 
-        # Process attachments
+        # Process attachments via StorageService (GCS-aware, like profile photos)
         attachment_files = []
         if attachments:
-            upload_dir = Path("uploads/contact_tickets")
-            upload_dir.mkdir(parents=True, exist_ok=True)
-
             for file in attachments:
                 if not file.filename:
                     continue
@@ -14428,15 +14424,18 @@ async def reply_to_ticket(
                 # Validate file size
                 if len(content) > MAX_FILE_SIZE:
                     raise HTTPException(status_code=400, detail=f"File '{file.filename}' exceeds 5MB limit")
-                file_ext = Path(file.filename).suffix
-                unique_filename = f"{datetime.utcnow().timestamp()}_{file.filename}"
-                file_path = upload_dir / unique_filename
-                async with aiofiles.open(file_path, 'wb') as f:
-                    await f.write(content)
+                await file.seek(0)
+                # Save to GCS or local (no image compression, preserve content type)
+                storage_path = await storage.save_file(
+                    file,
+                    folder="uploads/contact_tickets",
+                    content_type=file.content_type,
+                    compress=False
+                )
                 attachment_files.append({
                     "filename": file.filename,
-                    "stored_filename": unique_filename,
-                    "file_path": str(file_path),
+                    "stored_filename": storage_path.split('/')[-1],
+                    "file_path": storage_path,
                     "size": len(content),
                     "content_type": file.content_type,
                     "uploaded_at": datetime.utcnow(),
@@ -14536,8 +14535,8 @@ async def download_attachment(
     
     try:
         from bson import ObjectId
-        from pathlib import Path
-        from fastapi.responses import FileResponse
+        from fastapi.responses import Response
+        from services.storage_service import get_storage_service
         
         # Verify ticket exists and get attachment info
         ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
@@ -14555,15 +14554,17 @@ async def download_attachment(
         if not attachment:
             raise HTTPException(status_code=404, detail="Attachment not found")
         
-        file_path = Path(attachment.get("file_path"))
-        if not file_path.exists():
+        # Read file from GCS or local via StorageService
+        storage = get_storage_service()
+        content = await storage.read_file(attachment.get("file_path") or f"/uploads/contact_tickets/{filename}")
+        if content is None:
             raise HTTPException(status_code=404, detail="File not found on server")
         
-        logger.info(f"✅ Serving file: {file_path}")
-        return FileResponse(
-            path=str(file_path),
-            filename=attachment.get("filename"),
-            media_type=attachment.get("content_type", "application/octet-stream")
+        logger.info(f"✅ Serving file: {filename}")
+        return Response(
+            content=content,
+            media_type=attachment.get("content_type", "application/octet-stream"),
+            headers={"Content-Disposition": f'attachment; filename="{attachment.get("filename", filename)}"'}
         )
     except HTTPException:
         raise
@@ -14582,25 +14583,29 @@ async def delete_ticket(
     
     try:
         from bson import ObjectId
-        from pathlib import Path
-        import os
+        from services.storage_service import get_storage_service
         
         # Get ticket before deletion to clean up attachments
         ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
         if not ticket:
             raise HTTPException(status_code=404, detail="Ticket not found")
         
-        # Delete attachments if they exist
+        # Delete attachments if they exist (GCS or local via StorageService)
         if ticket.get("attachments"):
             logger.info(f"🗑️ Deleting {len(ticket['attachments'])} attachment(s)")
+            storage = get_storage_service()
             for attachment in ticket['attachments']:
+                stored_filename = attachment.get('stored_filename')
+                if not stored_filename:
+                    continue
                 try:
-                    file_path = Path(attachment.get('file_path', ''))
-                    if file_path.exists():
-                        os.remove(file_path)
-                        logger.info(f"✅ Deleted file: {file_path}")
+                    deleted = await storage.delete_attachment(stored_filename)
+                    if deleted:
+                        logger.info(f"✅ Deleted attachment: {stored_filename}")
+                    else:
+                        logger.warning(f"⚠️ Attachment not found for deletion: {stored_filename}")
                 except Exception as file_err:
-                    logger.error(f"⚠️ Failed to delete file {file_path}: {file_err}")
+                    logger.error(f"⚠️ Failed to delete attachment {stored_filename}: {file_err}")
         
         # Delete the ticket
         result = await db.contact_tickets.delete_one({"_id": ObjectId(ticket_id)})
