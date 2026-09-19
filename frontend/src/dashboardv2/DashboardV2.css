@@ -18,22 +18,9 @@
   .dv2-container {
     margin: 0 auto;
     margin-top: 0;
-    padding: 0 var(--spacing-xs, 8px);
+    padding: 4px var(--spacing-xs, 8px);
     gap: 12px;
   }
-}
-
-@media (max-width: 560px) {
-  .dv2-container {
-    padding: 4px var(--spacing-xs, 8px);
-  }
-}
-
-/* Widen Bootstrap container on dashboard pages to reduce side margins */
-.container:has(.dv2-container) {
-  max-width: 98% !important;
-  padding-left: 4px !important;
-  padding-right: 4px !important;
 }
 
 .dv2-poll-popup-host .stat-card-compact {
@@ -42,18 +29,12 @@
 
 /* ===== HERO ===== */
 
-.dv2-hero {
-  background: var(--dv2-hero-section-bg, var(--surface-color, var(--background-color)));
-  border: 1px solid var(--border-color, #e5e5e5);
-  border-radius: var(--radius-lg, 12px);
-  padding: var(--spacing-lg, 24px);
-  box-shadow: var(--shadow-sm);
-}
+/* .dv2-hero is a plain section wrapper — .dv2-hero-card inside carries the
+   card chrome (border/radius/padding). Removing the outer card layer avoids
+   double padding that was eating ~50px of width on mobile. */
 
 @media (max-width: 768px) {
   .dv2-hero {
-    padding: 16px;
-    border-radius: 8px;
     margin-top: 0 !important;
   }
   .dv2-hero-title {
@@ -76,9 +57,7 @@
   margin-bottom: var(--spacing-xs, 6px);
 }
 .dv2-hero-footer {
-  margin-top: var(--spacing-md, 16px);
-  padding-top: var(--spacing-sm, 10px);
-  border-top: 1px solid var(--border-color, #e5e5e5);
+  margin-top: var(--spacing-sm, 12px);
 }
 .dv2-hero-meta {
   display: flex;
@@ -112,7 +91,7 @@
   opacity: 1;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 480px) {
   .dv2-hero-meta {
     width: 100%;
     flex-direction: column;
@@ -163,12 +142,12 @@
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-md, 16px);
 }
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .dv2-attention-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 560px) {
+@media (max-width: 480px) {
   .dv2-attention-grid {
     grid-template-columns: 1fr;
   }
@@ -290,7 +269,7 @@
   gap: var(--spacing-sm, 12px);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 640px) {
   .dv2-stats-strip,
   .dv2-stats-strip.dv2-stats-strip-cols-7 {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -316,12 +295,6 @@
     width: 30px;
     height: 30px;
     margin-bottom: 4px;
-  }
-}
-
-@media (min-width: 980px) and (max-width: 1179px) {
-  .dv2-stats-strip.dv2-stats-strip-cols-7 {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 .dv2-stat-tile {

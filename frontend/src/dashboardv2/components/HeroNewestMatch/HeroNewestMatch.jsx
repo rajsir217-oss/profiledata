@@ -334,7 +334,6 @@ const HeroNewestMatch = ({
           className="dv2-hero-photo"
           aria-hidden="true"
           onClick={() => window.open(`/profile/${encodeURIComponent(profile.username)}`, '_blank')}
-          style={{ cursor: 'pointer' }}
         >
         {photo && !photoFailed ? (
           <img className="dv2-hero-img" src={photo} alt="" onError={() => setPhotoFailed(true)} />
@@ -419,90 +418,30 @@ const HeroNewestMatch = ({
         </button>
       </div>
 
-      {/* Footer row: postage-stamp strip + next/view-all actions */}
+      {/* Footer row: prev | stamp strip | next | view-all on desktop;
+          reflows to nav row + stamp/view-all row on mobile (CSS order). */}
       <div className="dv2-hero-footer-row">
-        <button
-          className="dv2-btn dv2-btn-ghost dv2-nav-circle dv2-nav-desktop"
-          type="button"
-          onClick={onPrevious}
-          disabled={!position || position.page <= 1}
-          aria-label="Previous"
-        >
-          ⏮
-        </button>
-
-        {Array.isArray(peers) && peers.length > 0 ? (
-          <div className="dv2-stamp-strip" aria-label="More matches">
-            {peers.map((peer) => {
-              const peerPhoto = getProfileImage(peer);
-              const peerName = getDisplayName(peer);
-              const peerAge = peer?.age || calculateAge(getDobMonthYear(peer));
-              return (
-                <button
-                  key={peer?.username || peer?.profileId || peer?.id || peerName}
-                  type="button"
-                  className="dv2-stamp"
-                  onClick={() => onSelectPeer(peer)}
-                  title={peerName}
-                >
-                  {peerPhoto ? (
-                    <img className="dv2-stamp-img" src={peerPhoto} alt="" loading="lazy" />
-                  ) : (
-                    <span className="dv2-stamp-initials">
-                      {(peer?.firstName?.[0] || peer?.username?.[0] || '?').toUpperCase()}
-                    </span>
-                  )}
-                  <span className="dv2-stamp-overlay">
-                    <span className="dv2-stamp-name">{peerName}</span>
-                    {peerAge ? <span className="dv2-stamp-age">{peerAge}</span> : null}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-
-        <button
-          className="dv2-btn dv2-btn-ghost dv2-nav-circle dv2-nav-desktop"
-          type="button"
-          onClick={onSkip}
-          disabled={!hasMore}
-          aria-label="Next"
-        >
-          ⏭
-        </button>
-
-        {savedSearch ? (
-          <button className="dv2-btn dv2-btn-link dv2-view-all-desktop" type="button" onClick={() => onOpenSearch(savedSearch)}>
-            View all
+        <div className="dv2-hero-nav-pair">
+          <button
+            className="dv2-btn dv2-btn-ghost dv2-nav-circle dv2-nav-prev"
+            type="button"
+            onClick={onPrevious}
+            disabled={!position || position.page <= 1}
+            aria-label="Previous"
+          >
+            ⏮
           </button>
-        ) : null}
-      </div>
+          <button
+            className="dv2-btn dv2-btn-ghost dv2-nav-circle dv2-nav-next"
+            type="button"
+            onClick={onSkip}
+            disabled={!hasMore}
+            aria-label="Next"
+          >
+            ⏭
+          </button>
+        </div>
 
-      {/* Mobile-only navigation row */}
-      <div className="dv2-hero-footer-row-mobile">
-        <button
-          className="dv2-btn dv2-btn-ghost dv2-nav-circle"
-          type="button"
-          onClick={onPrevious}
-          disabled={!position || position.page <= 1}
-          aria-label="Previous"
-        >
-          ⏮
-        </button>
-        <button
-          className="dv2-btn dv2-btn-ghost dv2-nav-circle"
-          type="button"
-          onClick={onSkip}
-          disabled={!hasMore}
-          aria-label="Next"
-        >
-          ⏭
-        </button>
-      </div>
-
-      {/* Mobile-only stamp + view-all row */}
-      <div className="dv2-hero-footer-row-mobile dv2-hero-footer-row-mobile-stamp">
         {Array.isArray(peers) && peers.length > 0 ? (
           <div className="dv2-stamp-strip" aria-label="More matches">
             {peers.map((peer) => {
@@ -535,7 +474,7 @@ const HeroNewestMatch = ({
         ) : null}
 
         {savedSearch ? (
-          <button className="dv2-btn dv2-btn-link" type="button" onClick={() => onOpenSearch(savedSearch)}>
+          <button className="dv2-btn dv2-btn-link dv2-view-all" type="button" onClick={() => onOpenSearch(savedSearch)}>
             View all
           </button>
         ) : null}
