@@ -81,6 +81,39 @@ Sending an invite happens on `/invite-friends`, a different component with no re
 
 ---
 
+## Dead-code audit (2026-09-20)
+
+Systematic sweep of `dashboardv2/` + files touched in this work: cross-referenced every exported JS function and every CSS class selector against actual usage (JSX `className`/import call sites), filtering out false positives (dynamic `` `dv2-variant-${x}` `` template classes, class names appearing only inside CSS comments).
+
+### Removed (confirmed zero references anywhere)
+
+| Item | File | Why dead |
+|---|---|---|
+| `updateSavedSearch()` export | `dashboardv2/api.js` | Never imported anywhere — an unused duplicate of the real `updateSavedSearch` in the main `api.js` (used by `SavedSearchesListCard.jsx` and others via that file instead) |
+| `.dv2-hero-header`, `.dv2-hero-greeting` | `DashboardV2.css` | No matching `className` in any hero JSX |
+| `.dv2-pill` | `DashboardV2.css` | Superseded by `.dv2-rail-pill` (used); this generic version was never wired up |
+| `.dv2-placeholder`, `.dv2-placeholder-hero` | `DashboardV2.css` | Scaffold-only styles from the original page mockup, explicitly commented "removed when components are wired" but never removed |
+| `.dv2-link-btn` | `DashboardV2.css` | No matching `className` anywhere; superseded by `.dv2-link` |
+| `.dv2-scaffold-note` | `DashboardV2.css` | Explicitly commented "remove when fully built" scaffold leftover |
+| `.dv2-hero-attrs` | `HeroNewestMatch.css` | Superseded by `.dv2-hero-pills` (the pill-based layout replaced a plain-text attrs row) |
+| `.dv2-hero-footer-actions .dv2-btn-ghost` / `.dv2-btn-link` | `HeroNewestMatch.css` | `.dv2-hero-footer-actions` class was never applied to any element — `.dv2-hero-footer-row`/`.dv2-hero-nav-pair` replaced it |
+| `.dv2-invite-copied` | `InviteFriendsCard.css` | Leftover from an earlier "copy promo code" UI; the card was rewritten as a name/email invite form with no copy/clipboard feature |
+
+All removals verified via `npm run build` (clean compile, main.css −225 B) and the existing `HeroNewestMatch.test.js` (still passing).
+
+### Investigated, confirmed NOT dead (avoided false positives)
+
+- `.top-bar` references in `DashboardBanners.css` — only appear inside a code *comment* explaining a breakpoint-matching rationale with `TopBar.css`, not an actual selector
+- `dv2-variant-primary/secondary/info/success/warning/danger` — applied dynamically via `` `dv2-variant-${item.variant}` `` template literals in `AttentionGrid.jsx`/`StatsStrip.jsx`, invisible to static grep
+- `stat-card-compact` (hidden via `.dv2-poll-popup-host .stat-card-compact { display:none }`) — rendered by the shared `PollWidget.js` component (outside `dashboardv2/`), not dead
+- `searchProfiles` in `dashboardv2/api.js` — used by `SavedSearchesListCard.jsx`
+
+### Pre-existing, out of scope (flagged only, not touched)
+
+Reconfirmed from the earlier post-implementation review: `MembershipPlans.js`, `InactiveUsersPage.js`, `BrandBanner.js` remain fully orphaned (not imported by any file in `frontend/src`), and the duplicate `/admin-reports` route in `App.js` still shadows the direct route. Both predate this work and are unrelated to dashboardv2; left as-is per the earlier recommendation (candidates for a future `.toberemoved` cleanup pass).
+
+---
+
 ## Part 1 — Width & Layout Review
 
 ### 1.1 The width chain today

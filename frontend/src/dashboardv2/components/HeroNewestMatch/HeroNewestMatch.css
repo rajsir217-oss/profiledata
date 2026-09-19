@@ -91,15 +91,6 @@
   background: linear-gradient(135deg, var(--dv2-accent-soft, var(--background-color)) 0%, var(--background-color) 100%);
 }
 
-.dv2-hero-attrs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  margin-top: 10px;
-  font-size: 13px;
-  color: var(--text-muted, #888);
-}
-
 .dv2-hero-pills {
   display: flex;
   flex-wrap: wrap;
@@ -358,17 +349,6 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
-}
-
-
-
-.dv2-hero-footer-actions .dv2-btn-ghost {
-  background: transparent;
-}
-
-.dv2-hero-footer-actions .dv2-btn-link {
-  border: 1px dashed var(--border-color, #e5e5e5);
-  background: transparent;
 }
 
 /* Postage-stamp strip — remaining profiles in the same search */

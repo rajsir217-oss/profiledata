@@ -320,14 +320,3 @@ export async function fetchSearchCriteriaBreakdown(username, criteria) {
     return null;
   }
 }
-
-export async function updateSavedSearch(username, searchId, updates) {
-  if (!username || !searchId) return null;
-  try {
-    const { data } = await api.put(`/${username}/saved-searches/${searchId}`, updates);
-    return data;
-  } catch (err) {
-    logger.error('updateSavedSearch failed:', err);
-    return null;
-  }
-}
