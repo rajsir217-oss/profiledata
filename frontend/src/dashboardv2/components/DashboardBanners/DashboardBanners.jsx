@@ -8,6 +8,42 @@ import './DashboardBanners.css';
 
 const getUsername = () => localStorage.getItem('username');
 
+// Short-lived sessionStorage cache for the banner-data calls (MFA status,
+// invite stats, pause status, reconnect requests). These rarely change
+// within a session, so avoid re-fetching all four on every dashboard visit.
+const BANNER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+const getCachedBannerData = (key) => {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return undefined;
+    const { value, expiresAt } = JSON.parse(raw);
+    if (!expiresAt || Date.now() > expiresAt) {
+      sessionStorage.removeItem(key);
+      return undefined;
+    }
+    return value;
+  } catch {
+    return undefined;
+  }
+};
+
+const setCachedBannerData = (key, value) => {
+  try {
+    sessionStorage.setItem(key, JSON.stringify({ value, expiresAt: Date.now() + BANNER_CACHE_TTL_MS }));
+  } catch {
+    // sessionStorage full/unavailable — best-effort cache, safe to skip
+  }
+};
+
+const clearCachedBannerData = (key) => {
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    // sessionStorage unavailable — nothing to clear
+  }
+};
+
 const isNonEmptyValue = (value) => {
   if (value === null || value === undefined) return false;
   if (typeof value === 'string') return value.trim().length > 0;
@@ -89,11 +125,17 @@ const DashboardBanners = ({
     const dismissed = sessionStorage.getItem(dismissedKey);
     if (dismissed === 'true') return { showMfa: false };
 
+    const cacheKey = `bannerCache:mfaStatus:${current}`;
+    const cached = getCachedBannerData(cacheKey);
+    if (cached !== undefined) return cached;
+
     try {
       const { data } = await axios.get(`${getBackendUrl()}/api/auth/mfa/status`, {
         headers: authHeaders(),
       });
-      return { showMfa: !data?.mfa_enabled };
+      const result = { showMfa: !data?.mfa_enabled };
+      setCachedBannerData(cacheKey, result);
+      return result;
     } catch (err) {
       logger.error('Error checking MFA status:', err);
       return { showMfa: false };
@@ -108,6 +150,10 @@ const DashboardBanners = ({
     const dismissed = sessionStorage.getItem(dismissedKey);
     if (dismissed === 'true') return { remaining: null, show: false };
 
+    const cacheKey = `bannerCache:inviteStats:${current}`;
+    const cached = getCachedBannerData(cacheKey);
+    if (cached !== undefined) return cached;
+
     try {
       const { data } = await axios.get(`${getBackendUrl()}/api/user-invitations/stats`, {
         headers: authHeaders(),
@@ -115,18 +161,29 @@ const DashboardBanners = ({
       const remaining = data?.remaining;
       const remainingInt = Number.isFinite(remaining) ? remaining : parseInt(remaining, 10);
       const safeRemaining = Number.isFinite(remainingInt) ? remainingInt : 0;
-      return { remaining: safeRemaining, show: safeRemaining > 0 };
+      const result = { remaining: safeRemaining, show: safeRemaining > 0 };
+      setCachedBannerData(cacheKey, result);
+      return result;
     } catch (err) {
       logger.debug('Invite friends stats unavailable:', err);
       return { remaining: null, show: false };
     }
   }, [authHeaders]);
 
-  const loadPauseStatus = useCallback(async () => {
+  const loadPauseStatus = useCallback(async ({ force = false } = {}) => {
+    const current = getUsername();
+    const cacheKey = current ? `bannerCache:pauseStatus:${current}` : null;
+
+    if (!force && cacheKey) {
+      const cached = getCachedBannerData(cacheKey);
+      if (cached !== undefined) return cached;
+    }
+
     try {
       const { data } = await axios.get(`${getBackendUrl()}/api/account/pause-status`, {
         headers: authHeaders(),
       });
+      if (cacheKey) setCachedBannerData(cacheKey, data);
       return data;
     } catch (err) {
       logger.error('Error loading pause status:', err);
@@ -135,9 +192,19 @@ const DashboardBanners = ({
   }, [authHeaders]);
 
   const loadReconnectRequests = useCallback(async () => {
+    const current = getUsername();
+    const cacheKey = current ? `bannerCache:reconnectRequests:${current}` : null;
+
+    if (cacheKey) {
+      const cached = getCachedBannerData(cacheKey);
+      if (cached !== undefined) return cached;
+    }
+
     try {
       const { data } = await api.get('/exclusions/reconnect-requests/pending');
-      return data?.requests || [];
+      const result = data?.requests || [];
+      if (cacheKey) setCachedBannerData(cacheKey, result);
+      return result;
     } catch (err) {
       logger.debug('Reconnect requests unavailable:', err);
       return [];
@@ -237,7 +304,7 @@ const DashboardBanners = ({
         {},
         { headers: authHeaders() }
       );
-      const fresh = await loadPauseStatus();
+      const fresh = await loadPauseStatus({ force: true });
       setPauseStatus(fresh || null);
       if (onRefreshProfile) await onRefreshProfile();
     } catch (err) {
@@ -250,6 +317,11 @@ const DashboardBanners = ({
     try {
       await api.post(`/exclusions/reconnect-requests/${requestId}/respond?action=${action}`);
       setReconnectRequests((prev) => prev.filter((r) => r._id !== requestId));
+      // Invalidate the cached list so a remount within the TTL window
+      // (e.g. navigating away and back) re-fetches instead of showing this
+      // request as still-pending from stale cached data.
+      const current = getUsername();
+      if (current) clearCachedBannerData(`bannerCache:reconnectRequests:${current}`);
       if (onRefreshExclusions) await onRefreshExclusions();
     } catch (err) {
       logger.error('Failed to respond to reconnect request:', err);

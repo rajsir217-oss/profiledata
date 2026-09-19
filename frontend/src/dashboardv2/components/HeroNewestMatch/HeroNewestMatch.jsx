@@ -336,7 +336,14 @@ const HeroNewestMatch = ({
           onClick={() => window.open(`/profile/${encodeURIComponent(profile.username)}`, '_blank')}
         >
         {photo && !photoFailed ? (
-          <img className="dv2-hero-img" src={photo} alt="" onError={() => setPhotoFailed(true)} />
+          <img
+            className="dv2-hero-img"
+            src={photo}
+            alt=""
+            decoding="async"
+            fetchPriority="high"
+            onError={() => setPhotoFailed(true)}
+          />
         ) : (
           <div className="dv2-hero-initials">
             {(profile.firstName?.[0] || profile.username?.[0] || '?').toUpperCase()}

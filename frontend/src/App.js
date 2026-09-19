@@ -17,7 +17,6 @@ import ProfileRedirect from './components/ProfileRedirect';
 import MatchingCriteria from './components/MatchingCriteria';
 import TopMatches from './components/TopMatches';
 import SearchPage2 from './components/SearchPage2';
-import AdminPage from './components/AdminPage';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import InfoTicker from './components/InfoTicker';
@@ -25,76 +24,24 @@ import Favorites from './components/Favorites';
 import Shortlist from './components/Shortlist';
 import Exclusions from './components/Exclusions';
 import Requests from './components/Requests';
-// Route-level code splitting — heavy, mutually-exclusive pages load on demand.
-// Lazy-loading these routes also moves their statically-imported heavy deps
-// (ChatWindow, PollWidget, ProfileViewsModal, etc.) out of the main bundle.
-const Dashboard = lazy(() => import('./components/Dashboard2'));
-const Messages = lazy(() => import('./components/Messages'));
 import DashboardV2Page from './dashboardv2/DashboardV2Page'; // New action-first dashboard (Mockup A) — coexists with /dashboard
 import UnifiedPreferences from './components/UnifiedPreferences';
 import PIIManagement from './components/PIIManagement';
 import Testimonials from './components/Testimonials';
-import ContactUs from './components/ContactUs';
-import AdminContactManagement from './components/AdminContactManagement';
-import WhatsAppVerification from './components/WhatsAppVerification';
-import UserManagement from './components/UserManagement';
-import ChangeAdminPassword from './components/ChangeAdminPassword';
-import RoleManagement from './components/RoleManagement';
-import SavedSearchNotificationManager from './components/admin/SavedSearchNotificationManager';
-import { TestDashboard } from './test-dashboard';
-import DynamicScheduler from './components/DynamicScheduler';
-import AdminBackups from './components/AdminBackups';
-import NotificationTester from './components/NotificationTester';
-import NotificationManagement from './components/NotificationManagement';
-import NotificationConfigManager from './components/NotificationConfigManager';
-import EmailTemplatePreview from './components/EmailTemplatePreview';
-import EmailAnalytics from './components/EmailAnalytics';
-import ActivityLogs from './components/ActivityLogs';
 import ToastContainer from './components/ToastContainer';
-import InvitationManager from './components/InvitationManager';
-import InviteFriends from './components/InviteFriends';
-import PromoCodeManager from './components/PromoCodeManager';
-import PromoCodeAccounting from './components/PromoCodeAccounting';
-import MembershipPlans from './components/MembershipPlans';
-import PricingPage from './components/PricingPage';
-import PaymentSuccess from './components/PaymentSuccess';
-import PaymentCancel from './components/PaymentCancel';
-import ContributionCancel from './components/ContributionCancel';
 import ContributionPopupWrapper from './components/ContributionPopupWrapper';
 import { ContributionProvider } from './contexts/ContributionContext';
 import ImpersonationBanner from './components/ImpersonationBanner';
 import TipOfTheDay from './components/TipOfTheDay';
 import AndroidApkDownload from './components/AndroidApkDownload';
-import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
-import InactiveUsersPage from './components/InactiveUsersPage';
 import L3V3LInfo from './components/L3V3LInfo';
 import HelpPage from './components/HelpPage';
 import ProfileCompletionChecker from './components/ProfileCompletionChecker';
-import BrandBanner from './components/BrandBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
-import AnnouncementManagement from './components/AnnouncementManagement';
-import BlogManagement from './components/BlogManagement';
 import BlogList from './components/BlogList';
 import BlogView from './components/BlogView';
-import PollManagement from './components/PollManagement';
-import VirtualMeets from './components/VirtualMeets';
-import AdminReports from './components/AdminReports';
-import UnifiedReports from './components/UnifiedReports';
-import MarketingPricing from './components/MarketingPricing';
-import AdminUtilities from './components/AdminUtilities';
-import Automation from './components/Automation';
-import MemberRoles from './components/MemberRoles';
-import Support from './components/Support';
-import AdminHub from './components/AdminHub';
-import ContributionManagement from './components/ContributionManagement';
-import AdminRecurringContributions from './components/AdminRecurringContributions';
-import PayPalRecurringSetup from './components/PayPalRecurringSetup';
-import PayPalRecurringReturn from './components/PayPalRecurringReturn';
-import CloverPaymentReturn from './components/CloverPaymentReturn';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
-import LogoShowcase from './components/LogoShowcase';
-import TooltipDemo from './components/TooltipDemo';
 import ProtectedRoute from './components/ProtectedRoute';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
@@ -111,6 +58,39 @@ import toastService from './services/toastService';
 import logger from './utils/logger';
 import sessionManager from './services/sessionManager';
 import { biometricLogin, isCredentialSaved, isNativePlatform } from './services/biometricAuth';
+
+// Route-level code splitting — heavy, mutually-exclusive pages load on demand.
+// Lazy-loading these routes also moves their statically-imported heavy deps
+// (ChatWindow, PollWidget, ProfileViewsModal, etc.) out of the main bundle.
+const Dashboard = lazy(() => import('./components/Dashboard2'));
+const Messages = lazy(() => import('./components/Messages'));
+
+// Admin, payment, and other rarely-visited routes — lazy-loaded so their
+// weight (admin tables, payment SDK glue, report exports) never lands in
+// the bundle a typical member downloads on login.
+const AdminPage = lazy(() => import('./components/AdminPage'));
+const ChangeAdminPassword = lazy(() => import('./components/ChangeAdminPassword'));
+const AdminHub = lazy(() => import('./components/AdminHub'));
+const AdminUtilities = lazy(() => import('./components/AdminUtilities'));
+const AdminReports = lazy(() => import('./components/AdminReports'));
+const UnifiedReports = lazy(() => import('./components/UnifiedReports'));
+const MarketingPricing = lazy(() => import('./components/MarketingPricing'));
+const Support = lazy(() => import('./components/Support'));
+const ContributionManagement = lazy(() => import('./components/ContributionManagement'));
+const AdminRecurringContributions = lazy(() => import('./components/AdminRecurringContributions'));
+const PayPalRecurringSetup = lazy(() => import('./components/PayPalRecurringSetup'));
+const PayPalRecurringReturn = lazy(() => import('./components/PayPalRecurringReturn'));
+const CloverPaymentReturn = lazy(() => import('./components/CloverPaymentReturn'));
+const InvitationManager = lazy(() => import('./components/InvitationManager'));
+const InviteFriends = lazy(() => import('./components/InviteFriends'));
+const VirtualMeets = lazy(() => import('./components/VirtualMeets'));
+const BlogManagement = lazy(() => import('./components/BlogManagement'));
+const PricingPage = lazy(() => import('./components/PricingPage'));
+const PaymentSuccess = lazy(() => import('./components/PaymentSuccess'));
+const PaymentCancel = lazy(() => import('./components/PaymentCancel'));
+const ContributionCancel = lazy(() => import('./components/ContributionCancel'));
+const LogoShowcase = lazy(() => import('./components/LogoShowcase'));
+const TooltipDemo = lazy(() => import('./components/TooltipDemo'));
 
 // Theme configuration
 // NOTE: All theme colors are defined via CSS classes in themes/themes.css
@@ -517,7 +497,8 @@ function AppContent() {
         {!hideNavigation && <ProfileCompletionChecker user={currentUser} />}
         <div className={hideNavigation ? "main-content-full" : "main-content"}>
           <div className={hideNavigation ? "" : "container"}>
-            <Routes>
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
               {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
               {/* Blog public routes */}
@@ -559,7 +540,7 @@ function AppContent() {
               {/* Old dashboard route removed - file renamed to .toberemoved */}
               <Route path="/dashboard" element={<Navigate to="/dashboardv2" replace />} />
               <Route path="/dashboardv2" element={<ProtectedRoute><DashboardV2Page /></ProtectedRoute>} />
-              <Route path="/dashboard-legacy" element={<ProtectedRoute><Suspense fallback={<RouteLoading />}><Dashboard /></Suspense></ProtectedRoute>} />
+              <Route path="/dashboard-legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -588,7 +569,7 @@ function AppContent() {
               <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
               <Route path="/shortlist" element={<ProtectedRoute><Shortlist /></ProtectedRoute>} />
               <Route path="/exclusions" element={<ProtectedRoute><Exclusions /></ProtectedRoute>} />
-              <Route path="/messages" element={<ProtectedRoute><Suspense fallback={<RouteLoading />}><Messages /></Suspense></ProtectedRoute>} />
+              <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
               <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
               <Route path="/pii-management" element={<ProtectedRoute><PIIManagement /></ProtectedRoute>} />
               <Route path="/notifications" element={<Navigate to="/preferences" replace />} />
@@ -654,7 +635,8 @@ function AppContent() {
               {/* Legacy routes - redirect to unified page */}
               <Route path="/template-manager" element={<Navigate to="/notification-management" replace />} />
               <Route path="/event-queue-manager" element={<Navigate to="/notification-management" replace />} />
-            </Routes>
+              </Routes>
+            </Suspense>
           </div>
         </div>
         {!hideNavigation && <PlatformActivityBar />}

@@ -6,6 +6,81 @@
 
 ---
 
+## Implementation Status
+
+### Part 1 — Width & Layout ✅ DONE
+
+- [x] **W1** — Removed redundant `.container:has(.dv2-container)` override
+- [x] **W2** — Single width cap now (`.container` 98% shell + `.dv2-container` 1280px)
+- [x] **W3** — Breakpoints consolidated 9 → 5 (1180 / 1080 / 768 / 640 / 480)
+- [x] **W4** — Hero collapse moved 980→1080px to match rail stack (dead zone fixed)
+- [x] **W5** — Removed `.dv2-hero` card chrome (nested card); mobile padding reduced
+- [x] **W6** — Single stamp-strip DOM via `display:contents` + flex `order`
+- [x] **W7** — Inline `cursor:pointer` moved into CSS
+- [x] **W8** — Nested bordered hero cards flattened
+
+### Part 2 — Request Reduction ✅ DONE
+
+- [x] **P1** — Sequential default-first hero search (removed `findFirstPickParallel`)
+- [x] **P2** — In-flight dedup of duplicate `/profile` fetch
+- [x] **P3** — Route-level code splitting: `Dashboard2` + `Messages` lazy-loaded
+- [x] **P4** — Lazy-loaded 4 modals + `PollWidget` + `ChatWindow` in dashboard
+- [x] **P5** — Breakdown aggregation deferred to `requestIdleCallback`
+- [ ] **P6** — `$facet` totalCount → `limit+1` (`hasMore`) — **backend change, deferred (see Part 3)**
+- [x] **P7** — Stale-request guard (`requestIdRef`) in `useNewestMatch`
+- [x] **P8** — Evaluated: Stage 2 is parallel but does not block the hero (gated by `criticalLoading`) — no change needed
+
+**Bundle result (gzip):** main.js 621.39 → **595.62 kB** (−25.77 kB) · main.css 238.13 → **218.58 kB** (−19.55 kB)
+
+### Part 3 — Structural ✅ MOSTLY DONE
+
+- [x] **P3 (full)** — Route-level `React.lazy` extended to all admin/payment/report/one-off pages (25 routes); **also found and removed 25 fully dead imports** in `App.js` (features long since migrated into `AdminHub`/`AdminUtilities` but the old top-level imports were never cleaned up) — zero behavior change, pure dead-code removal
+- [x] **P9** — Hero `<img>` now has `decoding="async"` + `fetchPriority="high"` (React 19). Investigated `aspect-ratio`/explicit dimensions but skipped: the photo column already gets its height from CSS grid row-stretch on desktop and a `min-height` on mobile, so there's no measurable CLS to fix — forcing `aspect-ratio` would have altered existing grid-stretch behavior for no benefit
+- [x] **P11** — Added a 5-minute sessionStorage TTL cache (`bannerCache:*`) for the 4 `DashboardBanners` calls (MFA status, invite stats, pause status, reconnect requests); `handleUnpause` forces a fresh (uncached) pause-status read after mutating it
+- [ ] **P6** — Backend `limit+1` for `hasMore` — **deferred**. `GET /search` (`routes.py:5519`) is a single ~700-line endpoint shared by the dashboard hero *and* the main `/search` page (which needs the real `totalCount` for pagination UI). Doing this safely requires an opt-in query param (e.g. `skipTotalCount=true`) so `/search` behavior is untouched, plus running the backend test suite against a live Mongo instance to confirm no pagination regression. Left as a documented follow-up rather than editing a shared, revenue-adjacent (membership-gated) endpoint without that verification.
+- [ ] **P12** — Backend regex/index work — **deferred**, same reasoning as P6: touches the same shared search endpoint and needs an index migration + production data validation before rollout.
+
+**Bundle result (gzip) after full Part 3 route-splitting:** main.js 595.62 → **440.15 kB** (−155.47 kB) · main.css 218.58 → **148.75 kB** (−69.84 kB). The "bundle size is significantly larger than recommended" CRA warning is now gone.
+
+**Combined Part 2 + 3 savings:** main.js 621.39 → **440.15 kB** (**−181.24 kB**, −29%) · main.css 238.13 → **148.75 kB** (**−89.38 kB**, −38%)
+
+---
+
+## Post-implementation review (2026-09-20)
+
+A full re-read of every touched file was done after Parts 1–3 landed, checking for regressions/edge cases. Findings:
+
+### 🔴 Bug found and fixed: stale reconnect-requests cache
+
+The P11 sessionStorage TTL cache (5 min) applied to `loadReconnectRequests()`, but `handleReconnectResponse()` (accept/decline) only updated local React state — it never invalidated the cached list. If a user accepted/declined a reconnect request and then navigated away and back to `/dashboardv2` within the 5-minute TTL window, the already-handled request would reappear as still-pending (read from stale cache) even though it was already resolved server-side. **Fix:** `handleReconnectResponse` now calls `clearCachedBannerData()` for that user's cache key after a successful respond, forcing a fresh fetch on the next load.
+
+### 🟡 Known minor limitation (not fixed): invite-count staleness across pages
+
+Sending an invite happens on `/invite-friends`, a different component with no reference to `DashboardBanners`' cache. If a user sends an invite there and returns to `/dashboardv2` within 5 minutes, the "You have N invitations to send" banner can show a stale (higher) count until the cache expires. Low severity — display-only miscount, not a duplicate-action risk like the reconnect bug — left as-is rather than adding cross-component cache invalidation for a cosmetic edge case.
+
+### ✅ Verified correct (no changes needed)
+
+- **Footer `display:contents` + `order` restructure (W6):** traced the flex reordering by hand for both desktop (`prev, stamps, next, view-all` via `order: 0,1,2,3`) and the mobile override (nav pair becomes a real `flex` box with `flex-basis:100%`, forcing it onto its own wrapped row) — both resolve to the intended layout with no orphaned CSS selectors left behind (`dv2-hero-footer-row-mobile` and friends fully removed from both CSS and JSX).
+- **`useNewestMatch` stale-request guard:** hand-traced rapid skip/previous double-clicks — the older `compute()` call's `commit`/`catch`/`finally` all correctly no-op once a newer `requestId` has started, so a slow stale response can never clobber a faster newer one, and `loading` only clears once the *latest* request settles.
+- **`dedupeInFlight` in `api.js`:** confirmed only two call sites exist (`App.js` and `dashboardv2/api.js`), both resolve to the same axios instance/baseURL, synchronous throws inside the wrapped `async` function still produce a rejected promise (safe for `.finally()`), and the map entry is always cleaned up so it only dedupes truly concurrent calls, not a persistent cache.
+- **Lazy-loaded modals unmount/remount semantics:** confirmed `ProfileViewsModal`, `FavoritedByModal`, `ShortlistedByModal` all refetch their data on every `isOpen` transition to `true` (pre-existing pattern), so wrapping them in `{show ? <Suspense>...</Suspense> : null}` — which fully unmounts them on close instead of hiding via internal `isOpen` check — causes no behavior change, just earlier garbage collection.
+- **`fetchPriority="high"` / `decoding="async"`:** confirmed React 19.2's `react-dom` recognizes `fetchPriority` as a known prop (no dev console warning risk).
+- **25 removed dead imports in `App.js`:** cross-checked each one against the rest of the codebase; all except 3 are still imported and rendered via their new home (e.g. `UserManagement`/`RoleManagement` → `MemberRoles.js` → `AdminHub.js`; `NotificationManagement` → `Automation.js`; `PromoCodeManager`/`PromoCodeAccounting` → `MarketingPricing.js`, etc.) — confirms these are true dead *references* in `App.js`, not broken features.
+- **Route-level `<Suspense>` around the whole `<Routes>` tree:** confirmed `ProtectedRoute` renders `children` directly, so a lazy component passed as `children` still suspends correctly to the outer boundary; non-lazy routes (Login, LandingPage, etc.) never suspend and are unaffected.
+
+### 🔵 Pre-existing issues found (not introduced by this work, not fixed)
+
+- **Duplicate `/admin-reports` route:** `App.js` has two `<Route path="/admin-reports">` entries — one redirects to `/unified-reports?tab=admin-reports`, the other renders `<AdminReports>` directly. Since React Router v6 matches the first one in source order, the direct `AdminReports` route is unreachable. This existed before Part 3 (verified against the pre-change file); Part 3 only changed `AdminReports` from an eager to a lazy import, it did not touch route order or fix the duplicate.
+- **3 fully orphaned component files:** `MembershipPlans.js`, `InactiveUsersPage.js`, `BrandBanner.js` are not imported by *any* file in `frontend/src` (verified via a codebase-wide search, not just within `App.js`). Removing their dead imports from `App.js` has zero effect since they were already unreachable everywhere. Flagged for a future `.toberemoved` cleanup pass, not actioned here (out of scope for a performance review).
+
+### Verification performed
+
+- `npm run build` — clean compile after every change, including the reconnect-cache fix (final gzip: main.js 440.42 kB, main.css 148.75 kB — consistent with prior runs)
+- `HeroNewestMatch.test.js` — passes unchanged against the restructured footer DOM
+- Codebase-wide grep audits for: duplicate route paths, orphaned imports, leftover references to removed CSS classes/JS symbols (`dv2-nav-desktop`, `dv2-hero-footer-row-mobile`, `findFirstPickParallel`) — all clean
+
+---
+
 ## Part 1 — Width & Layout Review
 
 ### 1.1 The width chain today
@@ -231,10 +306,10 @@ MFA status, invite stats, pause status, reconnect requests — all deferred 800m
 9. Lazy-load modals, PollWidget, ChatWindow (P4); lazy PollWidget mount (P10)
 10. Collapse/parallelize breakdown call (P5); split Stage 2 (P8)
 
-**Phase 3 — Structural:**
-11. Route-level `React.lazy` across `App.js` (P3)
-12. Hero image dimensions/`fetchpriority` (P9); banner TTL cache (P11)
-13. Backend normalized-filter indexes (P12)
+**Phase 3 — Structural:** ✅ Done except backend items
+11. Route-level `React.lazy` across `App.js` (P3) — done, plus 25 dead imports removed
+12. Hero image `decoding`/`fetchPriority` (P9); banner TTL cache (P11) — done
+13. Backend `limit+1` (P6) and normalized-filter indexes (P12) — **deferred**, requires touching the shared `/search` endpoint with backend test verification (out of scope for a frontend-only pass)
 
 ### Verification checklist (after changes)
 
