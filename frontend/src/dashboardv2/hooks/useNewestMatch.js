@@ -12,14 +12,22 @@
 //   - "Skip" advances to the next-newest profile in the SAME saved search
 //   - When that search runs out, fall back to the next saved search in the chain
 //
-// All work uses the EXISTING /api/search endpoint (routes.py:5084) with:
-//   sortBy=newest, sortOrder=desc, limit=1, page=N
+// Peers behavior:
+//   - The hero shows the newest profile; `peers` exposes the remaining
+//     profiles from the same batch for a "postage stamp" strip.
+//
+// All work uses the EXISTING /api/search endpoint (routes.py:5519) with:
+//   sortBy=newest, sortOrder=desc, limit=BATCH_SIZE, page=N
 // No new backend endpoints required.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import logger from '../../utils/logger';
 import { buildDefaultCriteria } from '../../utils/searchDefaults';
 import { searchProfilesStrict } from '../api';
+
+// Number of profiles fetched per batch. The first becomes the hero pick;
+// the rest are exposed as `peers` for the "postage stamp" strip.
+const BATCH_SIZE = 11;
 
 function toPositiveInt(value) {
   const n = Number.parseInt(String(value), 10);
@@ -73,7 +81,7 @@ function orderSavedSearches(savedSearches) {
 
 /**
  * Try to find a hero pick by walking the saved-search list.
- * Returns { profile, savedSearch, searchIndex, page } or null.
+ * Returns { profile, peers, savedSearch, searchIndex, page, hasMore } or null.
  */
 async function findNextPick(orderedSearches, startSearchIndex, startPage) {
   let searchIndex = startSearchIndex;
@@ -90,16 +98,21 @@ async function findNextPick(orderedSearches, startSearchIndex, startPage) {
       const data = await searchProfilesStrict(criteria, {
         sortBy: 'newest',
         sortOrder: 'desc',
-        limit: 1,
+        limit: BATCH_SIZE,
         page,
       });
       const results = data?.results || data?.users || [];
+      const total = data?.total || 0;
       if (results.length > 0) {
+        const offset = (page - 1) * BATCH_SIZE;
+        const hasMore = offset + results.length < total;
         return {
           profile: results[0],
+          peers: results.slice(1),
           savedSearch,
           searchIndex,
           page,
+          hasMore,
         };
       }
     } catch (err) {
@@ -141,7 +154,7 @@ async function findFirstPickParallel(orderedSearches) {
       searchProfilesStrict(savedSearch.criteria || {}, {
         sortBy: 'newest',
         sortOrder: 'desc',
-        limit: 1,
+        limit: BATCH_SIZE,
         page: 1,
       })
     )
@@ -160,12 +173,16 @@ async function findFirstPickParallel(orderedSearches) {
       continue;
     }
     const results = outcome.value?.results || outcome.value?.users || [];
+    const total = outcome.value?.total || 0;
     if (results.length > 0) {
+      const hasMore = results.length < total;
       return {
         profile: results[0],
+        peers: results.slice(1),
         savedSearch: orderedSearches[i],
         searchIndex: i,
         page: 1,
+        hasMore,
       };
     }
   }
@@ -194,6 +211,8 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
 
   const [position, setPosition] = useState({ searchIndex: 0, page: 1 });
   const [pick, setPick] = useState(null);
+  const [peers, setPeers] = useState([]);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isEmpty, setIsEmpty] = useState(false);
@@ -206,6 +225,8 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
         if (!orderedSearches.length) {
           if (!currentUserProfile || Object.keys(currentUserProfile).length === 0) {
             setPick(null);
+            setPeers([]);
+            setHasMore(false);
             setIsEmpty(false);
             return;
           }
@@ -233,16 +254,22 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
           const data = await searchProfilesStrict(criteria, {
             sortBy: 'newest',
             sortOrder: 'desc',
-            limit: 1,
+            limit: BATCH_SIZE,
             page: startPage,
           });
           const results = data?.results || data?.users || [];
+          const total = data?.total || 0;
           if (results.length > 0) {
+            const offset = (startPage - 1) * BATCH_SIZE;
             setPick({ profile: results[0], savedSearch: null });
+            setPeers(results.slice(1));
+            setHasMore(offset + results.length < total);
             setPosition({ searchIndex: 0, page: startPage });
             setIsEmpty(false);
           } else {
             setPick(null);
+            setPeers([]);
+            setHasMore(false);
             setIsEmpty(true);
           }
           return;
@@ -267,6 +294,8 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
             profile: result.profile,
             savedSearch: result.savedSearch,
           });
+          setPeers(result.peers || []);
+          setHasMore(result.hasMore || false);
           setPosition({
             searchIndex: result.searchIndex,
             page: result.page,
@@ -274,12 +303,16 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
           setIsEmpty(false);
         } else {
           setPick(null);
+          setPeers([]);
+          setHasMore(false);
           setIsEmpty(true);
         }
       } catch (err) {
         logger.error('useNewestMatch compute failed:', err);
         setError(err);
         setPick(null);
+        setPeers([]);
+        setHasMore(false);
         setIsEmpty(false);
       } finally {
         setLoading(false);
@@ -308,6 +341,29 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
     compute(position.searchIndex, position.page + 1);
   }, [compute, position]);
 
+  // Previous = go back one page within current saved search
+  const previousPick = useCallback(() => {
+    if (position.page > 1) {
+      compute(position.searchIndex, position.page - 1);
+    }
+  }, [compute, position]);
+
+  // Clicking a postage-stamp promotes that peer to the hero, swapping the
+  // current hero back into the peer's slot (pure client-side, no refetch).
+  const selectPeer = useCallback(
+    (peer) => {
+      if (!peer || !pick) return;
+      const peerKey = peer?.username || peer?.profileId || peer?.id;
+      setPeers(
+        (peers || []).map((p) =>
+          (p?.username || p?.profileId || p?.id) === peerKey ? pick.profile : p
+        )
+      );
+      setPick({ profile: peer, savedSearch: pick.savedSearch });
+    },
+    [pick, peers]
+  );
+
   // Reload from the top
   const reload = useCallback(() => {
     setPosition({ searchIndex: 0, page: 1 });
@@ -316,10 +372,15 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
 
   return {
     pick,
+    peers,
+    hasMore,
+    position,
     loading,
     error,
     isEmpty,
     skipPick,
+    previousPick,
+    selectPeer,
     reload,
   };
 }

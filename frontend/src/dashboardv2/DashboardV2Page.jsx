@@ -209,10 +209,15 @@ const DashboardV2Page = () => {
 
         <HeroNewestMatch
           pick={newestMatch.pick}
+          peers={newestMatch.peers}
+          hasMore={newestMatch.hasMore}
+          position={newestMatch.position}
           loading={heroBusy}
           error={newestMatch.error}
           isEmpty={!heroBusy && newestMatch.isEmpty}
           onSkip={newestMatch.skipPick}
+          onPrevious={newestMatch.previousPick}
+          onSelectPeer={newestMatch.selectPeer}
           onOpenSearch={(s) => openSavedSearch(s)}
           favoritedUsernames={favoritedUsernames}
           onRefreshFavorites={refreshFavorites}
