@@ -11028,12 +11028,14 @@ async def send_profile_share_sms(
                     )
                     logger.info(f"✅ Updated existing contact {recipientType} for {username}")
                 else:
-                    # Add new contact
+                    # Add new contact. Default visibility: only "primary" is member-visible;
+                    # all other recipient types are private (SMS recipients, not profile phones).
+                    is_primary = str(recipientType).lower() == "primary"
                     await db.users.update_one(
                         {"username": username},
-                        {"$push": {"contactNumbers": {"label": recipientType, "number": recipientPhone, "visible": True}}}
+                        {"$push": {"contactNumbers": {"label": recipientType, "number": recipientPhone, "visible": is_primary}}}
                     )
-                    logger.info(f"✅ Added new contact {recipientType} for {username}")
+                    logger.info(f"✅ Added new contact {recipientType} for {username} (visible={is_primary})")
 
             # Log the share to profile_shares collection (upsert - keep only latest)
             await db.profile_shares.update_one(
