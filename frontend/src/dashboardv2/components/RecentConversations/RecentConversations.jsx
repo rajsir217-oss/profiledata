@@ -1,11 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatRelativeTime } from '../../../utils/timeFormatter';
 import api from '../../../api';
 import socketService from '../../../services/socketService';
-import ChatWindow from '../../../components/ChatWindow';
 import { getImageUrl } from '../../../utils/urlHelper';
 import './RecentConversations.css';
+
+// ChatWindow is only rendered when a conversation drawer is opened — load it
+// lazily so the dashboard bundle doesn't pull in the chat UI upfront.
+const ChatWindow = lazy(() => import('../../../components/ChatWindow'));
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -385,14 +388,16 @@ const RecentConversations = ({ conversations, onConversationsChanged }) => {
                         ) : conversationError ? (
                           <div className="dv2-conv-drawer-error">{conversationError}</div>
                         ) : (
-                          <ChatWindow
-                            messages={messages}
-                            currentUsername={currentUsername}
-                            otherUser={activeProfile}
-                            onSendMessage={handleSendMessage}
-                            onMessageDeleted={handleMessageDeleted}
-                            onArchiveConversation={handleArchiveConversation}
-                          />
+                          <Suspense fallback={<div className="dv2-conv-drawer-loading">Loading chat…</div>}>
+                            <ChatWindow
+                              messages={messages}
+                              currentUsername={currentUsername}
+                              otherUser={activeProfile}
+                              onSendMessage={handleSendMessage}
+                              onMessageDeleted={handleMessageDeleted}
+                              onArchiveConversation={handleArchiveConversation}
+                            />
+                          </Suspense>
                         )
                       ) : null}
                     </div>

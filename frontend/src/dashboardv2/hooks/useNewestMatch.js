@@ -20,7 +20,7 @@
 //   sortBy=newest, sortOrder=desc, limit=BATCH_SIZE, page=N
 // No new backend endpoints required.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import logger from '../../utils/logger';
 import { buildDefaultCriteria } from '../../utils/searchDefaults';
 import { searchProfilesStrict } from '../api';
@@ -137,60 +137,6 @@ async function findNextPick(orderedSearches, startSearchIndex, startPage) {
 }
 
 /**
- * Fast-path for the initial/reload case (always page=1 for every saved
- * search): instead of awaiting each saved search's /api/search call one at
- * a time (latency = sum of all calls), fire them all in parallel and pick
- * the first (lowest index / highest priority) one with results. Latency
- * becomes max(all calls) instead of sum(all calls), which is the dominant
- * fix for dashboardv2 hero load delay when a user has multiple saved
- * searches.
- *
- * Falls back to null (caller can fall back to sequential) if nothing found
- * or a 429 is hit (so rate-limit errors still propagate like before).
- */
-async function findFirstPickParallel(orderedSearches) {
-  const settled = await Promise.allSettled(
-    orderedSearches.map((savedSearch) =>
-      searchProfilesStrict(savedSearch.criteria || {}, {
-        sortBy: 'newest',
-        sortOrder: 'desc',
-        limit: BATCH_SIZE,
-        page: 1,
-      })
-    )
-  );
-
-  for (const result of settled) {
-    if (result.status === 'rejected' && result.reason?.response?.status === 429) {
-      throw result.reason;
-    }
-  }
-
-  for (let i = 0; i < settled.length; i += 1) {
-    const outcome = settled[i];
-    if (outcome.status !== 'fulfilled') {
-      logger.warn('findFirstPickParallel: search failed for', orderedSearches[i]?.name, outcome.reason);
-      continue;
-    }
-    const results = outcome.value?.results || outcome.value?.users || [];
-    const total = outcome.value?.total || 0;
-    if (results.length > 0) {
-      const hasMore = results.length < total;
-      return {
-        profile: results[0],
-        peers: results.slice(1),
-        savedSearch: orderedSearches[i],
-        searchIndex: i,
-        page: 1,
-        hasMore,
-      };
-    }
-  }
-
-  return null;
-}
-
-/**
  * Hook entry point.
  *
  * @param {Array} savedSearches  full list from useDashboardData
@@ -216,18 +162,28 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isEmpty, setIsEmpty] = useState(false);
+  const requestIdRef = useRef(0);
 
   const compute = useCallback(
     async (startIndex, startPage) => {
+      const requestId = ++requestIdRef.current;
       setLoading(true);
       setError(null);
+
+      // Commit only if no newer compute() run has started since this one did.
+      const commit = (next) => {
+        if (requestIdRef.current !== requestId) return;
+        if (next.pick !== undefined) setPick(next.pick);
+        if (next.peers !== undefined) setPeers(next.peers);
+        if (next.hasMore !== undefined) setHasMore(next.hasMore);
+        if (next.position !== undefined) setPosition(next.position);
+        if (next.isEmpty !== undefined) setIsEmpty(next.isEmpty);
+      };
+
       try {
         if (!orderedSearches.length) {
           if (!currentUserProfile || Object.keys(currentUserProfile).length === 0) {
-            setPick(null);
-            setPeers([]);
-            setHasMore(false);
-            setIsEmpty(false);
+            commit({ pick: null, peers: [], hasMore: false, isEmpty: false });
             return;
           }
 
@@ -261,16 +217,15 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
           const total = data?.total || 0;
           if (results.length > 0) {
             const offset = (startPage - 1) * BATCH_SIZE;
-            setPick({ profile: results[0], savedSearch: null });
-            setPeers(results.slice(1));
-            setHasMore(offset + results.length < total);
-            setPosition({ searchIndex: 0, page: startPage });
-            setIsEmpty(false);
+            commit({
+              pick: { profile: results[0], savedSearch: null },
+              peers: results.slice(1),
+              hasMore: offset + results.length < total,
+              position: { searchIndex: 0, page: startPage },
+              isEmpty: false,
+            });
           } else {
-            setPick(null);
-            setPeers([]);
-            setHasMore(false);
-            setIsEmpty(true);
+            commit({ pick: null, peers: [], hasMore: false, isEmpty: true });
           }
           return;
         }
@@ -281,33 +236,23 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
           criteria: coerceCriteriaForSearch(s.criteria, defaults, currentUserProfile),
         }));
 
-        // Initial load / reload always starts at searchIndex=0, page=1 for every
-        // saved search — safe to parallelize for latency (see findFirstPickParallel).
-        // Skip (startIndex/startPage from a prior position) keeps the sequential
-        // path since it must respect the exact fallback order/position.
-        const result =
-          startIndex === 0 && startPage === 1
-            ? await findFirstPickParallel(searchesWithOverrides)
-            : await findNextPick(searchesWithOverrides, startIndex, startPage);
+        // Sequential, default-first: walk saved searches in priority order and
+        // stop at the first hit. Avoids firing one heavy /api/search aggregation
+        // per saved search on every load (the old parallel fast-path did).
+        const result = await findNextPick(searchesWithOverrides, startIndex, startPage);
         if (result) {
-          setPick({
-            profile: result.profile,
-            savedSearch: result.savedSearch,
+          commit({
+            pick: { profile: result.profile, savedSearch: result.savedSearch },
+            peers: result.peers || [],
+            hasMore: result.hasMore || false,
+            position: { searchIndex: result.searchIndex, page: result.page },
+            isEmpty: false,
           });
-          setPeers(result.peers || []);
-          setHasMore(result.hasMore || false);
-          setPosition({
-            searchIndex: result.searchIndex,
-            page: result.page,
-          });
-          setIsEmpty(false);
         } else {
-          setPick(null);
-          setPeers([]);
-          setHasMore(false);
-          setIsEmpty(true);
+          commit({ pick: null, peers: [], hasMore: false, isEmpty: true });
         }
       } catch (err) {
+        if (requestIdRef.current !== requestId) return;
         logger.error('useNewestMatch compute failed:', err);
         setError(err);
         setPick(null);
@@ -315,7 +260,9 @@ export function useNewestMatch(savedSearches, currentUserProfile) {
         setHasMore(false);
         setIsEmpty(false);
       } finally {
-        setLoading(false);
+        if (requestIdRef.current === requestId) {
+          setLoading(false);
+        }
       }
     },
     [currentUserProfile, orderedSearches]

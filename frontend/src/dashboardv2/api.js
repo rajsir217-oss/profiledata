@@ -10,7 +10,7 @@
 //   - For routes outside /api/users (notes, polls, etc.) use raw axios + getBackendUrl().
 
 import axios from 'axios';
-import api from '../api';
+import api, { getUserProfile } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import logger from '../utils/logger';
 
@@ -297,8 +297,9 @@ export async function fetchCurrentUserProfile() {
   const username = getCurrentUsername();
   if (!username) return null;
   try {
-    const { data } = await api.get(`/profile/${username}`);
-    return data;
+    // Delegates to the shared getUserProfile so App.js's route-change profile
+    // fetch and this hook's Stage 1 fetch dedupe to a single request.
+    return await getUserProfile(username);
   } catch (err) {
     logger.error('fetchCurrentUserProfile failed:', err);
     return null;

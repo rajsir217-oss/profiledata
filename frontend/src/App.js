@@ -1,5 +1,5 @@
 // frontend/src/App.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 // Registration and Profile pages
@@ -24,9 +24,12 @@ import InfoTicker from './components/InfoTicker';
 import Favorites from './components/Favorites';
 import Shortlist from './components/Shortlist';
 import Exclusions from './components/Exclusions';
-import Messages from './components/Messages';
 import Requests from './components/Requests';
-import Dashboard from './components/Dashboard2'; // Main dashboard
+// Route-level code splitting — heavy, mutually-exclusive pages load on demand.
+// Lazy-loading these routes also moves their statically-imported heavy deps
+// (ChatWindow, PollWidget, ProfileViewsModal, etc.) out of the main bundle.
+const Dashboard = lazy(() => import('./components/Dashboard2'));
+const Messages = lazy(() => import('./components/Messages'));
 import DashboardV2Page from './dashboardv2/DashboardV2Page'; // New action-first dashboard (Mockup A) — coexists with /dashboard
 import UnifiedPreferences from './components/UnifiedPreferences';
 import PIIManagement from './components/PIIManagement';
@@ -227,6 +230,15 @@ function AuthGuard({ children }) {
   }
 
   return children;
+}
+
+function RouteLoading() {
+  return (
+    <div className="app-loading-screen">
+      <div className="loading-spinner" />
+      <p>Loading…</p>
+    </div>
+  );
 }
 
 function LegacyTestSuiteRedirect() {
@@ -547,7 +559,7 @@ function AppContent() {
               {/* Old dashboard route removed - file renamed to .toberemoved */}
               <Route path="/dashboard" element={<Navigate to="/dashboardv2" replace />} />
               <Route path="/dashboardv2" element={<ProtectedRoute><DashboardV2Page /></ProtectedRoute>} />
-              <Route path="/dashboard-legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard-legacy" element={<ProtectedRoute><Suspense fallback={<RouteLoading />}><Dashboard /></Suspense></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -576,7 +588,7 @@ function AppContent() {
               <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
               <Route path="/shortlist" element={<ProtectedRoute><Shortlist /></ProtectedRoute>} />
               <Route path="/exclusions" element={<ProtectedRoute><Exclusions /></ProtectedRoute>} />
-              <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+              <Route path="/messages" element={<ProtectedRoute><Suspense fallback={<RouteLoading />}><Messages /></Suspense></ProtectedRoute>} />
               <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
               <Route path="/pii-management" element={<ProtectedRoute><PIIManagement /></ProtectedRoute>} />
               <Route path="/notifications" element={<Navigate to="/preferences" replace />} />
