@@ -91,6 +91,7 @@ const PaymentCancel = lazy(() => import('./components/PaymentCancel'));
 const ContributionCancel = lazy(() => import('./components/ContributionCancel'));
 const LogoShowcase = lazy(() => import('./components/LogoShowcase'));
 const TooltipDemo = lazy(() => import('./components/TooltipDemo'));
+const LandingPageV2 = lazy(() => import('./components/LandingPageV2'));
 
 // Theme configuration
 // NOTE: All theme colors are defined via CSS classes in themes/themes.css
@@ -251,7 +252,7 @@ function AppContent() {
   const location = useLocation();
   
   // Routes where sidebar and topbar should be hidden
-  const hideNavigation = ['/', '/login', '/register', '/register2', '/register3', '/register-interest', '/verify-email', '/verify-email-sent'].includes(location.pathname) || location.pathname.startsWith('/messenger/public-reply');
+  const hideNavigation = ['/', '/landing-v2', '/landing-legacy', '/login', '/register', '/register2', '/register3', '/register-interest', '/verify-email', '/verify-email-sent'].includes(location.pathname) || location.pathname.startsWith('/messenger/public-reply');
 
   // Fetch current user profile for profile completion check
   useEffect(() => {
@@ -500,7 +501,10 @@ function AppContent() {
             <Suspense fallback={<RouteLoading />}>
               <Routes>
               {/* Public routes */}
-              <Route path="/" element={<LandingPage />} />
+              <Route path="/" element={<LandingPageV2 />} />
+              {/* Legacy landing page — kept reachable until V2 rollout is confirmed */}
+              <Route path="/landing-legacy" element={<LandingPage />} />
+              <Route path="/landing-v2" element={<Navigate to="/" replace />} />
               {/* Blog public routes */}
               <Route path="/blog" element={<BlogList />} />
               <Route path="/blog/:slug" element={<BlogView />} />
