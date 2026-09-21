@@ -27,7 +27,7 @@ templates = [
         "trigger": "status_approved",
         "channel": "email",
         "category": "account",
-        "subject": "🎉 Your Profile is Now Active - Welcome to USVedika!",
+        "subject": "🎉 Your Profile is Now Active - Welcome to L3V3L Matches!",
         "body": """
 <!DOCTYPE html>
 <html>
@@ -46,10 +46,13 @@ templates = [
 </head>
 <body>
     <div class="container">
+        <div class="logo-container" style="text-align: center; padding: 20px 0;">
+            <img src="{app.logoUrl}" alt="L3V3L Matches" style="width: 200px; height: auto;" />
+        </div>
         <div class="header">
             <div class="success-icon">✅</div>
             <h1>Your Profile is Active!</h1>
-            <p>Welcome to USVedika</p>
+            <p>Welcome to L3V3L Matches</p>
         </div>
         <div class="content">
             <p>Hi {firstname} {lastname},</p>
@@ -78,10 +81,10 @@ templates = [
             
             <p>If you have any questions, feel free to reach out to our support team.</p>
             
-            <p>Best regards,<br>The USVedika Team</p>
+            <p>Best regards,<br>The L3V3L Matches Team</p>
         </div>
         <div class="footer">
-            <p>&copy; 2025 USVedika. All rights reserved.</p>
+            <p>&copy; 2025 L3V3L Matches. All rights reserved.</p>
             <p><a href="{app_url}/help">Help Center</a> | <a href="{app_url}/contact">Contact Us</a></p>
         </div>
     </div>
@@ -113,6 +116,9 @@ templates = [
 </head>
 <body>
     <div class="container">
+        <div class="logo-container" style="text-align: center; padding: 20px 0;">
+            <img src="{app.logoUrl}" alt="L3V3L Matches" style="width: 200px; height: auto;" />
+        </div>
         <div class="header">
             <div class="warning-icon">⚠️</div>
             <h1>Account Suspended</h1>
@@ -142,10 +148,10 @@ templates = [
                 <a href="{app_url}/contact" class="button">Contact Support</a>
             </center>
             
-            <p>Best regards,<br>The USVedika Team</p>
+            <p>Best regards,<br>The L3V3L Matches Team</p>
         </div>
         <div class="footer">
-            <p>&copy; 2025 USVedika. All rights reserved.</p>
+            <p>&copy; 2025 L3V3L Matches. All rights reserved.</p>
             <p><a href="{app_url}/help">Help Center</a> | <a href="{app_url}/contact">Contact Us</a></p>
         </div>
     </div>
@@ -177,6 +183,9 @@ templates = [
 </head>
 <body>
     <div class="container">
+        <div class="logo-container" style="text-align: center; padding: 20px 0;">
+            <img src="{app.logoUrl}" alt="L3V3L Matches" style="width: 200px; height: auto;" />
+        </div>
         <div class="header">
             <div class="ban-icon">⛔</div>
             <h1>Account Banned</h1>
@@ -184,7 +193,7 @@ templates = [
         <div class="content">
             <p>Hi {firstname},</p>
             
-            <p>Your account has been permanently banned from USVedika.</p>
+            <p>Your account has been permanently banned from L3V3L Matches.</p>
             
             <div class="reason-box">
                 <h3>Reason for Ban:</h3>
@@ -196,7 +205,7 @@ templates = [
             <h3>What This Means:</h3>
             <ul>
                 <li>Your account has been permanently closed</li>
-                <li>You can no longer access USVedika</li>
+                <li>You can no longer access L3V3L Matches</li>
                 <li>Your profile is hidden from all users</li>
                 <li>You cannot create a new account</li>
             </ul>
@@ -207,10 +216,10 @@ templates = [
                 <a href="{app_url}/contact" class="button">Contact Support</a>
             </center>
             
-            <p>Best regards,<br>The USVedika Team</p>
+            <p>Best regards,<br>The L3V3L Matches Team</p>
         </div>
         <div class="footer">
-            <p>&copy; 2025 USVedika. All rights reserved.</p>
+            <p>&copy; 2025 L3V3L Matches. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -242,6 +251,9 @@ templates = [
 </head>
 <body>
     <div class="container">
+        <div class="logo-container" style="text-align: center; padding: 20px 0;">
+            <img src="{app.logoUrl}" alt="L3V3L Matches" style="width: 200px; height: auto;" />
+        </div>
         <div class="header">
             <div class="pause-icon">⏸️</div>
             <h1>Account Paused</h1>
@@ -274,10 +286,10 @@ templates = [
                 <a href="{app_url}/contact" class="button">Contact Support</a>
             </center>
             
-            <p>Best regards,<br>The USVedika Team</p>
+            <p>Best regards,<br>The L3V3L Matches Team</p>
         </div>
         <div class="footer">
-            <p>&copy; 2025 USVedika. All rights reserved.</p>
+            <p>&copy; 2025 L3V3L Matches. All rights reserved.</p>
             <p><a href="{app_url}/help">Help Center</a> | <a href="{app_url}/contact">Contact Us</a></p>
         </div>
     </div>
@@ -310,10 +322,13 @@ templates = [
 </head>
 <body>
     <div class="container">
+        <div class="logo-container" style="text-align: center; padding: 20px 0;">
+            <img src="{app.logoUrl}" alt="L3V3L Matches" style="width: 200px; height: auto;" />
+        </div>
         <div class="header">
             <div class="success-icon">✅</div>
             <h1>Account Reactivated!</h1>
-            <p>Welcome back to USVedika</p>
+            <p>Welcome back to L3V3L Matches</p>
         </div>
         <div class="content">
             <p>Hi {firstname},</p>
@@ -342,10 +357,10 @@ templates = [
             
             <p>If you have any questions, feel free to reach out to our support team.</p>
             
-            <p>Best regards,<br>The USVedika Team</p>
+            <p>Best regards,<br>The L3V3L Matches Team</p>
         </div>
         <div class="footer">
-            <p>&copy; 2025 USVedika. All rights reserved.</p>
+            <p>&copy; 2025 L3V3L Matches. All rights reserved.</p>
             <p><a href="{app_url}/help">Help Center</a> | <a href="{app_url}/contact">Contact Us</a></p>
         </div>
     </div>

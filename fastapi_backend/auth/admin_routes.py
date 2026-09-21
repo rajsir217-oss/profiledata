@@ -764,7 +764,14 @@ async def update_user_status(
             {"username": username},
             update_payload
         )
-        
+
+        # Invalidate membership cache if account status changed
+        try:
+            from routers.contribution_routes import _invalidate_membership_cache
+            _invalidate_membership_cache(username)
+        except Exception as cache_err:
+            logger.debug(f"Failed to invalidate membership cache for {username}: {cache_err}")
+
         logger.info(f"📊 Update result: matched={result.matched_count}, modified={result.modified_count}")
         
         if result.modified_count == 0:

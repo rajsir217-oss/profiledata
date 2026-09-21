@@ -25,6 +25,23 @@ SESSION_HARD_LIMIT_HOURS = 8  # 8 hours - maximum session duration
 SESSION_INACTIVITY_MINUTES = 30  # 30 minutes - aligned with frontend
 
 
+def _cors_headers(request: Request) -> dict:
+    """Build CORS headers for direct responses that bypass CORSMiddleware.
+
+    Session validation middleware is added AFTER CORS middleware, so it is
+    outermost. Direct JSONResponse returns here never reach the inner CORS
+    middleware, and the browser blocks them with a CORS error. Echo back the
+    request Origin so these 401s are visible to the frontend.
+    """
+    origin = request.headers.get("origin") or ""
+    headers = {"WWW-Authenticate": "Bearer"}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Vary"] = "Origin"
+    return headers
+
+
 async def validate_session_middleware(request: Request, call_next):
     """
     Middleware to validate session on every authenticated API call.
@@ -116,7 +133,7 @@ async def validate_session_middleware(request: Request, call_next):
                         "detail": "SESSION_EXPIRED_HARD_LIMIT",
                         "message": f"Your session has expired ({SESSION_HARD_LIMIT_HOURS} hour limit). Please log in again."
                     },
-                    headers={"WWW-Authenticate": "Bearer"}
+                    headers=_cors_headers(request)
                 )
         
         # Check inactivity timeout (30 minutes since last activity)
@@ -147,7 +164,7 @@ async def validate_session_middleware(request: Request, call_next):
                         "detail": "SESSION_EXPIRED_INACTIVITY",
                         "message": f"Your session has expired due to {SESSION_INACTIVITY_MINUTES} minutes of inactivity. Please log in again."
                     },
-                    headers={"WWW-Authenticate": "Bearer"}
+                    headers=_cors_headers(request)
                 )
         
         # Session is valid - update last_activity timestamp

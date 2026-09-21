@@ -7,10 +7,12 @@ Migrated from stripe_payments.py after removing Stripe integration.
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import logging
+import asyncio
 from datetime import datetime, timedelta
 import pytz
+from uuid import uuid4
 
 from database import get_database
 from auth.jwt_auth import get_current_user_dependency as get_current_user
@@ -31,7 +33,7 @@ async def get_ytd_contributions(username: str, db: AsyncIOMotorDatabase) -> floa
     current_year = datetime.now().year
     start_of_year = datetime(current_year, 1, 1)
     end_of_year = datetime(current_year, 12, 31, 23, 59, 59)
-    
+
     try:
         result = await db.payments.aggregate([
             {
@@ -40,7 +42,7 @@ async def get_ytd_contributions(username: str, db: AsyncIOMotorDatabase) -> floa
                     # Keep this aligned with admin-hub contribution screens:
                     # only real contribution flows (one-time + recurring).
                     "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
-                    "status": {"$in": ["completed", "succeeded", "paid", None]},
+                    "status": {"$in": ["completed", "complete", "COMPLETED", "COMPLETE", "succeeded", "paid", None]},
                     "createdAt": {"$gte": start_of_year, "$lte": end_of_year}
                 }
             },
@@ -51,57 +53,331 @@ async def get_ytd_contributions(username: str, db: AsyncIOMotorDatabase) -> floa
                 }
             }
         ]).to_list(length=1)
-        
+
         return result[0]["totalAmount"] if result else 0.0
     except Exception as e:
         logger.error(f"Error calculating YTD contributions for {username}: {e}")
         return 0.0
 
 
+async def get_largest_single_payment(username: str, db: AsyncIOMotorDatabase) -> dict:
+    """Get the largest single payment amount for a user (contribution flows only)."""
+    current_year = datetime.now().year
+    start_of_year = datetime(current_year, 1, 1)
+    end_of_year = datetime(current_year, 12, 31, 23, 59, 59)
+
+    try:
+        payment = await db.payments.find_one(
+            {
+                "username": username,
+                "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
+                "status": {"$in": ["completed", "complete", "COMPLETED", "COMPLETE", "succeeded", "paid", None]},
+                "createdAt": {"$gte": start_of_year, "$lte": end_of_year}
+            },
+            sort=[("amount", -1)]
+        )
+
+        if payment:
+            return {
+                "amount": payment.get("amount", 0),
+                "paymentType": payment.get("paymentType"),
+                "createdAt": payment.get("createdAt")
+            }
+        return {"amount": 0, "paymentType": None, "createdAt": None}
+    except Exception as e:
+        logger.error(f"Error getting largest single payment for {username}: {e}")
+        return {"amount": 0, "paymentType": None, "createdAt": None}
+
+
+def _activation_months_from_amount(amount: float) -> int:
+    """Map contribution amount to membership months using popup tier rules."""
+    amt = float(amount or 0)
+    if amt >= 200:
+        return 36
+    if amt >= 175:
+        return 24
+    if amt >= 150:
+        return 18
+    if amt >= 100:
+        return 12
+    if amt >= 60:
+        # Custom amounts follow the same popup hint: prorated at $10/month.
+        return max(6, int(amt // 10))
+    return 0
+
+
+async def get_eligible_contributions_for_year(
+    username: str,
+    db: AsyncIOMotorDatabase,
+    year: int,
+):
+    """Contribution payments counted by YTD/largest-payment checks."""
+    start_of_year = datetime(year, 1, 1)
+    end_of_year = datetime(year, 12, 31, 23, 59, 59)
+    return await db.payments.find(
+        {
+            "username": username,
+            "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
+            "status": {"$in": ["completed", "complete", "COMPLETED", "COMPLETE", "succeeded", "paid", None]},
+            "createdAt": {"$gte": start_of_year, "$lte": end_of_year},
+        }
+    ).sort("createdAt", 1).to_list(length=None)
+
+
+def _year_bounds(year: int):
+    start = datetime(year, 1, 1)
+    end = datetime(year, 12, 31, 23, 59, 59)
+    return start, end
+
+
+def _period_bounds(year: int, month: Optional[int] = None):
+    """Return (start, end) for a month within a year, or the full year if no valid month."""
+    if month and 1 <= int(month) <= 12:
+        start = datetime(year, int(month), 1)
+        if int(month) == 12:
+            end = datetime(year, 12, 31, 23, 59, 59)
+        else:
+            end = datetime(year, int(month) + 1, 1) - timedelta(seconds=1)
+        return start, end
+    return _year_bounds(year)
+
+
+async def get_contribution_year_overview(db: AsyncIOMotorDatabase) -> List[Dict[str, Any]]:
+    """Return available contribution years and archive-close metadata."""
+    year_rows = await db.payments.aggregate([
+        {"$match": {
+            "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
+            "createdAt": {"$type": "date"},
+        }},
+        {"$project": {"year": {"$year": "$createdAt"}}},
+        {"$group": {"_id": "$year", "count": {"$sum": 1}}},
+        {"$sort": {"_id": -1}},
+    ]).to_list(length=None)
+
+    archives = await db.contribution_year_archives.find(
+        {},
+        {"_id": 0, "year": 1, "closedAt": 1, "closedBy": 1, "rowCount": 1, "totalAmount": 1, "archiveBatchId": 1},
+    ).to_list(length=None)
+    archive_map = {int(a.get("year")): a for a in archives if a.get("year") is not None}
+
+    years = []
+    for row in year_rows:
+        year = int(row.get("_id"))
+        archive = archive_map.get(year)
+        years.append({
+            "year": year,
+            "count": int(row.get("count", 0)),
+            "closed": bool(archive),
+            "closedAt": archive.get("closedAt").isoformat() if archive and archive.get("closedAt") else None,
+            "closedBy": archive.get("closedBy") if archive else None,
+            "rowCount": int(archive.get("rowCount", 0)) if archive else 0,
+            "totalAmount": float(archive.get("totalAmount", 0)) if archive else 0.0,
+            "archiveBatchId": archive.get("archiveBatchId") if archive else None,
+        })
+
+    known_years = {y["year"] for y in years}
+    for archived_year, archive in archive_map.items():
+        if archived_year in known_years:
+            continue
+        years.append({
+            "year": int(archived_year),
+            "count": 0,
+            "closed": True,
+            "closedAt": archive.get("closedAt").isoformat() if archive.get("closedAt") else None,
+            "closedBy": archive.get("closedBy"),
+            "rowCount": int(archive.get("rowCount", 0)),
+            "totalAmount": float(archive.get("totalAmount", 0)),
+            "archiveBatchId": archive.get("archiveBatchId"),
+        })
+
+    years.sort(key=lambda y: y["year"], reverse=True)
+    return years
+
+
+def infer_fee_for(payment: dict) -> str:
+    """Infer fee classification from explicit metadata first, then payment hints."""
+    explicit = (payment.get("feeFor") or "").strip().lower()
+    if explicit:
+        return explicit
+
+    payment_type = str(payment.get("paymentType") or "").lower()
+    description = str(payment.get("description") or "").lower()
+    provider = str(payment.get("paymentProvider") or "").lower()
+
+    if payment_type.startswith("membership_"):
+        return "membership"
+    if "zoom" in description or "virtual meet" in description:
+        return "zoom_call"
+    if "poll" in description and "rsvp" in description:
+        return "event_rsvp"
+    if payment_type.startswith("contribution_"):
+        return "contribution"
+    if "manual" in provider:
+        return "manual_other"
+    return "other"
+
+
+def _cache_membership_access(username: str, result: dict) -> dict:
+    """Cache membership access result in Redis for 5 minutes"""
+    try:
+        from redis_manager import get_redis_manager
+        rm = get_redis_manager()
+        if rm and rm.redis_client:
+            import json
+            cache_key = f"membership_access:{username}"
+            rm.redis_client.setex(cache_key, 300, json.dumps(result))
+    except Exception as cache_err:
+        logger.debug(f"Redis cache write skipped for membership_access: {cache_err}")
+    return result
+
+
+def _invalidate_membership_cache(username: str) -> None:
+    """Invalidate membership access cache for a user"""
+    try:
+        from redis_manager import get_redis_manager
+        rm = get_redis_manager()
+        if rm and rm.redis_client:
+            cache_key = f"membership_access:{username}"
+            rm.redis_client.delete(cache_key)
+            logger.debug(f"Invalidated membership cache for {username}")
+    except Exception as cache_err:
+        logger.debug(f"Redis cache invalidation skipped for membership_access: {cache_err}")
+
+
 async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> dict:
-    """Check if user has search access based on membership"""
+    """Check if user has search access based on membership (cached for 5 minutes)"""
+    # Try Redis cache first
+    try:
+        from redis_manager import get_redis_manager
+        rm = get_redis_manager()
+        if rm and rm.redis_client:
+            cache_key = f"membership_access:{username}"
+            cached = rm.redis_client.get(cache_key)
+            if cached:
+                import json
+                return json.loads(cached)
+    except Exception as cache_err:
+        logger.debug(f"Redis cache read skipped for membership_access: {cache_err}")
+
     user = await db.users.find_one({"username": username})
     if not user:
-        return {"hasAccess": False, "reason": "user_not_found"}
-    
+        return _cache_membership_access(username, {"hasAccess": False, "reason": "user_not_found"})
+
     # Bypass membership check for admins and moderators
     if user.get("role") == "admin" or user.get("role_name") == "moderator":
-        return {"hasAccess": True, "type": "privileged", "reason": "admin_or_moderator"}
-    
+        return _cache_membership_access(username, {"hasAccess": True, "type": "privileged", "reason": "admin_or_moderator"})
+
     membership = user.get("membership", {})
-    
-    # Check YTD contributions first
-    ytd_total = await get_ytd_contributions(username, db)
-    
-    # If YTD ≥ $60, treat as one-time paid
-    if ytd_total >= 60 and not membership.get("treatedAsOneTime"):
-        try:
-            await db.users.update_one(
-                {"username": username},
-                {
-                    "$set": {
-                        "membership.type": "one_time",
-                        "membership.status": "active",
-                        "membership.treatedAsOneTime": True,
-                        "membership.ytdPaid": ytd_total,
-                        "membership.startDate": datetime.utcnow()
-                    }
-                }
+
+    # Check YTD contributions and largest single payment in parallel
+    # (display + 2026 hybrid eligibility rule)
+    ytd_total, largest_payment = await asyncio.gather(
+        get_ytd_contributions(username, db),
+        get_largest_single_payment(username, db)
+    )
+    largest_amount = float(largest_payment.get("amount") or 0)
+
+    # Transitional rule:
+    # - 2026: qualify via (largest single payment >= $60) OR (YTD contributions >= $60)
+    # - 2027+: qualify via largest single payment >= $60 only
+    current_year = datetime.now().year
+    qualifies_by_single_payment = largest_amount >= 60
+    qualifies_by_ytd_2026 = current_year == 2026 and ytd_total >= 60
+    qualifies_for_one_time = qualifies_by_single_payment or qualifies_by_ytd_2026
+
+    if qualifies_for_one_time:
+        qualification_reason = (
+            "single_payment_threshold_met"
+            if qualifies_by_single_payment
+            else "ytd_threshold_met_2026"
+        )
+        qualifying_amount = largest_amount if qualifies_by_single_payment else float(ytd_total or 0)
+        qualifying_months = _activation_months_from_amount(qualifying_amount)
+        # Membership starts on the qualifying payment date, not "now".
+        qualifying_start_date = largest_payment.get("createdAt")
+        if qualifies_by_ytd_2026 and not qualifies_by_single_payment:
+            try:
+                payments = await get_eligible_contributions_for_year(username, db, current_year)
+                running_total = 0.0
+                for payment in payments:
+                    running_total += float(payment.get("amount") or 0)
+                    if running_total >= 60:
+                        qualifying_start_date = payment.get("createdAt")
+                        break
+            except Exception as e:
+                logger.error(f"Error calculating qualifying start date for {username}: {e}")
+        if not qualifying_start_date:
+            qualifying_start_date = datetime.utcnow()
+        qualifying_end_date = (
+            qualifying_start_date + timedelta(days=qualifying_months * 30)
+            if qualifying_months > 0
+            else None
+        )
+
+        current_total_paid = float(membership.get("totalPaid") or 0)
+        needs_membership_backfill = (
+            not membership.get("treatedAsOneTime")
+            or membership.get("type") != "one_time"
+            or abs(current_total_paid - float(ytd_total or 0)) > 0.01
+            or not membership.get("startDate")
+            or (
+                qualifying_end_date is not None
+                and not membership.get("endDate")
             )
-            logger.info(f"✅ User {username} treated as one-time member (YTD: ${ytd_total:.2f})")
-            return {"hasAccess": True, "type": "one_time", "reason": "ytd_threshold_met", "ytdPaid": ytd_total}
+        )
+        try:
+            if needs_membership_backfill:
+                await db.users.update_one(
+                    {"username": username},
+                    {
+                        "$set": {
+                            "membership.type": "one_time",
+                            "membership.status": "active",
+                            "membership.treatedAsOneTime": True,
+                            "membership.largestPayment": largest_amount,
+                            "membership.qualificationReason": qualification_reason,
+                            "membership.qualificationYear": current_year,
+                            "membership.qualificationAmount": qualifying_amount,
+                            "membership.startDate": qualifying_start_date,
+                            "membership.endDate": qualifying_end_date,
+                            # Transitional request: backfill paid value from YTD.
+                            "membership.totalPaid": float(ytd_total or 0),
+                        }
+                    }
+                )
+            logger.info(
+                f"✅ User {username} treated as one-time member "
+                f"(largest single: ${largest_amount:.2f}, ytd: ${ytd_total:.2f}, reason: {qualification_reason})"
+            )
+            return _cache_membership_access(username, {
+                "hasAccess": True,
+                "type": "one_time",
+                "reason": qualification_reason,
+                "largestPayment": largest_amount,
+                "ytdPaid": ytd_total,
+                "months": qualifying_months,
+            })
         except Exception as e:
             logger.error(f"Error updating membership status for {username}: {e}")
-    
+            # Do not block access if qualification check passed but persistence failed.
+            return _cache_membership_access(username, {
+                "hasAccess": True,
+                "type": "one_time",
+                "reason": qualification_reason,
+                "largestPayment": largest_amount,
+                "ytdPaid": ytd_total,
+                "months": qualifying_months,
+            })
+
     # No membership
     if membership.get("type") == "none" or not membership.get("type"):
-        return {"hasAccess": False, "reason": "no_membership", "ytdPaid": ytd_total}
-    
+        return _cache_membership_access(username, {"hasAccess": False, "reason": "no_membership", "largestPayment": largest_amount, "ytdPaid": ytd_total})
+
     # Check grace period
     if membership.get("status") == "grace_period":
         if membership.get("gracePeriodEnds") and membership.get("gracePeriodEnds") > datetime.utcnow():
             days_remaining = (membership["gracePeriodEnds"] - datetime.utcnow()).days
-            return {"hasAccess": True, "type": membership.get("type"), "reason": "grace_period", "daysRemaining": days_remaining}
+            return _cache_membership_access(username, {"hasAccess": True, "type": membership.get("type"), "reason": "grace_period", "daysRemaining": days_remaining})
         else:
             # Grace period ended, mark as expired
             try:
@@ -111,29 +387,28 @@ async def check_membership_access(username: str, db: AsyncIOMotorDatabase) -> di
                 )
             except Exception as e:
                 logger.error(f"Error marking membership as expired for {username}: {e}")
-            return {"hasAccess": False, "reason": "grace_period_ended"}
-    
+            return _cache_membership_access(username, {"hasAccess": False, "reason": "grace_period_ended"})
+
     # Expired membership
     if membership.get("status") == "expired":
-        return {"hasAccess": False, "reason": "membership_expired"}
-    
-    # Check end date for subscriptions
-    if membership.get("type") in ["3_month", "1_year"]:
-        if membership.get("endDate") and membership.get("endDate") < datetime.utcnow():
-            # Enter grace period
-            grace_end = datetime.utcnow() + timedelta(days=5)
-            try:
-                await db.users.update_one(
-                    {"username": username},
-                    {"$set": {"membership.status": "grace_period", "gracePeriodEnds": grace_end}}
-                )
-                logger.info(f"⏰ User {username} entered grace period (ends: {grace_end})")
-            except Exception as e:
-                logger.error(f"Error entering grace period for {username}: {e}")
-            return {"hasAccess": True, "type": membership.get("type"), "reason": "entered_grace_period"}
-    
+        return _cache_membership_access(username, {"hasAccess": False, "reason": "membership_expired"})
+
+    # Check end date for any active membership that has an expiry timestamp.
+    if membership.get("status") == "active" and membership.get("endDate") and membership.get("endDate") < datetime.utcnow():
+        # Enter grace period
+        grace_end = datetime.utcnow() + timedelta(days=5)
+        try:
+            await db.users.update_one(
+                {"username": username},
+                {"$set": {"membership.status": "grace_period", "gracePeriodEnds": grace_end}}
+            )
+            logger.info(f"⏰ User {username} entered grace period (ends: {grace_end})")
+        except Exception as e:
+            logger.error(f"Error entering grace period for {username}: {e}")
+        return _cache_membership_access(username, {"hasAccess": True, "type": membership.get("type"), "reason": "entered_grace_period"})
+
     # One-time or active subscription
-    return {"hasAccess": True, "type": membership.get("type"), "reason": "active_membership"}
+    return _cache_membership_access(username, {"hasAccess": True, "type": membership.get("type"), "reason": "active_membership"})
 
 
 async def send_contribution_thank_you_email(
@@ -241,8 +516,7 @@ async def send_contribution_thank_you_email(
         <body>
             <div class="container">
                 <div class="brand-banner">
-                    <span>🦋</span>
-                    <span class="brand-text">L3V3L Matches</span>
+                    <img src="{app_url}/landing-page-logo-clear.png" alt="L3V3L Matches" width="200" style="width: 200px; height: auto;" />
                 </div>
                 <div class="header">
                     <h1>Thank You! 💝</h1>
@@ -378,10 +652,11 @@ async def get_contribution_status(
         # Check membership access
         membership_access = await check_membership_access(current_user["username"], db)
         ytd_total = membership_access.get("ytdPaid", 0)
-        
+        largest_payment = membership_access.get("largestPayment", 0)
+
         # Debug logging
         logger.info(f"💝 Contribution status for {current_user['username']}: site_settings exists={site_settings is not None}, contributions={contribution_config}, siteEnabled={site_enabled}")
-        
+
         # Resolve last contribution amount.
         # Preferred: the `contributions.lastContributionAmount` field stamped by
         # payment handlers. Fallback: look up the most recent contribution in
@@ -392,30 +667,30 @@ async def get_contribution_status(
                 {
                     "username": current_user["username"],
                     "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
-                    "status": {"$in": ["completed", "succeeded", "paid", None]},
+                    "status": {"$in": ["completed", "complete", "COMPLETED", "COMPLETE", "succeeded", "paid", None]},
                 },
                 sort=[("createdAt", -1)],
             )
             if latest_payment:
                 last_amount = latest_payment.get("amount", 0) or 0
-        
+
         # Determine if popup should show based on membership
         show_popup = False
         popup_reason = "none"
-        
+
         if membership_access["hasAccess"]:
             # User has access, no popup needed
             show_popup = False
             popup_reason = "membership_active"
-        elif ytd_total >= 60:
-            # YTD threshold met, should be treated as one-time
+        elif largest_payment >= 60:
+            # Single payment threshold met, should be treated as one-time
             show_popup = False
-            popup_reason = "ytd_threshold_met"
+            popup_reason = "single_payment_threshold_met"
         else:
-            # No access and YTD < $60, show popup
+            # No access and largest payment < $60, show popup
             show_popup = True
             popup_reason = "membership_required"
-        
+
         return {
             "success": True,
             "siteEnabled": site_enabled,
@@ -433,6 +708,7 @@ async def get_contribution_status(
                 "hasAccess": membership_access["hasAccess"],
                 "accessReason": membership_access["reason"],
                 "ytdPaid": ytd_total,
+                "largestPayment": largest_payment,
                 "endDate": membership.get("endDate"),
                 "gracePeriodEnds": membership.get("gracePeriodEnds"),
                 "autoRenew": membership.get("autoRenew", False)
@@ -534,6 +810,8 @@ async def get_all_contributions(
     db: AsyncIOMotorDatabase = Depends(get_database),
     page: int = 1,
     limit: int = 50,
+    year: Optional[int] = None,
+    month: Optional[int] = None,
     payment_type: Optional[str] = None,
     username: Optional[str] = None,
     search: Optional[str] = None
@@ -541,11 +819,15 @@ async def get_all_contributions(
     """Get all contributions (admin only)"""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
-    
+
     try:
         # Build query for contributions only
         query = {"paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}}
-        
+
+        if year:
+            start, end = _period_bounds(int(year), month)
+            query["createdAt"] = {"$gte": start, "$lte": end}
+
         if payment_type == "one_time":
             query["paymentType"] = "contribution_one_time"
         elif payment_type == "recurring":
@@ -600,7 +882,7 @@ async def get_all_contributions(
         if usernames:
             users = await db.users.find(
                 {"username": {"$in": usernames}},
-                {"username": 1, "firstName": 1, "lastName": 1, "_id": 0}
+                {"username": 1, "firstName": 1, "lastName": 1, "gender": 1, "birthMonth": 1, "birthYear": 1, "_id": 0}
             ).to_list(length=len(usernames))
             user_details = {u["username"]: u for u in users}
         
@@ -609,13 +891,31 @@ async def get_all_contributions(
         for c in contributions:
             uname = c.get("username")
             user = user_details.get(uname, {})
+            # Compute age from birthMonth/birthYear if available
+            age = None
+            birth_year = user.get("birthYear")
+            birth_month = user.get("birthMonth")
+            if birth_year not in (None, "", 0):
+                try:
+                    birth_year = int(birth_year)
+                    now = datetime.utcnow()
+                    age = now.year - birth_year
+                    if birth_month not in (None, "", 0):
+                        if now.month < int(birth_month):
+                            age -= 1
+                except (ValueError, TypeError):
+                    age = None
             formatted_contributions.append({
                 "id": str(c.get("_id")),
                 "username": uname,
                 "firstName": user.get("firstName"),
                 "lastName": user.get("lastName"),
+                "gender": user.get("gender"),
+                "age": age,
                 "amount": c.get("amount"),
+                "feeFor": infer_fee_for(c),
                 "paymentType": "recurring" if c.get("paymentType") == "contribution_recurring" else "one_time",
+                "paymentProvider": c.get("paymentProvider") or c.get("paymentMethod"),
                 "status": c.get("status", "completed"),
                 "sessionId": c.get("stripeSessionId") or c.get("paypalOrderId") or c.get("cloverChargeId") or c.get("sessionId"),
                 "createdAt": c.get("createdAt").isoformat() if c.get("createdAt") else None,
@@ -637,6 +937,8 @@ async def get_all_contributions(
         stats_result = await db.payments.aggregate(pipeline).to_list(length=1)
         stats = stats_result[0] if stats_result else {"totalAmount": 0, "totalCount": 0, "oneTimeCount": 0, "recurringCount": 0}
         
+        years = await get_contribution_year_overview(db)
+
         return {
             "success": True,
             "contributions": formatted_contributions,
@@ -651,7 +953,9 @@ async def get_all_contributions(
                 "totalCount": stats.get("totalCount", 0),
                 "oneTimeCount": stats.get("oneTimeCount", 0),
                 "recurringCount": stats.get("recurringCount", 0)
-            }
+            },
+            "years": years,
+            "selectedYear": int(year) if year else None,
         }
     except Exception as e:
         logger.error(f"Error getting contributions: {e}")
@@ -871,6 +1175,137 @@ async def get_unpaid_members(
         raise HTTPException(status_code=500, detail="Failed to get unpaid members")
 
 
+@router.get("/admin/contribution-years")
+async def get_admin_contribution_years(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Get available contribution years with archive-close metadata (admin only)."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    years = await get_contribution_year_overview(db)
+    return {
+        "success": True,
+        "years": years,
+        "currentYear": datetime.utcnow().year,
+    }
+
+
+@router.post("/admin/archive-year")
+async def archive_contribution_year(
+    year: int = Body(..., embed=True),
+    force: bool = Body(False, embed=True),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Archive and close a contribution year without deleting source payments."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    current_year = datetime.utcnow().year
+    if year < 2020 or year > current_year:
+        raise HTTPException(status_code=400, detail=f"Year must be between 2020 and {current_year}")
+
+    existing = await db.contribution_year_archives.find_one({"year": int(year)})
+    if existing and not force:
+        raise HTTPException(status_code=409, detail=f"Year {year} is already archived")
+
+    start_of_year, end_of_year = _year_bounds(int(year))
+    query = {
+        "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
+        "createdAt": {"$gte": start_of_year, "$lte": end_of_year},
+    }
+    docs = await db.payments.find(query).sort("createdAt", 1).to_list(length=None)
+    if not docs:
+        raise HTTPException(status_code=404, detail=f"No contribution payments found for year {year}")
+
+    rows: List[Dict[str, Any]] = []
+    total_amount = 0.0
+    one_time_count = 0
+    recurring_count = 0
+    status_counts: Dict[str, int] = {}
+    for p in docs:
+        amount = float(p.get("amount") or 0)
+        ptype = p.get("paymentType")
+        status = str(p.get("status") or "unknown")
+        total_amount += amount
+        if ptype == "contribution_recurring":
+            recurring_count += 1
+        else:
+            one_time_count += 1
+        status_counts[status] = status_counts.get(status, 0) + 1
+
+        rows.append({
+            "paymentId": str(p.get("_id")),
+            "username": p.get("username"),
+            "amount": amount,
+            "feeFor": infer_fee_for(p),
+            "paymentType": ptype,
+            "status": status,
+            "createdAt": p.get("createdAt").isoformat() if p.get("createdAt") else None,
+            "paymentProvider": p.get("paymentProvider"),
+            "paymentMethod": p.get("paymentMethod"),
+            "description": p.get("description"),
+            "manualEntry": bool(p.get("manualEntry", False)),
+        })
+
+    archive_batch_id = str(uuid4())
+    now = datetime.utcnow()
+    archive_doc = {
+        "year": int(year),
+        "closedAt": now,
+        "closedBy": current_user.get("username"),
+        "archiveBatchId": archive_batch_id,
+        "rowCount": len(rows),
+        "totalAmount": round(total_amount, 2),
+        "stats": {
+            "oneTimeCount": one_time_count,
+            "recurringCount": recurring_count,
+            "statusCounts": status_counts,
+        },
+        "rows": rows,
+        "sourceQuery": {
+            "paymentType": ["contribution_one_time", "contribution_recurring"],
+            "startDate": start_of_year.isoformat(),
+            "endDate": end_of_year.isoformat(),
+        },
+        "updatedAt": now,
+    }
+
+    if existing:
+        await db.contribution_year_archives.update_one(
+            {"year": int(year)},
+            {"$set": archive_doc},
+        )
+    else:
+        await db.contribution_year_archives.insert_one(archive_doc)
+
+    await db.payments.update_many(
+        query,
+        {
+            "$set": {
+                "archive.year": int(year),
+                "archive.batchId": archive_batch_id,
+                "archive.closedAt": now,
+                "archive.closedBy": current_user.get("username"),
+            }
+        },
+    )
+
+    return {
+        "success": True,
+        "message": f"Archived year {year} with {len(rows)} contribution rows",
+        "archive": {
+            "year": int(year),
+            "archiveBatchId": archive_batch_id,
+            "rowCount": len(rows),
+            "totalAmount": round(total_amount, 2),
+            "closedAt": now.isoformat(),
+            "closedBy": current_user.get("username"),
+        },
+    }
+
+
 @router.post("/admin/send-reminder")
 async def send_contribution_reminder(
     request: dict = Body(...),
@@ -961,7 +1396,9 @@ async def send_bulk_contribution_reminder(
 @router.get("/admin/export-csv")
 async def export_contributions_csv(
     current_user: dict = Depends(get_current_user),
-    db: AsyncIOMotorDatabase = Depends(get_database)
+    db: AsyncIOMotorDatabase = Depends(get_database),
+    year: Optional[int] = None,
+    month: Optional[int] = None,
 ):
     """Export all users with contribution details for CSV (admin only)"""
     if current_user.get("role") != "admin":
@@ -992,6 +1429,9 @@ async def export_contributions_csv(
         
         # Get ALL contributions
         query = {"paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}}
+        if year:
+            start, end = _period_bounds(int(year), month)
+            query["createdAt"] = {"$gte": start, "$lte": end}
         contributions = await db.payments.find(query).sort("createdAt", -1).to_list(length=None)
         
         # Build contribution map: username -> list of contributions
@@ -1175,6 +1615,69 @@ class ManualContributionRequest(BaseModel):
     notes: Optional[str] = Field(None, description="Admin notes")
     paymentDate: Optional[str] = Field(None, description="Custom date ISO format")
     sendThankYou: bool = Field(True, description="Send thank you email")
+
+
+class FeeClassificationRequest(BaseModel):
+    feeFor: str = Field(..., description="contribution|membership|zoom_call|event_rsvp|manual_other|other")
+    reason: Optional[str] = Field(None, description="Mandatory admin reason for reclassification")
+
+
+@router.post("/admin/contributions/{contribution_id}/classify-fee")
+async def classify_contribution_fee(
+    contribution_id: str,
+    request: FeeClassificationRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Admin-only classification for what this fee was for (audit-tracked)."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    from bson import ObjectId
+    try:
+        obj_id = ObjectId(contribution_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid contribution ID")
+
+    allowed = {"contribution", "membership", "zoom_call", "event_rsvp", "manual_other", "other"}
+    fee_for = (request.feeFor or "").strip().lower()
+    if fee_for not in allowed:
+        raise HTTPException(status_code=400, detail=f"feeFor must be one of: {', '.join(sorted(allowed))}")
+
+    reason = (request.reason or "").strip()
+    if len(reason) < 3:
+        raise HTTPException(status_code=400, detail="Reason is required (min 3 chars)")
+
+    existing = await db.payments.find_one({"_id": obj_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Contribution not found")
+
+    now = datetime.utcnow()
+    update_doc = {
+        "$set": {
+            "feeFor": fee_for,
+            "feeForReason": reason,
+            "feeForUpdatedAt": now,
+            "feeForUpdatedBy": current_user.get("username"),
+        },
+        "$push": {
+            "feeForAuditTrail": {
+                "previous": existing.get("feeFor"),
+                "next": fee_for,
+                "reason": reason,
+                "by": current_user.get("username"),
+                "at": now,
+            }
+        }
+    }
+    await db.payments.update_one({"_id": obj_id}, update_doc)
+
+    return {
+        "success": True,
+        "message": "Fee classification updated",
+        "feeFor": fee_for,
+        "updatedAt": now.isoformat(),
+    }
 
 
 @router.get("/admin/search-users")
@@ -1483,7 +1986,8 @@ async def process_membership_payment(
             {"username": username},
             {"$set": {"membership": membership_update}}
         )
-        
+        _invalidate_membership_cache(username)
+
         # Update contributions tracking
         await db.users.update_one(
             {"username": username},
@@ -1528,43 +2032,54 @@ async def process_membership_payment(
 @router.post("/membership/grant")
 async def grant_membership_admin(
     username: str = Body(..., embed=True),
-    membership_type: str = Body(..., embed=True),
-    auto_renew: bool = Body(True),
+    membership_type: Optional[str] = Body(None, embed=True),
+    months: Optional[int] = Body(None, embed=True),
+    auto_renew: bool = Body(False),
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Admin endpoint to grant membership without payment"""
+    """Admin endpoint to grant membership without payment. Supports legacy membership_type or explicit months."""
     try:
         # Check if current user is admin
-        if current_user.get("role") != "admin":
+        if current_user.get("role") != "admin" and current_user.get("role_name") != "admin":
             raise HTTPException(status_code=403, detail="Admin access required")
-        
-        # Validate membership type
-        if membership_type not in ["one_time", "3_month", "1_year"]:
-            raise HTTPException(status_code=400, detail="Invalid membership type")
-        
-        # Determine amount and duration
-        if membership_type == "one_time":
-            amount = 50
-            months = None  # Permanent
-        elif membership_type == "3_month":
-            amount = 30
-            months = 3
-        elif membership_type == "1_year":
-            amount = 100
-            months = 12
-        
+
+        # Resolve duration
+        if membership_type is not None:
+            if membership_type not in ["one_time", "3_month", "1_year"]:
+                raise HTTPException(status_code=400, detail="Invalid membership type")
+            if membership_type == "one_time":
+                amount = 0
+                resolved_months = None  # Permanent
+                label = "one_time"
+            elif membership_type == "3_month":
+                amount = 0
+                resolved_months = 3
+                label = "3_month"
+            elif membership_type == "1_year":
+                amount = 0
+                resolved_months = 12
+                label = "1_year"
+        elif months is not None:
+            if not (1 <= months <= 36):
+                raise HTTPException(status_code=400, detail="months must be between 1 and 36")
+            amount = 0
+            resolved_months = months
+            label = f"{months}_month"
+        else:
+            raise HTTPException(status_code=400, detail="membership_type or months required")
+
         # Calculate end date for subscriptions
         end_date = None
-        if months:
-            end_date = datetime.utcnow() + timedelta(days=months * 30)
-        
+        if resolved_months:
+            end_date = datetime.utcnow() + timedelta(days=resolved_months * 30)
+
         # Create payment record (marked as admin-granted)
         payment_record = {
             "username": username,
             "amount": amount,
-            "paymentType": f"membership_{membership_type}",
-            "membershipType": membership_type,
+            "paymentType": f"membership_{label}",
+            "membershipType": label,
             "status": "completed",
             "membershipStartDate": datetime.utcnow(),
             "membershipEndDate": end_date,
@@ -1573,56 +2088,62 @@ async def grant_membership_admin(
             "adminGranted": True,
             "grantedBy": current_user["username"]
         }
-        
+
         payment_result = await db.payments.insert_one(payment_record)
         payment_id = str(payment_result.inserted_id)
-        
+
         # Update user membership
         membership_update = {
-            "type": membership_type,
+            "type": label,
             "status": "active",
             "startDate": datetime.utcnow(),
             "endDate": end_date,
             "autoRenew": auto_renew,
             "lastPaymentAmount": amount,
             "lastPaymentDate": datetime.utcnow(),
-            "treatedAsOneTime": membership_type == "one_time"
+            "treatedAsOneTime": resolved_months is None,
+            "adminGranted": True
         }
-        
-        # Calculate total paid
+
+        # Calculate total paid only if amount > 0; otherwise leave unchanged
         user = await db.users.find_one({"username": username})
         current_total = user.get("membership", {}).get("totalPaid", 0)
-        membership_update["totalPaid"] = current_total + amount
-        
+        if amount > 0:
+            membership_update["totalPaid"] = current_total + amount
+        else:
+            membership_update["totalPaid"] = current_total
+
         await db.users.update_one(
             {"username": username},
             {"$set": {"membership": membership_update}}
         )
-        
-        # Update contributions tracking
-        await db.users.update_one(
-            {"username": username},
-            {
-                "$set": {
-                    "contributions.lastContributionAmount": amount,
-                    "contributions.lastContributionDate": datetime.utcnow(),
-                    "contributions.totalContributed": current_total + amount
+        _invalidate_membership_cache(username)
+
+        # Update contributions tracking only when amount is > 0
+        if amount > 0:
+            await db.users.update_one(
+                {"username": username},
+                {
+                    "$set": {
+                        "contributions.lastContributionAmount": amount,
+                        "contributions.lastContributionDate": datetime.utcnow(),
+                        "contributions.totalContributed": current_total + amount
+                    }
                 }
-            }
-        )
-        
-        logger.info(f"✅ Admin granted membership to {username}: {membership_type} - ${amount} (by {current_user['username']})")
-        
+            )
+
+        logger.info(f"✅ Admin granted membership to {username}: {label} ({resolved_months or 'permanent'} months) (by {current_user['username']})")
+
         return {
             "success": True,
             "message": f"Membership granted to {username} successfully",
             "membership": {
-                "type": membership_type,
+                "type": label,
                 "status": "active",
                 "startDate": datetime.utcnow().isoformat(),
                 "endDate": end_date.isoformat() if end_date else None,
                 "autoRenew": auto_renew,
-                "totalPaid": current_total + amount
+                "totalPaid": current_total + (amount if amount > 0 else 0)
             }
         }
     except HTTPException:
@@ -1641,7 +2162,7 @@ async def reset_membership_admin(
     """Admin endpoint to reset a user's membership"""
     try:
         # Check if current user is admin
-        if current_user.get("role") != "admin":
+        if current_user.get("role") != "admin" and current_user.get("role_name") != "admin":
             raise HTTPException(status_code=403, detail="Admin access required")
         
         # Reset membership and contributions
@@ -1766,7 +2287,6 @@ async def check_membership_expirations(
         
         # Find memberships that should enter grace period
         expiring_soon = await db.users.find({
-            "membership.type": {"$in": ["3_month", "1_year"]},
             "membership.status": "active",
             "membership.endDate": {
                 "$lte": now,

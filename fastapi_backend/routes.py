@@ -39,6 +39,27 @@ from middleware.rate_limiter import limiter, RATE_LIMITS
 router = APIRouter(prefix="/api/users", tags=["users"])
 logger = logging.getLogger(__name__)
 
+
+async def _dispatch_profile_view_event_background(
+    db,
+    actor_username: str,
+    target_username: str,
+    metadata: dict,
+) -> None:
+    """Fire-and-forget dispatcher for profile-view events."""
+    try:
+        from services.event_dispatcher import get_event_dispatcher, UserEventType
+        event_dispatcher = await get_event_dispatcher(db)
+        await event_dispatcher.dispatch(
+            event_type=UserEventType.PROFILE_VIEWED,
+            actor_username=actor_username,
+            target_username=target_username,
+            metadata=metadata,
+        )
+        logger.debug(f"📤 Dispatched profile_viewed event: {actor_username} → {target_username}")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to dispatch profile_viewed event: {e}")
+
 # Simple test endpoint to verify SimpleTexting API config (no auth)
 @router.get("/simpletexting-test")
 async def simpletexting_test():
@@ -493,15 +514,52 @@ def _is_admin_user(user_doc: Dict[str, Any]) -> bool:
     username = (user_doc.get("username") or "").lower()
     return role == "admin" or role_name == "admin" or username == "admin"
 
+def _normalize_search_criteria_gender(criteria: Dict[str, Any], user_doc: Dict[str, Any]) -> Dict[str, Any]:
+    """Ensure criteria.gender is always Male/Female on saved searches.
+
+    Mirrors the /search endpoint safety rule: if a saved search arrives without
+    a usable gender (missing, empty, 'Any', etc.), default it to the opposite
+    of the owner's gender for non-privileged users — so same-gender results can
+    never leak into searches or notification emails.
+    """
+    if not isinstance(criteria, dict):
+        return criteria
+    value = str(criteria.get("gender") or "").strip().capitalize()
+    if value in ("Male", "Female"):
+        criteria["gender"] = value
+        return criteria
+    is_privileged = _is_admin_user(user_doc) or (user_doc.get("role_name") == "moderator")
+    if is_privileged:
+        return criteria
+    owner_gender = str(user_doc.get("gender") or "").strip().capitalize()
+    if owner_gender in ("Male", "Female"):
+        criteria["gender"] = "Female" if owner_gender == "Male" else "Male"
+        logger.info(f"🚻 Normalized saved-search gender to '{criteria['gender']}' (owner '{user_doc.get('username')}' is {owner_gender})")
+    return criteria
+
 async def _has_images_access(db, requester_username: str, owner_username: str, image_filename: str = None) -> bool:
-    """Check if requester has access to owner's images.
-    
+    """Check if requester has access to owner's images (cached for 5 minutes).
+
     If image_filename is provided, also checks per-image access rules including one-time views.
     """
     if not requester_username:
         return False
     if requester_username.lower() == owner_username.lower():
         return True
+
+    # Check cache first (only for general access, not per-image)
+    if not image_filename:
+        try:
+            from redis_manager import get_redis_manager
+            rm = get_redis_manager()
+            if rm and rm.redis_client:
+                cache_key = f"pii_images_access:{requester_username}:{owner_username}"
+                cached = rm.redis_client.get(cache_key)
+                if cached is not None:
+                    import json
+                    return json.loads(cached)
+        except Exception as cache_err:
+            logger.debug(f"Redis cache read skipped for images access: {cache_err}")
 
     requester_user = await db.users.find_one(get_username_query(requester_username), {"role": 1, "role_name": 1, "username": 1})
     if _is_admin_user(requester_user):
@@ -514,8 +572,18 @@ async def _has_images_access(db, requester_username: str, owner_username: str, i
         "accessType": "images",
         "isActive": True
     }).sort("grantedAt", -1).to_list(10)  # Most recent first
-    
+
     if not access_docs:
+        # Cache the negative result
+        if not image_filename:
+            try:
+                from redis_manager import get_redis_manager
+                rm = get_redis_manager()
+                if rm and rm.redis_client:
+                    cache_key = f"pii_images_access:{requester_username}:{owner_username}"
+                    rm.redis_client.setex(cache_key, 300, "false")
+            except Exception as cache_err:
+                logger.debug(f"Redis cache write skipped for images access: {cache_err}")
         return False
     
     # Use the most recent access doc for general checks
@@ -530,12 +598,30 @@ async def _has_images_access(db, requester_username: str, owner_username: str, i
                 expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
             if expires_dt <= datetime.utcnow():
                 await db.pii_access.update_one({"_id": access_doc.get("_id")}, {"$set": {"isActive": False}})
+                # Invalidate cache on expiry
+                try:
+                    from redis_manager import get_redis_manager
+                    rm = get_redis_manager()
+                    if rm and rm.redis_client:
+                        cache_key = f"pii_images_access:{requester_username}:{owner_username}"
+                        rm.redis_client.delete(cache_key)
+                except Exception as cache_err:
+                    logger.debug(f"Failed to invalidate images access cache on expiry: {cache_err}")
                 return False
         except Exception:
             pass
     
     # If no specific image requested, just check general access
     if not image_filename:
+        # Cache the positive result
+        try:
+            from redis_manager import get_redis_manager
+            rm = get_redis_manager()
+            if rm and rm.redis_client:
+                cache_key = f"pii_images_access:{requester_username}:{owner_username}"
+                rm.redis_client.setex(cache_key, 300, "true")
+        except Exception as cache_err:
+            logger.debug(f"Redis cache write skipped for images access: {cache_err}")
         return True
     
     # Find the image index by matching filename in owner's images
@@ -2103,9 +2189,18 @@ async def get_user_activity_summary(
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
 
+    # Keep membership snapshot fresh for admin viewers (applies hybrid/YTD rules
+    # and backfills fields like totalPaid/endDate when needed).
+    try:
+        from routers.contribution_routes import check_membership_access
+        await check_membership_access(username, db)
+    except Exception:
+        # Activity summary should still load even if membership refresh fails.
+        pass
+
     user = await db.users.find_one(
         {"username": username},
-        {"status": 1, "createdAt": 1, "lastLogin": 1, "security.last_login_at": 1, "security.last_login_ip": 1, "accountStatus": 1, "profileCompletionPercentage": 1}
+        {"status": 1, "createdAt": 1, "lastLogin": 1, "security.last_login_at": 1, "security.last_login_ip": 1, "accountStatus": 1, "profileCompletionPercentage": 1, "membership": 1}
     )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -2162,82 +2257,88 @@ async def get_user_activity_summary(
             last_login_location = ", ".join(parts) if parts else None
 
     # --- 2. PII Requests ---
-    pii_sent_count = await db.pii_requests.count_documents({"requesterUsername": username})
-    pii_received_count = await db.pii_requests.count_documents({"requestedUsername": username})
-    last_pii_sent = await db.pii_requests.find_one(
-        {"requesterUsername": username}, sort=[("createdAt", -1)]
+    (
+        pii_sent_count, pii_received_count,
+        pii_approved_count, pii_denied_count, pii_pending_count,
+        last_pii_sent, last_pii_received
+    ) = await asyncio.gather(
+        db.pii_requests.count_documents({"requesterUsername": username}),
+        db.pii_requests.count_documents({"requestedUsername": username}),
+        db.pii_requests.count_documents({"requestedUsername": username, "status": "approved"}),
+        db.pii_requests.count_documents({"requestedUsername": username, "status": "denied"}),
+        db.pii_requests.count_documents({"requestedUsername": username, "status": "pending"}),
+        db.pii_requests.find_one({"requesterUsername": username}, sort=[("createdAt", -1)]),
+        db.pii_requests.find_one({"requestedUsername": username}, sort=[("createdAt", -1)]),
     )
-    last_pii_received = await db.pii_requests.find_one(
-        {"requestedUsername": username}, sort=[("createdAt", -1)]
-    )
-    pii_approved_count = await db.pii_requests.count_documents({"requestedUsername": username, "status": "approved"})
-    pii_denied_count = await db.pii_requests.count_documents({"requestedUsername": username, "status": "denied"})
-    pii_pending_count = await db.pii_requests.count_documents({"requestedUsername": username, "status": "pending"})
 
     # --- 3. Notifications (email/sms received) ---
-    last_email = await db.notification_log.find_one(
-        {"username": username, "channel": "email"}, sort=[("sentAt", -1)]
+    (
+        last_email, last_sms, email_count, sms_count
+    ) = await asyncio.gather(
+        db.notification_log.find_one({"username": username, "channel": "email"}, sort=[("sentAt", -1)]),
+        db.notification_log.find_one({"username": username, "channel": "sms"}, sort=[("sentAt", -1)]),
+        db.notification_log.count_documents({"username": username, "channel": "email"}),
+        db.notification_log.count_documents({"username": username, "channel": "sms"}),
     )
-    last_sms = await db.notification_log.find_one(
-        {"username": username, "channel": "sms"}, sort=[("sentAt", -1)]
-    )
-    email_count = await db.notification_log.count_documents({"username": username, "channel": "email"})
-    sms_count = await db.notification_log.count_documents({"username": username, "channel": "sms"})
 
     # --- 4. Messages ---
-    msgs_sent = await db.messages.count_documents({"from_username": username})
-    msgs_received = await db.messages.count_documents({"to_username": username})
-    last_msg_sent = await db.messages.find_one(
-        {"from_username": username}, sort=[("timestamp", -1)]
+    (
+        msgs_sent, msgs_received, last_msg_sent, last_msg_received, unique_conversations_list
+    ) = await asyncio.gather(
+        db.messages.count_documents({"from_username": username}),
+        db.messages.count_documents({"to_username": username}),
+        db.messages.find_one({"from_username": username}, sort=[("timestamp", -1)]),
+        db.messages.find_one({"to_username": username}, sort=[("timestamp", -1)]),
+        db.messages.distinct("to_username", {"from_username": username}),
     )
-    last_msg_received = await db.messages.find_one(
-        {"to_username": username}, sort=[("timestamp", -1)]
-    )
-    unique_conversations = len(await db.messages.distinct("to_username", {"from_username": username}))
+    unique_conversations = len(unique_conversations_list)
 
     # --- 5. Favorites ---
-    favorites_count = await db.favorites.count_documents({"userUsername": username})
-    favorited_by_count = await db.favorites.count_documents({"favoriteUsername": username})
-    last_favorite = await db.favorites.find_one(
-        {"userUsername": username}, sort=[("createdAt", -1)]
-    )
-    last_favorited_by = await db.favorites.find_one(
-        {"favoriteUsername": username}, sort=[("createdAt", -1)]
+    (
+        favorites_count, favorited_by_count, last_favorite, last_favorited_by
+    ) = await asyncio.gather(
+        db.favorites.count_documents({"userUsername": username}),
+        db.favorites.count_documents({"favoriteUsername": username}),
+        db.favorites.find_one({"userUsername": username}, sort=[("createdAt", -1)]),
+        db.favorites.find_one({"favoriteUsername": username}, sort=[("createdAt", -1)]),
     )
 
     # --- 6. Shortlists ---
-    shortlisted_count = await db.shortlists.count_documents({"userUsername": username})
-    shortlisted_by_count = await db.shortlists.count_documents({"shortlistedUsername": username})
-    last_shortlisted = await db.shortlists.find_one(
-        {"userUsername": username}, sort=[("createdAt", -1)]
-    )
-    last_shortlisted_by = await db.shortlists.find_one(
-        {"shortlistedUsername": username}, sort=[("createdAt", -1)]
+    (
+        shortlisted_count, shortlisted_by_count, last_shortlisted, last_shortlisted_by
+    ) = await asyncio.gather(
+        db.shortlists.count_documents({"userUsername": username}),
+        db.shortlists.count_documents({"shortlistedUsername": username}),
+        db.shortlists.find_one({"userUsername": username}, sort=[("createdAt", -1)]),
+        db.shortlists.find_one({"shortlistedUsername": username}, sort=[("createdAt", -1)]),
     )
 
     # --- 7. Profile views ---
-    views_received = await db.profile_views.count_documents({"profileUsername": username})
-    views_made = await db.profile_views.count_documents({"viewer_username": username})
-    last_view_received = await db.profile_views.find_one(
-        {"profileUsername": username}, sort=[("viewed_at", -1)]
-    )
-    last_view_made = await db.profile_views.find_one(
-        {"viewer_username": username}, sort=[("viewed_at", -1)]
-    )
-
-    # --- 8. Searches performed ---
-    searches_count = await db.activity_logs.count_documents(
-        {"username": username, "action_type": "search_performed"}
-    )
-    last_search = await db.activity_logs.find_one(
-        {"username": username, "action_type": "search_performed"},
-        sort=[("timestamp", -1)]
+    (
+        views_received, views_made, last_view_received, last_view_made
+    ) = await asyncio.gather(
+        db.profile_views.count_documents({"profileUsername": username}),
+        db.profile_views.count_documents({"viewer_username": username}),
+        db.profile_views.find_one({"profileUsername": username}, sort=[("viewed_at", -1)]),
+        db.profile_views.find_one({"viewer_username": username}, sort=[("viewed_at", -1)]),
     )
 
-    # --- 9. Recent activity count (last 7 days) ---
+    # --- 8. Searches performed, support tickets, and recent activity ---
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    recent_activity_count = await db.activity_logs.count_documents(
-        {"username": username, "timestamp": {"$gte": seven_days_ago}}
+    (
+        searches_count, last_search,
+        support_ticket_count, open_support_ticket_count, last_support_ticket,
+        recent_activity_count
+    ) = await asyncio.gather(
+        db.activity_logs.count_documents({"username": username, "action_type": "search_performed"}),
+        db.activity_logs.find_one(
+            {"username": username, "action_type": "search_performed"},
+            sort=[("timestamp", -1)]
+        ),
+        db.contact_tickets.count_documents({"username": username}),
+        db.contact_tickets.count_documents({"username": username, "status": {"$in": ["open", "in_progress"]}}),
+        db.contact_tickets.find_one({"username": username}, sort=[("createdAt", -1)]),
+        db.activity_logs.count_documents({"username": username, "timestamp": {"$gte": seven_days_ago}}),
     )
 
     # Helper: safely convert datetime to ISO string (defined early so contributions block below can use it)
@@ -2252,27 +2353,29 @@ async def get_user_activity_summary(
     # --- 9b. Contributions (payments collection) ---
     contribution_query = {
         "username": username,
-        "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}
+        "paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]},
+        "status": {"$in": ["completed", "complete", "COMPLETED", "COMPLETE", "succeeded", "paid", None]},
     }
-    contribution_count = await db.payments.count_documents(contribution_query)
-    # Aggregate totals
-    contribution_total = 0.0
-    recurring_count = 0
-    if contribution_count > 0:
-        agg_cursor = db.payments.aggregate([
+    (
+        contribution_count, contribution_agg_list, recent_contributions_docs
+    ) = await asyncio.gather(
+        db.payments.count_documents(contribution_query),
+        db.payments.aggregate([
             {"$match": contribution_query},
             {"$group": {
                 "_id": None,
                 "total": {"$sum": "$amount"},
                 "recurring": {"$sum": {"$cond": [{"$eq": ["$paymentType", "contribution_recurring"]}, 1, 0]}}
             }}
-        ])
-        async for agg in agg_cursor:
-            contribution_total = float(agg.get("total") or 0)
-            recurring_count = int(agg.get("recurring") or 0)
+        ]).to_list(length=1),
+        db.payments.find(contribution_query).sort("createdAt", -1).limit(10).to_list(10),
+    )
+    contribution_total = 0.0
+    recurring_count = 0
+    if contribution_agg_list:
+        contribution_total = float(contribution_agg_list[0].get("total") or 0)
+        recurring_count = int(contribution_agg_list[0].get("recurring") or 0)
     avg_contribution = (contribution_total / contribution_count) if contribution_count else 0.0
-    # Latest 10 for the grid
-    recent_contributions_docs = await db.payments.find(contribution_query).sort("createdAt", -1).limit(10).to_list(10)
     recent_contributions = [
         {
             "id": str(c.get("_id")),
@@ -2354,6 +2457,11 @@ async def get_user_activity_summary(
             "count": searches_count,
             "lastSearch": ts(last_search.get("timestamp")) if last_search else None,
         },
+        "supportTickets": {
+            "count": support_ticket_count,
+            "openCount": open_support_ticket_count,
+            "lastTicket": ts(last_support_ticket.get("createdAt")) if last_support_ticket else None,
+        },
         "recentActivity": {
             "last7Days": recent_activity_count,
         },
@@ -2366,6 +2474,15 @@ async def get_user_activity_summary(
             "lastContribution": last_contribution_date,
             "recent": recent_contributions,  # latest 10
         },
+        "membership": {
+            "type": user.get("membership", {}).get("type"),
+            "status": user.get("membership", {}).get("status", "none"),
+            "startDate": ts(user.get("membership", {}).get("startDate")),
+            "endDate": ts(user.get("membership", {}).get("endDate")),
+            "totalPaid": round(float(user.get("membership", {}).get("totalPaid", 0) or 0), 2),
+            "autoRenew": user.get("membership", {}).get("autoRenew", False),
+            "adminGranted": user.get("membership", {}).get("adminGranted", False),
+        },
     }
 
 @router.get("/profile/{username}")
@@ -2377,6 +2494,12 @@ async def get_user_profile(
     db = Depends(get_database)
 ):
     """Get user profile by username with PII masking"""
+    profile_start = time.perf_counter()
+    timing_ms: Dict[str, float] = {}
+
+    def _mark_timing(step: str, started_at: float) -> None:
+        timing_ms[step] = round((time.perf_counter() - started_at) * 1000, 2)
+
     requester_username = current_user.get("username")
     logger.info(f"👤 Profile request for username: {username} (requester: {requester_username})")
     
@@ -2395,8 +2518,10 @@ async def get_user_profile(
     is_privileged_requester = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
     
     if not is_own_profile and not is_privileged_requester:
+        membership_started = time.perf_counter()
         from routers.contribution_routes import check_membership_access
         membership_access = await check_membership_access(requester_username, db)
+        _mark_timing("membership_access_check", membership_started)
         
         if not membership_access["hasAccess"]:
             raise HTTPException(
@@ -2406,7 +2531,9 @@ async def get_user_profile(
     
     # Find user (case-insensitive)
     logger.debug(f"Fetching profile for user '{username}'...")
+    user_fetch_started = time.perf_counter()
     user = await db.users.find_one(get_username_query(username))
+    _mark_timing("fetch_user", user_fetch_started)
     if not user:
         logger.warning(f"⚠️ Profile not found for username: {username}")
         # For admins, check if the account was permanently deleted
@@ -2452,6 +2579,7 @@ async def get_user_profile(
     logger.info(f"🔍 RELIGION RETRIEVE: Religion value from DB for user {username}: '{user.get('religion', 'NOT SET')}'")
     
     # 🔓 DECRYPT PII fields (if encrypted)
+    decrypt_started = time.perf_counter()
     try:
         encryptor = get_encryptor()
         user = encryptor.decrypt_user_pii(user)
@@ -2459,6 +2587,7 @@ async def get_user_profile(
     except Exception as decrypt_err:
         logger.warning(f"⚠️ Decryption skipped (encryption may not be enabled): {decrypt_err}")
         # Continue without decryption if encryption not configured
+    _mark_timing("decrypt_pii", decrypt_started)
     
     # Remove consent metadata (backend-only fields)
     remove_consent_metadata(user)
@@ -2480,11 +2609,15 @@ async def get_user_profile(
     access_granted = False
     per_field_access = None
     if requester_username:
+        pii_access_started = time.perf_counter()
         access_granted = await check_access_granted(db, requester_username, username)
         per_field_access = await get_per_field_access(db, requester_username, username)
+        _mark_timing("pii_access_checks", pii_access_started)
         logger.info(f"🔐 PII access for {requester_username} viewing {username}: general={access_granted}, per_field={per_field_access}")
     
+    pii_mask_started = time.perf_counter()
     user = mask_user_pii(user, requester_username, access_granted, per_field_access)
+    _mark_timing("mask_pii", pii_mask_started)
     
     # Debug: Log visibility flags after masking
     logger.info(f"👁️ After mask_user_pii - contactNumberVisible: {user.get('contactNumberVisible')}, contactEmailVisible: {user.get('contactEmailVisible')}, contactNumberMasked: {user.get('contactNumberMasked')}, contactEmailMasked: {user.get('contactEmailMasked')}")
@@ -2500,7 +2633,9 @@ async def get_user_profile(
     
     image_visibility_raw = user.get("imageVisibility", {})
     has_images_pii_access = per_field_access.get('images', False) if per_field_access else False
+    image_access_started = time.perf_counter()
     has_legacy_image_access = await _has_images_access(db, requester_username, username)
+    _mark_timing("legacy_image_access_check", image_access_started)
     
     # Check if requester has access to onRequest images
     has_on_request_access = has_images_pii_access or has_legacy_image_access
@@ -2512,6 +2647,7 @@ async def get_user_profile(
     
     logger.info(f"📸 Profile {username} image access: pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, has_on_request_access={has_on_request_access}, onRequestCount={len(original_on_request)}")
     
+    image_filter_started = time.perf_counter()
     if image_visibility_raw:
         # NEW SYSTEM: Filter images based on 3-bucket visibility
         visible_images = []
@@ -2565,6 +2701,7 @@ async def get_user_profile(
             user["imageReasons"] = []
             user["imagesMasked"] = False
             logger.info(f"📸 {username}: LEGACY - No images")
+    _mark_timing("image_filtering", image_filter_started)
     
     # ALWAYS set profilePicVisible flag when user has images (profile pic is always visible in new system)
     if normalized_images:
@@ -2605,27 +2742,49 @@ async def get_user_profile(
     include_context = request.query_params.get("include_context", "false").lower() == "true"
     
     if include_context and requester_username and not is_own_profile:
+        include_context_started = time.perf_counter()
         try:
-            # 1. Relationship status
-            # Check favorites using new schema (individual documents per favorite)
-            favorite_doc = await db.favorites.find_one({
-                "userUsername": requester_username,
-                "favoriteUsername": username
-            })
+            # Run all context queries in parallel to reduce latency
+            results = await asyncio.gather(
+                # 1. Relationship status
+                db.favorites.find_one({
+                    "userUsername": requester_username,
+                    "favoriteUsername": username
+                }),
+                db.shortlists.find_one({
+                    "userUsername": requester_username,
+                    "shortlistedUsername": username
+                }),
+                db.exclusions.find_one({
+                    "userUsername": requester_username,
+                    "excludedUsername": username
+                }),
+                # 2. KPI Stats (counts)
+                db.profile_views.count_documents({"profileUsername": username}),
+                db.favorites.count_documents({"favoriteUsername": username}),
+                db.shortlists.count_documents({"shortlistedUsername": username}),
+                # 3. PII Request Status (pending requests)
+                db.pii_requests.find({
+                    "requesterUsername": requester_username,
+                    "requestedUsername": username,
+                    "status": "pending"
+                }).to_list(length=10),
+                db.pii_requests.find({
+                    "requesterUsername": requester_username,
+                    "profileUsername": username,
+                    "status": "pending"
+                }).to_list(length=10),
+                # 4. Online Status
+                db.online_status.find_one({"username": username}),
+                return_exceptions=True
+            )
+
+            favorite_doc, shortlist_doc, exclusion_doc, views_count, fav_by_count, short_by_count, pii_reqs1, pii_reqs2, online_status = results
+
+            # Process relationship status
             user["isFavorited"] = favorite_doc is not None
-            
-            # Check shortlist using correct collection (shortlists) and field (shortlistedUsername)
-            shortlist_doc = await db.shortlists.find_one({
-                "userUsername": requester_username,
-                "shortlistedUsername": username
-            })
             user["isShortlisted"] = shortlist_doc is not None
-            
-            # Check exclusions (may still use old schema - check both)
-            exclusion_doc = await db.exclusions.find_one({
-                "userUsername": requester_username,
-                "excludedUsername": username
-            })
+
             if exclusion_doc is None:
                 # Fallback to old schema
                 exclusions = await db.exclusions.find_one({"username": requester_username})
@@ -2634,83 +2793,72 @@ async def get_user_profile(
             else:
                 user["isExcluded"] = True
 
-            # 2. KPI Stats (counts)
-            # Profile views
-            views_count = await db.profile_views.count_documents({"profileUsername": username})
-            # Their favorites (who favorited THIS user) - use new schema
-            fav_by_count = await db.favorites.count_documents({"favoriteUsername": username})
-            # Their shortlists (who shortlisted THIS user) - use correct collection and field
-            short_by_count = await db.shortlists.count_documents({"shortlistedUsername": username})
-            
+            # Process KPI stats
             user["kpiStats"] = {
-                "profileViews": views_count,
-                "favoritedBy": fav_by_count,
-                "shortlistedBy": short_by_count
+                "profileViews": views_count if not isinstance(views_count, Exception) else 0,
+                "favoritedBy": fav_by_count if not isinstance(fav_by_count, Exception) else 0,
+                "shortlistedBy": short_by_count if not isinstance(short_by_count, Exception) else 0
             }
 
-            # 3. PII Request Status (pending requests)
+            # Process PII request status
             pii_request_status = {}
-            # Use correct field names: requesterUsername and requestedUsername
-            outgoing_cursor = db.pii_requests.find({
-                "requesterUsername": requester_username,
-                "requestedUsername": username,
-                "status": "pending"
-            })
-            async for req in outgoing_cursor:
+            for req in (pii_reqs1 if not isinstance(pii_reqs1, Exception) else []):
                 rtype = req.get("requestType")
                 if rtype:
                     pii_request_status[rtype] = "pending"
-            
-            # Also check profileUsername/requesterUsername format used in some places
-            outgoing_cursor2 = db.pii_requests.find({
-                "requesterUsername": requester_username,
-                "profileUsername": username,
-                "status": "pending"
-            })
-            async for req in outgoing_cursor2:
+            for req in (pii_reqs2 if not isinstance(pii_reqs2, Exception) else []):
                 rtype = req.get("requestType")
                 if rtype:
                     pii_request_status[rtype] = "pending"
-            
+
             # Add approved status from per_field_access
             if per_field_access:
                 for field, granted in per_field_access.items():
                     if granted and pii_request_status.get(field) != "pending":
                         pii_request_status[field] = "approved"
-            
+
             user["piiRequestStatus"] = pii_request_status
             user["piiAccess"] = per_field_access
 
-            # 4. Online Status
-            online_status = await db.online_status.find_one({"username": username})
-            user["isOnline"] = online_status.get("isOnline", False) if online_status else False
+            # Process online status
+            user["isOnline"] = online_status.get("isOnline", False) if online_status and not isinstance(online_status, Exception) else False
             
         except Exception as context_err:
             logger.error(f"⚠️ Error fetching profile context: {context_err}")
             # Don't fail the whole request if context fetching fails
             user["contextError"] = str(context_err)
+        _mark_timing("include_context", include_context_started)
 
     logger.info(f"✅ Profile successfully retrieved for user '{username}' (PII masked: {user.get('piiMasked', False)})")
     
     # Dispatch profile view event if viewing someone else's profile
     if not is_own_profile and requester_username:
-        try:
-            from services.event_dispatcher import get_event_dispatcher, UserEventType
-            event_dispatcher = await get_event_dispatcher(db)
-            
-            await event_dispatcher.dispatch(
-                event_type=UserEventType.PROFILE_VIEWED,
+        dispatch_started = time.perf_counter()
+        asyncio.create_task(
+            _dispatch_profile_view_event_background(
+                db,
                 actor_username=requester_username,
                 target_username=username,
                 metadata={
                     "viewer_ip": request.client.host if request.client else "unknown",
                     "user_agent": request.headers.get("user-agent", "unknown"),
                     "timestamp": datetime.utcnow().isoformat()
-                }
+                },
             )
-            logger.debug(f"📤 Dispatched profile_viewed event: {requester_username} → {username}")
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to dispatch profile_viewed event: {e}")
+        )
+        _mark_timing("dispatch_profile_viewed_event", dispatch_started)
+
+    total_ms = round((time.perf_counter() - profile_start) * 1000, 2)
+    timing_parts = ", ".join([f"{k}={v}ms" for k, v in timing_ms.items()])
+    timing_line = (
+        f"⏱️ profile_timing username={username} requester={requester_username} include_context={include_context} "
+        f"total={total_ms}ms {timing_parts}"
+    )
+    # Emit slow traces at warning level so they always show up in Cloud Logging even if INFO logs are filtered.
+    if total_ms >= 1000:
+        logger.warning(timing_line)
+    else:
+        logger.info(timing_line)
     
     return user
 
@@ -5000,11 +5148,12 @@ async def delete_user_profile(
     # 🛑 CRITICAL SECURITY CHECK
     # Allow delete if:
     # 1. User is deleting their own profile
-    # 2. User is an admin
-    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    # 2. User is an admin or moderator
+    role = (current_user.get("role") or current_user.get("role_name") or "").lower()
+    is_admin_or_moderator = role in {"admin", "moderator"}
     is_owner = current_user.get("username") == username
     
-    if not (is_owner or is_admin):
+    if not (is_owner or is_admin_or_moderator):
         logger.warning(f"⚠️ Unauthorized delete attempt: User '{current_user.get('username')}' tried to delete '{username}'")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -6319,6 +6468,11 @@ async def save_search(username: str, search_data: dict, db = Depends(get_databas
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        # Enforce gender as mandatory in saved criteria — default to opposite
+        # of the owner's gender when the client sends none (legacy UI paths).
+        if isinstance(search_data.get("criteria"), dict):
+            search_data["criteria"] = _normalize_search_criteria_gender(search_data["criteria"], user)
+
         existing_count = await db.saved_searches.count_documents({"username": username})
         if existing_count >= 5:
             raise HTTPException(
@@ -6405,7 +6559,11 @@ async def update_saved_search(username: str, search_id: str, search_data: dict, 
         user = await db.users.find_one({"username": username})
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
+        # Enforce gender as mandatory if criteria is being updated
+        if isinstance(search_data.get("criteria"), dict):
+            search_data["criteria"] = _normalize_search_criteria_gender(search_data["criteria"], user)
+
         # Prepare update data
         update_data = {
             **search_data,
@@ -6532,9 +6690,21 @@ async def get_search_criteria_breakdown(username: str, criteria: dict, current_u
         })
 
         # Gender filter
-        if criteria.get("gender"):
-            query["gender"] = criteria["gender"].capitalize()
+        gender_criteria = str(criteria.get("gender") or "").strip().capitalize()
+        if gender_criteria in ("Male", "Female"):
+            query["gender"] = gender_criteria
             logger.info(f"📊 Applied gender filter: {criteria['gender']}")
+        else:
+            # Mirror /search endpoint safety: auto-apply opposite gender for
+            # non-privileged users so breakdown counts match real search results.
+            is_privileged_breakdown = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
+            if not is_privileged_breakdown:
+                user_gender = (current_user.get("gender") or "").strip().capitalize()
+                if user_gender in ("Male", "Female"):
+                    query["gender"] = "Female" if user_gender == "Male" else "Male"
+                    logger.info(f"📊 Auto-applied opposite gender filter: {query['gender']} (user is {user_gender})")
+                else:
+                    logger.warning(f"📊 No gender filter - user gender unknown: '{user_gender}'")
 
         # Age filter - convert age range to birthYear/birthMonth filter
         age_min = criteria.get("ageMin") or criteria.get("age_min")
@@ -8173,6 +8343,13 @@ async def add_to_exclusions(
         cleanup_summary["pii_access_revoked"] = pii_access_result.modified_count
         if pii_access_result.modified_count > 0:
             logger.info(f"🔒 Revoked {pii_access_result.modified_count} PII access grants between {username} ↔ {target_username}")
+            # Invalidate PII access cache for both users
+            try:
+                from pii_security import _invalidate_pii_access_cache
+                _invalidate_pii_access_cache(username, target_username)
+                _invalidate_pii_access_cache(target_username, username)
+            except Exception as cache_err:
+                logger.debug(f"Failed to invalidate PII access cache after revocation: {cache_err}")
         
         # 4. REMOVE FROM FAVORITES (Both sides) - Optimized single query
         fav_result = await db.favorites.delete_many({
@@ -9784,11 +9961,62 @@ async def send_message_enhanced(
         }
         logger.info(f"✅ Enhanced message sent: {username} → {message_data.toUsername}")
         
+        # Optionally queue the message as an SMS to the recipient's primary contact
+        sms_queued = False
+        sms_error = None
+        if getattr(message_data, "alsoSendSms", False):
+            try:
+                # Resolve recipient's primary contact number (mirrors SMS notifier lookup:
+                # contactNumbers[label="primary"] → phone → contactNumber)
+                recipient_phone = None
+                contact_numbers = recipient.get("contactNumbers") or []
+                if isinstance(contact_numbers, list):
+                    for c in contact_numbers:
+                        if isinstance(c, dict) and str(c.get("label", "")).lower() == "primary" and c.get("number"):
+                            recipient_phone = c["number"]
+                            break
+                if not recipient_phone:
+                    recipient_phone = recipient.get("phone") or recipient.get("contactNumber")
+
+                if not recipient_phone:
+                    sms_error = "Recipient has no primary contact number"
+                    logger.warning(f"⚠️ SMS skipped for {message_data.toUsername}: no primary contact")
+                else:
+                    from services.notification_service import NotificationService
+                    service = NotificationService(db)
+                    queue_item = await service.queue_notification(
+                        username=message_data.toUsername,
+                        trigger="message_sms",
+                        channels=["sms"],
+                        template_data={
+                            "message": message_data.content.strip(),
+                            "recipient": {
+                                "firstName": recipient.get("firstName", message_data.toUsername),
+                                "username": message_data.toUsername,
+                            },
+                            "match": {
+                                "firstName": (sender or {}).get("firstName", username),
+                                "username": username,
+                            },
+                            "profile_link": f"https://l3v3lmatches.com/profile/{username}",
+                        },
+                        priority="high",
+                        force_send=True,  # Explicit sender opt-in per message
+                    )
+                    sms_queued = queue_item is not None
+                    if sms_queued:
+                        logger.info(f"📱 Queued message_sms SMS for {message_data.toUsername} (from {username})")
+                    else:
+                        sms_error = "Failed to queue SMS notification"
+            except Exception as sms_err:
+                sms_error = str(sms_err)
+                logger.error(f"❌ Error queuing message SMS: {sms_err}", exc_info=True)
+
         # Dispatch message sent event for notifications
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
             event_dispatcher = await get_event_dispatcher(db)
-            
+
             await event_dispatcher.dispatch(
                 event_type=UserEventType.MESSAGE_SENT,
                 actor_username=username,
@@ -9796,14 +10024,20 @@ async def send_message_enhanced(
                 metadata={
                     "preview": message_data.content[:100],
                     "message_id": str(result.inserted_id),
-                    "is_visible": is_visible
+                    "is_visible": is_visible,
+                    "suppress_sms": sms_queued  # avoid duplicate SMS via new_message trigger
                 }
             )
             logger.debug(f"📤 Dispatched message_sent event: {username} → {message_data.toUsername}")
         except Exception as e:
             logger.warning(f"⚠️ Failed to dispatch message_sent event: {e}")
-        
-        return {"message": "Message sent successfully", "data": message_response}
+
+        return {
+            "message": "Message sent successfully",
+            "data": message_response,
+            "smsQueued": sms_queued,
+            "smsError": sms_error,
+        }
     except Exception as e:
         logger.error(f"❌ Error sending message: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -10791,6 +11025,181 @@ async def toggle_sms_optin(
         raise
     except Exception as e:
         logger.error(f"❌ Error toggling SMS opt-in: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/send-sms")
+async def send_profile_share_sms(
+    recipientPhone: str = Body(..., embed=True),
+    message: str = Body(..., embed=True),
+    username: str = Body(..., embed=True),
+    recipientType: str = Body(None, embed=True),
+    sharedProfileUsername: str = Body(None, embed=True),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Send profile share SMS directly via SimpleTexting and save contact to user's profile"""
+    try:
+        from services.simpletexting_service import SimpleTextingService
+
+        # Verify the sender is the authenticated user
+        if current_user["username"] != username:
+            raise HTTPException(status_code=403, detail="You can only send SMS as yourself")
+
+        # Send SMS directly via SimpleTexting (bypasses notification system SMS opt-in)
+        sms_service = SimpleTextingService()
+        result = await sms_service.send_notification(
+            phone=recipientPhone,
+            message=message
+        )
+
+        if result.get("success"):
+            logger.info(f"✅ Profile share SMS sent from {username} to {recipientPhone[:3]}***")
+
+            # Save/update the contact number in user's profile
+            if recipientType and recipientPhone:
+                # Check if contact already exists with this label
+                existing_contact = await db.users.find_one({
+                    "username": username,
+                    "contactNumbers.label": recipientType
+                })
+
+                if existing_contact:
+                    # Update existing contact
+                    await db.users.update_one(
+                        {"username": username, "contactNumbers.label": recipientType},
+                        {"$set": {"contactNumbers.$.number": recipientPhone}}
+                    )
+                    logger.info(f"✅ Updated existing contact {recipientType} for {username}")
+                else:
+                    # Add new contact. Default visibility: only "primary" is member-visible;
+                    # all other recipient types are private (SMS recipients, not profile phones).
+                    is_primary = str(recipientType).lower() == "primary"
+                    await db.users.update_one(
+                        {"username": username},
+                        {"$push": {"contactNumbers": {"label": recipientType, "number": recipientPhone, "visible": is_primary}}}
+                    )
+                    logger.info(f"✅ Added new contact {recipientType} for {username} (visible={is_primary})")
+
+            # Log the share to profile_shares collection (upsert - keep only latest)
+            await db.profile_shares.update_one(
+                {
+                    "senderUsername": username,
+                    "sharedProfileUsername": sharedProfileUsername,
+                    "recipientType": recipientType,
+                    "recipientPhone": recipientPhone,
+                },
+                {
+                    "$set": {
+                        "message": message,
+                        "sentAt": datetime.utcnow(),
+                        "status": "sent"
+                    }
+                },
+                upsert=True
+            )
+
+            return {
+                "success": True,
+                "message": "SMS sent successfully",
+                "recipient": recipientPhone
+            }
+        else:
+            logger.error(f"❌ Failed to send SMS: {result.get('error')}")
+            raise HTTPException(status_code=500, detail=result.get("error", "Failed to send SMS"))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error sending profile share SMS: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/profile-shares")
+async def get_profile_shares(
+    current_user: dict = Depends(get_current_user),
+    shared_profile_username: str = Query(None),
+    db = Depends(get_database)
+):
+    """Get profile share history for the current user, optionally filtered by shared profile"""
+    try:
+        username = current_user["username"]
+        
+        # Build filter query
+        filter_query = {"senderUsername": username}
+        if shared_profile_username:
+            filter_query["sharedProfileUsername"] = shared_profile_username
+
+        cursor = db.profile_shares.find(filter_query).sort("sentAt", -1).limit(50)
+
+        shares = []
+        async for doc in cursor:
+            shares.append({
+                "sharedProfileUsername": doc.get("sharedProfileUsername"),
+                "recipientType": doc.get("recipientType"),
+                "recipientPhone": doc.get("recipientPhone"),
+                "sentAt": doc.get("sentAt"),
+                "status": doc.get("status")
+            })
+
+        return {"shares": shares}
+    except Exception as e:
+        logger.error(f"❌ Error fetching profile shares: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/profile-shares/{shared_profile_username}")
+async def delete_profile_share(
+    shared_profile_username: str,
+    recipient_type: str = Query(...),
+    recipient_phone: str = Query(...),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Delete a specific profile share record"""
+    try:
+        username = current_user["username"]
+        
+        result = await db.profile_shares.delete_one({
+            "senderUsername": username,
+            "sharedProfileUsername": shared_profile_username,
+            "recipientType": recipient_type,
+            "recipientPhone": recipient_phone
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Share record not found")
+        
+        logger.info(f"✅ Deleted profile share: {username} → {shared_profile_username} ({recipient_type})")
+        return {"success": True, "message": "Share record deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting profile share: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/profile-shares")
+async def delete_all_profile_shares(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Delete all profile share history for the current user"""
+    try:
+        username = current_user["username"]
+        
+        result = await db.profile_shares.delete_many({
+            "senderUsername": username
+        })
+        
+        logger.info(f"✅ Deleted {result.deleted_count} profile share records for {username}")
+        return {
+            "success": True,
+            "message": f"Deleted {result.deleted_count} share records",
+            "deletedCount": result.deleted_count
+        }
+    except Exception as e:
+        logger.error(f"❌ Error deleting profile shares: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -11868,6 +12277,14 @@ async def approve_pii_request(
         
         logger.info(f"📝 Inserting PII access record: {access_data}")
         await db.pii_access.insert_one(access_data)
+
+        # Invalidate PII access cache for both users
+        try:
+            from pii_security import _invalidate_pii_access_cache
+            _invalidate_pii_access_cache(request["requesterUsername"], username)
+            _invalidate_pii_access_cache(username, request["requesterUsername"])
+        except Exception as cache_err:
+            logger.debug(f"Failed to invalidate PII access cache: {cache_err}")
         
         # =================================================================
         # RECIPROCAL ACCESS: When User A approves User B's request,
@@ -11900,6 +12317,14 @@ async def approve_pii_request(
             logger.info(f"🔄 Creating reciprocal access: {request['requesterUsername']} → {username} for {request['requestType']}")
             await db.pii_access.insert_one(reciprocal_access_data)
             logger.info(f"🔑 Reciprocal access granted: {request['requesterUsername']} → {username} for {request['requestType']}")
+
+            # Invalidate PII access cache for reciprocal grant
+            try:
+                from pii_security import _invalidate_pii_access_cache
+                _invalidate_pii_access_cache(request["requesterUsername"], username)
+                _invalidate_pii_access_cache(username, request["requesterUsername"])
+            except Exception as cache_err:
+                logger.debug(f"Failed to invalidate PII access cache for reciprocal: {cache_err}")
         else:
             logger.info(f"🔄 Reciprocal access already exists, skipping duplicate")
         
@@ -13712,39 +14137,39 @@ async def submit_contact_ticket(
     logger.info(f"📧 New contact ticket from {name} ({email})")
     
     try:
-        import os
-        import aiofiles
-        from pathlib import Path
-        
-        # Create uploads directory if it doesn't exist
-        upload_dir = Path("uploads/contact_tickets")
-        upload_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Process attachments
+        from services.storage_service import get_storage_service
+
+        storage = get_storage_service()
+        MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+        MAX_FILES = 3
+
+        # Process attachments via StorageService (GCS-aware, like profile photos)
         attachment_files = []
         if attachments and len(attachments) > 0:
-            for file in attachments[:2]:  # Max 2 files
-                if file.filename:
-                    # Generate unique filename
-                    file_ext = Path(file.filename).suffix
-                    unique_filename = f"{datetime.utcnow().timestamp()}_{file.filename}"
-                    file_path = upload_dir / unique_filename
-                    
-                    # Save file
-                    async with aiofiles.open(file_path, 'wb') as f:
-                        content = await file.read()
-                        await f.write(content)
-                    
-                    attachment_files.append({
-                        "filename": file.filename,
-                        "stored_filename": unique_filename,
-                        "file_path": str(file_path),
-                        "size": len(content),
-                        "content_type": file.content_type,
-                        "uploaded_at": datetime.utcnow()
-                    })
-                    
-                    logger.info(f"📎 Saved attachment: {file.filename} ({len(content)} bytes)")
+            if len(attachments) > MAX_FILES:
+                raise HTTPException(status_code=400, detail=f"Maximum {MAX_FILES} files allowed")
+            for file in attachments:
+                if not file.filename:
+                    continue
+                content = await file.read()
+                if len(content) > MAX_FILE_SIZE:
+                    raise HTTPException(status_code=400, detail=f"File '{file.filename}' exceeds 5MB limit")
+                await file.seek(0)
+                storage_path = await storage.save_file(
+                    file,
+                    folder="uploads/contact_tickets",
+                    content_type=file.content_type,
+                    compress=False
+                )
+                attachment_files.append({
+                    "filename": file.filename,
+                    "stored_filename": storage_path.split('/')[-1],
+                    "file_path": storage_path,
+                    "size": len(content),
+                    "content_type": file.content_type,
+                    "uploaded_at": datetime.utcnow()
+                })
+                logger.info(f"📎 Saved attachment: {file.filename} ({len(content)} bytes)")
         
         ticket = {
             "name": name,
@@ -14014,16 +14439,55 @@ async def update_ticket_status(
 @router.post("/contact/{ticket_id}/reply")
 async def reply_to_ticket(
     ticket_id: str,
-    adminReply: str = Body(...),
-    adminName: str = Body(...),
+    adminReply: str = Form(...),
+    adminName: str = Form(...),
+    attachments: List[UploadFile] = File(default=[]),
     current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
-    """Send admin reply to ticket (admin/moderator only)"""
+    """Send admin reply to ticket (admin/moderator only) with optional attachments"""
     logger.info(f"💬 Admin {adminName} replying to ticket {ticket_id}")
     
     try:
         from bson import ObjectId
+        from services.storage_service import get_storage_service
+
+        storage = get_storage_service()
+        MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+        MAX_FILES = 3
+
+        # Validate file count
+        if len(attachments) > MAX_FILES:
+            raise HTTPException(status_code=400, detail=f"Maximum {MAX_FILES} files allowed")
+
+        # Process attachments via StorageService (GCS-aware, like profile photos)
+        attachment_files = []
+        if attachments:
+            for file in attachments:
+                if not file.filename:
+                    continue
+                content = await file.read()
+                # Validate file size
+                if len(content) > MAX_FILE_SIZE:
+                    raise HTTPException(status_code=400, detail=f"File '{file.filename}' exceeds 5MB limit")
+                await file.seek(0)
+                # Save to GCS or local (no image compression, preserve content type)
+                storage_path = await storage.save_file(
+                    file,
+                    folder="uploads/contact_tickets",
+                    content_type=file.content_type,
+                    compress=False
+                )
+                attachment_files.append({
+                    "filename": file.filename,
+                    "stored_filename": storage_path.split('/')[-1],
+                    "file_path": storage_path,
+                    "size": len(content),
+                    "content_type": file.content_type,
+                    "uploaded_at": datetime.utcnow(),
+                    "uploaded_by": adminName
+                })
+                logger.info(f"📎 Admin attachment saved: {file.filename} ({len(content)} bytes)")
 
         reply_obj = {
             "message": adminReply,
@@ -14031,17 +14495,21 @@ async def reply_to_ticket(
             "timestamp": datetime.utcnow()
         }
 
+        update_doc = {
+            "$push": {"adminReplies": reply_obj},
+            "$set": {
+                "adminReply": adminReply,
+                "repliedAt": datetime.utcnow(),
+                "status": "in_progress",
+                "updatedAt": datetime.utcnow()
+            }
+        }
+        if attachment_files:
+            update_doc["$push"]["attachments"] = {"$each": attachment_files}
+
         result = await db.contact_tickets.update_one(
             {"_id": ObjectId(ticket_id)},
-            {
-                "$push": {"adminReplies": reply_obj},
-                "$set": {
-                    "adminReply": adminReply,
-                    "repliedAt": datetime.utcnow(),
-                    "status": "in_progress",
-                    "updatedAt": datetime.utcnow()
-                }
-            }
+            update_doc
         )
         
         if result.modified_count == 0:
@@ -14113,8 +14581,8 @@ async def download_attachment(
     
     try:
         from bson import ObjectId
-        from pathlib import Path
-        from fastapi.responses import FileResponse
+        from fastapi.responses import Response
+        from services.storage_service import get_storage_service
         
         # Verify ticket exists and get attachment info
         ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
@@ -14132,20 +14600,125 @@ async def download_attachment(
         if not attachment:
             raise HTTPException(status_code=404, detail="Attachment not found")
         
-        file_path = Path(attachment.get("file_path"))
-        if not file_path.exists():
+        # Read file from GCS or local via StorageService
+        storage = get_storage_service()
+        content = await storage.read_file(attachment.get("file_path") or f"/uploads/contact_tickets/{filename}")
+        if content is None:
             raise HTTPException(status_code=404, detail="File not found on server")
         
-        logger.info(f"✅ Serving file: {file_path}")
-        return FileResponse(
-            path=str(file_path),
-            filename=attachment.get("filename"),
-            media_type=attachment.get("content_type", "application/octet-stream")
+        logger.info(f"✅ Serving file: {filename}")
+        return Response(
+            content=content,
+            media_type=attachment.get("content_type", "application/octet-stream"),
+            headers={"Content-Disposition": f'attachment; filename="{attachment.get("filename", filename)}"'}
         )
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"❌ Error downloading attachment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/contact/{ticket_id}/attachment/{stored_filename}")
+async def delete_ticket_attachment(
+    ticket_id: str,
+    stored_filename: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Delete a single attachment from a ticket (ticket owner only)"""
+    logger.info(f"🗑️ User {username} deleting attachment {stored_filename} from ticket {ticket_id}")
+
+    try:
+        from bson import ObjectId
+        from services.storage_service import get_storage_service
+
+        # Verify ticket exists and belongs to the requesting user
+        ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+
+        if ticket.get("username") != username:
+            raise HTTPException(status_code=403, detail="You can only delete attachments on your own ticket")
+
+        # Find the attachment in the ticket
+        attachment = None
+        if ticket.get("attachments"):
+            for att in ticket["attachments"]:
+                if att.get("stored_filename") == stored_filename:
+                    attachment = att
+                    break
+
+        if not attachment:
+            raise HTTPException(status_code=404, detail="Attachment not found")
+
+        # Delete the file from storage (GCS or local)
+        storage = get_storage_service()
+        deleted = await storage.delete_attachment(stored_filename)
+        if not deleted:
+            logger.warning(f"⚠️ File {stored_filename} not found in storage, removing DB reference only")
+
+        # Remove attachment from ticket's attachments array
+        result = await db.contact_tickets.update_one(
+            {"_id": ObjectId(ticket_id)},
+            {"$pull": {"attachments": {"stored_filename": stored_filename}}}
+        )
+
+        logger.info(f"✅ Attachment {stored_filename} deleted from ticket {ticket_id}")
+        return {"message": "Attachment deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting attachment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/contact/admin/{ticket_id}/attachment/{stored_filename}")
+async def delete_ticket_attachment_admin(
+    ticket_id: str,
+    stored_filename: str,
+    current_user: dict = Depends(require_moderator_or_admin),
+    db = Depends(get_database)
+):
+    """Delete a single attachment from a ticket (admin/moderator only)"""
+    logger.info(f"🗑️ Admin {current_user.get('username')} deleting attachment {stored_filename} from ticket {ticket_id}")
+
+    try:
+        from bson import ObjectId
+        from services.storage_service import get_storage_service
+
+        # Verify ticket exists
+        ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+
+        # Find the attachment in the ticket
+        attachment = None
+        if ticket.get("attachments"):
+            for att in ticket["attachments"]:
+                if att.get("stored_filename") == stored_filename:
+                    attachment = att
+                    break
+
+        if not attachment:
+            raise HTTPException(status_code=404, detail="Attachment not found")
+
+        # Delete the file from storage (GCS or local)
+        storage = get_storage_service()
+        deleted = await storage.delete_attachment(stored_filename)
+        if not deleted:
+            logger.warning(f"⚠️ File {stored_filename} not found in storage, removing DB reference only")
+
+        # Remove attachment from ticket's attachments array
+        await db.contact_tickets.update_one(
+            {"_id": ObjectId(ticket_id)},
+            {"$pull": {"attachments": {"stored_filename": stored_filename}}}
+        )
+
+        logger.info(f"✅ Attachment {stored_filename} deleted from ticket {ticket_id} by admin")
+        return {"message": "Attachment deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting attachment: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/contact/{ticket_id}")
@@ -14159,25 +14732,29 @@ async def delete_ticket(
     
     try:
         from bson import ObjectId
-        from pathlib import Path
-        import os
+        from services.storage_service import get_storage_service
         
         # Get ticket before deletion to clean up attachments
         ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
         if not ticket:
             raise HTTPException(status_code=404, detail="Ticket not found")
         
-        # Delete attachments if they exist
+        # Delete attachments if they exist (GCS or local via StorageService)
         if ticket.get("attachments"):
             logger.info(f"🗑️ Deleting {len(ticket['attachments'])} attachment(s)")
+            storage = get_storage_service()
             for attachment in ticket['attachments']:
+                stored_filename = attachment.get('stored_filename')
+                if not stored_filename:
+                    continue
                 try:
-                    file_path = Path(attachment.get('file_path', ''))
-                    if file_path.exists():
-                        os.remove(file_path)
-                        logger.info(f"✅ Deleted file: {file_path}")
+                    deleted = await storage.delete_attachment(stored_filename)
+                    if deleted:
+                        logger.info(f"✅ Deleted attachment: {stored_filename}")
+                    else:
+                        logger.warning(f"⚠️ Attachment not found for deletion: {stored_filename}")
                 except Exception as file_err:
-                    logger.error(f"⚠️ Failed to delete file {file_path}: {file_err}")
+                    logger.error(f"⚠️ Failed to delete attachment {stored_filename}: {file_err}")
         
         # Delete the ticket
         result = await db.contact_tickets.delete_one({"_id": ObjectId(ticket_id)})

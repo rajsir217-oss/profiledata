@@ -13,7 +13,7 @@
   border-color: var(--primary-color-light);
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1080px) {
   .dv2-hero-card {
     grid-template-columns: 140px minmax(0, 1fr);
   }
@@ -35,6 +35,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 
 .dv2-hero-img {
@@ -88,15 +89,6 @@
   border-radius: 12px;
   padding: 4px 10px;
   background: linear-gradient(135deg, var(--dv2-accent-soft, var(--background-color)) 0%, var(--background-color) 100%);
-}
-
-.dv2-hero-attrs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  margin-top: 10px;
-  font-size: 13px;
-  color: var(--text-muted, #888);
 }
 
 .dv2-hero-pills {
@@ -189,7 +181,7 @@
   gap: 10px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1080px) {
   .dv2-hero-actions {
     grid-column: 1 / -1;
     flex-direction: row;
@@ -273,4 +265,279 @@
   font-size: 13px;
   color: var(--text-muted, #888);
   margin-top: 6px;
+}
+
+/* Footer row: nav pair + stamp strip + view-all.
+   Single DOM — on desktop .dv2-hero-nav-pair is transparent (display:contents)
+   so prev/next join the row flow; on mobile it becomes a full-width first row. */
+.dv2-hero-footer-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 3px dotted var(--text-muted, #888);
+  min-width: 0;
+}
+
+.dv2-hero-nav-pair {
+  display: contents;
+}
+
+/* Desktop order: prev | stamps | next | view-all */
+.dv2-nav-prev { order: 0; }
+.dv2-stamp-strip { order: 1; }
+.dv2-nav-next { order: 2; }
+.dv2-view-all { order: 3; }
+
+.dv2-hero-footer-row .dv2-btn-link {
+  flex-shrink: 0;
+  width: 88px;
+  height: 118px;
+  padding: 8px;
+  border-radius: var(--radius-md, 10px);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+  background: var(--surface-color, #fff);
+  border: 1px dashed var(--border-color, #e5e5e5);
+  color: var(--text-color, #222);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dv2-hero-footer-row .dv2-btn-link:hover {
+  border-color: var(--primary-color, #d4736a);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.dv2-nav-circle {
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  background: var(--surface-color, #fff) !important;
+  border: 1px solid var(--primary-color, #d4736a) !important;
+  color: var(--primary-color, #d4736a) !important;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dv2-nav-circle:hover:not(:disabled) {
+  border-color: var(--primary-color, #d4736a) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.dv2-nav-circle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Postage-stamp strip — remaining profiles in the same search */
+.dv2-stamp-strip {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dv2-stamp-strip::-webkit-scrollbar {
+  height: 6px;
+}
+
+.dv2-stamp-strip::-webkit-scrollbar-track {
+  background: var(--background-color, #fafafa);
+  border-radius: 3px;
+}
+
+.dv2-stamp-strip::-webkit-scrollbar-thumb {
+  background: var(--border-color, #e5e5e5);
+  border-radius: 3px;
+}
+
+.dv2-stamp-strip::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted, #888);
+}
+
+.dv2-stamp {
+  flex-shrink: 0;
+  position: relative;
+  width: 88px;
+  height: 118px;
+  padding: 0;
+  overflow: hidden;
+  background: var(--surface-color, #fff);
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: var(--radius-md, 10px);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  font: inherit;
+  scroll-snap-align: start;
+}
+
+.dv2-stamp:hover {
+  border-color: var(--primary-color, #d4736a);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.dv2-stamp-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dv2-stamp-initials {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--primary-color, #d4736a);
+  background: linear-gradient(135deg, var(--selected-background) 0%, var(--background-color) 80%);
+}
+
+.dv2-stamp-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 18px 4px 6px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.dv2-stamp-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-on-gradient, #ffffff);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.dv2-stamp-age {
+  font-size: 11px;
+  color: var(--text-on-gradient, #ffffff);
+  opacity: 0.85;
+}
+
+@media (max-width: 640px) {
+  .dv2-hero-card {
+    grid-template-columns: 1fr;
+    padding: var(--spacing-md, 16px);
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .dv2-hero-photo {
+    min-height: 200px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .dv2-hero-content {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .dv2-hero-initials {
+    font-size: 48px;
+  }
+
+  .dv2-hero-name {
+    font-size: 18px;
+  }
+
+  .dv2-hero-pills {
+    gap: 4px;
+  }
+
+  .dv2-hero-pill {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .dv2-hero-bio {
+    font-size: 12px;
+  }
+
+  .dv2-hero-why-text {
+    font-size: 12px;
+  }
+
+  .dv2-hero-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .dv2-hero-actions .dv2-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Footer reflows: nav pair on its own centered row, stamps + view-all below */
+  .dv2-hero-footer-row {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .dv2-hero-nav-pair {
+    display: flex;
+    flex-basis: 100%;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .dv2-hero-footer-row .dv2-btn-link {
+    width: auto;
+    height: auto;
+    padding: 10px 12px;
+    flex-direction: row;
+    border-radius: 999px;
+  }
+
+  .dv2-stamp {
+    width: 80px;
+    height: 108px;
+  }
+
+  .dv2-nav-circle {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 16px !important;
+  }
 }

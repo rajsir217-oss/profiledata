@@ -152,11 +152,11 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 10px;
+  padding: 6px;
   border: 2px solid var(--border-color);
   border-radius: var(--radius-md);
   background: var(--card-background);
-  margin-top: var(--spacing-sm);
+  margin-top: 6px;
 }
 
 .tab-panel {

@@ -588,6 +588,7 @@ class Message(BaseModel):
 class MessageCreate(BaseModel):
     toUsername: str
     content: str = Field(..., min_length=1, max_length=1000)
+    alsoSendSms: bool = False  # Also deliver this message via SMS to recipient's primary contact
 
 class ConversationResponse(BaseModel):
     username: str

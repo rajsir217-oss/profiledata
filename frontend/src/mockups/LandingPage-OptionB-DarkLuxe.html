@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mockup — Landing Page Option B: Dark Luxe</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0e17;
+      --bg-2: #141627;
+      --card: rgba(255,255,255,0.045);
+      --card-border: rgba(255,255,255,0.09);
+      --text: #eceaf2;
+      --muted: #9a97ac;
+      --rose: #e8a0bf;
+      --gold: #d9b36a;
+      --violet: #8b7dd8;
+      --grad: linear-gradient(120deg, #e8a0bf 0%, #d9b36a 55%, #8b7dd8 100%);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .mockup-banner {
+      background: #ff6b35;
+      color: white;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px;
+      letter-spacing: 1px;
+    }
+
+    .grad-text {
+      background: var(--grad);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    /* ambient glow blobs */
+    .glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glow-1 { width: 520px; height: 520px; background: rgba(232,160,191,0.16); top: -140px; right: -80px; }
+    .glow-2 { width: 420px; height: 420px; background: rgba(139,125,216,0.14); bottom: -120px; left: -100px; }
+
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 40px; position: relative; z-index: 1; }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 40px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(13,14,23,0.7);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--card-border);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+    .brand-mark {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: var(--grad);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+    }
+    .nav-links { display: flex; gap: 28px; font-size: 13.5px; }
+    .nav-links a { color: var(--muted); text-decoration: none; }
+    .nav-links a:hover { color: var(--text); }
+    .btn-nav {
+      padding: 10px 26px;
+      border-radius: 100px;
+      border: 1px solid rgba(232,160,191,0.45);
+      background: transparent;
+      color: var(--rose);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+    }
+    .btn-nav:hover { background: rgba(232,160,191,0.12); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      padding: 88px 40px 72px;
+      text-align: center;
+      overflow: hidden;
+    }
+    .hero-inner { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 18px;
+      border-radius: 100px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      font-size: 12.5px;
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+    }
+    .pill .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade80;
+    }
+
+    .hero h1 {
+      font-size: 68px;
+      font-weight: 800;
+      letter-spacing: -2.5px;
+      line-height: 1.05;
+      margin: 28px 0 22px;
+    }
+    .hero-sub {
+      font-size: 17px;
+      line-height: 1.7;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    .hero-ctas { display: flex; gap: 16px; justify-content: center; margin-top: 38px; }
+    .btn-glow {
+      padding: 15px 38px;
+      border-radius: 100px;
+      border: none;
+      background: var(--grad);
+      color: #141627;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(232,160,191,0.35);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-glow:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(232,160,191,0.45); }
+    .btn-ghost {
+      padding: 15px 38px;
+      border-radius: 100px;
+      border: 1px solid var(--card-border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+    }
+
+    /* ── SCORE RING VISUAL ── */
+    .hero-visual {
+      margin: 64px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 56px;
+      position: relative;
+      z-index: 1;
+    }
+    .match-card-mini {
+      width: 200px;
+      border-radius: 20px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+      text-align: left;
+      transform: rotate(-4deg);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .match-card-mini:nth-child(3) { transform: rotate(4deg); }
+    .match-card-mini .mc-photo {
+      height: 170px;
+      background: linear-gradient(160deg, #3a2f4a, #23233a);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 44px;
+    }
+    .mc-body { padding: 14px 16px; }
+    .mc-name { font-weight: 700; font-size: 14.5px; }
+    .mc-meta { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+    .mc-tags { display: flex; gap: 6px; margin-top: 10px; }
+    .mc-tag {
+      font-size: 10px;
+      padding: 3px 9px;
+      border-radius: 100px;
+      background: rgba(139,125,216,0.18);
+      color: #c5bdf0;
+    }
+
+    .score-ring {
+      position: relative;
+      width: 150px; height: 150px;
+      flex-shrink: 0;
+      z-index: 2;
+    }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-ring .ring-track { stroke: rgba(255,255,255,0.08); }
+    .score-ring .ring-val {
+      stroke: url(#ringGrad);
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 10px rgba(217,179,106,0.6));
+    }
+    .score-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .score-num { font-size: 40px; font-weight: 800; }
+    .score-lbl { font-size: 10px; letter-spacing: 2px; color: var(--muted); margin-top: 2px; }
+
+    .connector {
+      width: 60px;
+      border-top: 2px dashed rgba(217,179,106,0.4);
+      flex-shrink: 0;
+    }
+
+    /* ── STATS ── */
+    .stats-strip {
+      display: flex;
+      justify-content: center;
+      gap: 72px;
+      padding: 44px 40px;
+      border-top: 1px solid var(--card-border);
+      border-bottom: 1px solid var(--card-border);
+      background: var(--bg-2);
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 40px;
+      font-weight: 800;
+      background: var(--grad);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .stat-label { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+
+    /* ── SECTION HEADS ── */
+    section { padding: 100px 0; position: relative; }
+    .sec-head { text-align: center; margin-bottom: 60px; }
+    .sec-eyebrow {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    .sec-head h2 {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      margin-top: 14px;
+    }
+    .sec-head p { color: var(--muted); margin-top: 12px; font-size: 15px; }
+
+    /* ── HOW IT WORKS — glass cards ── */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .glass-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px 26px;
+      backdrop-filter: blur(10px);
+      transition: transform .2s, border-color .2s;
+    }
+    .glass-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(232,160,191,0.35);
+    }
+    .step-badge {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: var(--grad);
+      color: #141627;
+      font-weight: 800;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .glass-card h3 { font-size: 17px; margin: 20px 0 10px; }
+    .glass-card p { font-size: 13px; line-height: 1.65; color: var(--muted); }
+
+    /* ── PHILOSOPHY — horizontal letter band ── */
+    .philosophy-band { background: var(--bg-2); border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); }
+    .pillar-row {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 48px;
+    }
+    .pillar {
+      flex: 1;
+      max-width: 210px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 28px 20px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    .pillar-letter {
+      font-size: 36px;
+      font-weight: 800;
+      background: var(--grad);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .pillar h4 { font-size: 14.5px; margin: 14px 0 8px; }
+    .pillar p { font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+
+    /* ── SERVICES — bento grid ── */
+    .bento {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-auto-rows: 170px;
+      gap: 16px;
+    }
+    .bento-card {
+      border-radius: 20px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      padding: 26px;
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      position: relative;
+      overflow: hidden;
+      transition: transform .2s, border-color .2s;
+    }
+    .bento-card:hover { transform: translateY(-3px); border-color: rgba(217,179,106,0.4); }
+    .bento-card .big-emoji {
+      position: absolute;
+      top: 18px; right: 20px;
+      font-size: 34px;
+      opacity: 0.9;
+    }
+    .bento-card h3 { font-size: 17px; margin-bottom: 8px; }
+    .bento-card p { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+    .bento-wide { grid-column: span 2; }
+    .bento-tall { grid-row: span 2; }
+    .bento-feature {
+      background: linear-gradient(150deg, rgba(232,160,191,0.14), rgba(139,125,216,0.12));
+      border-color: rgba(232,160,191,0.3);
+    }
+    .bento-feature h3 { font-size: 22px; }
+
+    /* ── EVENTS ── */
+    .events-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .event-card {
+      border-radius: 18px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      padding: 26px;
+      backdrop-filter: blur(10px);
+    }
+    .event-tag {
+      display: inline-block;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      margin-bottom: 14px;
+    }
+    .tag-virtual { background: rgba(139,125,216,0.2); color: #c5bdf0; }
+    .tag-person { background: rgba(217,179,106,0.18); color: var(--gold); }
+    .event-card h3 { font-size: 16px; margin-bottom: 8px; }
+    .event-card p { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+    .event-meta { font-size: 11.5px; color: var(--rose); margin-top: 14px; font-weight: 600; }
+
+    /* ── CTA ── */
+    .cta-band {
+      text-align: center;
+      padding: 110px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-band h2 { font-size: 54px; font-weight: 800; letter-spacing: -2px; line-height: 1.1; }
+    .cta-band p { color: var(--muted); margin: 18px 0 36px; font-size: 15.5px; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 56px 40px 28px;
+      background: var(--bg-2);
+    }
+    .footer-grid {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 44px;
+    }
+    .footer-grid h4 { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+    .footer-grid ul { list-style: none; }
+    .footer-grid li { margin-bottom: 9px; }
+    .footer-grid a { color: var(--muted); text-decoration: none; font-size: 13px; }
+    .footer-grid a:hover { color: var(--text); }
+    .footer-brand { font-size: 19px; font-weight: 800; color: var(--text); margin-bottom: 10px; }
+    .footer-desc { font-size: 13px; color: var(--muted); line-height: 1.65; max-width: 280px; }
+    .footer-bottom {
+      max-width: 1180px;
+      margin: 40px auto 0;
+      padding-top: 22px;
+      border-top: 1px solid var(--card-border);
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    @media (max-width: 900px) {
+      .hero h1 { font-size: 40px; }
+      .hero-visual { flex-direction: column; gap: 24px; }
+      .connector { width: 2px; height: 40px; border-top: none; border-left: 2px dashed rgba(217,179,106,0.4); }
+      .match-card-mini, .match-card-mini:nth-child(3) { transform: none; }
+      .steps-grid, .pillar-row, .events-grid, .footer-grid { grid-template-columns: 1fr; }
+      .pillar-row { flex-direction: column; align-items: center; }
+      .pillar { max-width: 100%; width: 100%; }
+      .bento { grid-template-columns: 1fr; grid-auto-rows: auto; }
+      .bento-wide, .bento-tall { grid-column: auto; grid-row: auto; }
+      .stats-strip { flex-wrap: wrap; gap: 32px; }
+      .nav-links { display: none; }
+      .cta-band h2 { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mockup-banner">⚡ MOCKUP — Option B: Dark Luxe (glassmorphism, gradient accents, score-ring hero)</div>
+
+<!-- NAV -->
+<nav>
+  <div class="brand"><div class="brand-mark">🦋</div>L3V3L</div>
+  <div class="nav-links">
+    <a href="#">How It Works</a>
+    <a href="#">Events</a>
+    <a href="#">Success Stories</a>
+    <a href="#">About</a>
+  </div>
+  <button class="btn-nav">Login</button>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+  <div class="hero-inner">
+    <div class="pill"><span class="dot"></span>1,000+ verified profiles — community-collected &amp; genuine</div>
+    <h1>Your perfect match<br/>is <span class="grad-text">calculated</span>.</h1>
+    <p class="hero-sub">
+      L3V3L's AI analyzes 50+ compatibility factors — personality, values,
+      lifestyle, and goals — to find connections that go beyond the surface.
+    </p>
+    <div class="hero-ctas">
+      <button class="btn-glow">Register Your Profile</button>
+      <button class="btn-ghost">See how it works ↓</button>
+    </div>
+  </div>
+
+  <!-- Score-ring visual: two cards joined by a match score -->
+  <div class="hero-visual">
+    <div class="match-card-mini">
+      <div class="mc-photo">👩</div>
+      <div class="mc-body">
+        <div class="mc-name">Priya, 28</div>
+        <div class="mc-meta">San Francisco · Software Engineer</div>
+        <div class="mc-tags"><span class="mc-tag">Values ✓</span><span class="mc-tag">Family ✓</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+    <div class="score-ring">
+      <svg width="150" height="150" viewBox="0 0 150 150">
+        <defs>
+          <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#e8a0bf"/>
+            <stop offset="100%" stop-color="#d9b36a"/>
+          </linearGradient>
+        </defs>
+        <circle class="ring-track" cx="75" cy="75" r="64" fill="none" stroke-width="9"/>
+        <circle class="ring-val" cx="75" cy="75" r="64" fill="none" stroke-width="9"
+                stroke-dasharray="402" stroke-dashoffset="24"/>
+      </svg>
+      <div class="score-center">
+        <div class="score-num grad-text">94</div>
+        <div class="score-lbl">L3V3L SCORE</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+    <div class="match-card-mini">
+      <div class="mc-photo">👨</div>
+      <div class="mc-body">
+        <div class="mc-name">Arjun, 30</div>
+        <div class="mc-meta">San Jose · Product Manager</div>
+        <div class="mc-tags"><span class="mc-tag">Goals ✓</span><span class="mc-tag">Lifestyle ✓</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-strip">
+  <div class="stat"><div class="stat-num">1,000+</div><div class="stat-label">Verified Profiles</div></div>
+  <div class="stat"><div class="stat-num">50+</div><div class="stat-label">Successful Matches</div></div>
+  <div class="stat"><div class="stat-num">50+</div><div class="stat-label">Compatibility Factors</div></div>
+  <div class="stat"><div class="stat-num">98%</div><div class="stat-label">Verified</div></div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-eyebrow">The Process</div>
+      <h2>Four steps to <span class="grad-text">forever</span></h2>
+      <p>Science meets intuition. Data meets destiny.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="glass-card">
+        <div class="step-badge">1</div>
+        <h3>Complete your profile</h3>
+        <p>Share your values, interests, lifestyle, and aspirations. Our AI analyzes what truly matters.</p>
+      </div>
+      <div class="glass-card">
+        <div class="step-badge">2</div>
+        <h3>AI analyzes 50+ factors</h3>
+        <p>Compatibility across personality, values, lifestyle, goals, and communication styles.</p>
+      </div>
+      <div class="glass-card">
+        <div class="step-badge">3</div>
+        <h3>Get your L3V3L score</h3>
+        <p>Personalized 0–100 match scores showing compatibility potential with each profile.</p>
+      </div>
+      <div class="glass-card">
+        <div class="step-badge">4</div>
+        <h3>Connect meaningfully</h3>
+        <p>Start conversations with matches who share your values and vision for the future.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHILOSOPHY -->
+<section class="philosophy-band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-eyebrow">🦋 The Philosophy</div>
+      <h2>Love, in five letters</h2>
+      <p>A fresh, modern philosophy of emotional depth and compatibility.</p>
+    </div>
+    <div class="pillar-row">
+      <div class="pillar">
+        <div class="pillar-letter">L</div>
+        <h4>Love</h4>
+        <p>The spark, the chemistry, the butterflies.</p>
+      </div>
+      <div class="pillar">
+        <div class="pillar-letter">3</div>
+        <h4>Loyalty · Laughter · Vulnerability</h4>
+        <p>The trio that makes love sustainable.</p>
+      </div>
+      <div class="pillar">
+        <div class="pillar-letter">V</div>
+        <h4>Vulnerability</h4>
+        <p>Double-emphasized — essential to true connection.</p>
+      </div>
+      <div class="pillar">
+        <div class="pillar-letter">3</div>
+        <h4>Elevation · Empathy · Effort</h4>
+        <p>Lift each other up, every day.</p>
+      </div>
+      <div class="pillar">
+        <div class="pillar-letter">L</div>
+        <h4>Loyalty, again</h4>
+        <p>Because loyalty is a daily choice.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES — bento -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-eyebrow">What We Offer</div>
+      <h2>Everything serious matching needs</h2>
+    </div>
+    <div class="bento">
+      <div class="bento-card bento-wide bento-feature">
+        <span class="big-emoji">🧬</span>
+        <h3>AI-Powered Compatibility Matching</h3>
+        <p>The proprietary L3V3L algorithm scores every potential match 0–100 across personality, values, lifestyle, communication, and life goals — with transparent breakdowns showing exactly <em>why</em> you match.</p>
+      </div>
+      <div class="bento-card">
+        <span class="big-emoji">👤</span>
+        <h3>Verified Profiles</h3>
+        <p>Every profile verified for authenticity and serious intent.</p>
+      </div>
+      <div class="bento-card">
+        <span class="big-emoji">🔒</span>
+        <h3>Privacy &amp; PII Controls</h3>
+        <p>Enterprise-grade security. Granular control over who sees your details.</p>
+      </div>
+      <div class="bento-card">
+        <span class="big-emoji">🔍</span>
+        <h3>Advanced Discovery</h3>
+        <p>Filter by age, location, education, profession, religion, lifestyle.</p>
+      </div>
+      <div class="bento-card">
+        <span class="big-emoji">💬</span>
+        <h3>Secure Messaging</h3>
+        <p>In-app chat with read receipts and real-time notifications.</p>
+      </div>
+      <div class="bento-card bento-wide">
+        <span class="big-emoji">📊</span>
+        <h3>Compatibility Insights</h3>
+        <p>Detailed breakdowns across 8 categories: values, lifestyle, personality, career, family, communication, goals, and interests.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EVENTS -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-eyebrow">Events &amp; Meetups</div>
+      <h2>Meet online or in person</h2>
+      <p>50+ events annually · 12 cities · 500+ couples met at our events</p>
+    </div>
+    <div class="events-grid">
+      <div class="event-card">
+        <span class="event-tag tag-virtual">VIRTUAL</span>
+        <h3>🎯 Speed Dating Sessions</h3>
+        <p>5-minute rotating video chats with pre-matched compatible members. Meet 8–10 matches in one evening.</p>
+        <div class="event-meta">Every Saturday · 7 PM PST</div>
+      </div>
+      <div class="event-card">
+        <span class="event-tag tag-virtual">VIRTUAL</span>
+        <h3>💬 Compatibility Workshops</h3>
+        <p>Interactive group sessions with relationship experts on values and communication.</p>
+        <div class="event-meta">Bi-weekly · Wednesdays</div>
+      </div>
+      <div class="event-card">
+        <span class="event-tag tag-person">IN-PERSON</span>
+        <h3>🍷 Wine &amp; Dine Mixers</h3>
+        <p>Elegant evenings at upscale venues — fine wine, gourmet appetizers, meaningful conversation.</p>
+        <div class="event-meta">📍 SF · LA · NYC</div>
+      </div>
+      <div class="event-card">
+        <span class="event-tag tag-person">IN-PERSON</span>
+        <h3>🎨 Activity Meetups</h3>
+        <p>Cooking classes, art workshops, hiking — bond over shared interests.</p>
+        <div class="event-meta">📍 Multiple cities</div>
+      </div>
+      <div class="event-card">
+        <span class="event-tag tag-person">IN-PERSON</span>
+        <h3>🎭 Cultural Celebrations</h3>
+        <p>Festival gatherings and holiday parties celebrating traditions together.</p>
+        <div class="event-meta">📍 Nationwide</div>
+      </div>
+      <div class="event-card">
+        <span class="event-tag tag-virtual">VIRTUAL</span>
+        <h3>🌍 Cultural Connection Calls</h3>
+        <p>Themed meetups celebrating diverse backgrounds and shared heritage.</p>
+        <div class="event-meta">Monthly · Various times</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-band">
+  <div class="glow glow-1" style="top:auto;bottom:-160px;right:30%;"></div>
+  <h2>Stop swiping.<br/><span class="grad-text">Start matching.</span></h2>
+  <p>Join verified singles seeking serious, marriage-minded relationships.</p>
+  <button class="btn-glow">Create Your Profile — It's Free</button>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">🦋 L3V3L Matches</div>
+      <p class="footer-desc">Premium matrimonial matchmaking powered by AI compatibility analysis.</p>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#">About L3V3L</a></li>
+        <li><a href="#">Help Center</a></li>
+        <li><a href="#">Contact Us</a></li>
+        <li><a href="#">Success Stories</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="#">Terms of Service</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Community Guidelines</a></li>
+        <li><a href="#">Cookie Policy</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <ul>
+        <li><a href="#">support@l3v3lmatches.com</a></li>
+        <li><a href="#">+1 (800) 555-L3V3L</a></li>
+        <li><a href="#">San Francisco, CA</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 L3V3L Matches Inc. All rights reserved.</span>
+    <span>Matrimonial matchmaking for adults 18+</span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -27,7 +27,8 @@ const UniversalTabContainer = ({
   variant = 'underlined',
   defaultTab,
   onTabChange,
-  className = ''
+  className = '',
+  hideNav = false,
 }) => {
   const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id);
 
@@ -42,25 +43,27 @@ const UniversalTabContainer = ({
   return (
     <div className={`universal-tab-container variant-${variant} ${className}`}>
       {/* Tab Navigation */}
-      <div className="tab-nav" role="tablist">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={tab.id === activeTab}
-            aria-controls={`panel-${tab.id}`}
-            className={`tab-button ${tab.id === activeTab ? 'active' : ''}`}
-            onClick={() => handleTabClick(tab.id)}
-          >
-            {tab.icon && <span className="tab-icon">{tab.icon}</span>}
-            <span className="tab-label">{tab.label}</span>
-            {tab.badge !== undefined && tab.badge !== null && (
-              <span className="tab-badge">{tab.badge}</span>
-            )}
-          </button>
-        ))}
-      </div>
+      {!hideNav && (
+        <div className="tab-nav" role="tablist">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={tab.id === activeTab}
+              aria-controls={`panel-${tab.id}`}
+              className={`tab-button ${tab.id === activeTab ? 'active' : ''}`}
+              onClick={() => handleTabClick(tab.id)}
+            >
+              {tab.icon && <span className="tab-icon">{tab.icon}</span>}
+              <span className="tab-label">{tab.label}</span>
+              {tab.badge !== undefined && tab.badge !== null && (
+                <span className="tab-badge">{tab.badge}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Tab Content */}
       <div className="tab-content-area">

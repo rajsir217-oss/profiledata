@@ -214,23 +214,23 @@ const AdminBackups = () => {
                     </div>
                   </td>
                   <td className="col-actions">
-                    <div className="action-buttons">
+                    <div className="admin-action-btns">
                       <button
-                        className="btn-action btn-download"
+                        className="btn-micro btn-micro-info"
                         onClick={() => handleDownload(backup.filename)}
                         title="Download backup"
                       >
                         ⬇️
                       </button>
                       <button
-                        className="btn-action btn-restore"
+                        className="btn-micro btn-micro-warning"
                         onClick={() => handleRestoreCommand(backup.filename)}
                         title="Show restore command"
                       >
                         🔧
                       </button>
                       <button
-                        className={`btn-action btn-delete-backup ${deleteConfirm === backup.filename ? 'confirm' : ''}`}
+                        className={`btn-micro btn-micro-danger ${deleteConfirm === backup.filename ? 'confirm' : ''}`}
                         onClick={() => handleDelete(backup.filename)}
                         title={deleteConfirm === backup.filename ? 'Click again to confirm delete' : 'Delete backup'}
                       >

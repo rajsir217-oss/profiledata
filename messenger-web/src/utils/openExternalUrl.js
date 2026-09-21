@@ -1,5 +1,6 @@
 import { Browser } from '@capacitor/browser';
 import { isNativePlatform } from '../services/biometricAuth';
+import logger from './logger';
 
 const namedWindows = {};
 
@@ -19,7 +20,7 @@ export const openExternalUrl = async (url, target = '_blank', forceExternal = fa
       // The forceExternal parameter is ignored since window.open doesn't work reliably in Capacitor
       await Browser.open({ url });
     } catch (err) {
-      console.error('Browser.open failed:', err);
+      logger.error('Browser.open failed:', err);
     }
   } else if (typeof window !== 'undefined' && window.open) {
     // Reuse an already-open named tab when possible. We must NOT touch

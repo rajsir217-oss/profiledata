@@ -763,12 +763,12 @@ const Login = () => {
         </div>
       )}
       {isDevelopment && !pendingTrustedPrompt && !mfaRequired && (
-        <div className="trusted-autologin-debug" role="note" aria-label="Auto-login debug">
-          <div className="trusted-autologin-debug-title">Auto-login debug</div>
-          <div className="trusted-autologin-debug-line">Saved usernames: {autoLoginDebug.trustedUsernamesCount}</div>
-          <div className="trusted-autologin-debug-line">Generic token present: {autoLoginDebug.hasGenericToken ? 'yes' : 'no'}</div>
-          <div className="trusted-autologin-debug-line">Last source: {autoLoginDebug.lastAttemptSource || 'n/a'}</div>
-          <div className="trusted-autologin-debug-line">Last failure status: {autoLoginDebug.lastFailureStatus ?? 'none'}</div>
+        <div className="autologin-debug" role="note" aria-label="Auto-login debug">
+          <div>Auto-login debug</div>
+          <div>Saved usernames: {autoLoginDebug.trustedUsernamesCount}</div>
+          <div>Generic token present: {autoLoginDebug.hasGenericToken ? 'yes' : 'no'}</div>
+          <div>Last source: {autoLoginDebug.lastAttemptSource || 'n/a'}</div>
+          <div>Last failure status: {autoLoginDebug.lastFailureStatus ?? 'none'}</div>
         </div>
       )}
       {trustedUsernames.length > 1 && !pendingTrustedPrompt && !mfaRequired && (

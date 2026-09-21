@@ -128,6 +128,46 @@
   gap: 12px;
 }
 
+.contribution-history-item {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.2s ease;
+}
+
+.contribution-history-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+}
+
+.contribution-history-date {
+  color: var(--text-secondary);
+  font-size: 14px;
+  flex: 1;
+}
+
+.contribution-history-type {
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 2px 10px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.contribution-history-amount {
+  color: var(--primary-color);
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
 .contribution-item {
   background: var(--surface-color);
   border: 1px solid var(--border-color);
@@ -249,12 +289,6 @@
 .admin-section {
   background: linear-gradient(135deg, var(--surface-color), var(--card-background));
   border: 2px solid var(--warning-color);
-}
-
-.contribution-settings-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
 }
 
 .form-row {
@@ -379,11 +413,16 @@
  * ======================================= */
 
 /* Settings Section */
+.account-settings {
+  margin: 0;
+  padding: 0;
+}
+
 .settings-section {
   background: var(--card-background);
   border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 15px;
+  padding: 10px;
+  margin-bottom: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -416,22 +455,22 @@
 
 .section-description {
   color: var(--text-secondary);
-  margin-bottom: 12.5px;
+  margin-bottom: 8px;
   font-size: 0.9rem;
 }
 
 /* Home Page Selector */
 .home-page-selector {
   display: flex;
-  gap: 7.5px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
 .home-page-option {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 4px;
+  padding: 6px 8px;
   background: var(--surface-color);
   border: 2px solid var(--border-color);
   border-radius: 12px;
@@ -484,20 +523,24 @@
 /* Theme Grid */
 .themes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 10px;
-  margin-top: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 4px;
+  margin-top: 4px;
 }
 
 .theme-card {
   background: var(--surface-color);
   border: 2px solid var(--border-color);
-  border-radius: 12px;
-  padding: 10px;
+  border-radius: 8px;
+  padding: 3px 4px;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
 .theme-card:hover {
@@ -509,50 +552,55 @@
 .theme-card.selected {
   border-color: var(--primary-color);
   background: linear-gradient(135deg, var(--primary-color)10, var(--surface-color));
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 3px 8px rgba(99, 102, 241, 0.22);
 }
 
 .theme-icon {
-  font-size: 2rem;
+  font-size: 1.2rem;
   text-align: center;
-  margin-bottom: 7.5px;
+  margin-bottom: 1px;
+  line-height: 1;
 }
 
 .theme-card h3 {
-  font-size: 1rem;
-  margin-bottom: 4px;
+  font-size: 0.86rem;
+  margin: 0;
   color: var(--text-color);
+  line-height: 1.1;
 }
 
 .theme-card p {
   color: var(--text-secondary);
-  font-size: 0.8rem;
-  margin-bottom: 7.5px;
-  min-height: 40px;
+  font-size: 0.68rem;
+  margin: 0;
+  min-height: 0;
+  line-height: 1.1;
+  text-align: center;
 }
 
 .theme-preview {
   display: flex;
-  gap: 8px;
+  gap: 3px;
   justify-content: center;
+  margin-top: 2px;
 }
 
 .theme-preview span {
-  width: 30px;
-  height: 30px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--border-color);
 }
 
 .selected-badge {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 6px;
+  right: 6px;
   background: var(--success-color);
   color: white;
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
+  padding: 3px 8px;
+  border-radius: 14px;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 
@@ -987,7 +1035,7 @@
 @media (max-width: 768px) {
   .unified-preferences-container {
     width: 95%;
-    padding: 15px;
+    padding: 10px;
   }
 
   .preferences-header h1 {
@@ -1002,7 +1050,7 @@
   }
 
   .themes-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .trigger-row {
@@ -1807,11 +1855,11 @@
 @media (max-width: 480px) {
   .unified-preferences-container {
     width: 95%;
-    padding: 15px;
+    padding: 10px;
   }
 
   .settings-section {
-    padding: 20px;
+    padding: 10px;
   }
 
   .data-export-description {

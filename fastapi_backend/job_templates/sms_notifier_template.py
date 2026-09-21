@@ -205,15 +205,27 @@ class SMSNotifierTemplate(JobTemplate):
                         if not user:
                             raise Exception(f"User '{notification.username}' not found in database")
                         
-                        # Check both 'phone' and 'contactNumber' fields
+                        # Prefer contactNumbers[label="primary"], then 'phone' / 'contactNumber' fields
+                        primary_contact = None
+                        contact_numbers = user.get("contactNumbers") or []
+                        if isinstance(contact_numbers, list):
+                            for c in contact_numbers:
+                                if (
+                                    isinstance(c, dict)
+                                    and str(c.get("label", "")).lower() == "primary"
+                                    and c.get("number")
+                                ):
+                                    primary_contact = c["number"]
+                                    break
+
                         phone_field = user.get("phone") or user.get("contactNumber")
                         contactNumber_field = user.get("contactNumber")
-                        context.log("info", f"DB Fields - phone: {phone_field or 'NOT SET'}, contactNumber: {contactNumber_field or 'NOT SET'}")
-                        
-                        phone = phone_field or contactNumber_field
-                        
+                        context.log("info", f"DB Fields - primary contact: {primary_contact or 'NOT SET'}, phone: {phone_field or 'NOT SET'}, contactNumber: {contactNumber_field or 'NOT SET'}")
+
+                        phone = primary_contact or phone_field or contactNumber_field
+
                         if not phone:
-                            raise Exception(f"User '{notification.username}' has no phone number (checked 'phone' and 'contactNumber' fields)")
+                            raise Exception(f"User '{notification.username}' has no phone number (checked 'contactNumbers[primary]', 'phone' and 'contactNumber' fields)")
                         
                         # 🔓 Decrypt phone if encrypted
                         from crypto_utils import get_encryptor

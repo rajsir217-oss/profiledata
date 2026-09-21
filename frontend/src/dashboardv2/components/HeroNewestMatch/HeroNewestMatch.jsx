@@ -117,7 +117,9 @@ const normalizeOccupation = (profile) => {
 
 const generateHeroLookingForSummary = (profile) => {
   if (!profile) return '';
-  const criteria = profile.partnerCriteria || profile;
+  // Only read partner preferences — never fall back to the profile's own
+  // fields (otherwise "Looking for" would echo the person's own location).
+  const criteria = profile.partnerCriteria || {};
   const parts = [];
 
   if (criteria.educationLevel) {
@@ -153,10 +155,15 @@ const generateHeroLookingForSummary = (profile) => {
 
 const HeroNewestMatch = ({
   pick,
+  peers,
+  hasMore,
+  position,
   loading,
   error,
   isEmpty,
   onSkip,
+  onPrevious,
+  onSelectPeer,
   onOpenSearch,
   favoritedUsernames,
   onRefreshFavorites,
@@ -321,15 +328,22 @@ const HeroNewestMatch = ({
   }
 
   return (
-    <div className="dv2-hero-card dv2-variant-primary">
-      <div
-        className="dv2-hero-photo"
-        aria-hidden="true"
-        onClick={() => window.open(`/profile/${encodeURIComponent(profile.username)}`, '_blank')}
-        style={{ cursor: 'pointer' }}
-      >
+    <>
+      <div className="dv2-hero-card dv2-variant-primary">
+        <div
+          className="dv2-hero-photo"
+          aria-hidden="true"
+          onClick={() => window.open(`/profile/${encodeURIComponent(profile.username)}`, '_blank')}
+        >
         {photo && !photoFailed ? (
-          <img className="dv2-hero-img" src={photo} alt="" onError={() => setPhotoFailed(true)} />
+          <img
+            className="dv2-hero-img"
+            src={photo}
+            alt=""
+            decoding="async"
+            fetchPriority="high"
+            onError={() => setPhotoFailed(true)}
+          />
         ) : (
           <div className="dv2-hero-initials">
             {(profile.firstName?.[0] || profile.username?.[0] || '?').toUpperCase()}
@@ -381,7 +395,7 @@ const HeroNewestMatch = ({
               </>
             ) : null}
             {joinedTime ? <> · joined {joinedTime}</> : null}
-            {score ? <> · hits {Math.round(score / 10)} of 10 of your preferences</> : null}
+            {score ? <> · hits {Math.max(1, Math.round(Math.round(score) / 10))} of 10 of your preferences</> : null}
           </span>
         </div>
       </div>
@@ -409,16 +423,71 @@ const HeroNewestMatch = ({
         >
           💬 Send message
         </button>
-        <button className="dv2-btn dv2-btn-ghost" type="button" onClick={onSkip}>
-          ⏭ Skip · show next newest
-        </button>
+      </div>
+
+      {/* Footer row: prev | stamp strip | next | view-all on desktop;
+          reflows to nav row + stamp/view-all row on mobile (CSS order). */}
+      <div className="dv2-hero-footer-row">
+        <div className="dv2-hero-nav-pair">
+          <button
+            className="dv2-btn dv2-btn-ghost dv2-nav-circle dv2-nav-prev"
+            type="button"
+            onClick={onPrevious}
+            disabled={!position || position.page <= 1}
+            aria-label="Previous"
+          >
+            ⏮
+          </button>
+          <button
+            className="dv2-btn dv2-btn-ghost dv2-nav-circle dv2-nav-next"
+            type="button"
+            onClick={onSkip}
+            disabled={!hasMore}
+            aria-label="Next"
+          >
+            ⏭
+          </button>
+        </div>
+
+        {Array.isArray(peers) && peers.length > 0 ? (
+          <div className="dv2-stamp-strip" aria-label="More matches">
+            {peers.map((peer) => {
+              const peerPhoto = getProfileImage(peer);
+              const peerName = getDisplayName(peer);
+              const peerAge = peer?.age || calculateAge(getDobMonthYear(peer));
+              return (
+                <button
+                  key={peer?.username || peer?.profileId || peer?.id || peerName}
+                  type="button"
+                  className="dv2-stamp"
+                  onClick={() => onSelectPeer(peer)}
+                  title={peerName}
+                >
+                  {peerPhoto ? (
+                    <img className="dv2-stamp-img" src={peerPhoto} alt="" loading="lazy" />
+                  ) : (
+                    <span className="dv2-stamp-initials">
+                      {(peer?.firstName?.[0] || peer?.username?.[0] || '?').toUpperCase()}
+                    </span>
+                  )}
+                  <span className="dv2-stamp-overlay">
+                    <span className="dv2-stamp-name">{peerName}</span>
+                    {peerAge ? <span className="dv2-stamp-age">{peerAge}</span> : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
         {savedSearch ? (
-          <button className="dv2-btn dv2-btn-link" type="button" onClick={() => onOpenSearch(savedSearch)}>
-            View all results
+          <button className="dv2-btn dv2-btn-link dv2-view-all" type="button" onClick={() => onOpenSearch(savedSearch)}>
+            View all
           </button>
         ) : null}
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

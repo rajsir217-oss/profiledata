@@ -52,7 +52,7 @@ def create_template(trigger, category, subject, color, priority, description, ct
 <body>
     <div class="container">
         <div class="logo-container">
-            <div style="font-size: 32px; font-weight: bold; color: #667eea;">🦋 L3V3L</div>
+            <img src="{app.logoUrl}" alt="L3V3L Matches" style="width: 200px; height: auto;" />
         </div>
         <div class="header">
             <h1>SUBJECT</h1>

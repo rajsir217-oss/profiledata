@@ -3,9 +3,11 @@
  * Handles Firebase Cloud Messaging for push notifications on Android
  */
 
+import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { isNativePlatform } from './biometricAuth';
 import axios from 'axios';
+import logger from '../utils/logger';
 import { getBackendUrl } from '../config/apiConfig';
 
 // Create axios instance for push notification API calls
@@ -27,12 +29,12 @@ pushApi.interceptors.request.use((config) => {
  * @returns {Promise<string|null>} FCM device token or null
  */
 export const requestNotificationPermission = async () => {
-  console.log('[Push] requestNotificationPermission called');
+  logger.info('[Push] requestNotificationPermission called');
   
   try {
     // Only push notifications work on native platforms
     if (!isNativePlatform()) {
-      console.warn('[Push] Push notifications only supported on native platforms');
+      logger.warn('[Push] Push notifications only supported on native platforms');
       return null;
     }
 
@@ -40,7 +42,7 @@ export const requestNotificationPermission = async () => {
     const result = await PushNotifications.requestPermissions();
     
     if (result.receive === 'granted') {
-      console.log('[Push] ✅ Notification permission granted');
+      logger.info('[Push] ✅ Notification permission granted');
       
       // Register with FCM
       await PushNotifications.register();
@@ -48,7 +50,7 @@ export const requestNotificationPermission = async () => {
       // The token will be received via the registration listener
       return new Promise((resolve) => {
         const listener = PushNotifications.addListener('registration', (token) => {
-          console.log('[Push] ✅ FCM token obtained:', token.value);
+          logger.info('[Push] ✅ FCM token obtained:', token.value);
           listener.remove();
           resolve(token.value);
         });
@@ -56,16 +58,16 @@ export const requestNotificationPermission = async () => {
         // Timeout after 10 seconds
         setTimeout(() => {
           listener.remove();
-          console.warn('[Push] ⚠️ Token registration timeout');
+          logger.warn('[Push] ⚠️ Token registration timeout');
           resolve(null);
         }, 10000);
       });
     } else {
-      console.warn('[Push] ❌ Notification permission denied');
+      logger.warn('[Push] ❌ Notification permission denied');
       return null;
     }
   } catch (error) {
-    console.error('[Push] ❌ Error requesting notification permission:', error);
+    logger.error('[Push] ❌ Error requesting notification permission:', error);
     return null;
   }
 };
@@ -76,17 +78,17 @@ export const requestNotificationPermission = async () => {
  */
 export const registerTokenWithBackend = async (token) => {
   try {
-    console.log('[Push] Registering token with backend...');
+    logger.info('[Push] Registering token with backend...');
     await pushApi.post('/subscribe', {
       token,
       deviceInfo: {
-        platform: 'android',
+        platform: Capacitor.getPlatform(),
         app: 'messenger-web'
       }
     });
-    console.log('[Push] ✅ Device registered for push notifications');
+    logger.info('[Push] ✅ Device registered for push notifications');
   } catch (error) {
-    console.error('[Push] ❌ Failed to register device:', error);
+    logger.error('[Push] ❌ Failed to register device:', error);
   }
 };
 
@@ -97,7 +99,7 @@ export const registerTokenWithBackend = async (token) => {
 export const addPushNotificationListener = (callback) => {
   // Listen for foreground notifications
   const foregroundListener = PushNotifications.addListener('pushNotificationReceived', (notification) => {
-    console.log('[Push] Foreground notification received:', notification);
+    logger.info('[Push] Foreground notification received:', notification);
     if (callback) {
       callback(notification);
     }
@@ -105,7 +107,7 @@ export const addPushNotificationListener = (callback) => {
 
   // Listen for notification taps (app opened from notification)
   const tapListener = PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-    console.log('[Push] Notification action performed:', action);
+    logger.info('[Push] Notification action performed:', action);
     if (callback) {
       callback(action);
     }
@@ -124,9 +126,9 @@ export const addPushNotificationListener = (callback) => {
 export const unsubscribeFromPush = async (token) => {
   try {
     await pushApi.delete(`/unsubscribe?token=${encodeURIComponent(token)}`);
-    console.log('[Push] ✅ Unsubscribed from push notifications');
+    logger.info('[Push] ✅ Unsubscribed from push notifications');
   } catch (error) {
-    console.error('[Push] ❌ Failed to unsubscribe:', error);
+    logger.error('[Push] ❌ Failed to unsubscribe:', error);
   }
 };
 
@@ -139,7 +141,7 @@ export const getMySubscriptions = async () => {
     const response = await pushApi.get('/my-subscriptions');
     return response.data;
   } catch (error) {
-    console.error('[Push] Failed to get subscriptions:', error);
+    logger.error('[Push] Failed to get subscriptions:', error);
     return [];
   }
 };
@@ -163,25 +165,25 @@ export const initializePushNotifications = async () => {
   try {
     // Add listeners for token registration
     await PushNotifications.addListener('registration', (token) => {
-      console.log('[Push] Registration token:', token.value);
+      logger.info('[Push] Registration token:', token.value);
       registerTokenWithBackend(token.value);
     });
 
     await PushNotifications.addListener('registrationError', (error) => {
-      console.error('[Push] Registration error:', error.error);
+      logger.error('[Push] Registration error:', error.error);
     });
 
     await PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.log('[Push] Push notification received:', notification);
+      logger.info('[Push] Push notification received:', notification);
     });
 
     await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.log('[Push] Push notification action performed:', action);
+      logger.info('[Push] Push notification action performed:', action);
     });
 
-    console.log('[Push] ✅ Push notification listeners initialized');
+    logger.info('[Push] ✅ Push notification listeners initialized');
   } catch (error) {
-    console.error('[Push] ❌ Failed to initialize push notifications:', error);
+    logger.error('[Push] ❌ Failed to initialize push notifications:', error);
   }
 };
 

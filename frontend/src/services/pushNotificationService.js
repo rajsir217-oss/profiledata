@@ -56,12 +56,24 @@ const isFirebaseConfigured = () => {
   return configured;
 };
 
-// Initialize Firebase only if configured
+// Initialize Firebase only if configured AND the browser actually supports
+// the web push APIs that Firebase Messaging requires. Calling getMessaging()
+// in an unsupported browser (e.g. Safari without PushManager, or an insecure
+// http:// context) throws "messaging/unsupported-browser" at module load time.
+const browserSupportsWebPush = () => {
+  return (
+    typeof window !== 'undefined' &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window &&
+    window.isSecureContext !== false
+  );
+};
+
 let app;
 let messaging;
 let firebaseEnabled = false;
 
-if (isFirebaseConfigured()) {
+if (isFirebaseConfigured() && browserSupportsWebPush()) {
   try {
     logger.debug('Firebase Config Check:', {
       hasApiKey: !!firebaseConfig.apiKey,
@@ -70,7 +82,7 @@ if (isFirebaseConfigured()) {
       vapidKeyLength: VAPID_KEY?.length,
       vapidKeyStart: VAPID_KEY?.substring(0, 10)
     });
-    
+
     app = initializeApp(firebaseConfig);
     messaging = getMessaging(app);
     firebaseEnabled = true;
@@ -80,7 +92,7 @@ if (isFirebaseConfigured()) {
     firebaseEnabled = false;
   }
 } else {
-  console.warn('[Push] ⚠️ Firebase not configured - push notifications disabled');
+  console.warn('[Push] ⚠️ Firebase not configured or browser lacks web push support - push notifications disabled');
   firebaseEnabled = false;
 }
 

@@ -31,13 +31,8 @@
 // components (HeroNewestMatch, AttentionGrid, StatsStrip, etc.) are
 // added in the next commit.
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ProfileViewsModal from '../components/ProfileViewsModal';
-import FavoritedByModal from '../components/FavoritedByModal';
-import ShortlistedByModal from '../components/ShortlistedByModal';
-import ProfileNotes from '../components/ProfileNotes';
-import PollWidget from '../components/PollWidget';
 import { formatShortDateTime } from '../utils/timeFormatter';
 import logger from '../utils/logger';
 import { useDashboardData } from './hooks/useDashboardData';
@@ -49,6 +44,14 @@ import StatsStrip from './components/StatsStrip/StatsStrip';
 import RecentConversations from './components/RecentConversations/RecentConversations';
 import SideRail from './components/SideRail/SideRail';
 import './DashboardV2.css';
+
+// Interaction-only components — loaded lazily so the dashboard's initial
+// bundle doesn't pull in modal + payment + chat code until first use.
+const ProfileViewsModal = lazy(() => import('../components/ProfileViewsModal'));
+const FavoritedByModal = lazy(() => import('../components/FavoritedByModal'));
+const ShortlistedByModal = lazy(() => import('../components/ShortlistedByModal'));
+const ProfileNotes = lazy(() => import('../components/ProfileNotes'));
+const PollWidget = lazy(() => import('../components/PollWidget'));
 
 const DashboardV2Page = () => {
   const navigate = useNavigate();
@@ -107,11 +110,30 @@ const DashboardV2Page = () => {
     return set;
   }, [data.favorites]);
 
-  // Fetch breakdown using hero's actual criteria
+  // Fetch breakdown using hero's actual criteria — deferred to browser idle so
+  // the extra aggregation doesn't compete with the hero/attention first paint.
   useEffect(() => {
-    if (newestMatch.pick?.savedSearch?.criteria) {
-      fetchBreakdown(newestMatch.pick.savedSearch.criteria);
-    }
+    const criteria = newestMatch.pick?.savedSearch?.criteria;
+    if (!criteria) return undefined;
+
+    let cancelled = false;
+    const run = () => {
+      if (!cancelled) fetchBreakdown(criteria);
+    };
+
+    const hasIdle = typeof window !== 'undefined' && 'requestIdleCallback' in window;
+    const handle = hasIdle
+      ? window.requestIdleCallback(run, { timeout: 2000 })
+      : setTimeout(run, 500);
+
+    return () => {
+      cancelled = true;
+      if (hasIdle) {
+        window.cancelIdleCallback(handle);
+      } else {
+        clearTimeout(handle);
+      }
+    };
   }, [newestMatch.pick, fetchBreakdown]);
 
   const openSavedSearch = (savedSearchOrEvent, sortBy = null) => {
@@ -185,13 +207,15 @@ const DashboardV2Page = () => {
       />
       {data.activePolls?.length > 0 ? (
         <div className="dv2-poll-popup-host">
-          <PollWidget
-            inline={true}
-            autoPopup={true}
-            initialPolls={data.activePolls}
-            onPollResponded={refreshActivePolls}
-            renderPlaceholder={() => null}
-          />
+          <Suspense fallback={null}>
+            <PollWidget
+              inline={true}
+              autoPopup={true}
+              initialPolls={data.activePolls}
+              onPollResponded={refreshActivePolls}
+              renderPlaceholder={() => null}
+            />
+          </Suspense>
         </div>
       ) : null}
       {/* ============ HERO ============ */}
@@ -209,10 +233,15 @@ const DashboardV2Page = () => {
 
         <HeroNewestMatch
           pick={newestMatch.pick}
+          peers={newestMatch.peers}
+          hasMore={newestMatch.hasMore}
+          position={newestMatch.position}
           loading={heroBusy}
           error={newestMatch.error}
           isEmpty={!heroBusy && newestMatch.isEmpty}
           onSkip={newestMatch.skipPick}
+          onPrevious={newestMatch.previousPick}
+          onSelectPeer={newestMatch.selectPeer}
           onOpenSearch={(s) => openSavedSearch(s)}
           favoritedUsernames={favoritedUsernames}
           onRefreshFavorites={refreshFavorites}
@@ -400,23 +429,35 @@ const DashboardV2Page = () => {
         />
       </div>
 
-      <ProfileViewsModal
-        isOpen={showProfileViews}
-        onClose={() => setShowProfileViews(false)}
-        username={currentUsername}
-      />
+      {showProfileViews ? (
+        <Suspense fallback={null}>
+          <ProfileViewsModal
+            isOpen={showProfileViews}
+            onClose={() => setShowProfileViews(false)}
+            username={currentUsername}
+          />
+        </Suspense>
+      ) : null}
 
-      <FavoritedByModal
-        isOpen={showFavoritedBy}
-        onClose={() => setShowFavoritedBy(false)}
-        username={currentUsername}
-      />
+      {showFavoritedBy ? (
+        <Suspense fallback={null}>
+          <FavoritedByModal
+            isOpen={showFavoritedBy}
+            onClose={() => setShowFavoritedBy(false)}
+            username={currentUsername}
+          />
+        </Suspense>
+      ) : null}
 
-      <ShortlistedByModal
-        isOpen={showShortlistedBy}
-        onClose={() => setShowShortlistedBy(false)}
-        username={currentUsername}
-      />
+      {showShortlistedBy ? (
+        <Suspense fallback={null}>
+          <ShortlistedByModal
+            isOpen={showShortlistedBy}
+            onClose={() => setShowShortlistedBy(false)}
+            username={currentUsername}
+          />
+        </Suspense>
+      ) : null}
 
       {showNotes ? (
         <div className="dv2-modal-overlay" onClick={() => setShowNotes(false)}>
@@ -428,7 +469,9 @@ const DashboardV2Page = () => {
               </button>
             </div>
             <div className="dv2-modal-body">
-              <ProfileNotes />
+              <Suspense fallback={null}>
+                <ProfileNotes />
+              </Suspense>
             </div>
           </div>
         </div>

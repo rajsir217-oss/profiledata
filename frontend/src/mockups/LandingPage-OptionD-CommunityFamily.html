@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mockup — Landing Page Option D: Community &amp; Family</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Mukta:wght@400;500;600;700;800&family=Kalam:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #fdf3ef;
+      --bg-2: #fff;
+      --coral: #d4736a;
+      --coral-deep: #b95a50;
+      --peach: #f7dcd4;
+      --marigold: #e8a33d;
+      --ink: #3d2b28;
+      --muted: #8a726d;
+      --sage: #7d9b76;
+      --radius: 28px;
+    }
+
+    body {
+      font-family: 'Mukta', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .mockup-banner {
+      background: #ff6b35;
+      color: white;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px;
+      letter-spacing: 1px;
+    }
+
+    .wrap { max-width: 1160px; margin: 0 auto; padding: 0 40px; }
+
+    h1, h2, .brand, .philo-letters, .stat-num, .float-score .n,
+    .jstep h3, .card h3, .event-card h3, .path-card h3, .footer-brand {
+      font-family: 'Rozha One', Georgia, serif;
+      font-weight: 400;
+    }
+
+    .handwrite { font-family: 'Kalam', cursive; }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--coral-deep);
+      background: var(--peach);
+      padding: 7px 18px;
+      border-radius: 100px;
+    }
+
+    /* Mehndi-style ornament divider */
+    .ornament {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--coral);
+      font-size: 20px;
+      margin: 8px auto 0;
+    }
+    .ornament::before, .ornament::after {
+      content: '';
+      width: 72px;
+      border-top: 1.5px solid var(--peach);
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 40px;
+      max-width: 1160px;
+      margin: 0 auto;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 23px; }
+    .brand-dot {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--coral);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .nav-links { display: flex; gap: 28px; font-size: 14px; font-weight: 600; align-items: center; }
+    .nav-links a { color: var(--ink); text-decoration: none; }
+    .nav-links a:hover { color: var(--coral-deep); }
+    .lang-chip {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--coral-deep);
+      background: var(--bg-2);
+      border: 1.5px solid var(--peach);
+      padding: 6px 14px;
+      border-radius: 100px;
+      cursor: pointer;
+    }
+    .btn-login {
+      padding: 11px 30px;
+      border-radius: 100px;
+      border: 2px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-login:hover { background: var(--ink); color: var(--bg); }
+
+    /* ── HERO ── */
+    .hero {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 56px;
+      align-items: center;
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 56px 40px 96px;
+    }
+    .hero h1 {
+      font-size: 60px;
+      letter-spacing: -0.5px;
+      line-height: 1.08;
+      margin: 22px 0 20px;
+    }
+    .hero h1 .hl {
+      color: var(--coral);
+      position: relative;
+      white-space: nowrap;
+    }
+    .hero h1 .hl::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: 6px;
+      height: 12px;
+      background: var(--peach);
+      border-radius: 6px;
+      z-index: -1;
+    }
+    .hero-sub { font-size: 16.5px; line-height: 1.7; color: var(--muted); max-width: 470px; }
+    .hero-sub .native {
+      display: block;
+      margin-top: 12px;
+      font-family: 'Kalam', cursive;
+      font-size: 17px;
+      color: var(--coral-deep);
+    }
+    .hero-ctas { display: flex; gap: 14px; margin-top: 32px; flex-wrap: wrap; }
+    .btn-main {
+      padding: 16px 36px;
+      border-radius: 100px;
+      border: none;
+      background: var(--coral);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(212,115,106,0.35);
+      transition: transform .15s;
+    }
+    .btn-main:hover { transform: translateY(-2px); }
+    .btn-soft {
+      padding: 16px 32px;
+      border-radius: 100px;
+      border: 2px solid var(--peach);
+      background: var(--bg-2);
+      color: var(--coral-deep);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .hero-proof {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 28px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .avatar-stack { display: flex; }
+    .avatar-stack .av {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      border: 2.5px solid var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      margin-left: -8px;
+    }
+    .avatar-stack .av:first-child { margin-left: 0; }
+
+    /* right visual — arch photo collage + floating cards */
+    .hero-visual { position: relative; }
+    .hero-photo-main {
+      width: 100%;
+      height: 470px;
+      object-fit: cover;
+      border-radius: 999px 999px var(--radius) var(--radius);
+      box-shadow: 0 24px 60px rgba(61,43,40,0.18);
+      position: relative;
+      z-index: 1;
+      display: block;
+    }
+    .hero-visual::before {
+      content: '';
+      position: absolute;
+      inset: -20px -20px 20px 20px;
+      border: 2px solid var(--peach);
+      border-radius: 999px 999px var(--radius) var(--radius);
+      z-index: 0;
+    }
+    /* small tilted "polaroid" photo — the wedding illustration */
+    .hero-photo-secondary {
+      position: absolute;
+      bottom: -30px;
+      left: -46px;
+      width: 190px;
+      border-radius: 16px;
+      border: 6px solid var(--bg-2);
+      box-shadow: 0 16px 44px rgba(61,43,40,0.22);
+      transform: rotate(-6deg);
+      z-index: 3;
+      display: block;
+    }
+    .float-card {
+      position: absolute;
+      background: var(--bg-2);
+      border-radius: 18px;
+      box-shadow: 0 14px 40px rgba(61,43,40,0.16);
+      padding: 14px 18px;
+      z-index: 4;
+    }
+    .float-score {
+      top: 24px; right: -18px;
+      text-align: center;
+      padding: 16px 20px;
+    }
+    .float-score .n { font-size: 34px; color: var(--coral); }
+    .float-score .l { font-size: 9.5px; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; }
+    .float-family {
+      top: 46%;
+      right: -34px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .float-family .ico {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: #fdf0d9;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .float-family .t1 { font-size: 13px; font-weight: 800; }
+    .float-family .t2 { font-size: 11px; color: var(--muted); }
+    .float-verified {
+      bottom: 14px; left: 176px;
+      display: flex; align-items: center; gap: 10px;
+      z-index: 4;
+    }
+    .float-verified .ico {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: #e8f3e6;
+      color: var(--sage);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .float-verified .t1 { font-size: 13px; font-weight: 800; }
+    .float-verified .t2 { font-size: 11px; color: var(--muted); }
+
+    /* ── STATS ── */
+    .stats-band { padding: 0 40px; margin: 8px auto 0; max-width: 1160px; }
+    .stats-inner {
+      background: var(--ink);
+      color: var(--bg);
+      border-radius: var(--radius);
+      display: flex;
+      justify-content: space-around;
+      padding: 32px 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .stat { text-align: center; }
+    .stat-num { font-size: 38px; color: #f4b8ae; }
+    .stat-label { font-size: 12px; color: rgba(253,243,239,0.6); margin-top: 4px; }
+
+    /* ── SECTIONS ── */
+    section { padding: 90px 0; }
+    .sec-head { text-align: center; margin-bottom: 56px; }
+    .sec-head h2 { font-size: 44px; letter-spacing: -0.5px; margin-top: 18px; }
+    .sec-head p {
+      font-family: 'Kalam', cursive;
+      color: var(--coral-deep);
+      margin-top: 14px;
+      font-size: 18px;
+    }
+
+    /* ── WHO ARE YOU REGISTERING FOR — dual path ── */
+    .paths {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .path-card {
+      background: var(--bg-2);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      box-shadow: 0 6px 24px rgba(61,43,40,0.06);
+      border: 2px solid transparent;
+      transition: transform .2s, border-color .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .path-card:hover { transform: translateY(-4px); border-color: var(--peach); }
+    .path-card .path-emoji { font-size: 42px; margin-bottom: 16px; }
+    .path-card h3 { font-size: 26px; margin-bottom: 10px; }
+    .path-card p { font-size: 14px; line-height: 1.65; color: var(--muted); }
+    .path-card ul { list-style: none; margin: 18px 0 24px; }
+    .path-card li {
+      font-size: 13.5px;
+      color: var(--ink);
+      padding: 6px 0 6px 26px;
+      position: relative;
+    }
+    .path-card li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--sage);
+      font-weight: 800;
+    }
+    .path-btn {
+      padding: 13px 30px;
+      border-radius: 100px;
+      border: none;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .path-self .path-btn { background: var(--coral); color: #fff; }
+    .path-parent { background: linear-gradient(150deg, #fff, var(--bg)); }
+    .path-parent .path-btn { background: var(--ink); color: var(--bg); }
+    .path-tag {
+      position: absolute;
+      top: 24px; right: 24px;
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: var(--marigold);
+      background: #fdf0d9;
+      padding: 5px 12px;
+      border-radius: 100px;
+    }
+
+    /* ── LANGUAGE BAND ── */
+    .language-band {
+      background: var(--bg-2);
+      border-radius: 40px;
+      margin: 0 24px;
+      padding: 72px 48px;
+      text-align: center;
+    }
+    .language-band h2 { font-size: 40px; letter-spacing: -0.5px; margin-top: 18px; }
+    .language-band > p {
+      font-family: 'Kalam', cursive;
+      color: var(--coral-deep);
+      margin-top: 14px;
+      font-size: 18px;
+    }
+    .lang-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 40px;
+      max-width: 860px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .lang-pill {
+      padding: 12px 24px;
+      border-radius: 100px;
+      background: var(--bg);
+      border: 1.5px solid var(--peach);
+      font-size: 16px;
+      font-weight: 600;
+      transition: all .15s;
+      cursor: default;
+    }
+    .lang-pill:hover {
+      background: var(--coral);
+      color: #fff;
+      border-color: var(--coral);
+      transform: translateY(-2px);
+    }
+    .lang-pill small { display: block; font-size: 10.5px; font-weight: 500; opacity: 0.65; }
+    .lang-note {
+      margin-top: 32px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── COMMUNITY VERIFICATION ── */
+    .verify-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+    }
+    .verify-photo {
+      border-radius: var(--radius);
+      width: 100%;
+      height: 420px;
+      object-fit: cover;
+      box-shadow: 0 24px 60px rgba(61,43,40,0.18);
+      filter: saturate(1.05);
+    }
+    .verify-steps { display: flex; flex-direction: column; gap: 18px; margin-top: 28px; }
+    .vstep {
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      background: var(--bg-2);
+      border-radius: 20px;
+      padding: 20px 24px;
+      box-shadow: 0 4px 16px rgba(61,43,40,0.05);
+    }
+    .vstep .vn {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: var(--peach);
+      color: var(--coral-deep);
+      font-family: 'Rozha One', serif;
+      font-size: 19px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .vstep h4 { font-size: 16px; }
+    .vstep p { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.55; }
+
+    /* ── JOURNEY ── */
+    .journey {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      position: relative;
+    }
+    .journey::before {
+      content: '';
+      position: absolute;
+      top: 36px;
+      left: 10%;
+      right: 10%;
+      border-top: 3px dashed var(--peach);
+      z-index: 0;
+    }
+    .jstep { position: relative; z-index: 1; text-align: center; }
+    .jstep-bubble {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: var(--bg-2);
+      border: 3px solid var(--peach);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 18px;
+      box-shadow: 0 8px 20px rgba(61,43,40,0.08);
+    }
+    .jstep .jnum {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--coral);
+      margin-bottom: 8px;
+    }
+    .jstep h3 { font-size: 19px; margin-bottom: 8px; }
+    .jstep p { font-size: 13px; line-height: 1.6; color: var(--muted); padding: 0 8px; }
+
+    /* ── PHILOSOPHY ── */
+    .philosophy { background: var(--bg-2); border-radius: 40px; margin: 0 24px; }
+    .philo-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 80px 48px;
+    }
+    .philo-letters {
+      font-size: 96px;
+      letter-spacing: 6px;
+      color: var(--coral);
+      line-height: 1;
+    }
+    .pillar-list { display: flex; flex-direction: column; gap: 14px; }
+    .pillar-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      background: var(--bg);
+      border-radius: 18px;
+      padding: 16px 20px;
+    }
+    .pillar-item .pl {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      background: var(--coral);
+      color: #fff;
+      font-family: 'Rozha One', serif;
+      font-size: 17px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .pillar-item h4 { font-size: 14.5px; }
+    .pillar-item p { font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+
+    /* ── MANDAP BANNER (wedding illustration) ── */
+    .mandap-banner {
+      margin: 0 24px;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+    }
+    .mandap-banner img {
+      width: 100%;
+      height: 460px;
+      object-fit: cover;
+      display: block;
+    }
+    .mandap-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(61,43,40,0) 30%, rgba(61,43,40,0.72) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      text-align: center;
+      padding: 48px;
+    }
+    .mandap-overlay h3 {
+      font-family: 'Rozha One', serif;
+      font-size: 34px;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+    .mandap-overlay p {
+      font-family: 'Kalam', cursive;
+      color: rgba(255,255,255,0.85);
+      font-size: 17px;
+      margin-top: 10px;
+    }
+
+    /* ── SERVICES CARDS ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .card {
+      background: var(--bg-2);
+      border-radius: var(--radius);
+      padding: 34px 28px;
+      box-shadow: 0 6px 24px rgba(61,43,40,0.06);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 14px 36px rgba(61,43,40,0.1); }
+    .card-ico {
+      width: 56px; height: 56px;
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 25px;
+      margin-bottom: 20px;
+    }
+    .ico-a { background: var(--peach); }
+    .ico-b { background: #e8f3e6; }
+    .ico-c { background: #e4ecf7; }
+    .ico-d { background: #f3e8f7; }
+    .ico-e { background: #fdf0d9; }
+    .ico-f { background: #e0f2f1; }
+    .card h3 { font-size: 20px; margin-bottom: 10px; }
+    .card p { font-size: 13.5px; line-height: 1.65; color: var(--muted); }
+
+    /* ── EVENTS ── */
+    .event-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+    .event-card {
+      background: var(--bg-2);
+      border-radius: var(--radius);
+      padding: 28px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      box-shadow: 0 6px 24px rgba(61,43,40,0.06);
+    }
+    .event-emoji {
+      width: 52px; height: 52px;
+      border-radius: 16px;
+      background: var(--peach);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .event-card h3 { font-size: 18.5px; margin-bottom: 6px; }
+    .event-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .event-meta { font-size: 12px; color: var(--coral-deep); font-weight: 700; margin-top: 10px; }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .testimonial {
+      background: var(--ink);
+      border-radius: 40px;
+      padding: 56px 44px;
+      color: var(--bg);
+      position: relative;
+      overflow: hidden;
+    }
+    .testimonial .big-quote { font-size: 64px; color: var(--coral); line-height: 0.6; margin-bottom: 24px; font-family: 'Rozha One', serif; }
+    .testimonial p {
+      font-family: 'Kalam', cursive;
+      font-size: 22px;
+      line-height: 1.55;
+    }
+    .testimonial .attrib { color: #f4b8ae; margin-top: 24px; font-size: 14px; font-weight: 700; }
+    .testimonial .attrib span { color: rgba(253,243,239,0.55); font-weight: 400; }
+    .testimonial.parent { background: var(--coral-deep); }
+    .testimonial.parent .big-quote { color: #ffd9c9; }
+    .testimonial.parent .attrib { color: #ffe4d9; }
+    .testimonial.parent .attrib span { color: rgba(255,255,255,0.6); }
+    .testimonial-photo {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 20px;
+      margin-bottom: 26px;
+      filter: saturate(1.1);
+    }
+
+    /* ── CTA ── */
+    .cta-band { text-align: center; padding: 90px 40px; }
+    .cta-band h2 { font-size: 50px; letter-spacing: -0.5px; line-height: 1.12; }
+    .cta-band h2 .hl { color: var(--coral); }
+    .cta-band p { color: var(--muted); margin: 18px 0 34px; font-size: 15.5px; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--bg-2);
+      border-radius: 40px 40px 0 0;
+      padding: 60px 40px 28px;
+      margin-top: 40px;
+    }
+    .footer-grid {
+      max-width: 1160px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+    }
+    .footer-grid h4 { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+    .footer-grid ul { list-style: none; }
+    .footer-grid li { margin-bottom: 9px; }
+    .footer-grid a { color: var(--ink); text-decoration: none; font-size: 13.5px; }
+    .footer-grid a:hover { color: var(--coral-deep); }
+    .footer-brand { font-size: 22px; margin-bottom: 10px; }
+    .footer-desc { font-size: 13px; color: var(--muted); line-height: 1.65; max-width: 280px; }
+    .footer-bottom {
+      max-width: 1160px;
+      margin: 40px auto 0;
+      padding-top: 22px;
+      border-top: 1px solid var(--peach);
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; padding: 40px 24px 72px; }
+      .hero h1 { font-size: 38px; }
+      .hero-photo-secondary { width: 130px; left: -8px; bottom: -20px; }
+      .float-score { right: 8px; }
+      .float-family { right: 8px; }
+      .float-verified { left: auto; right: 8px; bottom: 10px; }
+      .journey, .cards, .event-row, .footer-grid, .philo-inner, .paths,
+      .verify-grid, .testimonials { grid-template-columns: 1fr; }
+      .journey::before { display: none; }
+      .stats-inner { gap: 20px; }
+      .nav-links { display: none; }
+      .philosophy, .testimonial, .language-band, .mandap-banner { margin: 0 12px; }
+      .philo-inner, .language-band { padding: 48px 24px; }
+      .cta-band h2 { font-size: 32px; }
+      .philo-letters { font-size: 56px; }
+      .mandap-banner img { height: 300px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mockup-banner">⚡ MOCKUP — Option D: Community &amp; Family (parents-built profiles, mother-tongue languages, Indian photo story)</div>
+
+<!-- NAV -->
+<nav>
+  <div class="brand"><div class="brand-dot">🦋</div>L3V3L Matches</div>
+  <div class="nav-links">
+    <a href="#">For Parents</a>
+    <a href="#">How It Works</a>
+    <a href="#">Events</a>
+    <a href="#">Success Stories</a>
+    <button class="lang-chip">🌐 English ▾</button>
+  </div>
+  <button class="btn-login">Log in</button>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <span class="eyebrow">👨‍👩‍👧 Community-built · Family-verified</span>
+    <h1>A match the whole<br/><span class="hl">family</span> will love.</h1>
+    <p class="hero-sub">
+      L3V3L is a matrimonial community where profiles are lovingly posted by
+      parents, siblings, and members themselves — every single one verified.
+      Our AI then analyzes 50+ compatibility factors so the right match finds you.
+      <span class="native">प्यार जो परिवार से जुड़ा हो — love that begins with family.</span>
+    </p>
+    <div class="hero-ctas">
+      <button class="btn-main">Register — It's Free</button>
+      <button class="btn-soft">I'm a parent →</button>
+    </div>
+    <div class="hero-proof">
+      <div class="avatar-stack">
+        <div class="av" style="background:#f7dcd4">👩🏽</div>
+        <div class="av" style="background:#fdf0d9">👴🏽</div>
+        <div class="av" style="background:#e4ecf7">👵🏻</div>
+        <div class="av" style="background:#e8f3e6">👨🏽</div>
+      </div>
+      <span><strong>1,000+ verified profiles</strong> — many posted by loving families</span>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <img class="hero-photo-main" src="../../public/images/hands_color1.jpeg" alt="Mehndi-decorated hands" />
+    <img class="hero-photo-secondary" src="../../public/images/wedding.png" alt="Couple under a mandap" />
+    <div class="float-card float-score">
+      <div class="n">94</div>
+      <div class="l">L3V3L SCORE</div>
+    </div>
+    <div class="float-card float-family">
+      <div class="ico">👨‍👩‍👧</div>
+      <div>
+        <div class="t1">Posted by her mother</div>
+        <div class="t2">Family-managed profile</div>
+      </div>
+    </div>
+    <div class="float-card float-verified">
+      <div class="ico">✓</div>
+      <div>
+        <div class="t1">Community Verified</div>
+        <div class="t2">ID + family checked</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-band">
+  <div class="stats-inner">
+    <div class="stat"><div class="stat-num">1,000+</div><div class="stat-label">Verified Profiles</div></div>
+    <div class="stat"><div class="stat-num">50+</div><div class="stat-label">Successful Matches</div></div>
+    <div class="stat"><div class="stat-num">10+</div><div class="stat-label">Languages</div></div>
+    <div class="stat"><div class="stat-num">98%</div><div class="stat-label">Profile Verification</div></div>
+  </div>
+</div>
+
+<!-- WHO ARE YOU REGISTERING FOR -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Two ways to begin</span>
+      <h2>Who are you searching for?</h2>
+      <p>Whether it's you or someone you love — everyone is welcome here.</p>
+    </div>
+    <div class="paths">
+      <div class="path-card path-self">
+        <div class="path-emoji">🌸</div>
+        <h3>For yourself</h3>
+        <p>You're ready to find your life partner on your own terms — with your family cheering you on.</p>
+        <ul>
+          <li>Build your own verified profile</li>
+          <li>Control your privacy &amp; contact settings</li>
+          <li>Get your personal L3V3L compatibility scores</li>
+        </ul>
+        <button class="path-btn">Create My Profile</button>
+      </div>
+      <div class="path-card path-parent">
+        <span class="path-tag">POPULAR</span>
+        <div class="path-emoji">💞</div>
+        <h3>For your child</h3>
+        <p>Parents have always found the best matches — now with better tools and full transparency.</p>
+        <ul>
+          <li>Post a profile for your son or daughter</li>
+          <li>They approve every connection before contact</li>
+          <li>Talk to other families directly &amp; safely</li>
+        </ul>
+        <button class="path-btn">Post Their Profile</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LANGUAGE BAND -->
+<div class="language-band">
+  <span class="eyebrow">🌐 Mother Tongue</span>
+  <h2>Love speaks your language</h2>
+  <p>Search, chat, and connect in the language your heart thinks in.</p>
+  <div class="lang-pills">
+    <div class="lang-pill">English</div>
+    <div class="lang-pill">हिन्दी<small>Hindi</small></div>
+    <div class="lang-pill">தமிழ்<small>Tamil</small></div>
+    <div class="lang-pill">తెలుగు<small>Telugu</small></div>
+    <div class="lang-pill">ગુજરાતી<small>Gujarati</small></div>
+    <div class="lang-pill">ਪੰਜਾਬੀ<small>Punjabi</small></div>
+    <div class="lang-pill">বাংলা<small>Bengali</small></div>
+    <div class="lang-pill">मराठी<small>Marathi</small></div>
+    <div class="lang-pill">ಕನ್ನಡ<small>Kannada</small></div>
+    <div class="lang-pill">മലയാളം<small>Malayalam</small></div>
+  </div>
+  <p class="lang-note">Filter matches by mother tongue — profiles display the languages each member speaks.</p>
+</div>
+
+<!-- COMMUNITY VERIFICATION -->
+<section>
+  <div class="wrap">
+    <div class="verify-grid">
+      <div>
+        <span class="eyebrow">Trust &amp; Safety</span>
+        <h2 style="font-size:40px;letter-spacing:-0.5px;margin-top:18px;">Every profile earns its ✓</h2>
+        <p style="font-family:'Kalam',cursive;color:var(--coral-deep);font-size:17px;margin-top:12px;">
+          Community-collected. Human-verified. Family-approved.
+        </p>
+        <div class="verify-steps">
+          <div class="vstep">
+            <div class="vn">1</div>
+            <div>
+              <h4>Profile posted by member or family</h4>
+              <p>Members create their own profile — or a parent, sibling, or relative posts on their behalf with consent.</p>
+            </div>
+          </div>
+          <div class="vstep">
+            <div class="vn">2</div>
+            <div>
+              <h4>Community &amp; ID verification</h4>
+              <p>Every profile passes ID checks and community review — no anonymous accounts, no fake photos.</p>
+            </div>
+          </div>
+          <div class="vstep">
+            <div class="vn">3</div>
+            <div>
+              <h4>Verified badge awarded</h4>
+              <p>Only verified profiles can search, message, and connect. Your details stay private until you choose to share.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <img class="verify-photo" src="../../public/images/wedding-bg.jpg" alt="Wedding celebration" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">The Journey</span>
+      <h2>From searching to found</h2>
+      <p>Science meets intuition. Data meets destiny.</p>
+    </div>
+    <div class="journey">
+      <div class="jstep">
+        <div class="jstep-bubble">📝</div>
+        <div class="jnum">STEP 01</div>
+        <h3>Create the profile</h3>
+        <p>For yourself or your child — values, interests, lifestyle, aspirations.</p>
+      </div>
+      <div class="jstep">
+        <div class="jstep-bubble">🧠</div>
+        <div class="jnum">STEP 02</div>
+        <h3>AI analyzes 50+ factors</h3>
+        <p>Personality, values, lifestyle, goals, family expectations, language.</p>
+      </div>
+      <div class="jstep">
+        <div class="jstep-bubble">✨</div>
+        <div class="jnum">STEP 03</div>
+        <h3>Get your L3V3L score</h3>
+        <p>Personalized 0–100 compatibility score with a transparent breakdown.</p>
+      </div>
+      <div class="jstep">
+        <div class="jstep-bubble">💬</div>
+        <div class="jnum">STEP 04</div>
+        <h3>Connect meaningfully</h3>
+        <p>Families and members talk safely — nothing shared without consent.</p>
+      </div>
+    </div>
+    <div class="ornament" style="margin-top:56px">❋</div>
+  </div>
+</section>
+
+<!-- PHILOSOPHY -->
+<div class="philosophy">
+  <div class="philo-inner">
+    <div>
+      <div class="philo-letters">L<span>3</span>V<span>3</span>L</div>
+      <p style="margin-top:24px;font-size:15px;color:var(--muted);line-height:1.7;max-width:420px;">
+        A relationship philosophy defining the emotional depth between two
+        people — modern, playful, and emotionally resonant. Each letter is a
+        pillar of meaningful connection.
+      </p>
+    </div>
+    <div class="pillar-list">
+      <div class="pillar-item">
+        <div class="pl">L</div>
+        <div><h4>Love</h4><p>The spark, the chemistry, the butterflies — where it all begins.</p></div>
+      </div>
+      <div class="pillar-item">
+        <div class="pl">3</div>
+        <div><h4>Loyalty · Laughter · Vulnerability</h4><p>The trio that makes love sustainable.</p></div>
+      </div>
+      <div class="pillar-item">
+        <div class="pl">V</div>
+        <div><h4>Vulnerability</h4><p>Double-emphasized — opening up is hard, but essential.</p></div>
+      </div>
+      <div class="pillar-item">
+        <div class="pl">3</div>
+        <div><h4>Elevation · Empathy · Effort</h4><p>Partners who lift each other up, daily.</p></div>
+      </div>
+      <div class="pillar-item">
+        <div class="pl">L</div>
+        <div><h4>Loyalty, again</h4><p>Because loyalty is a daily choice, not a one-time thing.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MANDAP BANNER -->
+<section>
+  <div class="mandap-banner">
+    <img src="../../public/images/wedding.png" alt="Illustrated Indian couple beneath a wedding mandap" />
+    <div class="mandap-overlay">
+      <h3>Where families meet, love follows</h3>
+      <p>Two families, one mandap — the way it's always been done, now done better.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">What We Offer</span>
+      <h2>Built for serious relationships</h2>
+      <p>Comprehensive matchmaking — not another swipe app.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="card-ico ico-a">🧬</div>
+        <h3>AI-Powered Compatibility</h3>
+        <p>The L3V3L algorithm scores every match 0–100 across personality, values, lifestyle, and goals.</p>
+      </div>
+      <div class="card">
+        <div class="card-ico ico-b">👨‍👩‍👧</div>
+        <h3>Family-Managed Profiles</h3>
+        <p>Parents can post and manage profiles for their children — with consent built into every step.</p>
+      </div>
+      <div class="card">
+        <div class="card-ico ico-c">🌐</div>
+        <h3>Mother-Tongue Matching</h3>
+        <p>Filter and connect in Hindi, Tamil, Telugu, Gujarati, Punjabi, Bengali, and more.</p>
+      </div>
+      <div class="card">
+        <div class="card-ico ico-d">💬</div>
+        <h3>Secure Messaging</h3>
+        <p>Private in-app chat between members — or between families — with read receipts.</p>
+      </div>
+      <div class="card">
+        <div class="card-ico ico-e">🔒</div>
+        <h3>Privacy &amp; PII Controls</h3>
+        <p>You decide who sees contact details and photos. Nothing is shared without approval.</p>
+      </div>
+      <div class="card">
+        <div class="card-ico ico-f">📊</div>
+        <h3>Compatibility Insights</h3>
+        <p>See exactly <em>why</em> you match — breakdowns across 8 categories, no black box.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EVENTS -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Events &amp; Meetups</span>
+      <h2>Meet online or in person</h2>
+      <p>50+ events annually · 12 cities · families always welcome</p>
+    </div>
+    <div class="event-row">
+      <div class="event-card">
+        <div class="event-emoji">🎯</div>
+        <div>
+          <h3>Speed Dating Sessions <span style="font-size:11px;color:var(--muted)">· VIRTUAL</span></h3>
+          <p>5-minute rotating video chats with pre-matched members. Meet 8–10 matches in one evening.</p>
+          <div class="event-meta">Every Saturday · 7 PM PST</div>
+        </div>
+      </div>
+      <div class="event-card">
+        <div class="event-emoji">🍷</div>
+        <div>
+          <h3>Family Meet &amp; Greets <span style="font-size:11px;color:var(--muted)">· IN-PERSON</span></h3>
+          <p>Relaxed gatherings where parents and members meet over chai and conversation.</p>
+          <div class="event-meta">📍 SF · LA · NYC · Chicago</div>
+        </div>
+      </div>
+    </div>
+    <div class="event-row">
+      <div class="event-card">
+        <div class="event-emoji">💬</div>
+        <div>
+          <h3>Compatibility Workshops <span style="font-size:11px;color:var(--muted)">· VIRTUAL</span></h3>
+          <p>Group sessions with relationship experts on values and communication.</p>
+          <div class="event-meta">Bi-weekly · Wednesdays</div>
+        </div>
+      </div>
+      <div class="event-card">
+        <div class="event-emoji">🎭</div>
+        <div>
+          <h3>Cultural Celebrations <span style="font-size:11px;color:var(--muted)">· IN-PERSON</span></h3>
+          <p>Diwali galas, festival gatherings, and holiday parties — celebrate traditions together.</p>
+          <div class="event-meta">📍 Nationwide</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS — couple + parent -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Success Stories</span>
+      <h2>From our community</h2>
+    </div>
+    <div class="testimonials">
+      <div class="testimonial">
+        <img class="testimonial-photo" src="../../public/images/hands.jpeg" alt="Wedding hands" />
+        <div class="big-quote">“</div>
+        <p>After years on apps that felt like shopping, L3V3L felt like a matchmaker who actually knew both of our families' expectations.</p>
+        <div class="attrib">Meera &amp; Vikram <span>— engaged 2026 · New Jersey</span></div>
+      </div>
+      <div class="testimonial parent">
+        <div class="big-quote">“</div>
+        <p>I posted my daughter's profile on a Sunday evening. By Diwali, we were meeting her fiancé's family. The verification gave us complete peace of mind.</p>
+        <div class="attrib">Sunita Sharma <span>— mother of the bride · Fremont, CA</span></div>
+        <div class="ornament" style="margin-top:32px;color:#ffd9c9">❋</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-band">
+  <h2>Your family's blessing,<br/><span class="hl">calculated</span> into the match.</h2>
+  <p>Join a community of verified members and families seeking marriage-minded relationships.</p>
+  <button class="btn-main">Register — For Yourself or Your Child</button>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">🦋 L3V3L Matches</div>
+      <p class="footer-desc">A community-built matrimonial platform — verified profiles, family-managed accounts, AI-powered compatibility.</p>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#">About L3V3L</a></li>
+        <li><a href="#">Help Center</a></li>
+        <li><a href="#">Contact Us</a></li>
+        <li><a href="#">Success Stories</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="#">Terms of Service</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Community Guidelines</a></li>
+        <li><a href="#">Cookie Policy</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <ul>
+        <li><a href="#">support@l3v3lmatches.com</a></li>
+        <li><a href="#">+1 (800) 555-L3V3L</a></li>
+        <li><a href="#">San Francisco, CA</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 L3V3L Matches Inc. All rights reserved.</span>
+    <span>Matrimonial matchmaking for adults 18+</span>
+  </div>
+</footer>
+
+</body>
+</html>

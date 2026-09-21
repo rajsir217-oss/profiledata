@@ -7,6 +7,7 @@ from typing import Dict, Any, Tuple, Optional, List
 from .base import JobTemplate, JobExecutionContext, JobResult
 from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from config import settings
 import time
 import logging
 
@@ -659,7 +660,7 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         
         <!-- Logo -->
         <div style="text-align: center; padding: 25px 20px 15px 20px; background: white;">
-            <div style="font-size: 44px; line-height: 1;" aria-label="Butterfly logo">🦋</div>
+            <img src="{settings.frontend_url}/landing-page-logo-clear.png" alt="L3V3L Matches" width="200" style="width: 200px; height: auto; display: block; margin: 0 auto;" />
         </div>
         
         <!-- Header -->

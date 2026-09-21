@@ -57,11 +57,19 @@ async def endpoint(
 ```javascript
 // ❌ NEVER
 alert(); confirm(); prompt();
+window.alert(); window.confirm(); window.prompt();
 
 // ✅ ALWAYS
 <Toast message="Saved!" type="success" />     // for feedback
 // Custom modals with proper styling           // for confirmations
 // 2-click delete pattern (DeleteButton)       // for destructive ops
+```
+
+Treat native browser dialogs as blocked APIs in this repo, even for temporary debugging.
+Before merge, run a quick check:
+
+```bash
+grep -RIn "alert\\(|confirm\\(|prompt\\(|window\\.alert\\(|window\\.confirm\\(|window\\.prompt\\(" frontend/src
 ```
 
 ### 1.4 No hardcoded styles or colors

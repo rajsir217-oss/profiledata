@@ -74,13 +74,21 @@ class StorageService:
             logger.warning("⚠️ Falling back to local storage")
             self.use_gcs = False
     
-    async def save_file(self, upload_file: UploadFile, folder: str = "uploads") -> str:
+    async def save_file(
+        self,
+        upload_file: UploadFile,
+        folder: str = "uploads",
+        content_type: Optional[str] = None,
+        compress: bool = True,
+    ) -> str:
         """
         Save uploaded file to storage (local or GCS)
         
         Args:
             upload_file: FastAPI UploadFile object
             folder: Folder/prefix for organizing files
+            content_type: MIME type to store (defaults to upload_file.content_type)
+            compress: Whether to compress images (set False for attachments)
             
         Returns:
             Public URL or relative path to the file
@@ -89,12 +97,15 @@ class StorageService:
         file_extension = Path(upload_file.filename).suffix.lower()
         unique_filename = f"{uuid.uuid4()}{file_extension}"
         
+        # Resolve content type
+        resolved_content_type = content_type or upload_file.content_type or "application/octet-stream"
+        
         # Read file content
         content = await upload_file.read()
         original_size_mb = len(content) / (1024 * 1024)
         
-        # Compress image if it's a common image format
-        if file_extension in ['.jpg', '.jpeg', '.png', '.webp']:
+        # Compress image if requested and it's a common image format
+        if compress and file_extension in ['.jpg', '.jpeg', '.png', '.webp']:
             try:
                 content = self._compress_image(content, file_extension)
                 new_size_mb = len(content) / (1024 * 1024)
@@ -111,9 +122,9 @@ class StorageService:
         logger.info(f"📤 Uploading {unique_filename} ({file_size_mb:.2f}MB) to {storage_type} storage")
         
         if self.use_gcs:
-            return await self._save_to_gcs(unique_filename, content, folder, file_size_mb)
+            return await self._save_to_gcs(unique_filename, content, folder, file_size_mb, resolved_content_type)
         else:
-            return await self._save_to_local(unique_filename, content, folder, file_size_mb)
+            return await self._save_to_local(unique_filename, content, folder, file_size_mb, resolved_content_type)
 
     def generate_signed_url(
         self,
@@ -204,15 +215,15 @@ class StorageService:
         img.save(output, format=save_format, **save_params)
         return output.getvalue()
     
-    async def _save_to_gcs(self, filename: str, content: bytes, folder: str, file_size_mb: float) -> str:
+    async def _save_to_gcs(self, filename: str, content: bytes, folder: str, file_size_mb: float, content_type: str = "application/octet-stream") -> str:
         """Save file to Google Cloud Storage"""
         try:
             # Create blob path
             blob_path = f"{folder}/{filename}"
             blob = self.gcs_bucket.blob(blob_path)
             
-            # Upload file
-            blob.upload_from_string(content, content_type="image/jpeg")
+            # Upload file with correct content type
+            blob.upload_from_string(content, content_type=content_type)
 
             logger.info(f"✅ File uploaded to GCS: {blob_path} ({file_size_mb:.2f}MB)")
 
@@ -223,9 +234,9 @@ class StorageService:
             logger.error(f"❌ GCS upload failed: {e}", exc_info=True)
             # Fallback to local storage
             logger.warning("⚠️ Falling back to local storage")
-            return await self._save_to_local(filename, content, folder, file_size_mb)
+            return await self._save_to_local(filename, content, folder, file_size_mb, content_type)
     
-    async def _save_to_local(self, filename: str, content: bytes, folder: str, file_size_mb: float) -> str:
+    async def _save_to_local(self, filename: str, content: bytes, folder: str, file_size_mb: float, content_type: str = "application/octet-stream") -> str:
         """Save file to local filesystem"""
         try:
             import aiofiles
@@ -250,6 +261,79 @@ class StorageService:
             logger.error(f"❌ Local save failed: {e}", exc_info=True)
             raise
     
+    async def read_file(self, storage_path: str) -> Optional[bytes]:
+        """
+        Read file bytes from GCS or local storage.
+
+        Args:
+            storage_path: Relative path like /uploads/abc.pdf or /uploads/contact_tickets/abc.pdf
+
+        Returns:
+            File bytes or None if not found
+        """
+        filename = storage_path.split('/')[-1]
+        if not filename:
+            return None
+
+        if self.use_gcs:
+            try:
+                blob = self.gcs_bucket.blob(f"uploads/contact_tickets/{filename}")
+                if not blob.exists():
+                    blob = self.gcs_bucket.blob(f"uploads/{filename}")
+                if not blob.exists():
+                    return None
+                return blob.download_as_bytes()
+            except Exception as e:
+                logger.error(f"❌ GCS read failed for {filename}: {e}")
+                return None
+        else:
+            try:
+                from config import settings
+                full_path = Path(settings.upload_dir) / "contact_tickets" / filename
+                if not full_path.exists():
+                    full_path = Path(settings.upload_dir) / filename
+                if not full_path.exists():
+                    return None
+                return full_path.read_bytes()
+            except Exception as e:
+                logger.error(f"❌ Local read failed for {filename}: {e}")
+                return None
+
+    async def delete_attachment(self, stored_filename: str) -> bool:
+        """
+        Delete a ticket attachment from storage (GCS or local).
+
+        Args:
+            stored_filename: The unique stored filename
+
+        Returns:
+            True if deleted successfully
+        """
+        try:
+            if self.use_gcs:
+                # Try contact_tickets prefix first, then root uploads
+                for prefix in ("uploads/contact_tickets", "uploads"):
+                    blob = self.gcs_bucket.blob(f"{prefix}/{stored_filename}")
+                    if blob.exists():
+                        blob.delete()
+                        logger.info(f"✅ Attachment deleted from GCS: {prefix}/{stored_filename}")
+                        return True
+                logger.warning(f"⚠️ Attachment not found in GCS: {stored_filename}")
+                return False
+            else:
+                from config import settings
+                for subdir in ("contact_tickets", ""):
+                    full_path = Path(settings.upload_dir) / subdir / stored_filename if subdir else Path(settings.upload_dir) / stored_filename
+                    if full_path.exists():
+                        full_path.unlink()
+                        logger.info(f"✅ Attachment deleted locally: {full_path}")
+                        return True
+                logger.warning(f"⚠️ Attachment not found locally: {stored_filename}")
+                return False
+        except Exception as e:
+            logger.error(f"❌ Attachment delete failed for {stored_filename}: {e}")
+            return False
+
     async def delete_file(self, file_path: str) -> bool:
         """
         Delete file from storage

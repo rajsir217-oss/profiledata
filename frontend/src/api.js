@@ -90,6 +90,22 @@ api.interceptors.response.use(
   }
 );
 
+// In-flight request dedup — collapses concurrent identical requests (e.g. the
+// same /profile fetch fired by App.js and useDashboardData on the same render)
+// into a single network call. Only dedupes while a request is in flight.
+const inFlightRequests = new Map();
+const dedupeInFlight = (key, requestFn) => {
+  const existing = inFlightRequests.get(key);
+  if (existing) return existing;
+  const promise = requestFn().finally(() => {
+    if (inFlightRequests.get(key) === promise) {
+      inFlightRequests.delete(key);
+    }
+  });
+  inFlightRequests.set(key, promise);
+  return promise;
+};
+
 // API Functions
 export const loginUser = async (credentials) => {
   try {
@@ -120,8 +136,10 @@ export const searchUsers = async (searchCriteria) => {
 
 export const getUserProfile = async (username) => {
   try {
-    const response = await api.get(`/profile/${username}`);
-    return response.data;
+    return await dedupeInFlight(`profile:${username}`, async () => {
+      const response = await api.get(`/profile/${username}`);
+      return response.data;
+    });
   } catch (error) {
     throw error.response?.data || error.message;
   }

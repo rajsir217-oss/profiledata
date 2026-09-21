@@ -11,6 +11,7 @@ import ActivationBadge from "./ActivationBadge";
 import onlineStatusService from "../services/onlineStatusService";
 import L3V3LMatchingTable from "./L3V3LMatchingTable";
 import MessageModal from "./MessageModal";
+import DeleteButton from "./DeleteButton";
 import { onPIIAccessChange } from "../utils/piiAccessEvents";
 import { getActivityBadgeProps, getRelativeActivityTime } from "../utils/activityFormatter";
 import { generateAboutMe, generatePartnerPreference, generateLookingForSummary } from "../utils/profileDescriptionGenerator";
@@ -20,7 +21,7 @@ import { getWorkingStatus } from "../utils/workStatusHelper";
 import RichTextEditor from "./shared/RichTextEditor";
 import { getAuthenticatedImageUrl } from "../utils/imageUtils";
 import logger from "../utils/logger";
-import { formatFullDateTime, formatRelativeTime } from "../utils/timeFormatter";
+import { formatFullDateTime, formatRelativeTime, formatCompactDateTime } from "../utils/timeFormatter";
 import ActivitySummaryPanel from "./ActivitySummaryPanel";
 import { useContribution } from "../contexts/ContributionContext";
 import "./Profile.css";
@@ -106,7 +107,19 @@ const Profile = ({
   const [isRephrasing, setIsRephrasing] = useState(false);
   const [rephraseStyle, setRephraseStyle] = useState('concise');
   const [aiProvider, setAiProvider] = useState('groq'); // 'groq' (recommended) or 'gemini'
-  
+
+  // SMS Share state
+  const [shareRecipient, setShareRecipient] = useState('');
+  const [sharePhone, setSharePhone] = useState('');
+  const [shareSending, setShareSending] = useState(false);
+  const [currentUserContacts, setCurrentUserContacts] = useState([]);
+  const [profileShares, setProfileShares] = useState([]);
+  const [showMessageEditor, setShowMessageEditor] = useState(false);
+  const [customMessage, setCustomMessage] = useState('');
+
+  // Contact labels matching profile edit
+  const CONTACT_LABELS = ['primary', 'secondary', 'self', 'parent', 'spouse', 'daughter', 'son', 'work', 'other'];
+
   logger.debug('Profile component loaded for:', username);
   
   // Check for status message from ProtectedRoute
@@ -140,9 +153,9 @@ const Profile = ({
     if (!dateValue) return null;
     const relative = formatRelativeTime(dateValue);
     if (!relative || relative === 'Never') return null;
-    if (relative === 'Just now') return 'Updated just now';
-    if (relative === 'Yesterday') return 'Updated yesterday';
-    return `Updated ${relative}`;
+    if (relative === 'Just now') return 'just now';
+    if (relative === 'Yesterday') return 'yesterday';
+    return relative;
   };
   
   // Extract search carousel context from navigation state
@@ -312,9 +325,15 @@ const Profile = ({
         if (profileData.isOnline !== undefined) {
           setIsOnline(profileData.isOnline);
         }
-        
+
+        // Load current user's contact numbers for SMS sharing
+        if (currentUsername && !isOwnProfile) {
+          loadCurrentUserContacts(currentUsername);
+          loadProfileShares(currentUsername);
+        }
+
         // Debug: Log relationship status from API
-        console.log('💜 Profile relationship status from API:', {
+        logger.debug('💜 Profile relationship status from API:', {
           isFavorited: profileData.isFavorited,
           isShortlisted: profileData.isShortlisted,
           isExcluded: profileData.isExcluded,
@@ -334,7 +353,7 @@ const Profile = ({
         }
         
         // Debug: Log visibility settings
-        console.log('👁️ Profile data received - visibility settings:', {
+        logger.debug('👁️ Profile data received - visibility settings:', {
           contactEmailVisible: profileData.contactEmailVisible,
           contactNumberVisible: profileData.contactNumberVisible,
           linkedinUrlVisible: profileData.linkedinUrlVisible,
@@ -347,6 +366,9 @@ const Profile = ({
         // Check if this is the current user's profile
         setIsOwnProfile(currentUsername === username);
         
+        // Main profile payload is ready; stop blocking UI on secondary calls.
+        setLoading(false);
+
         // Track profile view (only if viewing someone else's profile)
         if (currentUsername && currentUsername !== username) {
           // Guard against React StrictMode double-invocation (and rapid re-renders):
@@ -355,76 +377,74 @@ const Profile = ({
           if (!trackedViewsRef.current.has(trackKey)) {
             trackedViewsRef.current.add(trackKey);
 
-            // Fetch viewer metrics FIRST so "Last viewed" reflects the PREVIOUS view,
-            // not the one we are about to record.
-            try {
-              const metricsRes = await api.get(`/profile-views/${username}/viewer-metrics`);
-              const data = metricsRes?.data || {};
-              setViewerViewMetrics({
-                lastViewedAt: data.lastViewedAt || null,
-                viewCount: Number.isFinite(data.viewCount) ? data.viewCount : 0
-              });
-            } catch (metricsErr) {
-              logger.debug('Error loading viewer view metrics:', metricsErr);
-            }
-
-            try {
-              await api.post('/profile-views', {
-                profileUsername: username,
-                viewedByUsername: currentUsername
-              });
-            } catch (viewErr) {
-              // Silently fail - don't block profile loading if tracking fails
-              console.error("Error tracking profile view:", viewErr);
-            }
+            // Fire non-critical tracking calls in background.
+            (async () => {
+              try {
+                const metricsRes = await api.get(`/profile-views/${username}/viewer-metrics`);
+                const data = metricsRes?.data || {};
+                setViewerViewMetrics({
+                  lastViewedAt: data.lastViewedAt || null,
+                  viewCount: Number.isFinite(data.viewCount) ? data.viewCount : 0
+                });
+              } catch (metricsErr) {
+                logger.debug('Error loading viewer view metrics:', metricsErr);
+              }
+              try {
+                await api.post('/profile-views', {
+                  profileUsername: username,
+                  viewedByUsername: currentUsername
+                });
+              } catch (viewErr) {
+                logger.debug('Error tracking profile view:', viewErr);
+              }
+            })();
           }
           
           // Fetch current user's profile for PII request validation
           // (Still needed if not already cached, but could be optimized later)
           if (!currentUserProfile) {
-            try {
-              const myProfileRes = await api.get(`/profile/${currentUsername}?requester=${currentUsername}`);
-              setCurrentUserProfile(myProfileRes.data);
-            } catch (profileErr) {
-              console.error("Error fetching current user profile:", profileErr);
-            }
+            api.get(`/profile/${currentUsername}?requester=${currentUsername}`)
+              .then((myProfileRes) => setCurrentUserProfile(myProfileRes.data))
+              .catch((profileErr) => logger.debug("Error fetching current user profile:", profileErr));
           }
-          
-          // Load accessible images with privacy settings (Legacy system check)
-          await loadAccessibleImages();
-          
-          // Fallback: If API didn't return relationship status, fetch it separately
-          if (profileData.isFavorited === undefined || profileData.isShortlisted === undefined) {
-            try {
-              const [favResponse, shortlistResponse] = await Promise.all([
-                api.get(`/favorites/${currentUsername}`),
-                api.get(`/shortlist/${currentUsername}`)
-              ]);
-              
-              const favorites = favResponse.data.favorites || favResponse.data || [];
-              const shortlist = shortlistResponse.data.shortlist || shortlistResponse.data || [];
-              
-              setIsFavorited(favorites.some(u => (u.username || u) === username));
-              setIsShortlisted(shortlist.some(u => (u.username || u) === username));
-            } catch (relErr) {
-              console.error("Error checking user relationship:", relErr);
-            }
+
+          // Use backend-provided context data instead of redundant API calls
+          // Backend now returns: isFavorited, isShortlisted, kpiStats, piiRequestStatus, piiAccess, isOnline
+          if (profileData.isFavorited !== undefined) {
+            setIsFavorited(profileData.isFavorited);
           }
-          
+          if (profileData.isShortlisted !== undefined) {
+            setIsShortlisted(profileData.isShortlisted);
+          }
+          if (profileData.kpiStats) {
+            setKpiStats(profileData.kpiStats);
+          }
+          if (profileData.piiRequestStatus) {
+            setPiiRequestStatus(profileData.piiRequestStatus);
+          }
+          if (profileData.piiAccess) {
+            setPiiAccess(profileData.piiAccess);
+          }
+          if (profileData.isOnline !== undefined) {
+            setIsOnline(profileData.isOnline);
+          }
+
+          // Load accessible images with privacy settings (Legacy system check) in background
+          loadAccessibleImages();
+
           // Check if there are existing messages with this user
-          try {
-            const messagesResponse = await api.get(`/messages/conversation/${username}?username=${currentUsername}`);
-            const messages = messagesResponse.data.messages || messagesResponse.data || [];
-            console.log('💬 Messages check:', { username, currentUsername, hasMessages: messages.length > 0, count: messages.length });
-            setHasMessages(messages.length > 0);
-          } catch (msgErr) {
-            console.error("Error checking messages:", msgErr);
-          }
+          api.get(`/messages/conversation/${username}?username=${currentUsername}`)
+            .then((messagesResponse) => {
+              const messages = messagesResponse.data.messages || messagesResponse.data || [];
+              logger.debug('💬 Messages check:', { username, currentUsername, hasMessages: messages.length > 0, count: messages.length });
+              setHasMessages(messages.length > 0);
+            })
+            .catch((msgErr) => logger.debug("Error checking messages:", msgErr));
         }
         
         // Activation status if viewing own profile
         if (currentUsername === username) {
-          await fetchActivationStatus();
+          fetchActivationStatus();
         }
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -447,22 +467,23 @@ const Profile = ({
           setError(`Unable to load profile: ${err.message || 'Unknown error'}`);
         }
       } finally {
+        // Keep this as a safety fallback when primary request fails before setLoading(false).
         setLoading(false);
       }
     };
     fetchProfile();
     
-    // Poll for PII access changes every 10 seconds
+    // Poll for PII access changes every 30 seconds (reduced from 10s)
     const accessCheckInterval = setInterval(() => {
       if (currentUsername && currentUsername !== username) {
         checkPIIAccess();
       }
-    }, 10000);
-    
-    // Poll for KPI stats updates every 15 seconds
+    }, 30000);
+
+    // Poll for KPI stats updates every 60 seconds (reduced from 15s)
     const kpiStatsInterval = setInterval(() => {
       fetchKPIStats();
-    }, 15000);
+    }, 60000);
     
     // Refresh KPI stats when page regains focus
     const handleFocus = () => {
@@ -566,7 +587,7 @@ const Profile = ({
 
   const checkPIIAccess = async () => {
     if (!currentUsername || isOwnProfile) return;
-    
+
     // ✅ ADMIN BYPASS - Admins have full access to all PII
     if (isAdmin) {
       logger.debug('Admin user - full PII access');
@@ -580,96 +601,64 @@ const Profile = ({
       });
       return;
     }
-    
+
     try {
-      const [imagesRes, contactNumberRes, contactEmailRes, dobRes, linkedinRes] = await Promise.all([
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=images`),
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_number`),
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_email`),
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=date_of_birth`),
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=linkedin_url`)
-      ]);
-      
-      logger.debug('PII Access Check Results:', {
-        images: imagesRes.data.hasAccess,
-        contact_number: contactNumberRes.data.hasAccess,
-        contact_email: contactEmailRes.data.hasAccess,
-        date_of_birth: dobRes.data.hasAccess,
-        linkedin_url: linkedinRes.data.hasAccess
-      });
-      
-      setPiiAccess({
-        images: imagesRes.data.hasAccess,
-        contact_info: contactNumberRes.data.hasAccess || contactEmailRes.data.hasAccess, // Legacy: true if either contact field has access
-        contact_number: contactNumberRes.data.hasAccess,
-        contact_email: contactEmailRes.data.hasAccess,
-        date_of_birth: dobRes.data.hasAccess,
-        linkedin_url: linkedinRes.data.hasAccess
-      });
-      
-      // Check pending request status for each type
-      const requestStatus = {};
-      
-      // Fetch pending outgoing requests to this profile
-      try {
-        const outgoingRes = await api.get(`/pii-requests/${currentUsername}/outgoing`);
-        const outgoingRequests = outgoingRes.data.requests || [];
-        
-        // Find pending requests to this specific profile
-        outgoingRequests.forEach(req => {
-          if (req.profileUsername === username && req.status === 'pending') {
-            // Map requestType to our status keys
-            const typeMap = {
-              'images': 'images',
-              'contact_number': 'contact_number',
-              'contact_email': 'contact_email',
-              'date_of_birth': 'date_of_birth',
-              'linkedin_url': 'linkedin_url'
-            };
-            const statusKey = typeMap[req.requestType];
-            if (statusKey) {
-              requestStatus[statusKey] = 'pending';
-            }
-          }
+      // Use backend-provided piiAccess and piiRequestStatus from profile response
+      // Only fetch fresh data if not already available
+      if (user && user.piiAccess) {
+        setPiiAccess(user.piiAccess);
+      } else {
+        // Fallback to API calls if backend doesn't provide piiAccess
+        const [imagesRes, contactNumberRes, contactEmailRes, dobRes, linkedinRes] = await Promise.all([
+          api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=images`),
+          api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_number`),
+          api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_email`),
+          api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=date_of_birth`),
+          api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=linkedin_url`)
+        ]);
+
+        setPiiAccess({
+          images: imagesRes.data.hasAccess,
+          contact_info: contactNumberRes.data.hasAccess || contactEmailRes.data.hasAccess,
+          contact_number: contactNumberRes.data.hasAccess,
+          contact_email: contactEmailRes.data.hasAccess,
+          date_of_birth: dobRes.data.hasAccess,
+          linkedin_url: linkedinRes.data.hasAccess
         });
-      } catch (err) {
-        logger.error('Error fetching outgoing requests:', err);
       }
-      
-      // For images, check per-image access if not pending
-      if (!requestStatus['images'] && imagesRes.data.hasAccess) {
+
+      // Use backend-provided piiRequestStatus if available
+      if (user.piiRequestStatus) {
+        setPiiRequestStatus(user.piiRequestStatus);
+      } else {
+        // Fallback to fetching request status
+        const requestStatus = {};
+
         try {
-          const perImageRes = await api.get(`/pii-access/check-images`, {
-            params: { requester: currentUsername, profile_owner: username }
+          const outgoingRes = await api.get(`/pii-requests/${currentUsername}/outgoing`);
+          const outgoingRequests = outgoingRes.data.requests || [];
+
+          outgoingRequests.forEach(req => {
+            if (req.profileUsername === username && req.status === 'pending') {
+              const typeMap = {
+                'images': 'images',
+                'contact_number': 'contact_number',
+                'contact_email': 'contact_email',
+                'date_of_birth': 'date_of_birth',
+                'linkedin_url': 'linkedin_url'
+              };
+              const statusKey = typeMap[req.requestType];
+              if (statusKey) {
+                requestStatus[statusKey] = 'pending';
+              }
+            }
           });
-          const imageAccessList = perImageRes.data.images || [];
-          const hasAnyActiveAccess = imageAccessList.some(img => img.hasAccess && img.reason === 'granted');
-          
-          if (hasAnyActiveAccess) {
-            requestStatus['images'] = 'approved';
-          } else {
-            requestStatus['images'] = 'expired';
-          }
         } catch (err) {
-          requestStatus['images'] = 'approved';
+          logger.error('Error fetching outgoing requests:', err);
         }
+
+        setPiiRequestStatus(requestStatus);
       }
-      
-      // Other PII types - set approved if has access and not pending
-      if (!requestStatus['contact_number'] && contactNumberRes.data.hasAccess) {
-        requestStatus['contact_number'] = 'approved';
-      }
-      if (!requestStatus['contact_email'] && contactEmailRes.data.hasAccess) {
-        requestStatus['contact_email'] = 'approved';
-      }
-      if (!requestStatus['date_of_birth'] && dobRes.data.hasAccess) {
-        requestStatus['date_of_birth'] = 'approved';
-      }
-      if (!requestStatus['linkedin_url'] && linkedinRes.data.hasAccess) {
-        requestStatus['linkedin_url'] = 'approved';
-      }
-      
-      setPiiRequestStatus(requestStatus);
     } catch (err) {
       console.error("Error checking PII access:", err);
     }
@@ -743,6 +732,167 @@ const Profile = ({
     } catch (err) {
       setExclusionLoading(false);
       setError('Failed to update not interested');
+    }
+  };
+
+  // Load current user's contact numbers for SMS sharing
+  const loadCurrentUserContacts = async (currentUser) => {
+    try {
+      logger.debug('Loading contacts for current user:', { currentUser, viewingProfile: username });
+      const res = await api.get(`/profile/${currentUser}`);
+      const contacts = res.data.contactNumbers || [];
+      setCurrentUserContacts(contacts);
+      logger.debug('Loaded user contacts:', { currentUser, contacts, count: contacts.length });
+    } catch (err) {
+      logger.error('Failed to load user contacts:', err);
+    }
+  };
+
+  // Load profile share history for the currently viewed profile
+  const loadProfileShares = async (currentUser) => {
+    try {
+      const res = await api.get('/profile-shares', {
+        params: {
+          shared_profile_username: username
+        }
+      });
+      setProfileShares(res.data.shares || []);
+    } catch (err) {
+      logger.error('Failed to load profile shares:', err);
+    }
+  };
+
+  // Handle recipient selection change
+  const handleRecipientChange = (recipientType) => {
+    setShareRecipient(recipientType);
+    if (!recipientType) {
+      setSharePhone('');
+      return;
+    }
+    const contact = currentUserContacts.find(c => c.label && c.label.toLowerCase() === recipientType.toLowerCase());
+    const phone = contact?.number || '';
+    setSharePhone(phone);
+    logger.debug('Recipient changed:', { recipientType, contact, phone, allContacts: currentUserContacts, contactFound: !!contact });
+  };
+
+  // Generate default message
+  const generateDefaultMessage = () => {
+    const profileUrl = `${window.location.origin}/profile/${username}`;
+    return `Hi! I found this profile on L3V3L Matches that might be a good match.
+
+${user.firstName}, ${user.age} - ${user.location} - ${user.height}
+${user.profession}
+
+View profile: ${profileUrl}
+
+Sent from L3V3L Matches`;
+  };
+
+  // Open message editor with default message
+  const handleEditMessage = () => {
+    setCustomMessage(generateDefaultMessage());
+    setShowMessageEditor(true);
+  };
+
+  // Send profile share via SMS
+  const handleSendSMS = async (messageOverride = null, recipientTypeOverride = null, phoneOverride = null) => {
+    const finalRecipient = recipientTypeOverride || shareRecipient;
+    const finalPhone = phoneOverride || sharePhone;
+    
+    if (!finalRecipient || !finalPhone) {
+      setError('Please select a recipient and enter a phone number');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    setShareSending(true);
+    setError(''); // Clear any previous errors
+    try {
+      const currentUser = localStorage.getItem('username');
+      const message = messageOverride || customMessage || generateDefaultMessage();
+
+      await api.post('/send-sms', {
+        recipientPhone: finalPhone,
+        message: message,
+        username: currentUser,
+        recipientType: finalRecipient,
+        sharedProfileUsername: username
+      });
+
+      setSuccessMessage('✅ Profile shared via SMS');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      setShowMessageEditor(false);
+      setCustomMessage('');
+
+      // Reload share history
+      loadProfileShares(currentUser);
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to send SMS';
+      logger.error('SMS send error:', errorMsg);
+      setError(errorMsg);
+    } finally {
+      setShareSending(false);
+    }
+  };
+
+  // Reshare profile from history
+  const handleReshare = async (share) => {
+    setShareRecipient(share.recipientType);
+    setSharePhone(share.recipientPhone);
+    setShareSending(true);
+
+    try {
+      const currentUser = localStorage.getItem('username');
+      const profileUrl = `${window.location.origin}/profile/${share.sharedProfileUsername}`;
+
+      const message = `Hi! I found this profile on L3V3L Matches that might be a good match for ${share.recipientType}:
+
+View profile: ${profileUrl}
+
+Sent from L3V3L Matches`;
+
+      await api.post('/send-sms', {
+        recipientPhone: share.recipientPhone,
+        message: message,
+        username: currentUser,
+        recipientType: share.recipientType,
+        sharedProfileUsername: share.sharedProfileUsername
+      });
+
+      setSuccessMessage('✅ Profile reshared via SMS');
+      setTimeout(() => setSuccessMessage(''), 3000);
+
+      // Reload share history
+      loadProfileShares(currentUser);
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to reshare';
+      logger.error('Reshare error:', errorMsg);
+      setError(errorMsg);
+    } finally {
+      setShareSending(false);
+    }
+  };
+
+  // Delete a profile share record
+  const handleDeleteShare = async (share) => {
+    try {
+      const currentUser = localStorage.getItem('username');
+      await api.delete(`/profile-shares/${share.sharedProfileUsername}`, {
+        params: {
+          recipient_type: share.recipientType,
+          recipient_phone: share.recipientPhone
+        }
+      });
+
+      setSuccessMessage('✅ Share record deleted');
+      setTimeout(() => setSuccessMessage(''), 3000);
+
+      // Reload share history
+      loadProfileShares(currentUser);
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to delete';
+      logger.error('Delete share error:', errorMsg);
+      setError(errorMsg);
     }
   };
 
@@ -834,27 +984,6 @@ const Profile = ({
       loadAccessibleImages();
     }
   }, [piiAccess.images, user, isOwnProfile]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Check if user has favorited/shortlisted this profile
-  // eslint-disable-next-line no-unused-vars
-  const checkUserRelationship = async () => {
-    if (isOwnProfile || !currentUsername) return;
-
-    try {
-      const [favResponse, shortlistResponse] = await Promise.all([
-        api.get(`/favorites/${currentUsername}`),
-        api.get(`/shortlist/${currentUsername}`)
-      ]);
-
-      const favorites = favResponse.data.favorites || favResponse.data || [];
-      const shortlist = shortlistResponse.data.shortlist || shortlistResponse.data || [];
-
-      setIsFavorited(favorites.some(u => (u.username || u) === username));
-      setIsShortlisted(shortlist.some(u => (u.username || u) === username));
-    } catch (err) {
-      console.error("Error checking user relationship:", err);
-    }
-  };
 
   // Handle access request
   // eslint-disable-next-line no-unused-vars
@@ -1376,7 +1505,25 @@ const Profile = ({
   };
 
   if (loading) return <p>Loading profile...</p>;
-  if (error) return <p className="text-danger">{error}</p>;
+  if (error) {
+    if (error.includes('Membership required')) {
+      return (
+        <div style={{ maxWidth: '600px', margin: '10px auto' }}>
+          <div className="alert alert-danger search-membership-alert">
+            To view other profiles, please complete your activation payment.
+            <button
+              type="button"
+              className="search-paynow-link-btn"
+              onClick={() => navigate('/preferences?tab=contributions')}
+            >
+              Complete my payment
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return <p className="text-danger">{error}</p>;
+  }
   if (!user) return <p>No profile found.</p>;
 
   const age = (() => {
@@ -1682,13 +1829,23 @@ const Profile = ({
                 >
                   {/* Show actual image if own profile, has access, or is admin */}
                   {(canOpenAvatar && avatarSrc) ? (
-                    <img src={getAuthenticatedImageUrl(avatarSrc)} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img
+                      src={getAuthenticatedImageUrl(avatarSrc)}
+                      alt={user.firstName}
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                   ) : user.images?.[0] ? (
                     /* Show blurred image if user has photos but viewer has no access */
                     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                       <img 
                         src={getAuthenticatedImageUrl(user.images[0])} 
                         alt={user.firstName} 
+                        loading="eager"
+                        fetchPriority="high"
+                        decoding="async"
                         style={{ 
                           width: '100%', 
                           height: '100%', 
@@ -1717,14 +1874,28 @@ const Profile = ({
               })()}
             </div>
 
-            {getProfileUpdatedText(user.updatedAt) && (
-              <div
-                className="profile-avatar-updated-at"
-                title={`Last updated: ${formatFullDateTime(user.updatedAt)}`}
-              >
-                {getProfileUpdatedText(user.updatedAt)}
-              </div>
-            )}
+            <div className="profile-avatar-updated-at-row">
+              {getProfileUpdatedText(user.updatedAt) && (
+                <div
+                  className="profile-avatar-updated-at"
+                  title={`Updated: ${formatFullDateTime(user.updatedAt)}`}
+                >
+                  🕐 {getProfileUpdatedText(user.updatedAt)}
+                </div>
+              )}
+              {!isOwnProfile && (() => {
+                const lastActiveAt = user.status?.last_seen || user.lastActive || user.lastActiveAt || user.lastLogin;
+                if (!lastActiveAt) return null;
+                return (
+                  <div
+                    className="profile-avatar-updated-at"
+                    title={`Last active: ${formatFullDateTime(lastActiveAt)}`}
+                  >
+                    👁️ {formatCompactDateTime(lastActiveAt)}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
           
           {/* Profile Info */}
@@ -2102,6 +2273,9 @@ const Profile = ({
                       src={getAuthenticatedImageUrl(user.images[0])}
                       alt="Profile"
                       className="gallery-image"
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
                       onClick={() => {
                         openLightbox(user.images[0], user.images.filter(Boolean));
                       }}
@@ -2128,6 +2302,8 @@ const Profile = ({
                           src={getAuthenticatedImageUrl(image)}
                           alt={`Gallery item ${index + 1}`}
                           className="gallery-image"
+                          loading="lazy"
+                          decoding="async"
                           onClick={() => {
                             openLightbox(image, user.images.filter(Boolean));
                           }}
@@ -2950,6 +3126,8 @@ const Profile = ({
                   <img
                     src={getAuthenticatedImageUrl(img)}
                     alt={`${user.firstName}'s profile ${idx + 1}`}
+                    loading={idx === 0 ? "eager" : "lazy"}
+                    decoding="async"
                     style={{ 
                       width: '100%', 
                       height: '100%', 
@@ -3182,26 +3360,194 @@ const Profile = ({
       {/* Action Buttons - Mobile Only (bottom bar) */}
       {!isOwnProfile && (
         <div className="profile-action-buttons">
-          <button className={`btn-profile-action btn-action-message ${hasMessages ? 'active' : ''}`} onClick={() => setShowMessageModal(true)} disabled={user.accountStatus === 'paused'} title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}>
+          <button className={`btn-profile-action btn-micro-primary ${hasMessages ? 'active' : ''}`} onClick={() => setShowMessageModal(true)} disabled={user.accountStatus === 'paused'} title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}>
             <span className="action-icon">{hasMessages ? ACTION_ICONS.MESSAGE_ACTIVE : ACTION_ICONS.MESSAGE}</span>
             <span className="action-label">{hasMessages ? 'Messages' : 'Message'}</span>
           </button>
-          <button className={`btn-profile-action btn-action-favorite ${isFavorited ? 'active' : ''}`} onClick={handleToggleFavorite} title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}>
+          <button className={`btn-profile-action ${isFavorited ? 'btn-micro-success' : 'btn-micro-secondary'}`} onClick={handleToggleFavorite} title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}>
             <span className="action-icon">{isFavorited ? ACTION_ICONS.UNFAVORITE : ACTION_ICONS.FAVORITE}</span>
             <span className="action-label">{isFavorited ? 'Favorited' : 'Favorite'}</span>
           </button>
-          <button className={`btn-profile-action btn-action-shortlist ${isShortlisted ? 'active' : ''}`} onClick={handleToggleShortlist} title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}>
+          <button className={`btn-profile-action ${isShortlisted ? 'btn-micro-info' : 'btn-micro-secondary'}`} onClick={handleToggleShortlist} title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}>
             <span className="action-icon">{isShortlisted ? ACTION_ICONS.SHORTLIST_ACTIVE : ACTION_ICONS.SHORTLIST}</span>
             <span className="action-label">{isShortlisted ? 'Shortlisted' : 'Shortlist'}</span>
           </button>
-          <button className="btn-profile-action btn-action-pii" onClick={handleOpenPIIRequest} disabled={hasAllAccess} title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}>
+          <button className="btn-profile-action btn-micro-warning" onClick={handleOpenPIIRequest} disabled={hasAllAccess} title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}>
             <span className="action-icon">{hasAllAccess ? ACTION_ICONS.HAS_ACCESS : ACTION_ICONS.REQUEST_CONTACT}</span>
             <span className="action-label">{hasAllAccess ? 'Full Access' : 'Request PII'}</span>
           </button>
-          <button className={`btn-profile-action btn-action-exclude ${isExcluded ? 'active' : ''}`} onClick={handleToggleExclude} disabled={exclusionLoading} title={isExcluded ? 'Unhide' : 'Hide'}>
+          <button className={`btn-profile-action ${isExcluded ? 'btn-micro-danger' : 'btn-micro-secondary'}`} onClick={handleToggleExclude} disabled={exclusionLoading} title={isExcluded ? 'Unhide' : 'Hide'}>
             <span className="action-icon">{exclusionLoading ? '⏳' : (isExcluded ? ACTION_ICONS.UNHIDE : ACTION_ICONS.HIDE)}</span>
             <span className="action-label">{isExcluded ? 'Unhide' : 'Hide'}</span>
           </button>
+        </div>
+      )}
+
+      {/* Share via SMS Section */}
+      {!isOwnProfile && (
+        <div className="profile-share-sms-section">
+          <h4>📱 Share Profile via SMS</h4>
+
+          {/* Contacts List with Share Buttons */}
+          <div className="share-contacts-list">
+            {currentUserContacts
+              .filter(c => c.number) // Show all contacts with phone numbers
+              .map((contact, index) => (
+                <div key={index} className="share-contact-item">
+                  <div className="share-contact-info">
+                    <span className="share-contact-label">
+                      {contact.label.charAt(0).toUpperCase() + contact.label.slice(1)}
+                    </span>
+                    {contact.number && (
+                      <span className="share-contact-phone">{contact.number}</span>
+                    )}
+                  </div>
+                  <div className="share-contact-actions">
+                    <button
+                      className="btn-micro btn-micro-warning"
+                      onClick={() => {
+                        setShareRecipient(contact.label);
+                        setSharePhone(contact.number || '');
+                        handleEditMessage();
+                      }}
+                      disabled={!contact.number}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="btn-micro btn-micro-primary"
+                      onClick={() => {
+                        handleSendSMS(null, contact.label, contact.number || '');
+                      }}
+                      disabled={shareSending || !contact.number}
+                    >
+                      {shareSending ? '⏳' : '📤'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          {/* Add New Contact Row */}
+          <div className="add-new-contact-row">
+            <select
+              className="form-control"
+              value={shareRecipient}
+              onChange={(e) => handleRecipientChange(e.target.value)}
+            >
+              <option value="">Select recipient...</option>
+              {CONTACT_LABELS.map(label => (
+                <option key={label} value={label}>
+                  {label.charAt(0).toUpperCase() + label.slice(1)}
+                </option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              className="form-control"
+              placeholder="Phone number"
+              value={sharePhone}
+              onChange={(e) => setSharePhone(e.target.value)}
+            />
+            <button
+              className="btn-micro btn-micro-warning"
+              onClick={handleEditMessage}
+              disabled={!shareRecipient || !sharePhone}
+            >
+              ✏️
+            </button>
+            <button
+              className="btn-micro btn-micro-primary"
+              onClick={() => handleSendSMS()}
+              disabled={shareSending || !shareRecipient || !sharePhone}
+            >
+              {shareSending ? '⏳' : '📤'}
+            </button>
+          </div>
+
+          {/* Message Editor Modal */}
+          {showMessageEditor && (
+            <div className="modal-overlay" onClick={() => setShowMessageEditor(false)}>
+              <div className="message-editor-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h3>✏️ Edit SMS Message</h3>
+                  <button className="modal-close" onClick={() => setShowMessageEditor(false)}>✕</button>
+                </div>
+                <div className="modal-body">
+                  <textarea
+                    className="form-control message-editor-textarea"
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    rows={8}
+                    placeholder="Enter your custom message..."
+                  />
+                  <div className="message-editor-actions">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setShowMessageEditor(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleSendSMS(customMessage)}
+                      disabled={shareSending || !customMessage.trim()}
+                    >
+                      {shareSending ? '⏳ Sending...' : '📤 Send Custom Message'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Shared Profiles History - Shows for any profile being viewed */}
+          {profileShares.length > 0 && (
+            <div className="profile-shares-history">
+              <h5>📋 Recently Shared Profiles</h5>
+              <table className="profile-shares-table">
+                <thead>
+                  <tr>
+                    <th>Shared Profile</th>
+                    <th>Recipient</th>
+                    <th>Phone</th>
+                    <th>Sent At</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {profileShares.map((share, index) => (
+                    <tr key={index}>
+                      <td>{share.sharedProfileUsername}</td>
+                      <td style={{ textTransform: 'capitalize' }}>{share.recipientType}</td>
+                      <td>{share.recipientPhone}</td>
+                      <td>{new Date(share.sentAt).toLocaleString()}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center' }}>
+                          <button
+                            className="btn-micro btn-micro-primary"
+                            onClick={() => handleReshare(share)}
+                            disabled={shareSending}
+                            title="Reshare this profile"
+                          >
+                            📤
+                          </button>
+                          <DeleteButton
+                            onDelete={() => handleDeleteShare(share)}
+                            itemName={`share record for ${share.sharedProfileUsername}`}
+                            size="small"
+                            icon="🗑️"
+                            confirmIcon="✓"
+                            className="btn-micro btn-micro-danger"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -3503,4 +3849,3 @@ const Profile = ({
 };
 
 export default Profile;
-

@@ -1,6 +1,8 @@
 // Web-compatible AsyncStorage shim using localStorage
 // This replaces @react-native-async-storage/async-storage for web builds
 
+import logger from './logger';
+
 const STORAGE_PREFIX = '@l3v3l_messenger_';
 
 const AsyncStorage = {
@@ -9,7 +11,7 @@ const AsyncStorage = {
       const value = localStorage.getItem(STORAGE_PREFIX + key);
       return value ? JSON.parse(value) : null;
     } catch (e) {
-      console.error('AsyncStorage.getItem error:', e);
+      logger.error('AsyncStorage.getItem error:', e);
       return null;
     }
   },
@@ -19,7 +21,7 @@ const AsyncStorage = {
       localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
       return null;
     } catch (e) {
-      console.error('AsyncStorage.setItem error:', e);
+      logger.error('AsyncStorage.setItem error:', e);
       return e;
     }
   },
@@ -29,7 +31,7 @@ const AsyncStorage = {
       localStorage.removeItem(STORAGE_PREFIX + key);
       return null;
     } catch (e) {
-      console.error('AsyncStorage.removeItem error:', e);
+      logger.error('AsyncStorage.removeItem error:', e);
       return e;
     }
   },
@@ -45,7 +47,7 @@ const AsyncStorage = {
       }
       return null;
     } catch (e) {
-      console.error('AsyncStorage.clear error:', e);
+      logger.error('AsyncStorage.clear error:', e);
       return e;
     }
   },
@@ -55,7 +57,7 @@ const AsyncStorage = {
       const keys = Object.keys(localStorage);
       return keys.filter(key => key.startsWith(STORAGE_PREFIX)).map(key => key.replace(STORAGE_PREFIX, ''));
     } catch (e) {
-      console.error('AsyncStorage.getAllKeys error:', e);
+      logger.error('AsyncStorage.getAllKeys error:', e);
       return [];
     }
   },

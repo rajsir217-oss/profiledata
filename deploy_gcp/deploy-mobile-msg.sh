@@ -526,7 +526,11 @@ run_capacitor_android() {
         const cfg = JSON.parse(fs.readFileSync('$capacitor_config'));
         cfg.server = {
           androidScheme: 'https',
-          hostname: 'l3v3lmatches.com'
+          // Match the working browser origin and Cloudflare Turnstile
+          // hostname allowlist. Using l3v3lmatches.com here can make the
+          // Android WebView origin fail a site key configured for the
+          // messenger subdomain.
+          hostname: 'messenger.l3v3lmatches.com'
         };
         fs.writeFileSync('$capacitor_config', JSON.stringify(cfg, null, 2));
         if (fs.existsSync('$capacitor_assets_config')) {
@@ -560,6 +564,14 @@ run_capacitor_android() {
       echo "   Copy gradle.properties.template to gradle.properties and fill in keystore details"
     fi
     
+    # Ensure production env is available to the webpack build.
+    # Webpack loads messenger-web/.env.production; write it from shell env.
+    cat > "$MSG_WEB_DIR/.env.production" <<EOF
+MESSENGER_BACKEND_URL=${MESSENGER_BACKEND_URL:-https://api.l3v3lmatches.com}
+MESSENGER_MAIN_APP_URL=${MESSENGER_MAIN_APP_URL:-https://l3v3lmatches.com}
+MESSENGER_TURNSTILE_SITE_KEY=${MESSENGER_TURNSTILE_SITE_KEY:-0x4AAAAAACAeADZnXAaS1tep}
+EOF
+
     # Use Gradle directly for release builds to properly handle signing
     echo "🏗️  Building messenger-web dist (production)..."
     (cd "$MSG_WEB_DIR" && npm run build)
@@ -769,6 +781,11 @@ run_capacitor_android() {
   # Configure port forwarding so the app can reach host backend at localhost:8000 if needed.
   setup_adb_reverse
 
+  # Allow cleartext to localhost/10.0.2.2 in the debug build
+  if command -v ./configure_android_network.sh >/dev/null 2>&1; then
+    ANDROID_PROJECT_DIR="$MSG_WEB_DIR" ./configure_android_network.sh >/dev/null 2>&1 || true
+  fi
+
   echo "🟢 Starting messenger-web dev server (background)..."
   local webpack_log="$REPO_ROOT/messenger-web/webpack.log"
   : > "$webpack_log"
@@ -804,9 +821,11 @@ run_capacitor_android() {
   local debug_apk_path="$MSG_WEB_DIR/android/app/build/outputs/apk/debug/msgr-app-debug-${new_build_num}.apk"
   if [[ -f "$debug_apk_path" ]]; then
     echo "📦 Installing $debug_apk_path to emulator..."
+    # Remove any legacy .debug-suffixed package so there is no ambiguity
+    adb uninstall "${MSGR_APP_PACKAGE}.debug" >/dev/null 2>&1 || true
     adb install -r "$debug_apk_path"
     echo "🚀 Launching app..."
-    adb shell am start -n ${MSGR_APP_PACKAGE}.debug/${MSGR_APP_PACKAGE}.MainActivity
+    adb shell am start -n ${MSGR_APP_PACKAGE}/${MSGR_APP_PACKAGE}.MainActivity
     echo "✅ Debug APK installed and launched"
   else
     echo "⚠️  Debug APK not found at expected path: $debug_apk_path"

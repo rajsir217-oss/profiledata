@@ -2536,27 +2536,38 @@ body {
 }
 
 @media (max-width: 680px) {
+  /* Top bar: logo left, LOGIN hugging the right edge */
   .lp-hero-topline {
     padding: 8px 10px;
     justify-content: flex-start;
+    align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .lp-hero-top-brand {
-    min-width: 180px;
+    min-width: 0;
+    flex: 0 1 auto;
     padding: 0;
+    overflow: hidden;
   }
 
   .lp-hero-brand-image {
-    width: 210px;
+    width: 190px;
+    max-width: 100%;
+    height: auto;
   }
 
   .lp-hero-top-login {
-    padding: 7px 20px;
+    margin-left: auto;
+    padding: 6px 16px;
     font-size: 10px;
-    min-width: 120px;
-    align-self: flex-start;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    flex: 0 0 auto;
+    align-self: center;
+    letter-spacing: 0.25px;
   }
 
   .lp-hero-top-status {

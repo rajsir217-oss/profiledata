@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBackendApiUrl } from '../utils/urlHelper';
 import api from '../api';
+import DeleteButton from './DeleteButton';
 import './AdminContactManagement.css';
 
 /**
@@ -16,7 +17,10 @@ const AdminContactManagement = () => {
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
+  const [replyAttachments, setReplyAttachments] = useState([]);
+  const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const detailPanelRef = useRef(null);
   
   // Status notification
   const [statusMessage, setStatusMessage] = useState(null); // { type: 'success'|'error', text: '...' }
@@ -29,6 +33,10 @@ const AdminContactManagement = () => {
   
   // 2-click delete pattern - no browser modals
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
+
+  // Resizable panels
+  const [ticketPanelWidth, setTicketPanelWidth] = useState(430);
+  const isResizingRef = useRef(false);
 
   const categories = [
     { value: 'all', label: 'All Categories' },
@@ -108,6 +116,10 @@ const AdminContactManagement = () => {
 
   const handleSelectTicket = async (ticket) => {
     setSelectedTicket(ticket);
+    // On stacked (tablet/mobile) layout the detail panel sits below the list
+    if (window.innerWidth <= 1024) {
+      setTimeout(() => detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
     // Refresh to get latest data including new user replies
     await refreshTicket(ticket._id);
   };
@@ -165,28 +177,25 @@ const AdminContactManagement = () => {
     
     try {
       setSending(true);
-      await api.post(`/contact/${selectedTicket._id}/reply`, {
-        adminReply: replyText,
-        adminName: localStorage.getItem('username')
+      const formData = new FormData();
+      formData.append('adminReply', replyText);
+      formData.append('adminName', localStorage.getItem('username'));
+      replyAttachments.forEach(file => {
+        formData.append('attachments', file);
       });
       
-      // Update local state — append to adminReplies array
-      const newReply = {
-        message: replyText,
-        adminName: localStorage.getItem('username'),
-        timestamp: new Date().toISOString()
-      };
-      const updatedTicket = {
-        ...selectedTicket,
-        adminReply: replyText,
-        adminReplies: [...(selectedTicket.adminReplies || []), newReply],
-        repliedAt: new Date().toISOString(),
-        status: 'in_progress'
-      };
+      await api.post(`/contact/${selectedTicket._id}/reply`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       
-      setTickets(tickets.map(t => t._id === selectedTicket._id ? updatedTicket : t));
-      setSelectedTicket(updatedTicket);
+      // Clear the reply form immediately
       setReplyText('');
+      setReplyAttachments([]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      
+      // Refresh the ticket from backend to get authoritative state
+      // (includes new reply + uploaded attachments with proper download links)
+      await refreshTicket(selectedTicket._id);
       
       showStatus('success', '✅ Reply sent successfully!');
     } catch (err) {
@@ -194,6 +203,58 @@ const AdminContactManagement = () => {
       showStatus('error', 'Failed to send reply: ' + (typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg)));
     } finally {
       setSending(false);
+    }
+  };
+
+  // Handle file selection for reply attachments
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    const MAX_FILES = 3;
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+    // Validate total count
+    if (replyAttachments.length + files.length > MAX_FILES) {
+      showStatus('error', `Maximum ${MAX_FILES} files allowed`);
+      e.target.value = '';
+      return;
+    }
+
+    // Validate each file size
+    for (const file of files) {
+      if (file.size > MAX_SIZE) {
+        showStatus('error', `File "${file.name}" exceeds 5MB limit`);
+        e.target.value = '';
+        return;
+      }
+    }
+
+    setReplyAttachments(prev => [...prev, ...files]);
+    e.target.value = '';
+  };
+
+  // Remove a selected attachment
+  const removeAttachment = (index) => {
+    setReplyAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Delete an existing ticket attachment (admin/moderator)
+  const handleDeleteAttachment = async (storedFilename) => {
+    if (!selectedTicket) return;
+    try {
+      await api.delete(
+        `/contact/admin/${selectedTicket._id}/attachment/${encodeURIComponent(storedFilename)}`
+      );
+      // Remove the attachment from local state
+      const updatedTicket = {
+        ...selectedTicket,
+        attachments: (selectedTicket.attachments || []).filter(a => a.stored_filename !== storedFilename)
+      };
+      setSelectedTicket(updatedTicket);
+      setTickets(tickets.map(t => t._id === selectedTicket._id ? updatedTicket : t));
+      showStatus('success', '✅ Attachment deleted successfully');
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to delete attachment';
+      showStatus('error', 'Failed to delete attachment: ' + (typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg)));
     }
   };
 
@@ -261,6 +322,38 @@ const AdminContactManagement = () => {
 
   const stats = getStats();
 
+  // Vertical panel resize handlers
+  const startResize = (e) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizingRef.current) return;
+      // Clamp width between 250px and 70% of viewport, always leaving >=360px for the detail panel
+      const minWidth = 250;
+      const maxWidth = Math.min(Math.floor(window.innerWidth * 0.7), window.innerWidth - 360);
+      const newWidth = Math.min(Math.max(e.clientX, minWidth), maxWidth);
+      setTicketPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
   return (
     <div className="admin-contact-page">
       {/* Status Bubble Notification */}
@@ -299,54 +392,54 @@ const AdminContactManagement = () => {
         </div>
       </div>
 
-      <div className="inbox-layout">
+      {/* Filters - below stats grid */}
+      <div className="filters-bar">
+        <input
+          type="text"
+          placeholder="🔍 Search tickets..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="search-input"
+        />
+        
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="filter-select"
+        >
+          <option value="all">All Status</option>
+          <option value="open">🔵 Open</option>
+          <option value="in_progress">🟡 In Progress</option>
+          <option value="resolved">🟢 Resolved</option>
+          <option value="closed">⚫ Closed</option>
+        </select>
+        
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="filter-select"
+        >
+          {categories.map(cat => (
+            <option key={cat.value} value={cat.value}>{cat.label}</option>
+          ))}
+        </select>
+        
+        <select
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+          className="filter-select"
+        >
+          <option value="all">All Priority</option>
+          <option value="low">🔵 Low</option>
+          <option value="medium">🟡 Medium</option>
+          <option value="high">🟠 High</option>
+          <option value="urgent">🔴 Urgent</option>
+        </select>
+      </div>
+
+      <div className="inbox-layout" style={{ '--ticket-panel-width': `${ticketPanelWidth}px` }}>
         {/* Left: Ticket List */}
         <div className="tickets-panel">
-          {/* Filters */}
-          <div className="filters-bar">
-            <input
-              type="text"
-              placeholder="🔍 Search tickets..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-            
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">All Status</option>
-              <option value="open">🔵 Open</option>
-              <option value="in_progress">🟡 In Progress</option>
-              <option value="resolved">🟢 Resolved</option>
-              <option value="closed">⚫ Closed</option>
-            </select>
-            
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="filter-select"
-            >
-              {categories.map(cat => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
-              ))}
-            </select>
-            
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">All Priority</option>
-              <option value="low">🔵 Low</option>
-              <option value="medium">🟡 Medium</option>
-              <option value="high">🟠 High</option>
-              <option value="urgent">🔴 Urgent</option>
-            </select>
-          </div>
-
           {/* Ticket List */}
           <div className="ticket-list">
             {loading ? (
@@ -417,8 +510,17 @@ const AdminContactManagement = () => {
           </div>
         </div>
 
+        {/* Vertical Resize Handle */}
+        <div
+          className="panel-resize-handle"
+          onMouseDown={startResize}
+          title="Drag to resize panels"
+        >
+          <div className="panel-resize-grip" />
+        </div>
+
         {/* Right: Ticket Detail */}
-        <div className="ticket-detail-panel">
+        <div className="ticket-detail-panel" ref={detailPanelRef}>
           {!selectedTicket ? (
             <div className="no-selection">
               <div className="no-selection-icon">👈</div>
@@ -573,16 +675,22 @@ const AdminContactManagement = () => {
                       {msg.key === 'original' && selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
                         <div className="message-attachments">
                           {selectedTicket.attachments.map((att, idx) => (
-                            <a 
-                              key={idx}
-                              href={getBackendApiUrl(`/api/users/contact/download/${selectedTicket._id}/${att.stored_filename}`)}
-                              download={att.filename}
-                              className="attachment-link"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              📎 {att.filename} <span className="att-size">({(att.size / 1024).toFixed(1)} KB)</span>
-                            </a>
+                            <div key={idx} className="attachment-item-row">
+                              <a 
+                                href={getBackendApiUrl(`/api/users/contact/download/${selectedTicket._id}/${att.stored_filename}`)}
+                                download={att.filename}
+                                className="attachment-link"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                📎 {att.filename} <span className="att-size">({(att.size / 1024).toFixed(1)} KB)</span>
+                              </a>
+                              <DeleteButton
+                                onDelete={() => handleDeleteAttachment(att.stored_filename)}
+                                itemName="attachment"
+                                size="small"
+                              />
+                            </div>
                           ))}
                         </div>
                       )}
@@ -598,31 +706,65 @@ const AdminContactManagement = () => {
                   <button
                     onClick={() => setReplyText('')}
                     className="btn btn-outline-secondary clear-btn-hidden"
+                    title="Clear"
+                    aria-label="Clear"
                   >
-                    Clear
+                    🧹
                   </button>
                   <textarea
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Type your response here... (User will receive this via email)"
-                    rows="3"
+                    rows="1"
                     className="reply-textarea"
                   />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn btn-outline-secondary attach-btn"
+                    title="Attach files (max 3, 5MB each)"
+                    aria-label="Attach files"
+                    disabled={replyAttachments.length >= 3}
+                  >
+                    📎
+                  </button>
                   <button
                     onClick={sendReply}
                     disabled={sending || !replyText.trim()}
                     className="btn btn-primary send-reply-btn"
+                    title="Send"
+                    aria-label="Send"
                   >
                     {sending ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2"></span>
-                        Sending...
-                      </>
+                      <span className="spinner-border spinner-border-sm"></span>
                     ) : (
-                      <>📤 Send</>
+                      <>📤</>
                     )}
                   </button>
                 </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                />
+                {replyAttachments.length > 0 && (
+                  <div className="reply-attachments">
+                    {replyAttachments.map((file, idx) => (
+                      <span key={idx} className="reply-attachment-chip">
+                        📎 {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                        <button
+                          onClick={() => removeAttachment(idx)}
+                          className="reply-attachment-remove"
+                          title="Remove"
+                          aria-label="Remove attachment"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}

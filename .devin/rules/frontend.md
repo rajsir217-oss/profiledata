@@ -154,11 +154,12 @@ Reference files:
 
 ### 2.6 Bubble-icons admin action buttons
 
-For admin table action buttons, use the exact classes defined in `AdminPage.css`:
+For admin table action buttons, always use the shared global classes defined in `frontend/src/styles/components.css`:
 
 ```jsx
 <div className="admin-action-btns">
   <button className="btn-micro btn-micro-primary" title="View Profile">...</button>
+  <button className="btn-micro btn-micro-success" title="Activate User">...</button>
   <button className="btn-micro btn-micro-info" title="Meta Fields">...</button>
   <button className="btn-micro btn-micro-warning" title="Edit Status">...</button>
   <button className="btn-micro btn-micro-danger" title="Delete">...</button>
@@ -167,9 +168,11 @@ For admin table action buttons, use the exact classes defined in `AdminPage.css`
 ```
 
 Classes:
-- `.admin-action-btns` — flex container, `gap: 4px`, centered.
+- `.admin-action-btns` — flex container, `gap: 4px`, left-aligned (override per context).
 - `.btn-micro` — 26x26px circle, `font-size: 10px`, hover `scale(1.2)` + shadow.
-- `.btn-micro-primary`, `.btn-micro-info`, `.btn-micro-warning`, `.btn-micro-danger`, `.btn-micro-secondary`.
+- `.btn-micro-primary`, `.btn-micro-success`, `.btn-micro-info`, `.btn-micro-warning`, `.btn-micro-danger`, `.btn-micro-secondary`.
+
+This pattern is mandatory across all admin pages.
 
 ---
 

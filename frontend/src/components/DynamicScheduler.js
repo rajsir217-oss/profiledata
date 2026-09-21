@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useToast from '../hooks/useToast';
+import DeleteButton from './DeleteButton';
 import { getBackendApiUrl } from '../utils/urlHelper';
 import './DynamicScheduler.css';
 import JobCreationModal from './JobCreationModal';
@@ -20,7 +21,7 @@ const DynamicScheduler = ({ currentUser }) => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [filterTemplates, setFilterTemplates] = useState([]);  // Changed to array for multi-select
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
-  const [filterEnabled, setFilterEnabled] = useState('all');
+  const [filterEnabled, setFilterEnabled] = useState('active');
   const [displayCount, setDisplayCount] = useState(20);
   const recordsPerPage = 20;
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -511,6 +512,13 @@ const DynamicScheduler = ({ currentUser }) => {
     return template?.icon || '⚙️';
   };
 
+  const getJobDescription = (job) => {
+    if (job.description && job.description.trim()) return job.description.trim();
+    const template = templates.find(t => t.type === job.template_type);
+    if (template?.description && template.description.trim()) return template.description.trim();
+    return '';
+  };
+
   // Sorting handler
   const handleSort = (column) => {
     if (sortBy === column) {
@@ -536,6 +544,10 @@ const DynamicScheduler = ({ currentUser }) => {
         case 'name':
           aVal = (a.name || '').toLowerCase();
           bVal = (b.name || '').toLowerCase();
+          break;
+        case 'description':
+          aVal = (a.description || '').toLowerCase();
+          bVal = (b.description || '').toLowerCase();
           break;
         case 'template':
           aVal = (a.template_type || '').toLowerCase();
@@ -736,6 +748,9 @@ const DynamicScheduler = ({ currentUser }) => {
                   <th className="sortable-header" onClick={() => handleSort('name')}>
                     Job Name{getSortIndicator('name')}
                   </th>
+                  <th className="sortable-header" onClick={() => handleSort('description')}>
+                    Job Description{getSortIndicator('description')}
+                  </th>
                   <th className="sortable-header" onClick={() => handleSort('template')}>
                     Template{getSortIndicator('template')}
                   </th>
@@ -752,8 +767,10 @@ const DynamicScheduler = ({ currentUser }) => {
                 </tr>
               </thead>
               <tbody>
-                {getSortedJobs().slice(0, displayCount).map(job => (
-                  <tr key={job._id}>
+                {getSortedJobs().slice(0, displayCount).map(job => {
+                  const jobDescription = getJobDescription(job);
+                  return (
+                    <tr key={job._id}>
                     <td>
                       {job.last_run_status ? (
                         <span className={` ${getLastRunStatusClass(job.last_run_status)}`}>
@@ -768,7 +785,11 @@ const DynamicScheduler = ({ currentUser }) => {
                     <td>
                       <div className="job-name">
                         <strong>{job.name}</strong>
-                        {job.description && <small>{job.description}</small>}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="job-description" title={jobDescription || 'No description provided'}>
+                        {jobDescription || 'No description provided'}
                       </div>
                     </td>
                     <td>
@@ -780,46 +801,46 @@ const DynamicScheduler = ({ currentUser }) => {
                     <td>{formatDate(job.last_run_at)}</td>
                     <td>{formatDate(job.next_run_at)}</td>
                     <td>
-                      <div className="job-actions">
+                      <div className="admin-action-btns">
                         <button 
-                          className="btn-icon" 
+                          className="btn-micro btn-micro-success" 
                           title="Run Now"
                           onClick={() => handleRunJob(job._id, job.name)}
                         >
                           ▶️
                         </button>
                         <button 
-                          className="btn-icon" 
+                          className="btn-micro btn-micro-primary" 
                           title="View History"
                           onClick={() => handleViewHistory(job)}
                         >
                           📊
                         </button>
                         <button 
-                          className="btn-icon" 
+                          className="btn-micro btn-micro-warning" 
                           title="Edit Job"
                           onClick={() => handleEditJob(job)}
                         >
                           ✏️
                         </button>
                         <button 
-                          className="btn-icon" 
+                          className={`btn-micro ${job.enabled ? 'btn-micro-secondary' : 'btn-micro-success'}`}
                           title={job.enabled ? 'Disable' : 'Enable'}
                           onClick={() => handleToggleEnabled(job._id, job.enabled)}
                         >
                           {job.enabled ? '⏸️' : '▶️'}
                         </button>
-                        <button 
-                          className="btn-icon danger" 
-                          title="Delete"
-                          onClick={() => handleDeleteJob(job._id, job.name)}
-                        >
-                          🗑️
-                        </button>
+                        <DeleteButton
+                          onDelete={() => handleDeleteJob(job._id, job.name)}
+                          itemName="job"
+                          confirmMessage={`Delete job "${job.name}"?`}
+                          size="small"
+                        />
                       </div>
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

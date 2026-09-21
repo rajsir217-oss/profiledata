@@ -21,6 +21,103 @@
   font-size: 0.9rem;
 }
 
+.email-delivery-log .header-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.email-delivery-log .header-actions .btn {
+  border: 1px solid var(--border-color);
+  background: var(--card-background);
+  color: var(--text-color);
+  border-radius: var(--radius-pill, 999px);
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.email-delivery-log .header-actions .btn.btn-primary {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--text-on-gradient, #fff);
+}
+
+.email-delivery-log .header-actions .btn:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  background: var(--hover-background);
+}
+
+.email-delivery-log .header-actions .btn.btn-primary:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.email-delivery-log .header-actions .btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.email-delivery-log .log-filters {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-color);
+}
+
+.email-delivery-log .filter-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.email-delivery-log .filter-select,
+.email-delivery-log .search-input,
+.email-delivery-log .sort-select {
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--input-bg);
+  color: var(--text-color);
+  font-size: 0.85rem;
+  padding: 0 10px;
+}
+
+.email-delivery-log .search-input {
+  min-width: 220px;
+  flex: 1;
+}
+
+.email-delivery-log .sort-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.email-delivery-log .sort-direction {
+  width: 30px;
+  min-width: 30px;
+  max-width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  flex: 0 0 30px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--card-background);
+  color: var(--text-color);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
 /* Controls */
 .email-delivery-log .log-controls {
   display: flex;
@@ -131,6 +228,7 @@
   padding: 12px 15px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-color);
+  vertical-align: top;
 }
 
 .email-delivery-log .logs-table tbody tr:hover {
@@ -144,8 +242,9 @@
 /* Cell styles */
 .email-delivery-log .time-cell {
   white-space: nowrap;
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .email-delivery-log .from-cell {
@@ -404,6 +503,25 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .email-delivery-log .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .email-delivery-log .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .email-delivery-log .sort-controls {
+    width: 100%;
+  }
+
+  .email-delivery-log .sort-select {
+    flex: 1;
+  }
+
   .email-delivery-log .log-controls {
     flex-direction: column;
     align-items: stretch;

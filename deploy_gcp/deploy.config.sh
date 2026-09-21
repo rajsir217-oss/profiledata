@@ -28,7 +28,10 @@ MESSENGER_DOMAIN="${MESSENGER_DOMAIN:-messenger.l3v3lmatches.com}"
 # Backend Settings
 BACKEND_CPU="${BACKEND_CPU:-1}"
 BACKEND_MEMORY="${BACKEND_MEMORY:-1Gi}"
-BACKEND_MIN_INSTANCES="${BACKEND_MIN_INSTANCES:-1}"
+BACKEND_MIN_INSTANCES="${BACKEND_MIN_INSTANCES:-2}"  # 2 (not 1) so a warm standby instance is always available;
+                                                      # with only 1, deploys/instance-recycling create a brief
+                                                      # window with zero available instances (seen 2026-09-07:
+                                                      # 503s / 60s-latency spike during a routine instance swap).
 BACKEND_MAX_INSTANCES="${BACKEND_MAX_INSTANCES:-2}"  # Capped at 2 to stay under Redis free-tier maxclients=30 (worst case 2*13=26)
 BACKEND_TIMEOUT="${BACKEND_TIMEOUT:-300}"
 BACKEND_CONCURRENCY="${BACKEND_CONCURRENCY:-80}"

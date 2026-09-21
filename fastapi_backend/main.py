@@ -80,8 +80,10 @@ async def simpletexting_stats_public_v2(request: Request):
 
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    week_start = today_start - timedelta(days=7)
     month_start = today_start.replace(day=1)
+    # Clamp week window to month start so "This Week" is always <= "This Month".
+    calendar_week_start = today_start - timedelta(days=today_start.weekday())
+    week_start = max(calendar_week_start, month_start)
 
     today_count = await fetch_count(today_start, now)
     await asyncio.sleep(1)
@@ -320,6 +322,26 @@ async def lifespan(app: FastAPI):
         await db.messages.create_index(
             [("createdAt", 1)], background=True
         )
+        # Notification log hot-path indexes for admin Email/SMS delivery logs.
+        # Covers:
+        # - global recent logs sorted by sentAt desc
+        # - channel filtered logs (email/sms) sorted by sentAt desc
+        # - per-user log lookups sorted by sentAt desc
+        await db.notification_log.create_index(
+            [("sentAt", -1)],
+            background=True,
+            name="notification_log_sentAt_desc",
+        )
+        await db.notification_log.create_index(
+            [("channel", 1), ("sentAt", -1)],
+            background=True,
+            name="notification_log_channel_sentAt_desc",
+        )
+        await db.notification_log.create_index(
+            [("username", 1), ("sentAt", -1)],
+            background=True,
+            name="notification_log_username_sentAt_desc",
+        )
         # TTL index for scheduled message deletion after conversation close/acknowledge.
         # Messages with scheduledDeleteAt set are hard-deleted 24h after the timestamp.
         await db.messages.create_index(
@@ -414,6 +436,16 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Messenger indexes (conversationId, TTL, participants, unread_count) created")
     except Exception as e:
         logger.warning(f"⚠️ Messenger index creation failed (non-critical): {e}")
+
+    # SSO code indexes — created once here instead of on every /api/auth/sso/issue
+    # request (that endpoint used to call create_index() on each call, adding an
+    # extra round-trip to the messenger/dashboard SSO login critical path).
+    try:
+        await db.sso_codes.create_index("expiresAt", expireAfterSeconds=0, background=True)
+        await db.sso_codes.create_index("codeHash", unique=True, background=True)
+        logger.info("✅ SSO code indexes created")
+    except Exception as e:
+        logger.warning(f"⚠️ SSO code index creation failed (non-critical): {e}")
 
     # Eagerly initialize face detection backends so they're ready before requests arrive.
     # Strategy: Vision API (primary) → OpenCV (fallback) → reject if both unavailable.
@@ -536,6 +568,49 @@ app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
+# Global exception handler to ensure CORS headers on all error responses
+# This catches unhandled exceptions and adds CORS headers so the browser
+# can read the error response instead of blocking it with a CORS error.
+from fastapi.responses import JSONResponse
+from fastapi import HTTPException
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin", "")
+    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {exc}", exc_info=True)
+
+    # Build CORS headers for the error response
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Vary"] = "Origin"
+
+    # Return a generic error with CORS headers
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "message": str(exc)},
+        headers=headers
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    origin = request.headers.get("origin", "")
+    logger.warning(f"HTTP exception on {request.method} {request.url.path}: {exc.status_code} - {exc.detail}")
+
+    # Build CORS headers for the error response
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Vary"] = "Origin"
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=headers
+    )
+
 # Mount static files for uploads only in non-production
 if env != "production" and os.path.exists(settings.upload_dir):
     from fastapi.staticfiles import StaticFiles
@@ -652,8 +727,10 @@ async def simpletexting_stats_public():
 
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    week_start = today_start - timedelta(days=7)
     month_start = today_start.replace(day=1)
+    # Keep semantics aligned with the authenticated stats endpoint.
+    calendar_week_start = today_start - timedelta(days=today_start.weekday())
+    week_start = max(calendar_week_start, month_start)
 
     today_count = await fetch_count(today_start, now)
     await asyncio.sleep(1)

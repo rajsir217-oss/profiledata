@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UniversalTabContainer from './UniversalTabContainer';
-import ContributionPopup from './ContributionPopup';
+import { useContribution } from '../contexts/ContributionContext';
 import SystemStatus from './SystemStatus';
 import PauseSettings from './PauseSettings';
+import ContributionPopup from './ContributionPopup';
 import { getBackendUrl } from '../config/apiConfig';
 import './UnifiedPreferences.css';
 import { 
@@ -23,19 +24,20 @@ import {
   isPushNotificationSupported 
 } from '../services/pushNotificationService';
 
-const UnifiedPreferences = () => {
+const UnifiedPreferences = ({ includeAdminTab = false, adminOnlyMode = false }) => {
   const location = useLocation();
   const [toast, setToast] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  
+  const { showPopup, closePopup, contributionConfig } = useContribution(); // eslint-disable-line no-unused-vars
+
   // Get initial tab from URL parameter
   const getInitialTab = () => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
     return tab || 'account';
   };
-  
-  const [defaultTab] = useState(getInitialTab());
+
+  const [defaultTab] = useState(adminOnlyMode ? 'admin' : getInitialTab());
 
   // Account Settings State
   const [selectedTheme, setSelectedTheme] = useState('light-blue');
@@ -72,13 +74,7 @@ const UnifiedPreferences = () => {
   });
   const [savedPaymentMethods, setSavedPaymentMethods] = useState([]);
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
-  
-  // Contribution Popup State
-  const [showContributionPopup, setShowContributionPopup] = useState(false);
-  const [contributionPopupConfig, setContributionPopupConfig] = useState({
-    amounts: [25, 50, 75, 100],
-    message: 'Support the platform'
-  });
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -313,24 +309,6 @@ const UnifiedPreferences = () => {
   };
 
   const channels = ['email', 'sms', 'push'];
-
-  // Load contribution popup config (single source of truth from backend)
-  useEffect(() => {
-    const loadPopupConfig = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${getBackendUrl()}/api/contributions/contribution-status`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (response.data?.success && response.data.popupConfig) {
-          setContributionPopupConfig(response.data.popupConfig);
-        }
-      } catch (error) {
-        console.error('Error loading contribution config:', error);
-      }
-    };
-    loadPopupConfig();
-  }, []);
 
   // Load account preferences
   useEffect(() => {
@@ -580,14 +558,14 @@ const UnifiedPreferences = () => {
 
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin && includeAdminTab) {
       loadAdminSettings();
       loadContributionSettings();
     }
     // Load user contribution data for all users
     loadContributionHistory();
     loadPaymentMethods();
-  }, [isAdmin]);
+  }, [isAdmin, includeAdminTab]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -1100,8 +1078,10 @@ const UnifiedPreferences = () => {
 
       <UniversalTabContainer
         variant="pills"
-        defaultTab={defaultTab}
+        defaultTab={adminOnlyMode ? 'admin' : defaultTab}
+        hideNav={adminOnlyMode}
         tabs={[
+          ...(!adminOnlyMode ? [
           {
             id: 'account',
             icon: '👤',
@@ -1685,33 +1665,39 @@ const UnifiedPreferences = () => {
             label: 'Contributions',
             content: (
               <div className="contributions-settings">
-                {/* Contribution Overview */}
-                <section className="settings-section">
-                  <h2>💝 Contribution History</h2>
-                  <p className="section-description">Support the platform with a contribution</p>
-                  
-                  {/* Make a Contribution Button - Top Center */}
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-                    <button 
-                      className="btn-primary contribution-btn"
-                      onClick={() => setShowContributionPopup(true)}
-                      style={{ fontSize: '16px', padding: '12px 32px' }}
-                    >
-                      💝 Make a Contribution
-                    </button>
-                  </div>
+                {/* Inline Contribution Form (reuses ContributionPopup) */}
+                <ContributionPopup 
+                  embedded={true}
+                  isOpen={true}
+                  onClose={() => {}}
+                  onSuccess={() => {
+                    loadContributionHistory();
+                    showToast('Contribution successful! Thank you for your support.', 'success');
+                  }}
+                />
 
-                  {/* Last Contribution Info */}
-                  {contributionHistory.length > 0 ? (
-                    <div className="last-contribution-card">
-                      <div className="last-contribution-row">
-                        <span className="last-contribution-label">💰 Last Contribution:</span>
-                        <span className="last-contribution-value">${contributionHistory[0].amount.toFixed(2)}</span>
-                      </div>
-                      <div className="last-contribution-row">
-                        <span className="last-contribution-label">📅 Date:</span>
-                        <span className="last-contribution-value">{new Date(contributionHistory[0].date).toLocaleDateString()}</span>
-                      </div>
+                {/* Contribution History (below form) */}
+                <section className="settings-section" style={{ marginTop: '32px' }}>
+                  <h2>💝 Contribution History</h2>
+                  <p className="section-description">Your past contributions</p>
+                  
+                  {loadingContributionHistory ? (
+                    <p>Loading contribution history...</p>
+                  ) : contributionHistory.length > 0 ? (
+                    <div className="contribution-history-list">
+                      {contributionHistory.slice(0, 2).map((contribution, index) => (
+                        <div key={index} className="contribution-history-item">
+                          <span className="contribution-history-date">
+                            {new Date(contribution.date).toLocaleDateString()}
+                          </span>
+                          <span className="contribution-history-type">
+                            {contribution.paymentType === 'recurring' ? 'Monthly Recurring' : 'One-time'}
+                          </span>
+                          <span className="contribution-history-amount">
+                            ${contribution.amount.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="last-contribution-card">
@@ -1722,42 +1708,6 @@ const UnifiedPreferences = () => {
                   )}
                 </section>
 
-                {/* Admin-only Contribution Settings */}
-                {isAdmin && (
-                  <section className="settings-section admin-section">
-                    <h2>⚙️ Contribution Settings (Admin)</h2>
-                    <p className="section-description">Configure platform-wide contribution settings</p>
-                    
-                    <div className="contribution-settings-form">
-                      <div className="form-row">
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                            Enable Contribution Popup
-                          </label>
-                          <label className="toggle-switch">
-                            <input
-                              type="checkbox"
-                              checked={contributionEnabled}
-                              onChange={(e) => setContributionEnabled(e.target.checked)}
-                              disabled={savingContributionSettings}
-                            />
-                            <span className="toggle-slider"></span>
-                          </label>
-                        </div>
-
-                      </div>
-
-                      <button
-                        onClick={handleSaveContributionSettings}
-                        disabled={savingContributionSettings}
-                        className="btn-primary"
-                        style={{ whiteSpace: 'nowrap' }}
-                      >
-                        {savingContributionSettings ? '💾 Saving...' : '💾 Save Contribution Settings'}
-                      </button>
-                    </div>
-                  </section>
-                )}
               </div>
             )
           },
@@ -2198,7 +2148,8 @@ const UnifiedPreferences = () => {
         </div>
             )
           },
-          ...(isAdmin ? [{
+          ] : []),
+          ...(isAdmin && includeAdminTab ? [{
             id: 'admin',
             icon: '⚙️',
             label: 'SysConfig',
@@ -2814,13 +2765,6 @@ const UnifiedPreferences = () => {
           </div>
         </div>
       )}
-      
-      {/* Contribution Popup */}
-      <ContributionPopup
-        isOpen={showContributionPopup}
-        onClose={() => setShowContributionPopup(false)}
-        contributionConfig={contributionPopupConfig}
-      />
     </div>
   );
 };

@@ -215,11 +215,13 @@ const BlogManagement = () => {
                   <td>{post.viewCount || 0}</td>
                   <td>{new Date(post.updatedAt).toLocaleDateString()}</td>
                   <td className="blog-actions">
-                    <button className="btn-sm" onClick={() => openEdit(post)}>✏️</button>
-                    <DeleteButton
-                      onConfirm={() => handleDelete(post.id)}
-                      confirmMessage={`Delete "${post.title}"?`}
-                    />
+                    <div className="admin-action-btns">
+                      <button className="btn-micro btn-micro-warning" title="Edit" onClick={() => openEdit(post)}>✏️</button>
+                      <DeleteButton
+                        onConfirm={() => handleDelete(post.id)}
+                        confirmMessage={`Delete "${post.title}"?`}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}

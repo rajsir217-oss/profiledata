@@ -355,11 +355,12 @@ const Messages = () => {
     setMessages([]);
   };
 
-  const handleSendMessage = async (content) => {
+  const handleSendMessage = async (content, options = {}) => {
     try {
       const response = await api.post(`/messages/send?username=${currentUsername}`, {
         toUsername: selectedUser,
-        content: content.trim()
+        content: content.trim(),
+        alsoSendSms: Boolean(options.sendViaSms)
       });
       setMessages(prev => [...prev, response.data.data]);
       
@@ -381,7 +382,15 @@ const Messages = () => {
       
       // Show success toast
       const toastService = (await import('../services/toastService')).default;
-      toastService.success('Message sent successfully!');
+      if (options.sendViaSms) {
+        if (response.data.smsQueued) {
+          toastService.success('Message sent + SMS queued to their primary contact!');
+        } else {
+          toastService.warning(`Message sent. SMS not sent: ${response.data.smsError || 'unavailable'}`);
+        }
+      } else {
+        toastService.success('Message sent successfully!');
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       const toastService = (await import('../services/toastService')).default;

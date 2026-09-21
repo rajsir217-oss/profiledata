@@ -407,7 +407,8 @@ EMAIL_TEMPLATE = """
 </head>
 <body>
     <div class="header">
-        <h1>� L3V3LMATCH</h1>
+        <h1>�</h1>
+        <img src="{app_url}/landing-page-logo-clear.png" alt="L3V3L Matches" width="200" style="width: 200px; height: auto; display: block; margin: 0 auto 12px auto;" />
         <p style="margin: 10px 0 0 0; opacity: 0.9;">New matches for your saved search!</p>
     </div>
     
@@ -426,9 +427,9 @@ EMAIL_TEMPLATE = """
     {matches_html}
     
     <div class="footer">
-        <p>You're receiving this email because you have saved searches on ProfileData.</p>
+        <p>You're receiving this email because you have saved searches on L3V3L Matches.</p>
         <p>To manage your saved searches or notification preferences, visit your <a href="{app_url}/preferences" style="color: #667eea;">account settings</a>.</p>
-        <p style="margin-top: 20px;">© 2025 ProfileData. All rights reserved.</p>
+        <p style="margin-top: 20px;">© 2025 L3V3L MATCHES. All rights reserved.</p>
     </div>
 </body>
 </html>
@@ -660,8 +661,31 @@ async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[st
                         search_id = str(search['_id'])
                         search_name = search.get('name', 'Untitled Search')
                         search_description = search.get('description', '')
-                        criteria = search.get('criteria', {})
+                        criteria = dict(search.get('criteria') or {})
                         is_fallback_search = bool(search.get('_is_fallback'))
+
+                        # SERVER-SIDE SAFETY (mirrors /search endpoint): saved searches
+                        # created without a usable gender (legacy format, 'Any', etc.)
+                        # would otherwise match EVERY gender. Auto-apply the opposite
+                        # of the search owner's gender for non-privileged users.
+                        gender_value = str(criteria.get('gender') or '').strip().capitalize()
+                        owner_role = str(user.get('role_name') or user.get('role') or '').strip().lower()
+                        if gender_value in ('Male', 'Female'):
+                            criteria['gender'] = gender_value
+                        elif owner_role in ('admin', 'moderator'):
+                            pass  # privileged users may intentionally run unfiltered searches
+                        else:
+                            owner_gender = str(user.get('gender') or '').strip().capitalize()
+                            if owner_gender in ('Male', 'Female'):
+                                criteria['gender'] = 'Female' if owner_gender == 'Male' else 'Male'
+                                logger.info(
+                                    f"🚻 Auto-set gender='{criteria['gender']}' for search '{search_name}' "
+                                    f"(owner '{username}' is {owner_gender}, criteria gender was '{criteria.get('gender')}')"
+                                )
+                            else:
+                                logger.warning(
+                                    f"🚻 No gender filter applied for '{username}' - owner gender unknown: '{owner_gender}'"
+                                )
                         search_type = 'fallback_partner_criteria' if is_fallback_search else 'saved_search'
                         logger.info(
                             f"🔎 Processing {search_type} for '{username}': "

@@ -26,6 +26,7 @@ const NotificationTester = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [preview, setPreview] = useState(null);
 
   // Notification triggers with friendly names
   const triggers = [
@@ -117,7 +118,7 @@ const NotificationTester = () => {
 
   const sendTestNotification = async (trigger, selectedChannels) => {
     console.log('📨 sendTestNotification called:', { trigger, selectedChannels, currentUser: currentUser?.username });
-    
+
     if (!currentUser) {
       console.error('❌ No current user, cannot send notification');
       showToast('Please login first', 'error');
@@ -126,7 +127,7 @@ const NotificationTester = () => {
 
     setLoading(true);
     console.log('⏳ Loading state set to true');
-    
+
     try {
       const testData = {
         username: currentUser.username,
@@ -158,9 +159,9 @@ const NotificationTester = () => {
       console.log('📤 Sending notification:', testData);
       const response = await notificationApi.post('/api/notifications/send', testData);
       console.log('✅ Notification response:', response.data);
-      
+
       showToast(`Test notification sent: ${trigger}`, 'success');
-      
+
       // Reload queue to show new notification
       setTimeout(() => {
         console.log('🔄 Reloading queue...');
@@ -169,6 +170,52 @@ const NotificationTester = () => {
     } catch (error) {
       console.error('Error sending notification:', error);
       showToast('Failed to send test notification', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const previewTemplate = async (trigger, channel) => {
+    if (!currentUser) {
+      showToast('Please login first', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const templateData = {
+        recipient: {
+          firstName: currentUser.firstName || 'User',
+          username: currentUser.username
+        },
+        match: {
+          firstName: 'Test User',
+          age: 28,
+          matchScore: 95,
+          location: 'San Francisco, CA'
+        },
+        event: {
+          type: trigger,
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      const response = await notificationApi.post('/api/notifications/preview', templateData, {
+        params: { trigger, channel }
+      });
+
+      setPreview({
+        trigger,
+        channel,
+        subject: response.data.subject,
+        body: response.data.body,
+        appContext: response.data.appContext
+      });
+
+      showToast('Template preview loaded', 'success');
+    } catch (error) {
+      console.error('Error previewing template:', error);
+      showToast('Failed to preview template', 'error');
     } finally {
       setLoading(false);
     }
@@ -259,6 +306,38 @@ const NotificationTester = () => {
         </div>
       )}
 
+      {/* Template Preview */}
+      {preview && (
+        <div className="preview-section">
+          <div className="section-header">
+            <h2>👁️ Template Preview: {preview.trigger} ({preview.channel})</h2>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setPreview(null)}
+            >
+              ✕ Close
+            </button>
+          </div>
+          <div className="preview-content">
+            <div className="preview-field">
+              <label>Subject:</label>
+              <div className="preview-value">{preview.subject}</div>
+            </div>
+            <div className="preview-field">
+              <label>Body (HTML):</label>
+              <div
+                className="preview-html"
+                dangerouslySetInnerHTML={{ __html: preview.body }}
+              />
+            </div>
+            <div className="preview-field">
+              <label>App Context:</label>
+              <pre className="preview-json">{JSON.stringify(preview.appContext, null, 2)}</pre>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Test Notification Triggers */}
       <div className="triggers-section">
         <h2>🧪 Test Notifications</h2>
@@ -273,6 +352,7 @@ const NotificationTester = () => {
                   key={trigger.id}
                   trigger={trigger}
                   onSend={sendTestNotification}
+                  onPreview={previewTemplate}
                   loading={loading}
                   channels={channels}
                   showToast={showToast}
@@ -335,7 +415,7 @@ const NotificationTester = () => {
 };
 
 // Sub-component for each trigger card
-const TestTriggerCard = ({ trigger, onSend, loading, channels, showToast }) => {
+const TestTriggerCard = ({ trigger, onSend, onPreview, loading, channels, showToast }) => {
   const [selectedChannels, setSelectedChannels] = useState(['email']);
 
   const toggleChannel = (channel) => {
@@ -348,22 +428,30 @@ const TestTriggerCard = ({ trigger, onSend, loading, channels, showToast }) => {
 
   const handleSend = () => {
     console.log('🎯 Send button clicked for:', trigger.name, 'Channels:', selectedChannels);
-    
+
     if (selectedChannels.length === 0) {
       console.warn('⚠️ No channels selected');
       showToast('Please select at least one channel', 'error');
       return;
     }
-    
+
     console.log('✅ Calling onSend with:', trigger.id, selectedChannels);
     onSend(trigger.id, selectedChannels);
+  };
+
+  const handlePreview = () => {
+    if (selectedChannels.length === 0) {
+      showToast('Please select at least one channel', 'error');
+      return;
+    }
+    onPreview(trigger.id, selectedChannels[0]);
   };
 
   return (
     <div className="trigger-card">
       <div className="trigger-icon">{trigger.icon}</div>
       <div className="trigger-name">{trigger.name}</div>
-      
+
       <div className="channel-selector">
         {channels.map((channel) => (
           <button
@@ -376,13 +464,22 @@ const TestTriggerCard = ({ trigger, onSend, loading, channels, showToast }) => {
         ))}
       </div>
 
-      <button 
-        className="btn btn-primary btn-send"
-        onClick={handleSend}
-        disabled={loading || selectedChannels.length === 0}
-      >
-        {loading ? '⏳' : '📤'} Send Test
-      </button>
+      <div className="trigger-actions">
+        <button
+          className="btn btn-secondary btn-preview"
+          onClick={handlePreview}
+          disabled={loading || selectedChannels.length === 0}
+        >
+          👁️ Preview
+        </button>
+        <button
+          className="btn btn-primary btn-send"
+          onClick={handleSend}
+          disabled={loading || selectedChannels.length === 0}
+        >
+          {loading ? '⏳' : '📤'} Send Test
+        </button>
+      </div>
     </div>
   );
 };

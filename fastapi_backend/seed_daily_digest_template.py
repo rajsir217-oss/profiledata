@@ -88,7 +88,7 @@ DAILY_DIGEST_TEMPLATE = {
 <body>
     <div class="email-container">
         <div class="email-header">
-            <div class="logo">🦋 ProfileData</div>
+            <div class="logo"><img src="{app.logoUrl}" alt="L3V3L Matches" style="width: 200px; height: auto;" /></div>
             <div class="date">{generatedAt}</div>
             <h1>Your Daily Digest ✨</h1>
         </div>

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
 import useToast from '../hooks/useToast';
-import DeleteButton from './DeleteButton';
 import RichTextEditor from './shared/RichTextEditor';
 import logger from '../utils/logger';
 
@@ -334,10 +333,20 @@ const TipsManagement = () => {
                   <span>🔗 {tip.linkText || 'Link'}: {tip.link}</span>
                 </div>
               )}
-              <div className="item-actions">
-                <button onClick={() => handleClone(tip)} className="btn-clone">📋 Clone</button>
-                <button onClick={() => handleEdit(tip)} className="btn-edit">✏️ Edit</button>
-                <DeleteButton onDelete={() => handleDelete(tip.id)} itemName="tip" size="medium" />
+              <div className="admin-action-btns">
+                <button onClick={() => handleClone(tip)} className="btn-micro btn-micro-info" title="Clone">📋</button>
+                <button onClick={() => handleEdit(tip)} className="btn-micro btn-micro-warning" title="Edit">✏️</button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Delete this tip?')) {
+                      handleDelete(tip.id);
+                    }
+                  }}
+                  className="btn-micro btn-micro-danger"
+                  title="Delete"
+                >
+                  🗑️
+                </button>
               </div>
             </div>
           ))

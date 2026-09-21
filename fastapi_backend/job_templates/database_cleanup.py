@@ -44,7 +44,10 @@ class DatabaseCleanupTemplate(JobTemplate):
         "pii_requests",   # PII requests - 7 day retention for pending
         "pii_access",     # PII access grants - cleanup expired
         "audit_logs",     # Audit logs - 30 day retention
-        "registration_interests"  # Registration interests - cleanup rejected/archived
+        "registration_interests",  # Registration interests - cleanup rejected/archived
+        "contribution_activity_archive",  # Archived contribution activity - bounded audit trail
+        "email_analytics",           # Email open/click/bounce events - 90 day retention
+        "weekly_user_stats_archive"  # Archived weekly user stats - 90 day retention
     ]
     
     def get_schema(self) -> Dict[str, Any]:

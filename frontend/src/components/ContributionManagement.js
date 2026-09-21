@@ -8,6 +8,30 @@ import './ContributionManagement.css';
 import './ContributionThankYou.css';
 import './LoadMore.css';
 
+const FEE_FOR_OPTIONS = [
+  { value: 'contribution', label: 'Contribution' },
+  { value: 'membership', label: 'Membership' },
+  { value: 'zoom_call', label: 'Zoom Call' },
+  { value: 'event_rsvp', label: 'Event RSVP' },
+  { value: 'manual_other', label: 'Manual Other' },
+  { value: 'other', label: 'Other' },
+];
+
+const MONTH_OPTIONS = [
+  { value: '1', label: 'Jan' },
+  { value: '2', label: 'Feb' },
+  { value: '3', label: 'Mar' },
+  { value: '4', label: 'Apr' },
+  { value: '5', label: 'May' },
+  { value: '6', label: 'Jun' },
+  { value: '7', label: 'Jul' },
+  { value: '8', label: 'Aug' },
+  { value: '9', label: 'Sep' },
+  { value: '10', label: 'Oct' },
+  { value: '11', label: 'Nov' },
+  { value: '12', label: 'Dec' },
+];
+
 const ContributionManagement = () => {
   const navigate = useNavigate();
   const reminderContributionUrl = `${getFrontendUrl().replace(/\/$/, '')}/preferences?tab=contributions`;
@@ -57,6 +81,16 @@ const ContributionManagement = () => {
   const [reminderModal, setReminderModal] = useState(null); // { user, channel }
   const [reminderSending, setReminderSending] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+  const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1));
+  const [yearOptions, setYearOptions] = useState([]);
+  const [closedYears, setClosedYears] = useState({});
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [archiveForce, setArchiveForce] = useState(false);
+  const [feeForUpdating, setFeeForUpdating] = useState({});
+  const [feeEditModal, setFeeEditModal] = useState(null); // { contribution, nextFeeFor }
+  const [feeEditReason, setFeeEditReason] = useState('');
 
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
@@ -73,7 +107,15 @@ const ContributionManagement = () => {
       loadUnpaidMembers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, filter, activeTab, activityFilter, searchFilter, activitySearchFilter, unpaidSearchFilter, unpaidSortBy, unpaidSortOrder]);
+  }, [navigate, filter, activeTab, activityFilter, searchFilter, activitySearchFilter, unpaidSearchFilter, unpaidSortBy, unpaidSortOrder, selectedYear, selectedMonth]);
+
+  useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole === 'admin') {
+      loadContributionYears();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadContributions = async (page = 1, append = false) => {
     try {
@@ -85,6 +127,12 @@ const ContributionManagement = () => {
       const token = localStorage.getItem('token');
       
       let url = `${getBackendUrl()}/api/contributions/admin/contributions?page=${page}&limit=20`;
+      if (selectedYear !== 'all') {
+        url += `&year=${encodeURIComponent(selectedYear)}`;
+        if (selectedMonth !== 'all') {
+          url += `&month=${encodeURIComponent(selectedMonth)}`;
+        }
+      }
       if (filter !== 'all') {
         url += `&payment_type=${filter}`;
       }
@@ -102,6 +150,15 @@ const ContributionManagement = () => {
         } else {
           setContributions(response.data.contributions);
           setStats(response.data.stats);
+          const years = response.data.years || [];
+          if (years.length > 0) {
+            setYearOptions(years);
+            const closed = {};
+            years.forEach((y) => {
+              if (y.closed) closed[String(y.year)] = true;
+            });
+            setClosedYears(closed);
+          }
         }
         setPagination(response.data.pagination);
         
@@ -116,6 +173,27 @@ const ContributionManagement = () => {
     } finally {
       setLoading(false);
       setIsLoadingMore(false);
+    }
+  };
+
+  const loadContributionYears = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(
+        `${getBackendUrl()}/api/contributions/admin/contribution-years`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        const years = res.data.years || [];
+        setYearOptions(years);
+        const closed = {};
+        years.forEach((y) => {
+          if (y.closed) closed[String(y.year)] = true;
+        });
+        setClosedYears(closed);
+      }
+    } catch (err) {
+      console.error('Error loading contribution years:', err);
     }
   };
 
@@ -381,10 +459,14 @@ const ContributionManagement = () => {
       const token = localStorage.getItem('token');
       
       // Fetch ALL contributions (no pagination limit)
-      const response = await axios.get(
-        `${getBackendUrl()}/api/contributions/admin/export-csv`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      let exportUrl = `${getBackendUrl()}/api/contributions/admin/export-csv`;
+      if (selectedYear !== 'all') {
+        exportUrl += `?year=${encodeURIComponent(selectedYear)}`;
+        if (selectedMonth !== 'all') {
+          exportUrl += `&month=${encodeURIComponent(selectedMonth)}`;
+        }
+      }
+      const response = await axios.get(exportUrl, { headers: { Authorization: `Bearer ${token}` } });
       
       if (response.data.success) {
         const contributions = response.data.contributions;
@@ -426,9 +508,12 @@ const ContributionManagement = () => {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         const timestamp = new Date().toISOString().split('T')[0];
+        const yearSuffix = selectedYear === 'all'
+          ? 'all-years'
+          : (selectedMonth === 'all' ? selectedYear : `${selectedYear}-${selectedMonth.padStart(2, '0')}`);
         
         link.setAttribute('href', url);
-        link.setAttribute('download', `contributions_export_${timestamp}.csv`);
+        link.setAttribute('download', `contributions_export_${yearSuffix}_${timestamp}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -441,6 +526,73 @@ const ContributionManagement = () => {
       showToast('Failed to export CSV', 'error');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleArchiveYear = async () => {
+    if (selectedYear === 'all') {
+      showToast('Select a specific year before closing books', 'error');
+      return;
+    }
+    try {
+      setIsArchiving(true);
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `${getBackendUrl()}/api/contributions/admin/archive-year`,
+        { year: Number(selectedYear), force: archiveForce },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        showToast(`✅ Closed books for ${selectedYear}. Archived ${res.data.archive?.rowCount || 0} rows.`, 'success');
+        setShowArchiveConfirm(false);
+        setArchiveForce(false);
+        await loadContributionYears();
+        await loadContributions();
+      }
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to archive year';
+      showToast(detail, 'error');
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const handleFeeForChange = async (contribution, nextFeeFor) => {
+    if (!contribution?.id || !nextFeeFor || contribution.feeFor === nextFeeFor) return;
+    setFeeEditReason('');
+    setFeeEditModal({ contribution, nextFeeFor });
+  };
+
+  const submitFeeClassification = async () => {
+    if (!feeEditModal?.contribution?.id || !feeEditModal?.nextFeeFor) return;
+    const reason = feeEditReason.trim();
+    if (reason.length < 3) {
+      showToast('Reason is required (min 3 chars)', 'error');
+      return;
+    }
+    const contribution = feeEditModal.contribution;
+    const nextFeeFor = feeEditModal.nextFeeFor;
+    try {
+      setFeeForUpdating(prev => ({ ...prev, [contribution.id]: true }));
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `${getBackendUrl()}/api/contributions/admin/contributions/${contribution.id}/classify-fee`,
+        { feeFor: nextFeeFor, reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        setContributions(prev => prev.map((row) => (
+          row.id === contribution.id ? { ...row, feeFor: nextFeeFor } : row
+        )));
+        showToast(`Fee classified as ${nextFeeFor.replace('_', ' ')}`, 'success');
+        setFeeEditModal(null);
+        setFeeEditReason('');
+      }
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to update fee classification';
+      showToast(detail, 'error');
+    } finally {
+      setFeeForUpdating(prev => ({ ...prev, [contribution.id]: false }));
     }
   };
 
@@ -463,6 +615,15 @@ const ContributionManagement = () => {
           <p>View and manage all contributions</p>
         </div>
         <div className="header-actions">
+          <button
+            className="add-payment-btn close-books-btn"
+            type="button"
+            onClick={() => setShowArchiveConfirm(true)}
+            disabled={activeTab !== 'contributions' || selectedYear === 'all' || isArchiving}
+            title={selectedYear === 'all' ? 'Select a year to close books' : `Close books for ${selectedYear}`}
+          >
+            <span className="btn-icon">{isArchiving ? '⏳' : '📚'}</span>
+          </button>
           <button
             className="add-payment-btn"
             type="button"
@@ -572,7 +733,7 @@ const ContributionManagement = () => {
       {activeTab === 'contributions' && (
         <div className="user-filter-container">
           <div className="filter-row">
-            <label htmlFor="search-filter" className="filter-label">Search:</label>
+            {/* <label htmlFor="search-filter" className="filter-label">Search:</label> */}
             <input
               id="search-filter"
               type="text"
@@ -590,6 +751,39 @@ const ContributionManagement = () => {
                 ×
               </button>
             )}
+  
+            <select
+              id="month-filter"
+              className="year-filter-select"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              disabled={selectedYear === 'all'}
+              title={selectedYear === 'all' ? 'Select a specific year to filter by month' : 'Filter by month'}
+            >
+              <option value="all">All</option>
+              {MONTH_OPTIONS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+ 
+            <select
+              id="year-filter"
+              className="year-filter-select"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              <option value="all">All years</option>
+              {yearOptions.map((y) => (
+                <option key={y.year} value={String(y.year)}>
+                  {y.year}{y.closed ? ' • Closed' : ''}
+                </option>
+              ))}
+            </select>
+            {selectedYear !== 'all' && closedYears[selectedYear] ? (
+              <span className="year-closed-pill" title="This year is archived and closed">Closed</span>
+            ) : null}
           </div>
         </div>
       )}
@@ -701,8 +895,12 @@ const ContributionManagement = () => {
                   <tr>
                     <th>User</th>
                     <th>Name</th>
+                    <th>Gender</th>
+                    <th>Age</th>
                     <th>Amount</th>
                     <th>Type</th>
+                    <th>PayType</th>
+                    <th>Fee For</th>
                     <th>Status</th>
                     <th>Paid</th>
                     <th>Elapsed</th>
@@ -732,17 +930,43 @@ const ContributionManagement = () => {
                           '-'
                         }
                       </td>
+                      <td className="gender-cell">
+                        {contribution.gender || '-'}
+                      </td>
+                      <td className="age-cell">
+                        {contribution.age != null ? contribution.age : '-'}
+                      </td>
                       <td className="amount-cell">
                         <span className="amount">{formatAmount(contribution.amount)}</span>
                       </td>
                       <td>
-                        <span className={`type-badge ${contribution.paymentType}`}>
-                          {contribution.paymentType === 'recurring' ? '🔄 Monthly' : '💵 One-time'}
+                        <span className={`type-badge ${contribution.paymentType}`} title={contribution.paymentType === 'recurring' ? 'Recurring' : 'One-time'}>
+                          {contribution.paymentType === 'recurring' ? '🔄' : '💵'}
                         </span>
+                      </td>
+                      <td className="paytype-cell">
+                        {contribution.paymentProvider ? (
+                          <span className={`paytype-badge ${String(contribution.paymentProvider).toLowerCase()}`}>
+                            {contribution.paymentProvider}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="fee-for-cell">
+                        <select
+                          className="fee-for-select"
+                          value={contribution.feeFor || 'contribution'}
+                          disabled={Boolean(feeForUpdating[contribution.id])}
+                          onChange={(e) => handleFeeForChange(contribution, e.target.value)}
+                          title="Classify what this fee was for"
+                        >
+                          {FEE_FOR_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
                       </td>
                       <td>
                         {(() => {
-                          const s = contribution.status || 'completed';
+                          const s = contribution.status || '√';
                           // Short 1-char labels for alternate/legacy statuses;
                           // full words for the canonical set.
                           const shortLabels = { succeeded: 'S', paid: 'P', refunded: 'R' };
@@ -1161,6 +1385,103 @@ const ContributionManagement = () => {
           onClose={() => setShowAddPaymentModal(false)}
           onSuccess={handleManualPaymentSuccess}
         />
+      )}
+
+      {feeEditModal && (
+        <div className="modal-overlay" onClick={() => setFeeEditModal(null)}>
+          <div className="reminder-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="reminder-modal-header">
+              <h3>Classify Fee Usage</h3>
+              <button className="btn-close-modal" onClick={() => setFeeEditModal(null)}>×</button>
+            </div>
+            <div className="reminder-modal-body">
+              <div className="recipient-info">
+                <p><strong>User:</strong> {feeEditModal.contribution.username}</p>
+                <p><strong>Amount:</strong> {formatAmount(feeEditModal.contribution.amount)}</p>
+                <p><strong>New Class:</strong> {feeEditModal.nextFeeFor.replace('_', ' ')}</p>
+              </div>
+              <div className="archive-reason-wrap">
+                <label htmlFor="fee-reason" className="filter-label">Reason (required)</label>
+                <textarea
+                  id="fee-reason"
+                  className="fee-reason-input"
+                  value={feeEditReason}
+                  onChange={(e) => setFeeEditReason(e.target.value)}
+                  placeholder="Why are you reclassifying this transaction?"
+                  rows={3}
+                />
+              </div>
+              <div className="reminder-actions">
+                <button
+                  className="btn-secondary"
+                  onClick={() => setFeeEditModal(null)}
+                  disabled={Boolean(feeForUpdating[feeEditModal.contribution.id])}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={submitFeeClassification}
+                  disabled={Boolean(feeForUpdating[feeEditModal.contribution.id])}
+                >
+                  {feeForUpdating[feeEditModal.contribution.id] ? 'Saving...' : 'Save Classification'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showArchiveConfirm && (
+        <div className="modal-overlay" onClick={() => setShowArchiveConfirm(false)}>
+          <div className="reminder-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="reminder-modal-header">
+              <h3>Close Books for {selectedYear}</h3>
+              <button className="btn-close-modal" onClick={() => setShowArchiveConfirm(false)}>×</button>
+            </div>
+            <div className="reminder-modal-body">
+              <div className="recipient-info bulk-info">
+                <p><strong>Year:</strong> {selectedYear}</p>
+                <p><strong>Action:</strong> Archive contribution rows and mark payment docs with archive metadata.</p>
+                <div className="bulk-warning">
+                  This does not delete payments. It creates a snapshot archive so the year can be considered closed.
+                </div>
+              </div>
+              {closedYears[selectedYear] ? (
+                <label className="archive-force-toggle">
+                  <input
+                    type="checkbox"
+                    checked={archiveForce}
+                    onChange={(e) => setArchiveForce(e.target.checked)}
+                  />
+                  Rebuild existing archive for this year (force overwrite)
+                </label>
+              ) : null}
+              <div className="reminder-actions">
+                <button
+                  className="btn-secondary"
+                  onClick={() => setShowArchiveConfirm(false)}
+                  disabled={isArchiving}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={handleArchiveYear}
+                  disabled={isArchiving || selectedYear === 'all'}
+                >
+                  {isArchiving ? (
+                    <>
+                      <span className="btn-spinner"></span> Closing...
+                    </>
+                  ) : (
+                    <>📚 Close Year {selectedYear}</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Send Reminder Modal */}

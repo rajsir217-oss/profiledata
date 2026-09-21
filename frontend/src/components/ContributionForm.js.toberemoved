@@ -1,0 +1,627 @@
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { getBackendUrl } from '../config/apiConfig';
+import toastService from '../services/toastService';
+import logger from '../utils/logger';
+import { LIFETIME_CONTRIBUTION_THRESHOLD } from '../utils/contributionSilence';
+import './ContributionPopup.css';
+
+const MEMBER_STATS_CACHE_TTL_MS = 10 * 60 * 1000;
+const ACTIVATION_MIN_AMOUNT = 60;
+const PRORATE_PER_MONTH = 10;
+const PRORATE_PER_DAY = 1;
+const ACTIVATION_TIER_MONTHS = {
+  60: 6,
+  100: 12,
+  150: 18,
+  175: 24,
+  200: 36,
+};
+
+const ContributionForm = ({ 
+  onSuccess, 
+  activationFlow = false,
+  showActivityStats = true,
+  showYTD = true,
+  embedded = false 
+}) => {
+  const [selectedAmount, setSelectedAmount] = useState(60);
+  const [customAmount, setCustomAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [paypalReady, setPaypalReady] = useState(false);
+  const [paypalFailed, setPaypalFailed] = useState(false);
+  const [paypalKey, setPaypalKey] = useState(0);
+  const paypalContainerRef = useRef(null);
+  const paypalScriptLoaded = useRef(false);
+  const amountRef = useRef(60);
+  const paypalInitialized = useRef(false);
+  const [paymentMethod, setPaymentMethod] = useState('clover');
+  const [showAltPaymentMethods, setShowAltPaymentMethods] = useState(false);
+  const [cloverLoading, setCloverLoading] = useState(false);
+  const [cloverReady, setCloverReady] = useState(false);
+  const [cloverConfig, setCloverConfig] = useState(null);
+  const cloverInstanceRef = useRef(null);
+  const cloverMountedRef = useRef(false);
+  const [cloverSuccess, setCloverSuccess] = useState(false);
+  const [cloverRecurring, setCloverRecurring] = useState(false);
+  const [memberStats, setMemberStats] = useState({
+    daysActive: 0,
+    profileViews: 0,
+    profileFavorites: 0,
+    profileShortlists: 0,
+    conversations: 0,
+  });
+  const [memberStatsLoading, setMemberStatsLoading] = useState(false);
+  const [contributionStatus, setContributionStatus] = useState(null);
+  const [showTierInfo, setShowTierInfo] = useState(false);
+
+  const getAmount = useCallback(() => {
+    if (customAmount && parseFloat(customAmount) > 0) {
+      return parseFloat(customAmount);
+    }
+    return selectedAmount;
+  }, [selectedAmount, customAmount]);
+
+  const loadMemberStats = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+    if (!token || !username) return;
+
+    const cacheKey = `contribution_member_stats_v3:${username}`;
+    try {
+      const cachedRaw = sessionStorage.getItem(cacheKey);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (
+          cached &&
+          cached.cachedAt &&
+          Date.now() - Number(cached.cachedAt) < MEMBER_STATS_CACHE_TTL_MS &&
+          cached.stats
+        ) {
+          setMemberStats(cached.stats);
+          return;
+        }
+      }
+    } catch (err) {
+      logger.debug('Contribution form stats cache parse failed', err);
+    }
+
+    setMemberStatsLoading(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const statsRes = await fetch(`${getBackendUrl()}/api/users/${encodeURIComponent(username)}/stats`, { headers });
+
+      if (!statsRes.ok) {
+        logger.warn('Failed to fetch user stats, using fallback');
+        throw new Error('Stats endpoint failed');
+      }
+
+      const statsData = await statsRes.json();
+      const stats = statsData?.stats || {};
+
+      const nextStats = {
+        daysActive: stats.daysActive || 0,
+        profileViews: stats.lifetimeViews || stats.profileViews || 0,
+        profileFavorites: stats.lifetimeFavorites || stats.favoritedBy || 0,
+        profileShortlists: stats.lifetimeShortlists || stats.shortlistedBy || 0,
+        conversations: stats.lifetimeMessages || stats.uniqueConversations || 0,
+      };
+
+      setMemberStats(nextStats);
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ cachedAt: Date.now(), stats: nextStats }));
+      } catch (err) {
+        logger.debug('Failed to cache stats', err);
+      }
+    } catch (err) {
+      logger.error('Failed to load member stats', err);
+    } finally {
+      setMemberStatsLoading(false);
+    }
+  }, []);
+
+  const loadContributionStatus = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+    if (!token || !username) return;
+
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const statusRes = await fetch(`${getBackendUrl()}/api/contributions/status`, { headers });
+
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        setContributionStatus(statusData);
+      }
+    } catch (err) {
+      logger.error('Failed to load contribution status', err);
+    }
+  }, []);
+
+  const logActivity = useCallback((action, amount, method) => {
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+    if (!token || !username) return;
+
+    fetch(`${getBackendUrl()}/api/contributions/log-activity`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        username,
+        action,
+        amount,
+        paymentMethod: method,
+        timestamp: new Date().toISOString()
+      })
+    }).catch(err => logger.error('Failed to log activity', err));
+  }, []);
+
+  // Always show only $60, $100, and custom amount
+  const donationAmounts = [60, 100];
+
+  useEffect(() => {
+    if (showActivityStats) {
+      loadMemberStats();
+    }
+    loadContributionStatus();
+  }, [showActivityStats, loadMemberStats, loadContributionStatus]);
+
+  // Clover initialization
+  useEffect(() => {
+    if (paymentMethod !== 'clover') return;
+
+    const initClover = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const configRes = await fetch(`${getBackendUrl()}/api/clover/sdk-config`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!configRes.ok) {
+          const config = await configRes.json();
+          setError(config?.detail || 'Clover card payments not available.');
+          return;
+        }
+
+        const config = await configRes.json();
+        setCloverConfig(config);
+
+        const script = document.createElement('script');
+        script.src = 'https://checkout.clover.com/sdk.js';
+        script.async = true;
+        script.onload = () => {
+          try {
+            const clover = new window.Clover(config.publicKey);
+            cloverInstanceRef.current = clover;
+
+            const elements = clover.elements();
+            const styles = {
+              input: { fontSize: '15px', padding: '10px 8px' }
+            };
+            const cardNumber = elements.create('CARD_NUMBER', styles);
+            const cardDate = elements.create('CARD_DATE', styles);
+            const cardCvv = elements.create('CARD_CVV', styles);
+            const cardPostalCode = elements.create('CARD_POSTAL_CODE', styles);
+
+            setTimeout(() => {
+              try {
+                const cardNumberEl = document.querySelector('#clover-card-number');
+                const cardDateEl = document.querySelector('#clover-card-date');
+                const cardCvvEl = document.querySelector('#clover-card-cvv');
+                const cardZipEl = document.querySelector('#clover-card-zip');
+
+                if (!cardNumberEl || !cardDateEl || !cardCvvEl || !cardZipEl) {
+                  setError('Card form containers not found. Please try again.');
+                  return;
+                }
+
+                cardNumber.mount('#clover-card-number');
+                cardDate.mount('#clover-card-date');
+                cardCvv.mount('#clover-card-cvv');
+                cardPostalCode.mount('#clover-card-zip');
+                cloverMountedRef.current = true;
+                setCloverReady(true);
+              } catch (mountErr) {
+                logger.error('Clover mount error:', mountErr);
+                setError(`Failed to mount card form: ${mountErr.message || 'Unknown error'}`);
+              }
+            }, 300);
+          } catch (err) {
+            logger.error('Clover initialization error:', err);
+            setError(`Failed to initialize card payment form: ${err.message || 'Unknown error'}`);
+          }
+        };
+        script.onerror = () => {
+          setError('Failed to load Clover payment SDK. Please try PayPal.');
+        };
+        document.head.appendChild(script);
+      } catch (err) {
+        logger.error('Clover config fetch error:', err);
+        setError('Clover card payments not available.');
+      }
+    };
+    initClover();
+
+    return () => {
+      cloverMountedRef.current = false;
+      setCloverReady(false);
+    };
+  }, [paymentMethod]);
+
+  // PayPal initialization
+  useEffect(() => {
+    if (paymentMethod !== 'paypal' || !paypalScriptLoaded.current) return;
+
+    const initPayPal = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const configRes = await fetch(`${getBackendUrl()}/api/paypal/config`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!configRes.ok) {
+          setPaypalFailed(true);
+          return;
+        }
+
+        const config = await configRes.json();
+        if (!config.clientId) {
+          setPaypalFailed(true);
+          return;
+        }
+
+        if (!paypalInitialized.current) {
+          paypalInitialized.current = true;
+          window.paypal.Buttons({
+            style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
+            createOrder: async (data, actions) => {
+              const amount = getAmount();
+              const minimumAmount = activationFlow ? ACTIVATION_MIN_AMOUNT : 1;
+              if (!amount || amount < minimumAmount) {
+                setError(`Please select a valid amount (minimum $${minimumAmount})`);
+                return;
+              }
+              logActivity('proceed_to_payment', amount, 'paypal');
+              try {
+                const orderRes = await fetch(`${getBackendUrl()}/api/paypal/create-order`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify({ amount: amount.toFixed(2) })
+                });
+                const orderData = await orderRes.json();
+                return orderData.id;
+              } catch (err) {
+                logger.error('PayPal create order error:', err);
+                setError('Failed to create PayPal order. Please try again.');
+              }
+            },
+            onApprove: async (data, actions) => {
+              try {
+                const captureRes = await fetch(`${getBackendUrl()}/api/paypal/capture-order`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify({ orderID: data.orderID })
+                });
+                const captureData = await captureRes.json();
+                if (captureData.success) {
+                  setCloverSuccess(true);
+                  window.dispatchEvent(new Event('contributionMade'));
+                  if (toastService) {
+                    toastService.success(`Payment of $${getAmount().toFixed(2)} successful! Thank you!`);
+                  }
+                  if (onSuccess) onSuccess();
+                } else {
+                  setError('PayPal payment failed. Please try again.');
+                }
+              } catch (err) {
+                logger.error('PayPal capture error:', err);
+                setError('PayPal payment failed. Please try again.');
+              }
+            },
+            onCancel: () => {
+              logActivity('payment_cancelled');
+            },
+            onError: (err) => {
+              setError('PayPal encountered an error. Please try Clover card payment instead.');
+            }
+          }).render(paypalContainerRef.current)
+            .then(() => {
+              setPaypalReady(true);
+            })
+            .catch((renderErr) => {
+              const msg = renderErr?.message || String(renderErr);
+              if (!msg.includes('container') && !msg.includes('removed') && !msg.includes('DOM')) {
+                setPaypalFailed(true);
+              }
+            });
+        }
+      } catch (err) {
+        setPaypalFailed(true);
+      }
+    };
+    initPayPal();
+  }, [paymentMethod, paypalKey, getAmount, logActivity, activationFlow, onSuccess]);
+
+  // Clover payment handler
+  const handleCloverPay = useCallback(async () => {
+    if (!cloverInstanceRef.current) return;
+    const amount = getAmount();
+    const minimumAmount = activationFlow ? ACTIVATION_MIN_AMOUNT : 1;
+    if (!amount || amount < minimumAmount) {
+      setError(`Please select a valid amount (minimum $${minimumAmount})`);
+      return;
+    }
+    setCloverLoading(true);
+    setError('');
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const result = await cloverInstanceRef.current.createToken();
+      logger.debug('Clover createToken result:', result);
+      if (result.errors) {
+        const errMsgs = Object.values(result.errors).map(e => typeof e === 'string' ? e : (e?.message || JSON.stringify(e)));
+        logger.error('Clover validation errors:', result.errors);
+        setError(`${errMsgs.join(', ')}. Please try PayPal if card payment continues to fail.`);
+        setCloverLoading(false);
+        return;
+      }
+      const sourceToken = result.token;
+      logActivity('proceed_to_payment', amount, 'clover-card');
+
+      const authToken = localStorage.getItem('token');
+      const chargeRes = await fetch(`${getBackendUrl()}/api/clover/charge`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          source: sourceToken,
+          amount: amount.toFixed(2),
+          description: `Contribution - $${amount.toFixed(2)}`,
+          recurring: cloverRecurring
+        })
+      });
+
+      const chargeData = await chargeRes.json();
+      if (chargeData.success) {
+        setCloverSuccess(true);
+        window.dispatchEvent(new Event('contributionMade'));
+        if (toastService) {
+          const recurMsg = cloverRecurring ? ' (monthly recurring)' : '';
+          toastService.success(`Payment of $${amount.toFixed(2)}${recurMsg} successful! Thank you!`);
+        }
+        if (onSuccess) onSuccess();
+      } else {
+        const detail = chargeData.detail;
+        const msg = typeof detail === 'string' ? detail
+          : Array.isArray(detail) ? detail.map(d => d.msg || JSON.stringify(d)).join(', ')
+          : (detail?.msg || 'Card charge failed. Please try PayPal instead.');
+        setError(msg);
+      }
+    } catch (err) {
+      logger.error('Clover payment error:', err);
+      setError('Failed to process card payment. Please try PayPal instead.');
+    } finally {
+      setCloverLoading(false);
+    }
+  }, [getAmount, logActivity, cloverRecurring, activationFlow, onSuccess]);
+
+  const generateDefaultMessage = useCallback(() => {
+    return `Thank you for supporting L3V3L Matches! Your contribution of $${getAmount().toFixed(2)} helps keep the platform running for everyone.`;
+  }, [getAmount]);
+
+  if (cloverSuccess) {
+    return (
+      <div className="contribution-success">
+        <div className="success-icon">✅</div>
+        <h3>Thank You!</h3>
+        <p>Your contribution has been processed successfully.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`contribution-form ${embedded ? 'contribution-form-embedded' : ''}`}>
+      {/* Activity Stats Header */}
+      {showActivityStats && (
+        <div className="contribution-activity-stats">
+          {memberStatsLoading ? (
+            <p>Loading your activity...</p>
+          ) : (
+            <>
+              <p className="activity-thanks">
+                Thank you for being a member for <strong>{memberStats.daysActive} days</strong>
+              </p>
+              <div className="activity-metrics">
+                <span>👁️ {memberStats.profileViews} Views</span>
+                <span>⭐ {memberStats.profileFavorites} Favorites</span>
+                <span>📋 {memberStats.profileShortlists} Shortlists</span>
+                <span>💬 {memberStats.conversations} Messages</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* YTD Contributions */}
+      {showYTD && contributionStatus && (
+        <div className="contribution-ytd">
+          <span className="ytd-label">YTD contributions (current year):</span>
+          <span className="ytd-amount">${(contributionStatus.ytdTotal || 0).toFixed(2)}</span>
+        </div>
+      )}
+
+      {/* Amount Selection */}
+      <section className="contribution-block contribution-amounts-block">
+        <div className="contribution-block-title">
+          Choose Your Contribution
+        </div>
+        <div className="contribution-amounts">
+          {donationAmounts.map((amt) => (
+            <label
+              key={amt}
+              className={`contribution-amount-option ${amt >= ACTIVATION_MIN_AMOUNT ? 'membership-amount-option' : ''} ${selectedAmount === amt ? 'selected' : ''}`}
+            >
+              <input
+                type="radio"
+                name="contribution-amount"
+                value={amt}
+                checked={selectedAmount === amt}
+                onChange={() => {
+                  setSelectedAmount(amt);
+                  setCustomAmount('');
+                }}
+              />
+              <span className="amount-label">${amt}</span>
+            </label>
+          ))}
+          <label className={`contribution-amount-option custom-amount-option ${customAmount ? 'selected' : ''}`}>
+            <input
+              type="radio"
+              name="contribution-amount"
+              value="custom"
+              checked={!!customAmount}
+              onChange={() => setSelectedAmount(0)}
+            />
+            <input
+              type="number"
+              className="custom-amount-input"
+              placeholder="Amount"
+              min="1"
+              step="1"
+              value={customAmount}
+              onChange={(e) => {
+                setCustomAmount(e.target.value);
+                setSelectedAmount(0);
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </label>
+        </div>
+      </section>
+
+      {/* Payment Method Selection */}
+      <section className="contribution-block contribution-payment-block">
+        <div className="payment-method-toggle activation-inline">
+          <button
+            className={`payment-method-btn ${paymentMethod === 'clover' ? 'active' : ''}`}
+            onClick={() => setPaymentMethod('clover')}
+          >
+            💳 Card
+          </button>
+          <button
+            className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
+            onClick={() => setPaymentMethod('paypal')}
+          >
+            🅿️ PayPal
+          </button>
+        </div>
+      </section>
+
+      {/* Clover Card Form */}
+      {paymentMethod === 'clover' && (
+        <section className="contribution-block clover-card-block">
+          {!cloverReady && <p className="loading-text">Loading secure payment form...</p>}
+          {cloverReady && (
+            <>
+              <div className="clover-card-form">
+                <div id="clover-card-number" className="clover-input-container"></div>
+                <div id="clover-card-date" className="clover-input-container"></div>
+                <div id="clover-card-cvv" className="clover-input-container"></div>
+                <div id="clover-card-zip" className="clover-input-container"></div>
+              </div>
+              <div className="clover-recurring-toggle">
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={cloverRecurring}
+                    onChange={(e) => setCloverRecurring(e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+                <span>{cloverRecurring ? `$${getAmount().toFixed(2)}/month auto-charge` : 'One-time payment'}</span>
+              </div>
+              <button
+                className="btn-primary contribution-pay-btn"
+                onClick={handleCloverPay}
+                disabled={cloverLoading || !cloverReady}
+              >
+                {cloverLoading ? '⏳ Processing...' : `Pay $${getAmount().toFixed(2)}`}
+              </button>
+              <p className="secure-payment-note">🔒 Pay securely with credit or debit card.</p>
+            </>
+          )}
+        </section>
+      )}
+
+      {/* PayPal Form */}
+      {paymentMethod === 'paypal' && (
+        <section className="contribution-block paypal-block">
+          {paypalFailed ? (
+            <p className="error-text">PayPal is currently unavailable. Please try card payment.</p>
+          ) : (
+            <>
+              {!paypalReady && <p className="loading-text">Loading PayPal...</p>}
+              <div ref={paypalContainerRef} className="paypal-button-container"></div>
+            </>
+          )}
+        </section>
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <div className="contribution-error">
+          {error}
+          {paymentMethod === 'clover' && (
+            <button
+              className="try-paypal-btn"
+              onClick={() => setPaymentMethod('paypal')}
+              style={{
+                marginTop: '8px',
+                padding: '6px 12px',
+                background: '#0070ba',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}
+            >
+              Try PayPal Instead
+            </button>
+          )}
+          {paymentMethod === 'paypal' && (
+            <button
+              className="try-clover-btn"
+              onClick={() => setPaymentMethod('clover')}
+              style={{
+                marginTop: '8px',
+                padding: '6px 12px',
+                background: '#6f42c1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}
+            >
+              Try Card Payment Instead
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ContributionForm;

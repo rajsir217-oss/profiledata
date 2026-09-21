@@ -1553,11 +1553,9 @@ async def issue_sso_code(
         if not username:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
 
-        try:
-            await db.sso_codes.create_index("expiresAt", expireAfterSeconds=0)
-            await db.sso_codes.create_index("codeHash", unique=True)
-        except Exception:
-            pass
+        # Index creation moved to app startup (main.py lifespan) — see the
+        # "SSO code indexes" block. Doing it here on every call added an
+        # unnecessary round-trip to the SSO login critical path.
 
         raw_code = secrets.token_urlsafe(32)
         code_hash = hashlib.sha256(raw_code.encode("utf-8")).hexdigest()

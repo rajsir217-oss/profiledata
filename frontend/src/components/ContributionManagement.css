@@ -1,7 +1,7 @@
 /* DonationManagement.css */
 
 .contribution-management {
-  padding: 20px;
+  padding: 12px;
   width: 100%;
   margin: 0 auto;
 }
@@ -14,46 +14,50 @@
 }
 
 .page-header {
-  margin-bottom: 2px;
+  margin-bottom: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 2px;
+  gap: 0;
 }
 
 .page-header .header-content {
   flex: 1;
+  margin: 0;
+  padding: 0;
 }
 
 .page-header h1 {
-  font-size: 24px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-color);
-  margin: 0 0 2px 0;
+  margin: 0 0 1px 0;
 }
 
 .page-header p {
   color: var(--text-secondary);
   margin: 0;
-  font-size: 14px;
+  font-size: 7px;
 }
 
 
 .header-actions {
   display: flex;
-  gap: 2px;
+  gap: 0;
   align-items: center;
+  margin: 0;
+  padding: 0;
 }
 
 .add-payment-btn {
   padding: 0;
-  width: 40px;
-  height: 40px;
+  width: 27px;
+  height: 27px;
   border: none;
-  border-radius: 10px;
+  border-radius: 7px;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: var(--text-color);
-  font-size: 13px;
+  font-size: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -76,7 +80,7 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
-  font-size: 20px;
+  font-size: 13px;
 }
 
 .add-payment-btn .btn-label {
@@ -98,21 +102,24 @@
 
 /* User Filter */
 .user-filter-container {
-  margin-bottom: 16px;
-  padding: 12px 16px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
   background: var(--surface-color);
   border-radius: 8px;
   border: 1px solid var(--border-color);
+  overflow-x: auto;
 }
 
 .filter-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 2px;
+  flex-wrap: nowrap;
+  min-width: max-content;
 }
 
 .filter-label {
-  font-size: 14px;
+  font-size: 7px;
   font-weight: 500;
   color: var(--text-color);
   white-space: nowrap;
@@ -122,7 +129,8 @@
 .user-filter-input {
   flex: 1;
   max-width: 300px;
-  padding: 8px 12px;
+  min-width: 0;
+  padding: 6px 8px;
   border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 14px;
@@ -163,6 +171,97 @@
   color: var(--text-color);
   border-color: var(--danger-color);
   transform: scale(1.05);
+}
+
+.year-filter-select {
+  min-width: 130px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-color);
+  font-size: 13px;
+}
+
+/* Keep contribution filters on one line even when generic .filter-row rules exist elsewhere */
+.contribution-management .user-filter-container .filter-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.contribution-management .user-filter-container #search-filter {
+  width: 100%;
+  min-width: 0;
+}
+
+.contribution-management .user-filter-container #month-filter {
+  width: 92px;
+  min-width: 92px;
+}
+
+.contribution-management .user-filter-container #year-filter {
+  width: 72px;
+  min-width: 72px;
+}
+
+.year-closed-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--warning-background, rgba(245, 158, 11, 0.14));
+  color: var(--warning-color);
+  border: 1px solid var(--warning-color);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.close-books-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.archive-force-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 14px;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.fee-for-cell {
+  min-width: 128px;
+}
+
+.fee-for-select {
+  width: 120px;
+  padding: 5px 7px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 12px;
+  background: var(--input-bg);
+  color: var(--text-color);
+}
+
+.archive-reason-wrap {
+  margin: 10px 0 12px;
+}
+
+.fee-reason-input {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-color);
+  padding: 8px 10px;
+  font-size: 13px;
+  resize: vertical;
 }
 
 .error-message button {
@@ -508,15 +607,60 @@
   border-color: var(--border-color);
 }
 
+/* Gender / Age cells */
+.gender-cell,
+.age-cell {
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-color);
+  text-align: center;
+  text-transform: capitalize;
+}
+
+/* PayType badge */
+.paytype-cell {
+  white-space: nowrap;
+  text-align: center;
+}
+
+.paytype-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: capitalize;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.paytype-badge.clover {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--text-color);
+}
+
+.paytype-badge.paypal {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--text-color);
+}
+
+.paytype-badge.manual {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--text-color);
+}
+
 /* Type Badge */
 .type-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
+  justify-content: center;
+  padding: 4px 8px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
+  min-width: 32px;
 }
 
 .type-badge.one_time {

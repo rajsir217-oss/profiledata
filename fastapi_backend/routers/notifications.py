@@ -7,7 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List
 from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo.errors import NetworkTimeout
 from services.messenger_service import send_to_l3v3lagent
+from crypto_utils import PIIEncryption
 
 from models.notification_models import (
     NotificationPreferences,
@@ -141,6 +143,77 @@ async def send_notification(
             message="Failed to queue notification",
             error=str(e)
         )
+
+
+@router.post("/preview")
+async def preview_notification_template(
+    trigger: str = Query(..., description="Notification trigger (e.g., new_match, new_message)"),
+    channel: str = Query("email", description="Channel to preview (email, sms, push)"),
+    template_data: dict = {},
+    current_user: dict = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service)
+):
+    """
+    Preview a notification template without sending (admin only).
+    Returns rendered subject and body with the latest app context (logoUrl, etc.).
+    """
+    # Admin check
+    if (current_user.get("role_name") or current_user.get("role")) != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    # Load template from MongoDB
+    template_doc = await service.templates_collection.find_one({"trigger": trigger})
+    if not template_doc:
+        raise HTTPException(status_code=404, detail=f"Template not found for trigger: {trigger}")
+
+    # Get channel-specific template (handle both nested and flat formats)
+    # New format: channels.email.subject / channels.email.body
+    # Old format: channel: "email", subject: "...", body: "..."
+    if "channels" in template_doc and isinstance(template_doc["channels"], dict):
+        channel_template = template_doc["channels"].get(channel)
+        if not channel_template:
+            raise HTTPException(status_code=404, detail=f"Channel '{channel}' not configured for trigger: {trigger}")
+        subject = channel_template.get("subject", "")
+        body = channel_template.get("body", "")
+    else:
+        # Flat format: check if channel matches
+        if template_doc.get("channel") != channel:
+            raise HTTPException(status_code=404, detail=f"Channel '{channel}' not configured for trigger: {trigger}")
+        subject = template_doc.get("subject", "")
+        body = template_doc.get("body", "")
+
+    # Build app context (same as email_notifier_template.py)
+    from config import settings
+    frontend_url = settings.frontend_url or "https://l3v3lmatches.com"
+    app_context = {
+        "logoUrl": f"{frontend_url}/landing-page-logo-clear.png",
+        "profileUrl": f"{frontend_url}/profile",
+        "chatUrl": f"{frontend_url}/messages",
+        "unsubscribeUrl": f"{frontend_url}/unsubscribe",
+        "privacyUrl": f"{frontend_url}/privacy",
+        "termsUrl": f"{frontend_url}/terms",
+        "trackingPixelUrl": f"{frontend_url}/api/notifications/track-pixel"
+    }
+
+    # Merge app context into template data
+    merged_data = {**template_data, "app": app_context}
+
+    # Render subject and body
+    try:
+        rendered_subject = service.render_template(subject, merged_data)
+        rendered_body = service.render_template(body, merged_data)
+    except Exception as e:
+        logger.error(f"❌ Template render failed for trigger {trigger}: {e}")
+        raise HTTPException(status_code=500, detail=f"Template render failed: {str(e)}")
+
+    return {
+        "success": True,
+        "trigger": trigger,
+        "channel": channel,
+        "subject": rendered_subject,
+        "body": rendered_body,
+        "appContext": app_context
+    }
 
 
 @router.get("/queue", response_model=List[NotificationQueueItem])
@@ -463,6 +536,8 @@ async def get_notification_logs(
     current_user: dict = Depends(get_current_user),
     limit: int = Query(100, ge=1, le=500),
     skip: int = Query(0, ge=0),
+    paginated: bool = Query(False, description="Return paginated payload with logs/total/hasMore"),
+    date_scope: Optional[str] = Query(None, description="Date scope filter: current_month or all_time"),
     channel: Optional[str] = Query(None, description="Filter by channel (email, sms, push)"),
     service: NotificationService = Depends(get_notification_service)
 ):
@@ -470,30 +545,222 @@ async def get_notification_logs(
     # Check if user is admin
     is_admin = (current_user.get("role_name") or current_user.get("role")) == "admin"
     username = current_user.get("username", "")
-    
+
     # Build query based on role
     query = {} if is_admin else {"username": username}
-    
+
     # Add channel filter if specified
     if channel:
         query["channel"] = channel
-    
+
+    # Optional date scope filter for faster admin views.
+    # `current_month` uses UTC month boundaries.
+    if date_scope == "current_month":
+        now = datetime.utcnow()
+        month_start = datetime(now.year, now.month, 1)
+        if now.month == 12:
+            month_end = datetime(now.year + 1, 1, 1)
+        else:
+            month_end = datetime(now.year, now.month + 1, 1)
+        query["sentAt"] = {"$gte": month_start, "$lt": month_end}
+
     # Debug logging
     import logging
     logger = logging.getLogger(__name__)
     logger.info(f"📋 Fetching notification logs - user: {username}, is_admin: {is_admin}, channel: {channel}, query: {query}")
-    
-    logs = await service.db["notification_log"].find(
-        query
-    ).sort("sentAt", -1).skip(skip).limit(limit).to_list(length=limit)
-    
-    logger.info(f"📋 Found {len(logs)} notification logs")
-    
-    # Serialize ObjectId
-    for log in logs:
-        log["_id"] = str(log["_id"])
-    
-    return logs
+
+    # Keep response size bounded for large datasets.
+    effective_limit = min(limit, 100)
+    projection = {
+        "_id": 1,
+        "username": 1,
+        "trigger": 1,
+        "type": 1,
+        "status": 1,
+        "sentAt": 1,
+        "sent_at": 1,
+        "createdAt": 1,
+        "created_at": 1,
+        "lineage": 1,
+        "error": 1,
+        "attempts": 1,
+        "templateId": 1,
+        "channel": 1,
+        "channels": 1,
+        "recipient": 1,
+        "subject": 1,
+        "preview": 1,
+        "recipientEmail": 1,
+        "recipientPhone": 1,
+        "metadata.lineage_token": 1,
+        "templateData.lineage_token": 1,
+        "templateData.recipientEmail": 1,
+        "templateData.recipient_email": 1,
+        "templateData.email": 1,
+        "templateData.recipientPhone": 1,
+        "templateData.recipient_phone": 1,
+        "templateData.phone": 1,
+        "templateData.contactNumber": 1,
+        "templateData.recipient_firstName": 1,
+        "templateData.firstname": 1,
+        "templateData.full_name": 1,
+        "templateData.match.firstName": 1,
+    }
+
+    def _sanitize_bson(value):
+        """Recursively convert BSON-only values to JSON-friendly values."""
+        from bson import ObjectId
+        if isinstance(value, ObjectId):
+            return str(value)
+        if isinstance(value, dict):
+            return {k: _sanitize_bson(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [_sanitize_bson(v) for v in value]
+        return value
+
+    def _decrypt_if_needed(value: Optional[str], encryptor: Optional[PIIEncryption]) -> Optional[str]:
+        if value in (None, ""):
+            return None
+        if not isinstance(value, str):
+            return str(value)
+        if value.startswith("gAAAAA") and encryptor:
+            return encryptor.decrypt(value) or None
+        return value
+
+    def _extract_best_phone(user_doc: dict, encryptor: Optional[PIIEncryption]) -> Optional[str]:
+        # Prefer explicit single-value fields first.
+        for key in ("phone", "contactPhone", "contactNumber"):
+            val = _decrypt_if_needed(user_doc.get(key), encryptor)
+            if val:
+                return val
+
+        # Fallback to contactNumbers array format.
+        numbers = user_doc.get("contactNumbers")
+        if isinstance(numbers, list):
+            for entry in numbers:
+                if isinstance(entry, dict):
+                    val = _decrypt_if_needed(entry.get("number"), encryptor)
+                    if val:
+                        return val
+                elif isinstance(entry, str):
+                    val = _decrypt_if_needed(entry, encryptor)
+                    if val:
+                        return val
+        return None
+
+    async def _enrich_logs_with_contact_info(raw_logs: List[dict]) -> List[dict]:
+        if not raw_logs:
+            return raw_logs
+
+        usernames = list({(l.get("username") or "").strip() for l in raw_logs if l.get("username")})
+        user_map = {}
+        encryptor = None
+        try:
+            encryptor = PIIEncryption()
+        except Exception:
+            # If encryption key is unavailable, fall back to raw values.
+            encryptor = None
+
+        if usernames:
+            users = await service.db["users"].find(
+                {"username": {"$in": usernames}},
+                {
+                    "_id": 0,
+                    "username": 1,
+                    "email": 1,
+                    "contactEmail": 1,
+                    "phone": 1,
+                    "contactPhone": 1,
+                    "contactNumber": 1,
+                    "contactNumbers": 1,
+                },
+            ).to_list(length=len(usernames))
+            user_map = {u.get("username"): u for u in users if u.get("username")}
+
+        enriched = []
+        for log in raw_logs:
+            template_data = log.get("templateData") or {}
+            user_doc = user_map.get(log.get("username"), {})
+
+            email_id = (
+                log.get("recipientEmail")
+                or template_data.get("recipientEmail")
+                or template_data.get("recipient_email")
+                or template_data.get("email")
+                or _decrypt_if_needed(user_doc.get("email") or user_doc.get("contactEmail"), encryptor)
+            )
+            phone_number = (
+                log.get("recipientPhone")
+                or template_data.get("recipientPhone")
+                or template_data.get("recipient_phone")
+                or template_data.get("phone")
+                or template_data.get("contactNumber")
+                or _extract_best_phone(user_doc, encryptor)
+            )
+
+            log["emailId"] = email_id or None
+            log["phoneNumber"] = phone_number or None
+            enriched.append(log)
+        return enriched
+
+    async def _format_logs_response(raw_logs):
+        has_more = False
+        if paginated and len(raw_logs) > effective_limit:
+            has_more = True
+            raw_logs = raw_logs[:effective_limit]
+
+        # Enrich email/phone so admin log tables can display direct contact columns.
+        enriched_logs = await _enrich_logs_with_contact_info(raw_logs)
+        sanitized_logs = [_sanitize_bson(log) for log in enriched_logs]
+        if not paginated:
+            return sanitized_logs
+
+        total = None
+        try:
+            # Count only when explicitly asked for paginated payload.
+            # This avoids extra DB work for legacy callers that only need list data.
+            total = await service.db["notification_log"].count_documents(query, maxTimeMS=8000)
+        except Exception as count_err:
+            logger.warning(f"⚠️ notification_log total count failed: {count_err}")
+
+        if total is None:
+            total = skip + len(sanitized_logs) + (1 if has_more else 0)
+
+        return {
+            "logs": sanitized_logs,
+            "total": total,
+            "hasMore": has_more,
+            "skip": skip,
+            "limit": effective_limit,
+        }
+
+    try:
+        # Primary path: newest by sentAt (if indexed).
+        fetch_limit = effective_limit + 1 if paginated else effective_limit
+        logs = await service.db["notification_log"].find(
+            query, projection
+        ).sort("sentAt", -1).skip(skip).limit(fetch_limit).max_time_ms(8000).to_list(length=fetch_limit)
+
+        logger.info(f"📋 Found {len(logs)} notification logs")
+        return await _format_logs_response(logs)
+    except Exception as e:
+        # Fallback: _id sort always uses the default index and avoids sort timeouts.
+        logger.warning(f"⚠️ sentAt query failed; falling back to _id sort: {e}")
+        try:
+            fetch_limit = effective_limit + 1 if paginated else effective_limit
+            logs = await service.db["notification_log"].find(
+                query, projection
+            ).sort("_id", -1).skip(skip).limit(fetch_limit).max_time_ms(8000).to_list(length=fetch_limit)
+            logger.info(f"📋 Fallback _id query returned {len(logs)} notification logs")
+            return await _format_logs_response(logs)
+        except NetworkTimeout as timeout_error:
+            # Final degradation path: avoid hard failing admin UI during transient
+            # Mongo shard/network instability and return an empty dataset.
+            logger.error(f"❌ Notification logs fallback timed out: {timeout_error}", exc_info=True)
+            return []
+        except Exception as fallback_error:
+            logger.error(f"❌ Failed to fetch notification logs: {fallback_error}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to fetch logs: {str(fallback_error)}")
 
 
 @router.delete("/logs/{log_id}")
@@ -1450,8 +1717,10 @@ async def get_simpletexting_stats():
 
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    week_start = today_start - timedelta(days=7)
     month_start = today_start.replace(day=1)
+    # Clamp week window to month start so "This Week" is always a subset of "This Month".
+    calendar_week_start = today_start - timedelta(days=today_start.weekday())
+    week_start = max(calendar_week_start, month_start)
 
     def fmt(dt: datetime) -> str:
         return dt.strftime("%Y-%m-%dT%H:%M:%SZ")

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { getBackendUrl } from '../config/apiConfig';
-import ContributionPopup from './ContributionPopup';
+import DeleteButton from './DeleteButton';
+import { startImpersonation } from '../utils/impersonation';
 import './ActivitySummaryPanel.css';
 
 const ActivitySummaryPanel = ({ username, onClose }) => {
@@ -10,13 +11,18 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activatingStatus, setActivatingStatus] = useState(false);
-  const [showMembershipPopup, setShowMembershipPopup] = useState(false);
-  const [membershipStatus, setMembershipStatus] = useState(null);
   const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
   // Reminder send state — 'email' | 'sms' while in flight, null otherwise.
   // `reminderToast` shows a transient success/error message under the buttons.
   const [reminderSending, setReminderSending] = useState(null);
   const [reminderToast, setReminderToast] = useState(null);
+  const [grantMonths, setGrantMonths] = useState(1);
+  const [grantConfirming, setGrantConfirming] = useState(null);
+  const [grantLoading, setGrantLoading] = useState(false);
+  const [revokeLoading, setRevokeLoading] = useState(false);
+  const [revokeConfirming, setRevokeConfirming] = useState(false);
+  const [impersonateConfirming, setImpersonateConfirming] = useState(false);
+  const [impersonateLoading, setImpersonateLoading] = useState(false);
   const navigate = useNavigate();
 
   // Fire a single contribution reminder (email or SMS) to this profile's user.
@@ -48,6 +54,36 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
     }
   };
 
+  // Admin-only: impersonate this user. Two-step confirmation inline, then
+  // stash admin session and reload the app as the target user (same flow as
+  // the admin page). Backend issues a fresh impersonation JWT.
+  const handleImpersonate = async () => {
+    if (!username || impersonateLoading) return;
+    setImpersonateLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${getBackendUrl()}/api/admin/impersonate/${username}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload.success) {
+        throw new Error(payload.detail || payload.message || 'Failed to impersonate');
+      }
+      startImpersonation(payload.token, payload.username, payload.role);
+      window.location.href = '/dashboard';
+    } catch (e) {
+      setReminderToast({
+        type: 'error',
+        text: e?.message || 'Failed to impersonate user',
+      });
+      setTimeout(() => setReminderToast(null), 4000);
+    } finally {
+      setImpersonateLoading(false);
+      setImpersonateConfirming(false);
+    }
+  };
+
   // Reset user's membership for testing payment flow
   const handleResetMembership = async () => {
     if (!username) return;
@@ -75,14 +111,6 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
         // Reload activity data to show updated status
         const activityRes = await api.get(`/user-activity-summary/${username}`);
         setData(activityRes.data);
-        // Reload membership status
-        const membershipRes = await fetch(`${getBackendUrl()}/api/contributions/contribution-status`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (membershipRes.ok) {
-          const membershipData = await membershipRes.json();
-          setMembershipStatus(membershipData.membership);
-        }
         // Dispatch event to update TopBar membership status
         window.dispatchEvent(new CustomEvent('membershipChanged'));
       } else {
@@ -99,22 +127,105 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
     }
   };
 
+  const handleGrantMembership = async (months) => {
+    if (!username || grantLoading) return;
+    setGrantLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${getBackendUrl()}/api/contributions/membership/grant`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, months })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || data.message || `Grant failed (${res.status})`);
+      }
+      setReminderToast({
+        type: 'success',
+        text: `✅ Granted ${months} month${months > 1 ? 's' : ''} to @${username}`
+      });
+      const activityRes = await api.get(`/user-activity-summary/${username}`);
+      setData(activityRes.data);
+      window.dispatchEvent(new CustomEvent('membershipChanged'));
+    } catch (e) {
+      const detail = e?.response?.data?.detail || e?.message || 'Failed to grant membership';
+      setReminderToast({ type: 'error', text: detail });
+    } finally {
+      setGrantLoading(false);
+      setGrantConfirming(null);
+      setTimeout(() => setReminderToast(null), 4000);
+    }
+  };
+
+  const handleGrantClick = () => {
+    if (grantConfirming === grantMonths) {
+      handleGrantMembership(grantMonths);
+    } else {
+      setGrantConfirming(grantMonths);
+    }
+  };
+
+  const handleRevokeMembership = async () => {
+    if (!username || revokeLoading) return;
+    if (!data?.membership?.adminGranted) {
+      setReminderToast({
+        type: 'error',
+        text: 'Only admin-granted memberships can be revoked'
+      });
+      setTimeout(() => setReminderToast(null), 4000);
+      return;
+    }
+    const match = data.membership?.type?.match(/^(\d+)_month$/);
+    const grantedMonths = match ? parseInt(match[1], 10) : null;
+    if (!grantedMonths || grantedMonths !== grantMonths) {
+      setReminderToast({
+        type: 'error',
+        text: 'Selected month does not match the admin-granted membership'
+      });
+      setTimeout(() => setReminderToast(null), 4000);
+      return;
+    }
+    setRevokeLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${getBackendUrl()}/api/contributions/membership/reset`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username })
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.detail || result.message || `Revoke failed (${res.status})`);
+      }
+      setReminderToast({
+        type: 'success',
+        text: `✅ Membership revoked for @${username}`
+      });
+      const activityRes = await api.get(`/user-activity-summary/${username}`);
+      setData(activityRes.data);
+      window.dispatchEvent(new CustomEvent('membershipChanged'));
+    } catch (e) {
+      const detail = e?.response?.data?.detail || e?.message || 'Failed to revoke membership';
+      setReminderToast({ type: 'error', text: detail });
+    } finally {
+      setRevokeLoading(false);
+      setTimeout(() => setReminderToast(null), 4000);
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
         const res = await api.get(`/user-activity-summary/${username}`);
         setData(res.data);
-        
-        // Load membership status
-        const token = localStorage.getItem('token');
-        const membershipRes = await fetch(`${getBackendUrl()}/api/contributions/contribution-status`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (membershipRes.ok) {
-          const membershipData = await membershipRes.json();
-          setMembershipStatus(membershipData.membership);
-        }
       } catch (err) {
         setError(err.response?.data?.detail || 'Failed to load activity summary');
       } finally {
@@ -123,6 +234,16 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
     };
     load();
   }, [username]);
+
+  useEffect(() => {
+    const m = data?.membership;
+    if (m?.type) {
+      const match = m.type.match(/^(\d+)_month$/);
+      if (match) {
+        setGrantMonths(parseInt(match[1], 10));
+      }
+    }
+  }, [data?.membership?.type]);
 
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
@@ -149,6 +270,11 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
     const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     return `${relative} (${dateStr} ${timeStr})`;
+  };
+
+  const shortDate = (iso) => {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const userLink = (uname) => {
@@ -194,6 +320,9 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
   const accountStatusNormalized = String(d?.accountStatus || '').toLowerCase();
   const isPendingAdminApproval = accountStatusNormalized === 'pending_admin_approval';
   const isAdminViewer = (localStorage.getItem('userRole') || '').toLowerCase() === 'admin';
+
+  const grantedAdminMonths = d.membership?.adminGranted && d.membership?.type ? parseInt(d.membership.type, 10) : null;
+  const revokeAllowed = Number.isFinite(grantedAdminMonths) && grantedAdminMonths === grantMonths;
 
   const handleActivateAccount = async () => {
     if (!username || activatingStatus) return;
@@ -266,6 +395,25 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
                       {activatingStatus ? 'Activating...' : 'Activate'}
                     </button>
                   )}
+                  {isAdminViewer && (
+                    <button
+                      type="button"
+                      className={`activity-impersonate-btn${impersonateConfirming ? ' confirming' : ''}`}
+                      title={impersonateConfirming ? 'Click again to confirm — you will be logged in as this user' : 'Impersonate this user (admin only)'}
+                      disabled={impersonateLoading}
+                      onClick={() => {
+                        if (impersonateConfirming) {
+                          handleImpersonate();
+                        } else {
+                          setImpersonateConfirming(true);
+                          // Auto-reset the two-step confirm after 4s.
+                          setTimeout(() => setImpersonateConfirming(false), 4000);
+                        }
+                      }}
+                    >
+                      {impersonateLoading ? '…' : impersonateConfirming ? 'Confirm?' : '👤 Impersonate'}
+                    </button>
+                  )}
                 </div>
               </div>
               {d.profileCompletion != null && (
@@ -274,9 +422,9 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
                   <span className="activity-value">{d.profileCompletion}%</span>
                 </div>
               )}
-              <div className="activity-item">
+              <div className="activity-item activity-item-slim">
                 <span className="activity-label">Activity (last 7 days)</span>
-                <span className="activity-value highlight">{d.recentActivity?.last7Days || 0} actions</span>
+                <span className="activity-label">{d.recentActivity?.last7Days || 0} actions</span>
               </div>
             </div>
           </div>
@@ -330,7 +478,7 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
           </div>
 
           {/* PII Requests */}
-          <div className="activity-section">
+          <div className="activity-section micro">
             <h4>🔒 Data Requests (PII)</h4>
             <div className="activity-stats-row">
               <div className="activity-stat">
@@ -481,6 +629,66 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
             </div>
           </div>
 
+          {/* Support Tickets */}
+          <div className="activity-section">
+            <h4>📧 Support Tickets</h4>
+            <div className="activity-stats-row">
+              <div className="activity-stat">
+                <span className="stat-number">{d.supportTickets?.openCount || 0}</span>
+                <span className="stat-label">Open</span>
+              </div>
+              <div className="activity-stat">
+                <span className="stat-number">{d.supportTickets?.count || 0}</span>
+                <span className="stat-label">Total</span>
+              </div>
+            </div>
+            <div className="activity-grid">
+              <div className="activity-item activity-link-row">
+                <span className="activity-label">Last Ticket</span>
+                <span className="activity-value">{formatDate(d.supportTickets?.lastTicket)}</span>
+              </div>
+              <div className="activity-item activity-link-row">
+                <span className="activity-label">Actions</span>
+                <button
+                  type="button"
+                  className="activity-text-link"
+                  onClick={() => navigate('/support?tab=admin-contact')}
+                >
+                  View tickets
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Membership */}
+          <div className="activity-section">
+            <h4>👑 Membership</h4>
+            <div className="activity-stats-row">
+              <div className="activity-stat">
+                <span className="stat-number">{d.membership?.status || 'none'}</span>
+                <span className="stat-label">Status</span>
+              </div>
+              <div className="activity-stat">
+                <span className="stat-number">{d.membership?.type || '—'}</span>
+                <span className="stat-label">Type</span>
+              </div>
+              <div className="activity-stat">
+                <span className="stat-number">${(d.membership?.totalPaid || 0).toFixed(2)}</span>
+                <span className="stat-label">Total Paid</span>
+              </div>
+            </div>
+            <div className="activity-grid">
+              <div className="activity-item">
+                <span className="activity-label">Start</span>
+                <span className="activity-value">{formatDate(d.membership?.startDate)}</span>
+              </div>
+              <div className="activity-item">
+                <span className="activity-label">End</span>
+                <span className="activity-value">{d.membership?.endDate ? formatDate(d.membership.endDate) : '—'}</span>
+              </div>
+            </div>
+          </div>
+
           {/* Contributions */}
           <div className="activity-section">
             <div className="activity-section-header">
@@ -526,12 +734,85 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
                 <span className="stat-number">{d.contributions?.recurringCount || 0}</span>
                 <span className="stat-label">Recurring</span>
               </div>
+              <div className="activity-stat">
+                <button
+                  className="activity-reset-membership-btn"
+                  onClick={handleResetMembership}
+                  title="Reset membership to test payment flow"
+                >
+                  🔄 Reset
+                </button>
+              </div>
             </div>
             <div className="activity-grid">
               <div className="activity-item">
                 <span className="activity-label">Last Contribution</span>
                 <span className="activity-value">{formatDate(d.contributions?.lastContribution)}</span>
               </div>
+              {isAdminViewer && (
+                <div className="activity-item">
+                  <span className="activity-label">Grant Access</span>
+                  <div className="admin-action-btns">
+                    <select
+                      className="month-grant-select"
+                      value={String(grantMonths)}
+                      onChange={(e) => {
+                        const m = parseInt(e.target.value, 10);
+                        setGrantMonths(m);
+                        setGrantConfirming(null);
+                      }}
+                      disabled={grantLoading}
+                      title="Months to grant"
+                    >
+                      <option value="1">1 month</option>
+                      <option value="2">2 months</option>
+                      <option value="3">3 months</option>
+                      <option value="6">6 months</option>
+                      <option value="12">12 months</option>
+                      <option value="24">24 months</option>
+                      <option value="36">36 months</option>
+                    </select>
+                    <button
+                      className={`btn-micro ${grantConfirming === grantMonths ? 'btn-micro-success' : 'btn-micro-primary'}`}
+                      onClick={handleGrantClick}
+                      disabled={grantLoading}
+                      title={grantConfirming === grantMonths ? 'Click to confirm grant' : 'Grant membership'}
+                    >
+                      {grantLoading ? '⏳' : (grantConfirming === grantMonths ? '✓' : '📅')}
+                    </button>
+                    {grantConfirming === grantMonths && (
+                      <span className="grant-confirm-text">Click again to grant</span>
+                    )}
+                    <DeleteButton
+                      onDelete={handleRevokeMembership}
+                      onConfirmStateChange={setRevokeConfirming}
+                      itemName={
+                        d.membership?.adminGranted
+                          ? `admin-granted ${d.membership?.type || 'membership'} ending ${shortDate(d.membership?.endDate)}`
+                          : 'membership (not admin-granted)'
+                      }
+                      size="small"
+                      icon="🗑️"
+                      confirmIcon="✓"
+                      confirmText="Revoke?"
+                      disabled={revokeLoading || !revokeAllowed}
+                    />
+                    {revokeConfirming && revokeAllowed && (
+                      <span className="revoke-confirm-text">
+                        Revoke admin-granted {d.membership?.type} ending {shortDate(d.membership?.endDate)}?
+                      </span>
+                    )}
+                    {!d.membership?.adminGranted && (
+                      <span className="revoke-confirm-text">No admin grant to revoke</span>
+                    )}
+                    {d.membership?.adminGranted && !revokeAllowed && Number.isFinite(grantedAdminMonths) && (
+                      <span className="revoke-confirm-text">
+                        Select {grantedAdminMonths} month{grantedAdminMonths > 1 ? 's' : ''} to revoke
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Latest 10 contributions grid */}
@@ -580,68 +861,8 @@ const ActivitySummaryPanel = ({ username, onClose }) => {
               <p className="activity-empty">No contributions yet.</p>
             )}
           </div>
-
-          {/* Admin Membership Section - Only if user has active membership */}
-          {membershipStatus && membershipStatus.hasAccess && (
-            <div className="admin-membership-section">
-              <div className="admin-membership-header">
-                <span className="admin-membership-icon">👑</span>
-                <span className="admin-membership-title">Grant Membership</span>
-              </div>
-              <div className="admin-membership-status">
-                <span className="membership-status-label">Current:</span>
-                <span className="membership-status-value">
-                  {membershipStatus.type === 'one_time' ? '🏆 One-Time (Lifetime)' :
-                   membershipStatus.type === '3_month' ? '⏰ 3-Month' :
-                   membershipStatus.type === '1_year' ? '⭐ 1-Year' : 'None'}
-                </span>
-                {membershipStatus.endDate && (
-                  <span className="membership-status-expiry">
-                    • Expires: {new Date(membershipStatus.endDate).toLocaleDateString()}
-                  </span>
-                )}
-                <button
-                  className="membership-reset-btn"
-                  onClick={handleResetMembership}
-                  title="Reset membership to test payment flow"
-                >
-                  🔄 Reset
-                </button>
-              </div>
-              <div className="admin-membership-actions">
-                <button
-                  className="admin-membership-btn"
-                  onClick={() => setShowMembershipPopup(true)}
-                >
-                  🏆 Grant One-Time ($50)
-                </button>
-                <button
-                  className="admin-membership-btn"
-                  onClick={() => setShowMembershipPopup(true)}
-                >
-                  ⏰ Grant 3-Month ($30)
-                </button>
-                <button
-                  className="admin-membership-btn"
-                  onClick={() => setShowMembershipPopup(true)}
-                >
-                  ⭐ Grant 1-Year ($100)
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
-
-      {/* Membership Popup (now powered by ContributionPopup in membership mode) */}
-      {showMembershipPopup && (
-        <ContributionPopup
-          isOpen={showMembershipPopup}
-          onClose={() => setShowMembershipPopup(false)}
-          contributionConfig={null}
-          membershipMode={true}
-        />
-      )}
 
       {/* Reset Confirmation Modal */}
       {showResetConfirmModal && (
