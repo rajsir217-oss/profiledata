@@ -1505,7 +1505,25 @@ Sent from L3V3L Matches`;
   };
 
   if (loading) return <p>Loading profile...</p>;
-  if (error) return <p className="text-danger">{error}</p>;
+  if (error) {
+    if (error.includes('Membership required')) {
+      return (
+        <div style={{ maxWidth: '600px', margin: '10px auto' }}>
+          <div className="alert alert-danger search-membership-alert">
+            To view other profiles, please complete your activation payment.
+            <button
+              type="button"
+              className="search-paynow-link-btn"
+              onClick={() => navigate('/preferences?tab=contributions')}
+            >
+              Complete my payment
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return <p className="text-danger">{error}</p>;
+  }
   if (!user) return <p>No profile found.</p>;
 
   const age = (() => {

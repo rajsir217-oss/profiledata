@@ -140,7 +140,9 @@ const LandingPageV2 = () => {
 
         {/* NAV */}
         <nav className="lp2-nav">
-          <div className="brand"><div className="brand-dot">🦋</div>L3V3L Matches</div>
+          <div className="brand">
+            <img src="/landing-page-logo-transparent.png" alt="L3V3L Matches" className="brand-logo-img" />
+          </div>
           <div className="nav-links">
             <a href="#lp2-paths" onClick={(e) => { e.preventDefault(); scrollToSection('lp2-paths'); }}>For Parents</a>
             <a href="#lp2-journey" onClick={(e) => { e.preventDefault(); scrollToSection('lp2-journey'); }}>How It Works</a>

@@ -8,7 +8,6 @@ import { getShortName } from '../utils/userDisplay';
 import { getAuthenticatedImageUrl } from '../utils/imageUtils';
 import { getProfilePicUrl } from '../utils/urlHelper';
 import './Sidebar.css';
-import { useContribution } from '../contexts/ContributionContext';
 
 const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -19,7 +18,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
   const [localIsPinned, setLocalIsPinned] = useState(false); // Local pin state
   const [unreadCount, setUnreadCount] = useState(null); // Unread message count
   const navigate = useNavigate();
-  const { openPopup } = useContribution();
 
   // Use prop if provided, otherwise use local state
   const isPinned = propIsPinned !== undefined ? propIsPinned : localIsPinned;
@@ -244,17 +242,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
         disabled: false
       },
     ];
-
-    // Support L3V3L — always-visible voluntary contribution for regular users
-    if (!isAdmin && !isModerator) {
-      items.push({
-        icon: '💜',
-        label: 'Support L3V3L',
-        subLabel: 'Keep us free & ad-free',
-        action: () => openPopup(),
-        disabled: false
-      });
-    }
 
     // Add Admin section for admin user (check role, not username)
     if (isAdmin) {
@@ -514,8 +501,6 @@ const Sidebar = ({ isCollapsed, onToggle, isPinned: propIsPinned, onPinChange })
             <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/about'))}>About Us</span>
             <span className="footer-separator">|</span>
             <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/trademark'))}>Trademark</span>
-            <span className="footer-separator">|</span>
-            <span className="footer-link" onClick={() => handleMenuClick(openPopup)}>💜 Support L3V3L</span>
             <span className="footer-separator">|</span>
             <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/testimonials'))}>💬 Testimonials</span>
             <span className="footer-separator">|</span>

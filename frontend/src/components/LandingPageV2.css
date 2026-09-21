@@ -65,13 +65,12 @@
   margin: 0 auto;
 }
 .lp2 .brand { display: flex; align-items: center; gap: 10px; font-size: 23px; flex-shrink: 0; }
-.lp2 .brand-dot {
-  width: 38px; height: 38px;
-  border-radius: 50%;
-  background: var(--coral);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
+.lp2 .brand-logo-img {
+  display: block;
+  height: 50px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
 }
 .lp2 .nav-links { display: flex; gap: 28px; font-size: 14px; font-weight: 600; align-items: center; margin-left: auto; margin-right: 40px; }
 .lp2 .nav-links a { color: var(--ink); text-decoration: none; cursor: pointer; }

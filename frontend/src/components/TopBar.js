@@ -14,10 +14,10 @@ import {
 import InfoTicker from './InfoTicker';
 import EventCountdown from './EventCountdown';
 import { getShortName } from '../utils/userDisplay';
-import { useContribution } from '../contexts/ContributionContext';
 import logger from '../utils/logger';
 import { loadWhitelabelConfig } from '../utils/whitelabelConfig';
 import useActivityLogger from '../hooks/useActivityLogger';
+import { useContribution } from '../contexts/ContributionContext';
 import './TopBar.css';
 
 const NEAR_ME_NEW_BADGE_EXPIRES_AT = '2026-08-31T23:59:59Z';
