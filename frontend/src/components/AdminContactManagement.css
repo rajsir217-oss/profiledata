@@ -848,32 +848,32 @@
 }
 
 /* Responsive */
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .inbox-layout {
+    grid-template-columns: var(--ticket-panel-width, 380px) 8px minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 1024px) {
   .inbox-layout {
     grid-template-columns: 1fr;
     height: auto;
   }
-  
+
   .panel-resize-handle {
     display: none;
   }
-  
+
   .tickets-panel {
     max-height: 400px;
   }
-  
+
   .ticket-detail-panel {
     min-height: 600px;
-  }
-}
-
-@media (max-width: 1200px) {
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .inbox-layout {
-    grid-template-columns: var(--ticket-panel-width, 380px) 8px minmax(0, 1fr);
   }
 }
 
@@ -1079,8 +1079,8 @@
 
   .reply-controls {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .clear-btn-hidden {
@@ -1088,7 +1088,7 @@
   }
 
   .reply-textarea {
-    width: 100%;
+    flex: 1 1 100%;
     padding: 14px;
     font-size: 16px;
     border: 2px solid var(--border-color, #e5e5e5);
@@ -1099,7 +1099,7 @@
   }
 
   .send-reply-btn {
-    width: 100%;
+    flex: 1;
     padding: 14px;
     font-size: 20px;
     font-weight: 600;

@@ -20,6 +20,7 @@ const AdminContactManagement = () => {
   const [replyAttachments, setReplyAttachments] = useState([]);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const detailPanelRef = useRef(null);
   
   // Status notification
   const [statusMessage, setStatusMessage] = useState(null); // { type: 'success'|'error', text: '...' }
@@ -115,6 +116,10 @@ const AdminContactManagement = () => {
 
   const handleSelectTicket = async (ticket) => {
     setSelectedTicket(ticket);
+    // On stacked (tablet/mobile) layout the detail panel sits below the list
+    if (window.innerWidth <= 1024) {
+      setTimeout(() => detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
     // Refresh to get latest data including new user replies
     await refreshTicket(ticket._id);
   };
@@ -328,9 +333,9 @@ const AdminContactManagement = () => {
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isResizingRef.current) return;
-      // Clamp width between 250px and 70% of viewport
+      // Clamp width between 250px and 70% of viewport, always leaving >=360px for the detail panel
       const minWidth = 250;
-      const maxWidth = Math.floor(window.innerWidth * 0.7);
+      const maxWidth = Math.min(Math.floor(window.innerWidth * 0.7), window.innerWidth - 360);
       const newWidth = Math.min(Math.max(e.clientX, minWidth), maxWidth);
       setTicketPanelWidth(newWidth);
     };
@@ -515,7 +520,7 @@ const AdminContactManagement = () => {
         </div>
 
         {/* Right: Ticket Detail */}
-        <div className="ticket-detail-panel">
+        <div className="ticket-detail-panel" ref={detailPanelRef}>
           {!selectedTicket ? (
             <div className="no-selection">
               <div className="no-selection-icon">👈</div>

@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mockup — Landing Page Option A: Editorial Elegance</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #2b1d16;
+      --maroon: #6b1f2e;
+      --gold: #b8863b;
+      --cream: #faf6ef;
+      --paper: #fffdf8;
+      --line: #e6ddd0;
+      --muted: #7a6a5d;
+    }
+
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background: var(--cream);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .mockup-banner {
+      background: #ff6b35;
+      color: white;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: -apple-system, sans-serif;
+      padding: 8px;
+      letter-spacing: 1px;
+    }
+
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 0 48px; }
+
+    .eyebrow {
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--maroon);
+    }
+
+    /* ── TOP NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 48px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand img { height: 44px; }
+    .brand-name {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .brand-name span { color: var(--maroon); }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      font-family: -apple-system, sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+    .nav-links a { color: var(--ink); text-decoration: none; }
+    .nav-links a:hover { color: var(--maroon); }
+    .btn-login {
+      font-family: -apple-system, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 10px 28px;
+      border: 1px solid var(--maroon);
+      color: var(--maroon);
+      background: transparent;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-login:hover { background: var(--maroon); color: #fff; }
+
+    /* ── HERO ── */
+    .hero {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 72px;
+      align-items: center;
+      padding: 96px 48px 80px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .hero h1 {
+      font-size: 62px;
+      line-height: 1.08;
+      font-weight: 400;
+      letter-spacing: -1px;
+      margin: 24px 0;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--maroon);
+    }
+    .hero-sub {
+      font-size: 17px;
+      line-height: 1.75;
+      color: var(--muted);
+      max-width: 480px;
+      font-family: -apple-system, sans-serif;
+    }
+    .hero-ctas { display: flex; gap: 20px; margin-top: 40px; align-items: center; }
+    .btn-primary {
+      font-family: -apple-system, sans-serif;
+      background: var(--maroon);
+      color: #fff;
+      border: none;
+      padding: 16px 36px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); }
+    .btn-text {
+      font-family: -apple-system, sans-serif;
+      background: none;
+      border: none;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 1px solid var(--gold);
+      padding-bottom: 2px;
+    }
+
+    .hero-photo {
+      position: relative;
+    }
+    .hero-photo img {
+      width: 100%;
+      height: 560px;
+      object-fit: cover;
+      border-radius: 200px 200px 0 0;
+    }
+    .hero-photo::after {
+      content: '';
+      position: absolute;
+      inset: 16px -16px -16px 16px;
+      border: 1px solid var(--gold);
+      border-radius: 200px 200px 0 0;
+      z-index: -1;
+    }
+    .photo-caption {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      right: 24px;
+      background: rgba(255,253,248,0.92);
+      padding: 16px 20px;
+      font-family: -apple-system, sans-serif;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--ink);
+      border-left: 3px solid var(--maroon);
+    }
+    .photo-caption strong { color: var(--maroon); }
+
+    /* ── FLOATING CHAT CARD (hero) ── */
+    .chat-card {
+      position: absolute;
+      left: -56px;
+      top: 42%;
+      width: 268px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: 0 18px 50px rgba(43,29,22,0.22);
+      font-family: -apple-system, sans-serif;
+      z-index: 2;
+    }
+    .chat-card::after {
+      content: '';
+      position: absolute;
+      inset: 8px -8px -8px 8px;
+      border: 1px solid var(--gold);
+      z-index: -1;
+    }
+    .chat-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .chat-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--maroon);
+      color: var(--cream);
+      font-family: Georgia, serif;
+      font-size: 15px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .chat-name { font-size: 13px; font-weight: 700; line-height: 1.2; }
+    .chat-status { font-size: 10px; color: #4a7a4f; display: flex; align-items: center; gap: 4px; }
+    .chat-status::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%; background: #4a7a4f;
+    }
+    .chat-score {
+      margin-left: auto;
+      font-family: Georgia, serif;
+      font-size: 19px;
+      color: var(--maroon);
+      font-variant-numeric: lining-nums;
+    }
+    .chat-score small {
+      display: block;
+      font-family: -apple-system, sans-serif;
+      font-size: 7.5px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .chat-thread { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .bubble {
+      max-width: 86%;
+      font-size: 11.5px;
+      line-height: 1.45;
+      padding: 8px 12px;
+    }
+    .bubble.in {
+      background: #f2ece1;
+      color: var(--ink);
+      align-self: flex-start;
+      border-radius: 2px 12px 12px 12px;
+    }
+    .bubble.out {
+      background: var(--maroon);
+      color: var(--cream);
+      align-self: flex-end;
+      border-radius: 12px 2px 12px 12px;
+    }
+    .chat-foot {
+      padding: 9px 14px;
+      border-top: 1px solid var(--line);
+      font-size: 9.5px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+    .chat-foot .secure { color: var(--maroon); font-weight: 700; }
+
+    /* ── STATS STRIP ── */
+    .stats {
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 36px 48px;
+      display: flex;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .stat { text-align: left; }
+    .stat-num { font-size: 38px; font-weight: 400; font-variant-numeric: lining-nums; }
+    .stat-num em { color: var(--maroon); font-style: normal; }
+    .stat-label {
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* ── SECTION SHELL ── */
+    section { padding: 96px 0; }
+    .section-head { max-width: 1200px; margin: 0 auto 56px; padding: 0 48px; }
+    .section-head h2 {
+      font-size: 42px;
+      font-weight: 400;
+      letter-spacing: -0.5px;
+      margin-top: 16px;
+      max-width: 560px;
+      line-height: 1.15;
+    }
+    .section-head h2 em { color: var(--maroon); font-style: italic; }
+
+    /* ── HOW IT WORKS — numbered list, editorial ── */
+    .steps { max-width: 1200px; margin: 0 auto; padding: 0 48px; }
+    .step {
+      display: grid;
+      grid-template-columns: 80px 1fr 1.4fr;
+      gap: 40px;
+      align-items: baseline;
+      padding: 40px 0;
+      border-top: 1px solid var(--line);
+    }
+    .step:last-child { border-bottom: 1px solid var(--line); }
+    .step-num {
+      font-size: 52px;
+      font-weight: 300;
+      color: var(--gold);
+      font-variant-numeric: lining-nums;
+    }
+    .step h3 { font-size: 26px; font-weight: 400; }
+    .step p {
+      font-family: -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    /* ── PHILOSOPHY — compact band ── */
+    .philosophy {
+      background: var(--maroon);
+      color: var(--cream);
+    }
+    .philosophy .wrap {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: 64px;
+      align-items: center;
+      padding-top: 96px;
+      padding-bottom: 96px;
+    }
+    .philosophy .eyebrow { color: var(--gold); }
+    .philosophy h2 { font-size: 38px; font-weight: 400; margin-top: 16px; line-height: 1.2; }
+    .pillar-letters {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .pillar-row {
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      gap: 24px;
+      padding: 20px 0;
+      border-bottom: 1px solid rgba(250,246,239,0.2);
+      align-items: baseline;
+    }
+    .pillar-row:last-child { border-bottom: none; }
+    .pillar-letter {
+      font-size: 34px;
+      color: var(--gold);
+      font-weight: 700;
+    }
+    .pillar-row h4 {
+      font-size: 18px;
+      font-weight: 400;
+      margin-bottom: 4px;
+    }
+    .pillar-row p {
+      font-family: -apple-system, sans-serif;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: rgba(250,246,239,0.7);
+    }
+
+    /* ── SERVICES — asymmetric editorial grid ── */
+    .services-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 48px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+    }
+    .service {
+      background: var(--paper);
+      padding: 40px 32px;
+    }
+    .service-num {
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--gold);
+      font-weight: 700;
+    }
+    .service h3 { font-size: 21px; font-weight: 400; margin: 16px 0 12px; }
+    .service p {
+      font-family: -apple-system, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials { background: var(--paper); border-top: 1px solid var(--line); }
+    .quotes {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 48px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 48px;
+    }
+    .quote { position: relative; padding-top: 40px; }
+    .quote::before {
+      content: '“';
+      position: absolute;
+      top: -8px;
+      left: -8px;
+      font-size: 96px;
+      color: var(--gold);
+      font-family: Georgia, serif;
+      line-height: 1;
+    }
+    .quote p {
+      font-size: 17px;
+      font-style: italic;
+      line-height: 1.65;
+    }
+    .quote-attrib {
+      font-family: -apple-system, sans-serif;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--maroon);
+      margin-top: 20px;
+    }
+    .quote-attrib span { color: var(--muted); display: block; margin-top: 4px; letter-spacing: 0.5px; text-transform: none; }
+
+    /* ── CTA BAND ── */
+    .cta-band {
+      text-align: center;
+      padding: 120px 48px;
+      border-top: 1px solid var(--line);
+    }
+    .cta-band h2 {
+      font-size: 52px;
+      font-weight: 400;
+      letter-spacing: -1px;
+      line-height: 1.15;
+    }
+    .cta-band h2 em { color: var(--maroon); font-style: italic; }
+    .cta-band p {
+      font-family: -apple-system, sans-serif;
+      color: var(--muted);
+      margin: 20px 0 40px;
+      font-size: 15px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--ink);
+      color: rgba(250,246,239,0.7);
+      padding: 64px 48px 32px;
+    }
+    .footer-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 48px;
+    }
+    .footer-grid h4 {
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 20px;
+    }
+    .footer-grid ul { list-style: none; }
+    .footer-grid li { margin-bottom: 10px; }
+    .footer-grid a {
+      color: rgba(250,246,239,0.7);
+      text-decoration: none;
+      font-family: -apple-system, sans-serif;
+      font-size: 13px;
+    }
+    .footer-grid a:hover { color: var(--cream); }
+    .footer-brand-name { font-size: 22px; color: var(--cream); margin-bottom: 12px; }
+    .footer-brand-name span { color: var(--gold); }
+    .footer-brand-desc {
+      font-family: -apple-system, sans-serif;
+      font-size: 13px;
+      line-height: 1.7;
+      max-width: 280px;
+    }
+    .footer-bottom {
+      max-width: 1200px;
+      margin: 48px auto 0;
+      padding-top: 24px;
+      border-top: 1px solid rgba(250,246,239,0.15);
+      font-family: -apple-system, sans-serif;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; padding: 48px 24px; }
+      .hero h1 { font-size: 40px; }
+      .hero-photo img { height: 380px; }
+      .chat-card { left: 8px; top: 5%; width: 216px; }
+      .chat-card::after { display: none; }
+      .bubble { font-size: 10.5px; padding: 7px 10px; }
+      .stats, .step, .philosophy .wrap, .services-grid, .quotes, .footer-grid { grid-template-columns: 1fr; }
+      .stats { flex-direction: column; gap: 24px; }
+      .step { grid-template-columns: 48px 1fr; }
+      .step p { grid-column: 2; }
+      nav { padding: 20px 24px; }
+      .nav-links { display: none; }
+      .wrap, .section-head, .steps, .services-grid, .quotes { padding-left: 24px; padding-right: 24px; }
+      .cta-band { padding: 72px 24px; }
+      .cta-band h2 { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mockup-banner">⚡ MOCKUP — Option A: Editorial Elegance (serif, cream, maroon + gold)</div>
+
+<!-- NAV -->
+<nav>
+  <div class="brand">
+    <img src="../../public/landing-page-logo-transparent.png" alt="L3V3L Matches" />
+  </div>
+  <div class="nav-links">
+    <a href="#">How It Works</a>
+    <a href="#">Philosophy</a>
+    <a href="#">Events</a>
+    <a href="#">Success Stories</a>
+  </div>
+  <button class="btn-login">LOGIN</button>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <span class="eyebrow">Premium Matrimonial Matchmaking</span>
+    <h1>A marriage of <em>science</em> and serendipity.</h1>
+    <p class="hero-sub">
+      L3V3L analyzes 50+ compatibility factors to create meaningful connections
+      beyond surface-level matching. Every profile is verified and
+      community-collected — because families deserve certainty, not swipes.
+    </p>
+    <div class="hero-ctas">
+      <button class="btn-primary">REGISTER PROFILE</button>
+      <button class="btn-text">See how it works</button>
+    </div>
+  </div>
+  <div class="hero-photo">
+    <img src="../../public/images/hands_color1.jpeg" alt="Couple" />
+    <div class="chat-card">
+      <div class="chat-head">
+        <div class="chat-avatar">P</div>
+        <div>
+          <div class="chat-name">Priya</div>
+          <div class="chat-status">Online now</div>
+        </div>
+        <div class="chat-score">94<small>L3V3L</small></div>
+      </div>
+      <div class="chat-thread">
+        <div class="bubble in">Your profile resonated — our families share the same values.</div>
+        <div class="bubble out">I felt the same. Would you like to talk this weekend?</div>
+        <div class="bubble in">I'd love that. Saturday works beautifully. 🦋</div>
+      </div>
+      <div class="chat-foot">
+        <span class="secure">🔒 Secure messaging</span>
+        <span>Read 6:42 PM</span>
+      </div>
+    </div>
+    <div class="photo-caption">
+      <strong>✓ Verified community</strong> — every profile on L3V3LMatches.com is
+      genuine, verified, and community-collected, supporting families in finding
+      the right match.
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat"><div class="stat-num">1,000<em>+</em></div><div class="stat-label">Verified Profiles</div></div>
+  <div class="stat"><div class="stat-num">50<em>+</em></div><div class="stat-label">Successful Matches</div></div>
+  <div class="stat"><div class="stat-num">50<em>+</em></div><div class="stat-label">Compatibility Factors</div></div>
+  <div class="stat"><div class="stat-num">98<em>%</em></div><div class="stat-label">Profile Verification</div></div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section>
+  <div class="section-head">
+    <span class="eyebrow">The Process</span>
+    <h2>How L3V3L transforms matchmaking</h2>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <h3>Complete your profile</h3>
+      <p>Share your values, interests, lifestyle, and aspirations. Our AI analyzes what truly matters to you — not just what you look like.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <h3>AI analyzes 50+ factors</h3>
+      <p>Our algorithm evaluates compatibility across personality, values, lifestyle, goals, and communication styles.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <h3>Receive your L3V3L score</h3>
+      <p>Get personalized match scores (0–100) showing real compatibility potential with each profile you see.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <h3>Connect meaningfully</h3>
+      <p>Start conversations with matches who share your values and vision for the future — no endless scrolling.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PHILOSOPHY -->
+<section class="philosophy">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">🦋 Our Philosophy</span>
+      <h2>What L3V3L means</h2>
+      <p style="font-family:-apple-system,sans-serif;font-size:14px;line-height:1.7;color:rgba(250,246,239,0.7);margin-top:16px;">
+        A relationship philosophy defining the emotional depth and compatibility
+        between two people — modern, playful, and emotionally resonant.
+      </p>
+    </div>
+    <div class="pillar-letters">
+      <div class="pillar-row">
+        <div class="pillar-letter">L</div>
+        <div><h4>Love</h4><p>The spark, the chemistry, the butterflies. Where it all begins.</p></div>
+      </div>
+      <div class="pillar-row">
+        <div class="pillar-letter">3</div>
+        <div><h4>Loyalty, Laughter, Vulnerability</h4><p>The trio that makes love sustainable — trust, lightness, and openness.</p></div>
+      </div>
+      <div class="pillar-row">
+        <div class="pillar-letter">V</div>
+        <div><h4>Vulnerability</h4><p>A double emphasis — opening up is hard, but essential to true connection.</p></div>
+      </div>
+      <div class="pillar-row">
+        <div class="pillar-letter">3</div>
+        <div><h4>Elevation, Empathy, Effort</h4><p>Relationships thrive when partners lift, understand, and show up daily.</p></div>
+      </div>
+      <div class="pillar-row">
+        <div class="pillar-letter">L</div>
+        <div><h4>Loyalty, again</h4><p>Because loyalty isn't a one-time thing — it's a daily choice.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section>
+  <div class="section-head">
+    <span class="eyebrow">What We Offer</span>
+    <h2>Matchmaking designed for <em>serious</em> relationships</h2>
+  </div>
+  <div class="services-grid">
+    <div class="service">
+      <div class="service-num">01</div>
+      <h3>AI-Powered Compatibility</h3>
+      <p>The L3V3L algorithm analyzes personality, values, lifestyle, communication style, and life goals to calculate a precise 0–100 score for every potential match.</p>
+    </div>
+    <div class="service">
+      <div class="service-num">02</div>
+      <h3>Verified Profiles</h3>
+      <p>Every profile undergoes verification for authenticity and serious intent — privacy-first by design, with PII access controls.</p>
+    </div>
+    <div class="service">
+      <div class="service-num">03</div>
+      <h3>Advanced Discovery</h3>
+      <p>Filter by age, location, education, profession, religion, and lifestyle — with smart recommendations surfacing your most compatible matches.</p>
+    </div>
+    <div class="service">
+      <div class="service-num">04</div>
+      <h3>Secure Messaging</h3>
+      <p>In-app messaging with read receipts and real-time notifications for premium members — your conversations stay private.</p>
+    </div>
+    <div class="service">
+      <div class="service-num">05</div>
+      <h3>Events &amp; Meetups</h3>
+      <p>Virtual speed dating, compatibility workshops, and in-person social events across 12 US cities — 500+ couples met at our events.</p>
+    </div>
+    <div class="service">
+      <div class="service-num">06</div>
+      <h3>Transparent Scoring</h3>
+      <p>Understand <em>why</em> you match — detailed compatibility breakdowns across values, lifestyle, personality, career, family, and goals.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <div class="section-head">
+    <span class="eyebrow">Success Stories</span>
+    <h2>Matches that became <em>marriages</em></h2>
+  </div>
+  <div class="quotes">
+    <div class="quote">
+      <p>The compatibility score told me things about myself I hadn't articulated. We matched on values I didn't even know to filter for.</p>
+      <div class="quote-attrib">Priya &amp; Arjun <span>Married 2025 · San Francisco</span></div>
+    </div>
+    <div class="quote">
+      <p>After years on apps that felt like shopping, L3V3L felt like a matchmaker who actually knew both of our families' expectations.</p>
+      <div class="quote-attrib">Meera &amp; Vikram <span>Engaged 2026 · New Jersey</span></div>
+    </div>
+    <div class="quote">
+      <p>Our parents were skeptical until they saw the verification process. Six months later, they helped plan our engagement.</p>
+      <div class="quote-attrib">Ananya &amp; Rohan <span>Married 2025 · Chicago</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-band">
+  <h2>Your perfect match isn't random.<br/><em>It's calculated.</em></h2>
+  <p>Join a community of verified singles seeking serious, marriage-minded relationships.</p>
+  <button class="btn-primary">REGISTER YOUR PROFILE</button>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand-name">🦋 L3V3L <span>Matches</span></div>
+      <p class="footer-brand-desc">Premium matrimonial matchmaking using AI-powered compatibility analysis to help you find your life partner.</p>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#">About L3V3L</a></li>
+        <li><a href="#">Help Center</a></li>
+        <li><a href="#">Contact Us</a></li>
+        <li><a href="#">Success Stories</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="#">Terms of Service</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Community Guidelines</a></li>
+        <li><a href="#">Cookie Policy</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <ul>
+        <li><a href="#">support@l3v3lmatches.com</a></li>
+        <li><a href="#">+1 (800) 555-L3V3L</a></li>
+        <li><a href="#">San Francisco, CA</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 L3V3L Matches Inc. All rights reserved.</span>
+    <span>Matrimonial matchmaking for adults 18+</span>
+  </div>
+</footer>
+
+</body>
+</html>

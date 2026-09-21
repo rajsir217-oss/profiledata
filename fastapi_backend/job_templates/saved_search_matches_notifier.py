@@ -661,8 +661,31 @@ async def run_saved_search_notifier(db, params: Dict[str, Any], job_doc: Dict[st
                         search_id = str(search['_id'])
                         search_name = search.get('name', 'Untitled Search')
                         search_description = search.get('description', '')
-                        criteria = search.get('criteria', {})
+                        criteria = dict(search.get('criteria') or {})
                         is_fallback_search = bool(search.get('_is_fallback'))
+
+                        # SERVER-SIDE SAFETY (mirrors /search endpoint): saved searches
+                        # created without a usable gender (legacy format, 'Any', etc.)
+                        # would otherwise match EVERY gender. Auto-apply the opposite
+                        # of the search owner's gender for non-privileged users.
+                        gender_value = str(criteria.get('gender') or '').strip().capitalize()
+                        owner_role = str(user.get('role_name') or user.get('role') or '').strip().lower()
+                        if gender_value in ('Male', 'Female'):
+                            criteria['gender'] = gender_value
+                        elif owner_role in ('admin', 'moderator'):
+                            pass  # privileged users may intentionally run unfiltered searches
+                        else:
+                            owner_gender = str(user.get('gender') or '').strip().capitalize()
+                            if owner_gender in ('Male', 'Female'):
+                                criteria['gender'] = 'Female' if owner_gender == 'Male' else 'Male'
+                                logger.info(
+                                    f"🚻 Auto-set gender='{criteria['gender']}' for search '{search_name}' "
+                                    f"(owner '{username}' is {owner_gender}, criteria gender was '{criteria.get('gender')}')"
+                                )
+                            else:
+                                logger.warning(
+                                    f"🚻 No gender filter applied for '{username}' - owner gender unknown: '{owner_gender}'"
+                                )
                         search_type = 'fallback_partner_criteria' if is_fallback_search else 'saved_search'
                         logger.info(
                             f"🔎 Processing {search_type} for '{username}': "

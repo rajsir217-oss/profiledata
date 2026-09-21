@@ -270,6 +270,13 @@ const SaveSearchModal = ({
     const criteria = editingScheduleFor ? editingScheduleFor.criteria : currentCriteria;
     const score = editingScheduleFor ? editingScheduleFor.minMatchScore : minMatchScore;
 
+    // Gender is mandatory — searches must be constrained to the opposite gender
+    const genderValue = (criteria.gender || '').toString().trim().toLowerCase();
+    if (genderValue !== 'male' && genderValue !== 'female') {
+      toast.error('Please select a gender (Male or Female) in your search filters before saving.');
+      return;
+    }
+
     const hasFilter =
       criteria.gender ||
       criteria.ageMin ||

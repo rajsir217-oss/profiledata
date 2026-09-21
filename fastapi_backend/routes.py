@@ -514,6 +514,29 @@ def _is_admin_user(user_doc: Dict[str, Any]) -> bool:
     username = (user_doc.get("username") or "").lower()
     return role == "admin" or role_name == "admin" or username == "admin"
 
+def _normalize_search_criteria_gender(criteria: Dict[str, Any], user_doc: Dict[str, Any]) -> Dict[str, Any]:
+    """Ensure criteria.gender is always Male/Female on saved searches.
+
+    Mirrors the /search endpoint safety rule: if a saved search arrives without
+    a usable gender (missing, empty, 'Any', etc.), default it to the opposite
+    of the owner's gender for non-privileged users — so same-gender results can
+    never leak into searches or notification emails.
+    """
+    if not isinstance(criteria, dict):
+        return criteria
+    value = str(criteria.get("gender") or "").strip().capitalize()
+    if value in ("Male", "Female"):
+        criteria["gender"] = value
+        return criteria
+    is_privileged = _is_admin_user(user_doc) or (user_doc.get("role_name") == "moderator")
+    if is_privileged:
+        return criteria
+    owner_gender = str(user_doc.get("gender") or "").strip().capitalize()
+    if owner_gender in ("Male", "Female"):
+        criteria["gender"] = "Female" if owner_gender == "Male" else "Male"
+        logger.info(f"🚻 Normalized saved-search gender to '{criteria['gender']}' (owner '{user_doc.get('username')}' is {owner_gender})")
+    return criteria
+
 async def _has_images_access(db, requester_username: str, owner_username: str, image_filename: str = None) -> bool:
     """Check if requester has access to owner's images (cached for 5 minutes).
 
@@ -6445,6 +6468,11 @@ async def save_search(username: str, search_data: dict, db = Depends(get_databas
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        # Enforce gender as mandatory in saved criteria — default to opposite
+        # of the owner's gender when the client sends none (legacy UI paths).
+        if isinstance(search_data.get("criteria"), dict):
+            search_data["criteria"] = _normalize_search_criteria_gender(search_data["criteria"], user)
+
         existing_count = await db.saved_searches.count_documents({"username": username})
         if existing_count >= 5:
             raise HTTPException(
@@ -6531,7 +6559,11 @@ async def update_saved_search(username: str, search_id: str, search_data: dict, 
         user = await db.users.find_one({"username": username})
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
+        # Enforce gender as mandatory if criteria is being updated
+        if isinstance(search_data.get("criteria"), dict):
+            search_data["criteria"] = _normalize_search_criteria_gender(search_data["criteria"], user)
+
         # Prepare update data
         update_data = {
             **search_data,
@@ -6658,9 +6690,21 @@ async def get_search_criteria_breakdown(username: str, criteria: dict, current_u
         })
 
         # Gender filter
-        if criteria.get("gender"):
-            query["gender"] = criteria["gender"].capitalize()
+        gender_criteria = str(criteria.get("gender") or "").strip().capitalize()
+        if gender_criteria in ("Male", "Female"):
+            query["gender"] = gender_criteria
             logger.info(f"📊 Applied gender filter: {criteria['gender']}")
+        else:
+            # Mirror /search endpoint safety: auto-apply opposite gender for
+            # non-privileged users so breakdown counts match real search results.
+            is_privileged_breakdown = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
+            if not is_privileged_breakdown:
+                user_gender = (current_user.get("gender") or "").strip().capitalize()
+                if user_gender in ("Male", "Female"):
+                    query["gender"] = "Female" if user_gender == "Male" else "Male"
+                    logger.info(f"📊 Auto-applied opposite gender filter: {query['gender']} (user is {user_gender})")
+                else:
+                    logger.warning(f"📊 No gender filter - user gender unknown: '{user_gender}'")
 
         # Age filter - convert age range to birthYear/birthMonth filter
         age_min = criteria.get("ageMin") or criteria.get("age_min")
