@@ -115,7 +115,7 @@
   border-radius: 10px;
   border: 1px solid var(--border-color);
   margin-bottom: 12px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -192,7 +192,7 @@
 /* Responsive: Tablet - wrap into 2 rows */
 @media (max-width: 900px) {
   .admin-filter-row {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     width: 100%;
     gap: 8px;
   }
