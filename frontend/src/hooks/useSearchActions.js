@@ -195,6 +195,12 @@ export const useSearchActions = (searchState, userState, filterState) => {
 
   // ===== SEARCH FUNCTIONS =====
 
+  // Criteria/sort that produced the currently displayed result set (page 1).
+  // Pages 2+ must reuse these — NOT live form state — so edited-but-unsubmitted
+  // filters can't mix a different query into existing results while
+  // totalResults stays pinned to the page-1 response.
+  const executedQueryRef = useRef(null);
+
   const validateSearchAccess = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -257,10 +263,20 @@ export const useSearchActions = (searchState, userState, filterState) => {
       }
 
       // STEP 1: Apply traditional search filters
-      const criteriaToUse = overrideCriteria || searchCriteria;
-      const minMatchScoreToUse = overrideMinMatchScore !== null ? overrideMinMatchScore : 0;
-      const sortByToUse = overrideSort?.sortBy || sortBy;
-      const sortOrderToUse = overrideSort?.sortOrder || sortOrder;
+      const executedQuery = page > 1 ? executedQueryRef.current : null;
+      const criteriaToUse = overrideCriteria || executedQuery?.criteria || searchCriteria;
+      const minMatchScoreToUse = overrideMinMatchScore !== null ? overrideMinMatchScore : (executedQuery?.minMatchScore ?? 0);
+      const sortByToUse = overrideSort?.sortBy || executedQuery?.sortBy || sortBy;
+      const sortOrderToUse = overrideSort?.sortOrder || executedQuery?.sortOrder || sortOrder;
+
+      if (page === 1) {
+        executedQueryRef.current = {
+          criteria: criteriaToUse,
+          sortBy: sortByToUse,
+          sortOrder: sortOrderToUse,
+          minMatchScore: minMatchScoreToUse
+        };
+      }
 
       // Build search query
       const query = new URLSearchParams();
