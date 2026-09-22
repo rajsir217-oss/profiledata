@@ -27,5 +27,5 @@ Source Inventory Time: 0s
 Destination Inventory Time: 0s
 Reconciliation Time: 0s
 Verification Time: 0s
-Total Runtime: 1s
+Total Runtime: 0s
 ====================================================
