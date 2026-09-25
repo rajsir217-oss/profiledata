@@ -787,12 +787,12 @@ const Profile = ({
   // Generate default message
   const generateDefaultMessage = () => {
     const profileUrl = `${window.location.origin}/profile/${username}`;
-    return `Hi! I found this profile on L3V3L Matches that might be a good match.
+    return `Hi! I found this profile on L3V3L Matches that might be a good match for your search.
 
 ${user.firstName}, ${user.age} - ${user.location} - ${user.height}
 ${user.profession}
 
-View profile: ${profileUrl}
+View profile: [url=${profileUrl}]
 
 Sent from L3V3L Matches`;
   };
@@ -853,9 +853,9 @@ Sent from L3V3L Matches`;
       const currentUser = localStorage.getItem('username');
       const profileUrl = `${window.location.origin}/profile/${share.sharedProfileUsername}`;
 
-      const message = `Hi! I found this profile on L3V3L Matches that might be a good match for ${share.recipientType}:
+      const message = `Hi! I found this profile on L3V3L Matches that might be a good match for your search.
 
-View profile: ${profileUrl}
+View profile: [url=${profileUrl}]
 
 Sent from L3V3L Matches`;
 
