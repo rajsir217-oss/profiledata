@@ -103,6 +103,18 @@ Current `publicPaths` include: `/`, `/login`, `/register`, `/register2`, `/regis
 
 Any new public route added to `App.js` must also be added to this list.
 
+### 2.7 Dead-code hygiene
+
+When editing a file, also audit it for dead code:
+
+- Unused imports, state variables, refs, functions, and JSX elements/attributes.
+- CSS selectors in the file's stylesheet that no JSX (in this file or any consumer) produces — remember template-built classes like `` `${type}-message` `` and `attr(data-*)` consumers before removing.
+- Duplicate CSS rules where a later definition silently wins — merge into one rule.
+- JS classes with no matching CSS (unstyled elements) and CSS with no matching JS.
+- Form fields / payload keys collected but never submitted, or submitted but never settable via UI.
+- `alert`/`confirm`/`prompt`, `console.log`, stale `window.history`/`location` paths, and uncleared error states found along the way — fix or flag per the rules above.
+- Report findings grouped as *dead (safe to remove)* vs *bugs/behavioral*; get approval before removing behavioral items.
+
 ---
 
 ## 3. Backend conventions

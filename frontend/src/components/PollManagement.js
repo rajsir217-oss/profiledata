@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createApiInstance } from '../api';
 import RichTextEditor from './shared/RichTextEditor';
-import { formatDate, formatDateTime, getTimeRemaining, formatTimeRemaining, toUTCISOString, getDateInputValue } from '../utils/timezoneHelper';
+import DeleteButton from './DeleteButton';
+import logger from '../utils/logger';
+import { formatDate, getDateInputValue } from '../utils/timezoneHelper';
 import './PollManagement.css';
 
 // Use global API factory for session handling
@@ -15,6 +17,11 @@ const normalizeStatusFilter = (value) => {
   const normalized = String(value).trim().toLowerCase();
   const mapped = normalized === 'inactive' ? 'closed' : normalized;
   return VALID_STATUS_FILTERS.has(mapped) ? mapped : '';
+};
+
+const getStatusFromParams = (params) => {
+  const raw = params.get('status');
+  return raw === null ? 'active' : normalizeStatusFilter(raw);
 };
 
 /**
@@ -30,7 +37,7 @@ const PollManagement = () => {
   const [toast, setToast] = useState(null);
   const [statusFilter, setStatusFilter] = useState(() => {
     const params = new URLSearchParams(window.location.search || '');
-    return normalizeStatusFilter(params.get('status'));
+    return getStatusFromParams(params);
   });
   
   // Modal states
@@ -89,7 +96,7 @@ const PollManagement = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search || '');
-    const nextStatus = normalizeStatusFilter(params.get('status'));
+    const nextStatus = getStatusFromParams(params);
     setStatusFilter((prev) => (prev === nextStatus ? prev : nextStatus));
   }, [location.search]);
 
@@ -137,7 +144,9 @@ const PollManagement = () => {
         });
         setShowEditModal(true);
         // Clear the URL parameter after opening the modal
-        window.history.replaceState({}, '', '/poll-management');
+        params.delete('edit');
+        const remaining = params.toString();
+        window.history.replaceState({}, '', `${window.location.pathname}${remaining ? `?${remaining}` : ''}`);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -166,9 +175,10 @@ const PollManagement = () => {
       const response = await pollsApi.get(`/api/polls/admin/list?${params.toString()}`);
       if (response.data.success) {
         setPolls(response.data.polls || []);
+        setError(null);
       }
     } catch (err) {
-      console.error('Error fetching polls:', err);
+      logger.error('Error fetching polls:', err);
       setError('Failed to load polls');
     } finally {
       setLoading(false);
@@ -351,6 +361,7 @@ const PollManagement = () => {
         title: formData.title,
         description: formData.description || null,
         poll_type: formData.poll_type,
+        options: formData.poll_type !== 'rsvp' ? formData.options.map(o => o.trim()).filter(Boolean) : null,
         event_type: formData.event_type || null,
         event_date: formData.event_date ? `${formData.event_date}T00:00:00` : null,
         event_time: formData.event_time || null,
@@ -377,7 +388,7 @@ const PollManagement = () => {
         fetchPolls();
       }
     } catch (err) {
-      console.error('Error creating poll:', err);
+      logger.error('Error creating poll:', err);
       showToast(err.response?.data?.detail || 'Failed to create poll', 'error');
     } finally {
       setFormSubmitting(false);
@@ -477,7 +488,7 @@ const PollManagement = () => {
         fetchPolls();
       }
     } catch (err) {
-      console.error('Error updating poll:', err);
+      logger.error('Error updating poll:', err);
       showToast(err.response?.data?.detail || 'Failed to update poll', 'error');
     } finally {
       setFormSubmitting(false);
@@ -507,16 +518,12 @@ const PollManagement = () => {
         fetchPolls();
       }
     } catch (err) {
-      console.error('Error changing poll status:', err);
+      logger.error('Error changing poll status:', err);
       showToast(err.response?.data?.detail || 'Failed to change status', 'error');
     }
   };
 
-  const handleDeletePoll = async (pollId, pollTitle) => {
-    if (!window.confirm(`Are you sure you want to delete "${pollTitle}"? This will also delete all responses.`)) {
-      return;
-    }
-
+  const handleDeletePoll = async (pollId) => {
     try {
       const response = await pollsApi.delete(`/api/polls/admin/${pollId}`);
       if (response.data.success) {
@@ -524,7 +531,7 @@ const PollManagement = () => {
         fetchPolls();
       }
     } catch (err) {
-      console.error('Error deleting poll:', err);
+      logger.error('Error deleting poll:', err);
       showToast(err.response?.data?.detail || 'Failed to delete poll', 'error');
     }
   };
@@ -618,7 +625,7 @@ const PollManagement = () => {
         showToast('Export downloaded!', 'success');
       }
     } catch (err) {
-      console.error('Error exporting:', err);
+      logger.error('Error exporting:', err);
       showToast('Failed to export', 'error');
     }
   };
@@ -830,13 +837,12 @@ const PollManagement = () => {
                   📥
                 </button>
 
-                <button
-                  className="btn-micro btn-micro-danger"
-                  onClick={() => handleDeletePoll(poll._id, poll.title)}
-                  title="Delete"
-                >
-                  🗑️
-                </button>
+                <DeleteButton
+                  onDelete={() => handleDeletePoll(poll._id)}
+                  itemName={`"${poll.title}" and all its responses`}
+                  size="small"
+                  icon="🗑️"
+                />
               </div>
             </div>
           ))}

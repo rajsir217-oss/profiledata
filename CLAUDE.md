@@ -412,6 +412,13 @@ cd frontend && npm start
 - Edits scoped and focused — large refactors require explicit user approval.
 - Prefer `multi_edit` for several small changes to one file over many `edit` calls.
 
+### 9.1 Dead-code review as part of edits
+
+Every file touched gets a dead-code pass (see `AGENTS.md` §2.7): unused imports/state/JSX,
+CSS selectors with no producer (check dynamic classes and `attr(data-*)` first), duplicate
+rules, unsent payload fields, and rule violations (`confirm()`, `console.log`, stale paths).
+Separate *safe removals* from *behavioral findings* and confirm before removing the latter.
+
 ---
 
 ## 10. Quick reference — when working on...
