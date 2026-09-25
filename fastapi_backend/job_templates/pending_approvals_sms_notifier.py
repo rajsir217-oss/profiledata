@@ -7,6 +7,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Tuple, Optional
 
+from config import settings
+
 from job_templates.base import JobTemplate, JobExecutionContext, JobResult
 
 logger = logging.getLogger(__name__)
@@ -188,10 +190,11 @@ class PendingApprovalsSMSNotifierTemplate(JobTemplate):
                 )
             
             # Build SMS message
+            admin_url = f"{(settings.frontend_url or '').rstrip('/')}/admin"
             if include_details:
-                message = f"L3V3L MATCHES: {pending_count} profiles pending approval. Please review at l3v3lmatches.com/admin"
+                message = f"L3V3L MATCHES: {pending_count} profiles pending approval. Please review at {admin_url}"
             else:
-                message = "L3V3L MATCHES: Profiles pending approval. Please review at l3v3lmatches.com/admin"
+                message = f"L3V3L MATCHES: Profiles pending approval. Please review at {admin_url}"
             
             # Send SMS via notification service
             from services.notification_service import NotificationService

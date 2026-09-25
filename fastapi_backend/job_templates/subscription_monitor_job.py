@@ -10,6 +10,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
 
+from config import settings
+
 from .base import JobTemplate, JobExecutionContext, JobResult
 from services.notification_service import NotificationService
 from models.notification_models import NotificationChannel, NotificationPriority
@@ -150,7 +152,7 @@ class SubscriptionMonitorJob(JobTemplate):
                                     "subscription_type": sub_data["subscription_type"],
                                     "expiry_date": sub_data["expiry_date"],
                                     "days_until_expiry": sub_data["days_until_expiry"],
-                                    "renewal_url": "https://l3v3lmatches.com/account/subscription"
+                                    "renewal_url": f"{(settings.frontend_url or '').rstrip('/')}/account/subscription"
                                 },
                                 priority="high" if sub_data["trigger"] == "subscription_expired" else "medium"
                             )

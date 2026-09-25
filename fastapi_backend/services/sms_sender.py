@@ -28,7 +28,7 @@ except ImportError:
 
 async def send_sms(
     to_phone: str,
-    message: str = "We would like to request additional information regarding your registration interest. Please provide your referred details so that we can process your request as soon as possible. If you have any questions, please contact admins. Thanks."
+    message: str
 ) -> Dict[str, Any]:
     """
     Send an SMS message to a phone number.

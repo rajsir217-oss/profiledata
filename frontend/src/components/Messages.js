@@ -12,6 +12,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
+import logger from '../utils/logger';
 import MessageList from './MessageList';
 import ChatWindow from './ChatWindow';
 import useActivityLogger from '../hooks/useActivityLogger';
@@ -115,7 +116,7 @@ const Messages = () => {
 
     // Listen for real-time messages (uses ref to avoid re-registering on every selection change)
     const handleNewMessage = (data) => {
-      console.log('💬 New message received:', data);
+      logger.debug('💬 New message received:', data);
       
       // If the message is from the currently selected user, add it to messages
       if (selectedUserRef.current && data.from === selectedUserRef.current) {
@@ -181,13 +182,13 @@ const Messages = () => {
   }, [location, currentUsername]);
 
   const loadConversations = async (unattendedOverride, includeArchived = showArchived) => {
-    console.log('📥 Messages.js: Loading conversations for:', currentUsername);
+    logger.debug('📥 Messages.js: Loading conversations for:', currentUsername);
     try {
       const url = `/messages/conversations${includeArchived ? '?includeArchived=true' : ''}`;
-      console.log('📡 Messages.js: Making request to:', url);
+      logger.debug('📡 Messages.js: Making request to:', url);
       const response = await api.get(url);
-      console.log('✅ Messages.js: Response received:', response.data);
-      console.log('📊 Messages.js: Conversations count:', response.data.conversations?.length || 0);
+      logger.debug('✅ Messages.js: Response received:', response.data);
+      logger.debug('📊 Messages.js: Conversations count:', response.data.conversations?.length || 0);
       let convos = response.data.conversations || [];
       
       // Sort conversations by urgency level (use fresh unattended data if provided)
@@ -200,8 +201,8 @@ const Messages = () => {
       logMessagesPageViewed(convos.length);
       return convos;
     } catch (err) {
-      console.error('❌ Messages.js: Error loading conversations:', err);
-      console.error('❌ Messages.js: Error response:', err.response?.data);
+      logger.error('❌ Messages.js: Error loading conversations:', err);
+      logger.error('❌ Messages.js: Error response:', err.response?.data);
       setError('Failed to load conversations');
       setLoading(false);
       return [];
@@ -223,7 +224,7 @@ const Messages = () => {
 
       await loadConversations(undefined, false);
     } catch (err) {
-      console.error('Error archiving conversation:', err);
+      logger.error('Error archiving conversation:', err);
       const toastService = (await import('../services/toastService')).default;
       toastService.error('Failed to archive conversation');
     }
@@ -236,7 +237,7 @@ const Messages = () => {
       toastService.success('Conversation moved back to inbox');
       await loadConversations(undefined, true);
     } catch (err) {
-      console.error('Error unarchiving conversation:', err);
+      logger.error('Error unarchiving conversation:', err);
       const toastService = (await import('../services/toastService')).default;
       toastService.error('Failed to unarchive conversation');
     }
@@ -283,10 +284,10 @@ const Messages = () => {
     try {
       const response = await api.get('/messages/unattended');
       setUnattendedData(response.data);
-      console.log('📬 Unattended chats:', response.data);
+      logger.debug('📬 Unattended chats:', response.data);
       return response.data;
     } catch (err) {
-      console.error('Error loading unattended chats:', err);
+      logger.error('Error loading unattended chats:', err);
       return null;
     }
   };
@@ -296,7 +297,7 @@ const Messages = () => {
       const response = await api.get(`/messages/conversation/${username}/status`);
       setConversationStatus(response.data);
     } catch (err) {
-      console.error('Error loading conversation status:', err);
+      logger.error('Error loading conversation status:', err);
       setConversationStatus(null);
     }
   };
@@ -311,7 +312,7 @@ const Messages = () => {
         await loadConversationStatus(username);
       }
     } catch (err) {
-      console.error('Error closing conversation:', err);
+      logger.error('Error closing conversation:', err);
       setError('Failed to close conversation');
     }
   };
@@ -331,7 +332,7 @@ const Messages = () => {
       // Load conversation status
       await loadConversationStatus(username);
     } catch (err) {
-      console.error('Error loading conversation:', err);
+      logger.error('Error loading conversation:', err);
       await loadConversations();
       
       // Remove this conversation from unattended list locally (no API call)
@@ -389,12 +390,12 @@ const Messages = () => {
       try {
         if (socketService.isConnected()) {
           socketService.sendMessage(selectedUser, content.trim());
-          console.log('✅ Message sent via WebSocket for real-time delivery');
+          logger.debug('✅ Message sent via WebSocket for real-time delivery');
         } else {
-          console.log('📡 WebSocket not connected, message saved to DB only');
+          logger.debug('📡 WebSocket not connected, message saved to DB only');
         }
       } catch (wsError) {
-        console.warn('⚠️ WebSocket send failed, but message saved to DB:', wsError.message);
+        logger.warn('⚠️ WebSocket send failed, but message saved to DB:', wsError.message);
       }
       
       // Refresh unattended data first, then reload conversations with fresh urgency data
@@ -413,7 +414,7 @@ const Messages = () => {
         toastService.success('Message sent successfully!');
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       const toastService = (await import('../services/toastService')).default;
       toastService.error('Failed to send message');
     }
@@ -456,7 +457,7 @@ const Messages = () => {
             const toastService = (await import('../services/toastService')).default;
             toastService.success('Conversation closed and user added to exclusions');
           } catch (error) {
-            console.error('Error handling not interested:', error);
+            logger.error('Error handling not interested:', error);
           }
         }, 1000);
       }

@@ -370,7 +370,10 @@ class SMSNotifierTemplate(JobTemplate):
 
         # Build sender tag for message notifications: [L3V3LMATCHES][username]
         SENDER_TAG = f"[L3V3LMATCHES][{sender_username}] " if sender_username else PREFIX
-        REQUESTER_TAG = f"[{sender_username}] " if sender_username else f"{requester_name} "
+        # Bare app URL; SimpleTexting link-tracking markup ([url=...]) is applied
+        # at the send layer (simpletexting_service.wrap_urls_for_tracking)
+        from config import settings
+        APP_URL = (settings.frontend_url or "").rstrip("/") or "https://l3v3lmatches.com"
 
         # Extra template_data fields used by specific fallbacks
         profile_link = template_data.get("profile_link", "") if isinstance(template_data, dict) else ""
@@ -381,72 +384,72 @@ class SMSNotifierTemplate(JobTemplate):
             # Messages now include personalized greeting with recipient's name
             trigger_messages = {
                 # Contact Info Requests
-                "pending_pii_request": f"{PREFIX}{requester_name} requested your contact info! Login www.l3v3lmatches.com to respond.",
-                "pii_request": f"{PREFIX}{requester_name} requested your contact info! Login www.l3v3lmatches.com to respond.",
-                "pii_granted": f"{PREFIX}Your contact info request was approved! Login www.l3v3lmatches.com to view.",
-                "pii_denied": f"{PREFIX}Your contact info request was declined. Login www.l3v3lmatches.com for details.",
+                "pending_pii_request": f"{PREFIX}{requester_name} requested your contact info! Login {APP_URL} to respond.",
+                "pii_request": f"{PREFIX}{requester_name} requested your contact info! Login {APP_URL} to respond.",
+                "pii_granted": f"{PREFIX}Your contact info request was approved! Login {APP_URL} to view.",
+                "pii_denied": f"{PREFIX}Your contact info request was declined. Login {APP_URL} for details.",
                 
                 # Messaging
-                "new_message": f"{SENDER_TAG}You have a new message! Login www.l3v3lmatches.com to read it.",
+                "new_message": f"{SENDER_TAG}You have a new message! Login {APP_URL} to read it.",
                 "message_sms": (
                     f"{SENDER_TAG}New message from {requester_name}: \"{user_message}\""
-                    + (f" View profile: [url={profile_link}]" if profile_link else "")
+                    + (f" View profile: {profile_link}" if profile_link else "")
                 ),
-                "unread_messages": f"{SENDER_TAG}You have unread messages waiting! Login www.l3v3lmatches.com to catch up.",
-                "conversation_cold": f"{SENDER_TAG}Your conversation is getting cold! Login www.l3v3lmatches.com to send a message.",
-                "message_reminder": f"{SENDER_TAG}You have an unread message! Login www.l3v3lmatches.com to respond.",
+                "unread_messages": f"{SENDER_TAG}You have unread messages waiting! Login {APP_URL} to catch up.",
+                "conversation_cold": f"{SENDER_TAG}Your conversation is getting cold! Login {APP_URL} to send a message.",
+                "message_reminder": f"{SENDER_TAG}You have an unread message! Login {APP_URL} to respond.",
                 
                 # Profile Interactions
-                "profile_view": f"{GREETING}Someone viewed your profile! Login www.l3v3lmatches.com to see who.",
-                "profile_view_multiple": f"{GREETING}Multiple people viewed your profile! Login www.l3v3lmatches.com to see who.",
-                "profile_complete": f"{GREETING}Complete your profile to get better matches! Login www.l3v3lmatches.com now.",
-                "photo_upload_reminder": f"{GREETING}Add photos to get 10x more responses! Login www.l3v3lmatches.com to upload.",
+                "profile_view": f"{GREETING}Someone viewed your profile! Login {APP_URL} to see who.",
+                "profile_view_multiple": f"{GREETING}Multiple people viewed your profile! Login {APP_URL} to see who.",
+                "profile_complete": f"{GREETING}Complete your profile to get better matches! Login {APP_URL} now.",
+                "photo_upload_reminder": f"{GREETING}Add photos to get 10x more responses! Login {APP_URL} to upload.",
                 
                 # Matching & Favorites
-                "new_match": f"{GREETING}You have a new match! Login www.l3v3lmatches.com to connect.",
-                "mutual_favorite": f"{GREETING}It's a match! You both favorited each other! Login www.l3v3lmatches.com to connect.",
-                "shortlist_added": f"{GREETING}Someone added you to their shortlist! Login www.l3v3lmatches.com to see who.",
-                "favorited": f"{GREETING}Someone favorited your profile! Login www.l3v3lmatches.com to see who.",
-                "daily_matches": f"{GREETING}New daily matches waiting! Login www.l3v3lmatches.com to view them.",
-                "smart_matches": f"{GREETING}Smart matches found! Login www.l3v3lmatches.com to connect.",
+                "new_match": f"{GREETING}You have a new match! Login {APP_URL} to connect.",
+                "mutual_favorite": f"{GREETING}It's a match! You both favorited each other! Login {APP_URL} to connect.",
+                "shortlist_added": f"{GREETING}Someone added you to their shortlist! Login {APP_URL} to see who.",
+                "favorited": f"{GREETING}Someone favorited your profile! Login {APP_URL} to see who.",
+                "daily_matches": f"{GREETING}New daily matches waiting! Login {APP_URL} to view them.",
+                "smart_matches": f"{GREETING}Smart matches found! Login {APP_URL} to connect.",
                 
                 # Subscription & Premium
-                "subscription_expired": f"{GREETING}Your subscription has expired! Login www.l3v3lmatches.com to renew.",
-                "subscription_renewal": f"{GREETING}Your subscription will renew soon! Login www.l3v3lmatches.com to manage.",
-                "premium_feature": f"{GREETING}Unlock premium features! Login www.l3v3lmatches.com to upgrade.",
-                "trial_ending": f"{GREETING}Your free trial ends soon! Login www.l3v3lmatches.com to subscribe.",
+                "subscription_expired": f"{GREETING}Your subscription has expired! Login {APP_URL} to renew.",
+                "subscription_renewal": f"{GREETING}Your subscription will renew soon! Login {APP_URL} to manage.",
+                "premium_feature": f"{GREETING}Unlock premium features! Login {APP_URL} to upgrade.",
+                "trial_ending": f"{GREETING}Your free trial ends soon! Login {APP_URL} to subscribe.",
                 
                 # Activity & Engagement
-                "login_reminder": f"{GREETING}We miss you! Login www.l3v3lmatches.com to see new matches.",
-                "admin_login_reminder": f"{GREETING}Your profile is noticed—it's been a while since you logged in. Login www.l3v3lmatches.com to see what you're missing.",
-                "weekly_summary": f"{GREETING}You have new activity this week! Login www.l3v3lmatches.com to view.",
-                "success_story": f"{GREETING}Inspiring success story! Login www.l3v3lmatches.com to read it.",
-                "event_invite": f"{GREETING}Upcoming matchmaking event! Login www.l3v3lmatches.com to RSVP.",
+                "login_reminder": f"{GREETING}We miss you! Login {APP_URL} to see new matches.",
+                "admin_login_reminder": f"{GREETING}Your profile is noticed—it's been a while since you logged in. Login {APP_URL} to see what you're missing.",
+                "weekly_summary": f"{GREETING}You have new activity this week! Login {APP_URL} to view.",
+                "success_story": f"{GREETING}Inspiring success story! Login {APP_URL} to read it.",
+                "event_invite": f"{GREETING}Upcoming matchmaking event! Login {APP_URL} to RSVP.",
                 
                 # Safety & Verification
                 "verify_email": f"{GREETING}Please verify your email! Check your inbox for link.",
-                "verify_phone": f"{GREETING}Verify your phone number for better security! Login www.l3v3lmatches.com to verify.",
-                "safety_tip": f"{GREETING}New safety tip available! Login www.l3v3lmatches.com to read it.",
-                "account_suspended": f"{GREETING}Account action required! Login www.l3v3lmatches.com for details.",
+                "verify_phone": f"{GREETING}Verify your phone number for better security! Login {APP_URL} to verify.",
+                "safety_tip": f"{GREETING}New safety tip available! Login {APP_URL} to read it.",
+                "account_suspended": f"{GREETING}Account action required! Login {APP_URL} for details.",
                 
                 # Contributions & Donations
-                "contribution_reminder": f"{GREETING}Support our platform! Login www.l3v3lmatches.com to contribute.",
+                "contribution_reminder": f"{GREETING}Support our platform! Login {APP_URL} to contribute.",
                 "contribution_thank_you": f"{GREETING}Thank you for your contribution!",
-                "popup_shown": f"{GREETING}Check out our premium features! Login www.l3v3lmatches.com to learn more.",
+                "popup_shown": f"{GREETING}Check out our premium features! Login {APP_URL} to learn more.",
                 
                 # Admin & Support
-                "admin_message": f"{GREETING}Important message from admin! Login www.l3v3lmatches.com to read.",
-                "support_response": f"{GREETING}Support has responded to your ticket! Login www.l3v3lmatches.com to view.",
-                "profile_approved": f"{GREETING}Your profile has been approved! Login www.l3v3lmatches.com to connect.",
-                "profile_rejected": f"{GREETING}Profile update needed! Login www.l3v3lmatches.com to fix issues.",
+                "admin_message": f"{GREETING}Important message from admin! Login {APP_URL} to read.",
+                "support_response": f"{GREETING}Support has responded to your ticket! Login {APP_URL} to view.",
+                "profile_approved": f"{GREETING}Your profile has been approved! Login {APP_URL} to connect.",
+                "profile_rejected": f"{GREETING}Profile update needed! Login {APP_URL} to fix issues.",
                 "status_reactivated": f"{GREETING}Your account has been reactivated! Welcome back!",
                 "status_banned": f"{GREETING}Your account has been banned. Contact support.",
-                "pii_revoked": f"{GREETING}Your PII access has been revoked. Login www.l3v3lmatches.com for details.",
+                "pii_revoked": f"{GREETING}Your PII access has been revoked. Login {APP_URL} for details.",
             }
             
             message = trigger_messages.get(
                 notification.trigger,
-                f"{PREFIX}{GREETING}You have a new notification! Login www.l3v3lmatches.com to view"
+                f"{PREFIX}{GREETING}You have a new notification! Login {APP_URL} to view"
             )
             # Don't add PREFIX again - trigger_messages already include it
         else:
@@ -471,7 +474,8 @@ class SMSNotifierTemplate(JobTemplate):
             
             max_length = template.get("maxLength", 160)
             if len(message) > max_length:
-                message = message[:max_length-3] + "..."
+                # Truncate at a word boundary so a URL isn't sliced mid-token
+                message = message[:max_length-3].rsplit(' ', 1)[0].rstrip() + "..."
         
         return message
     

@@ -10,6 +10,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
 
+from config import settings
+
 from .base import JobTemplate, JobExecutionContext, JobResult
 from services.notification_service import NotificationService
 from models.notification_models import NotificationChannel, NotificationPriority
@@ -157,7 +159,7 @@ class ProfileCompletionJob(JobTemplate):
                                     "completion_percentage": user_data["completion_percentage"],
                                     "missing_fields": user_data["missing_fields"],
                                     "suggested_fields": user_data["suggested_fields"],
-                                    "profile_url": "https://l3v3lmatches.com/profile/edit"
+                                    "profile_url": f"{(settings.frontend_url or '').rstrip('/')}/profile/edit"
                                 },
                                 priority="medium"
                             )
