@@ -11171,8 +11171,14 @@ async def send_profile_share_sms(
                 "recipient": recipientPhone
             }
         else:
-            logger.error(f"❌ Failed to send SMS: {result.get('error')}")
-            raise HTTPException(status_code=500, detail=result.get("error", "Failed to send SMS"))
+            error_details = result.get("details") or result.get("error", "Failed to send SMS")
+            logger.error(f"❌ Failed to send SMS: {error_details}")
+            if result.get("status_code") == 409 or "invalid" in str(error_details).lower():
+                raise HTTPException(
+                    status_code=422,
+                    detail="Cannot send SMS to this number — it has been marked invalid by the messaging provider (landline, opted out, or unreachable). Please verify the number."
+                )
+            raise HTTPException(status_code=502, detail=error_details)
 
     except HTTPException:
         raise

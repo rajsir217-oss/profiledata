@@ -54,6 +54,15 @@ const Profile = ({
   const [isOnline, setIsOnline] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [actionError, setActionError] = useState("");
+  const actionErrorTimerRef = useRef(null);
+
+  // Toast-style error for transient action failures (auto-dismiss after 5s)
+  const showActionError = (msg) => {
+    setActionError(msg);
+    if (actionErrorTimerRef.current) clearTimeout(actionErrorTimerRef.current);
+    actionErrorTimerRef.current = setTimeout(() => setActionError(""), 5000);
+  };
   // Contribution prompt state — shared across app via context.
   // shouldShowContribution already factors in persistent dismissal.
   const { shouldShowContribution, openPopup, dismissBanner } = useContribution();
@@ -686,7 +695,7 @@ const Profile = ({
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
         const errorMsg = err.response?.data?.detail || 'Failed to update favorites';
-        setError(errorMsg);
+        showActionError(errorMsg);
       }
     }
   };
@@ -705,7 +714,7 @@ const Profile = ({
       }
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
-      setError('Failed to update shortlist');
+      showActionError('Failed to update shortlist');
     }
   };
 
@@ -731,7 +740,7 @@ const Profile = ({
       }
     } catch (err) {
       setExclusionLoading(false);
-      setError('Failed to update not interested');
+      showActionError('Failed to update not interested');
     }
   };
 
@@ -800,13 +809,12 @@ Sent from L3V3L Matches`;
     const finalPhone = phoneOverride || sharePhone;
     
     if (!finalRecipient || !finalPhone) {
-      setError('Please select a recipient and enter a phone number');
-      setTimeout(() => setError(''), 3000);
+      showActionError('Please select a recipient and enter a phone number');
       return;
     }
 
     setShareSending(true);
-    setError(''); // Clear any previous errors
+    setActionError(''); // Clear any previous errors
     try {
       const currentUser = localStorage.getItem('username');
       const message = messageOverride || customMessage || generateDefaultMessage();
@@ -829,7 +837,7 @@ Sent from L3V3L Matches`;
     } catch (err) {
       const errorMsg = err.response?.data?.detail || err.message || 'Failed to send SMS';
       logger.error('SMS send error:', errorMsg);
-      setError(errorMsg);
+      showActionError(errorMsg);
     } finally {
       setShareSending(false);
     }
@@ -867,7 +875,7 @@ Sent from L3V3L Matches`;
     } catch (err) {
       const errorMsg = err.response?.data?.detail || err.message || 'Failed to reshare';
       logger.error('Reshare error:', errorMsg);
-      setError(errorMsg);
+      showActionError(errorMsg);
     } finally {
       setShareSending(false);
     }
@@ -892,7 +900,7 @@ Sent from L3V3L Matches`;
     } catch (err) {
       const errorMsg = err.response?.data?.detail || err.message || 'Failed to delete';
       logger.error('Delete share error:', errorMsg);
-      setError(errorMsg);
+      showActionError(errorMsg);
     }
   };
 
@@ -1004,12 +1012,12 @@ Sent from L3V3L Matches`;
     try {
       // Validate we have necessary data
       if (!currentUsername) {
-        setError('You must be logged in to request access');
+        showActionError('You must be logged in to request access');
         return;
       }
 
       if (!user.images || user.images.length === 0) {
-        setError('No images to request access for');
+        showActionError('No images to request access for');
         return;
       }
 
@@ -1038,8 +1046,7 @@ Sent from L3V3L Matches`;
     } catch (err) {
       console.error('Error requesting access:', err);
       console.error('Error details:', err.response?.data);
-      setError(err.response?.data?.message || 'Failed to send access request');
-      setTimeout(() => setError(''), 5000);
+      showActionError(err.response?.data?.message || 'Failed to send access request');
     }
   };
 
@@ -1685,6 +1692,56 @@ Sent from L3V3L Matches`;
               fontSize: '18px',
               cursor: 'pointer',
               color: '#155724',
+              padding: '0',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Error Toast Banner - transient action errors */}
+      {actionError && (
+        <div className="status-bubble" style={{
+          position: 'fixed',
+          top: '80px',
+          right: '20px',
+          backgroundColor: 'var(--danger-light, #f8d7da)',
+          border: '1px solid var(--danger-color, #f5c6cb)',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          maxWidth: '350px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          animation: 'slideInRight 0.3s ease-out'
+        }}>
+          <span style={{ fontSize: '20px', flexShrink: 0 }}>❌</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <strong style={{ color: 'var(--danger-color, #721c24)', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
+              Error
+            </strong>
+            <p style={{ color: 'var(--danger-color, #721c24)', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
+              {actionError}
+            </p>
+          </div>
+          <button
+            onClick={() => setActionError("")}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '18px',
+              cursor: 'pointer',
+              color: 'var(--danger-color, #721c24)',
               padding: '0',
               width: '20px',
               height: '20px',
@@ -3644,7 +3701,7 @@ Sent from L3V3L Matches`;
                     setSuccessMessage('✅ Marked as not interested');
                     setTimeout(() => setSuccessMessage(''), 3000);
                   } catch (err) {
-                    setError('Failed to exclude user');
+                    showActionError('Failed to exclude user');
                   } finally {
                     setExclusionLoading(false);
                   }
