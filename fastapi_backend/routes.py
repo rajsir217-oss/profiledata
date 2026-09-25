@@ -11165,6 +11165,24 @@ async def send_profile_share_sms(
                 upsert=True
             )
 
+            # Log to notification_log so it appears in the admin SMS log
+            try:
+                await db.notification_log.insert_one({
+                    "username": username,
+                    "trigger": "profile_share",
+                    "channel": "sms",
+                    "priority": "medium",
+                    "status": "sent",
+                    "subject": f"Profile share: {sharedProfileUsername or 'profile'} → {recipientType or recipientPhone}",
+                    "preview": (message or "")[:100],
+                    "recipientPhone": recipientPhone,
+                    "sharedProfileUsername": sharedProfileUsername,
+                    "sentAt": datetime.utcnow(),
+                    "createdAt": datetime.utcnow(),
+                })
+            except Exception as log_err:
+                logger.warning(f"⚠️ Failed to log profile-share SMS: {log_err}")
+
             return {
                 "success": True,
                 "message": "SMS sent successfully",
@@ -11173,6 +11191,22 @@ async def send_profile_share_sms(
         else:
             error_details = result.get("details") or result.get("error", "Failed to send SMS")
             logger.error(f"❌ Failed to send SMS: {error_details}")
+            try:
+                await db.notification_log.insert_one({
+                    "username": username,
+                    "trigger": "profile_share",
+                    "channel": "sms",
+                    "priority": "medium",
+                    "status": "failed",
+                    "subject": f"Profile share: {sharedProfileUsername or 'profile'} → {recipientType or recipientPhone}",
+                    "preview": (message or "")[:100],
+                    "recipientPhone": recipientPhone,
+                    "sharedProfileUsername": sharedProfileUsername,
+                    "error": error_details,
+                    "createdAt": datetime.utcnow(),
+                })
+            except Exception as log_err:
+                logger.warning(f"⚠️ Failed to log profile-share SMS failure: {log_err}")
             if result.get("status_code") == 409 or "invalid" in str(error_details).lower():
                 raise HTTPException(
                     status_code=422,
