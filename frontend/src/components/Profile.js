@@ -2010,6 +2010,12 @@ Sent from L3V3L Matches`;
                   >
                     🛡️
                   </span>
+                  <span 
+                    className={`trust-badge ${user.membership?.status === 'active' ? 'trust-active' : 'trust-inactive'}`} 
+                    title={user.membership?.status === 'active' ? 'Contributing Member' : 'Not a contributing member yet'}
+                  >
+                    🪪
+                  </span>
                 </span>
                 {user.profileId && (
                   <div className="share-profile-wrapper" ref={shareMenuRef}>
