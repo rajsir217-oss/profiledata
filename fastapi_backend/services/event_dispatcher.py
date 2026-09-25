@@ -1420,7 +1420,7 @@ class EventDispatcher:
             # Get user's names using consistent helper
             firstname, lastname, full_name = await self._get_user_names(target, metadata)
             
-            message = "Your account has been permanently banned and you can no longer access USVedika."
+            message = "Your account has been permanently banned and you can no longer access L3V3L Matches."
             if reason:
                 message = f"{message} Reason: {reason}"
 

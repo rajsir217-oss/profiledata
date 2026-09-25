@@ -543,7 +543,7 @@ const SMSDeliveryLog = () => {
                         {log.trigger || log.type || 'N/A'}
                       </span>
                     </td>
-                    <td className="preview-cell" title={fullMessage}>
+                    <td className="preview-cell">
                       <div className="message-preview">
                         {fullMessage}
                       </div>

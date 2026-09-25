@@ -354,13 +354,9 @@
 }
 
 .sms-delivery-log .message-preview {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
   line-height: 1.4;
-  cursor: help;
 }
 
 /* Status badges */

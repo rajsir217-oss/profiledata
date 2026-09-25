@@ -220,7 +220,7 @@ class InvitationResendTemplate(JobTemplate):
                         context.log("info", f"📧 Using centralized email_sender (EMAIL_PROVIDER={email_provider})")
                         
                         # Create a follow-up subject line
-                        email_subject = invitation.get("emailSubject") or "Reminder: You're Invited to Join USVedika"
+                        email_subject = (invitation.get("emailSubject") or "Reminder: You're Invited to Join L3V3L Matches").replace("USVedika", "L3V3L Matches")
                         if is_final_attempt:
                             # Final attempt - add FINAL to subject
                             email_subject = f"FINAL Reminder: {email_subject}"

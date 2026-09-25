@@ -369,7 +369,7 @@ async def bulk_create_invitations(
     import re as re_module
     
     emails_raw = data.get("emails", [])
-    email_subject = data.get("emailSubject", "You're Invited to Join USVedika for US Citizens & GC Holders")
+    email_subject = data.get("emailSubject", "You're Invited to Join L3V3L Matches for US Citizens & GC Holders")
     promo_code = data.get("promoCode", "USVEDIKA")
     send_immediately = data.get("sendImmediately", True)
     channel = data.get("channel", "email")
@@ -621,13 +621,16 @@ async def send_invitation_notifications(
     # Send email
     if channel in [InvitationChannel.EMAIL, InvitationChannel.BOTH]:
         try:
+            # Normalize legacy "USVedika" branding stored on older invitations
+            raw_subject = getattr(invitation, 'emailSubject', None)
+            email_subject = raw_subject.replace("USVedika", "L3V3L Matches") if raw_subject else None
             # Send email directly via SMTP
             await send_invitation_email(
                 to_email=invitation.email,
                 to_name=invitation.name,
                 invitation_link=invitation_link,
                 custom_message=custom_message or invitation.customMessage,
-                email_subject=getattr(invitation, 'emailSubject', None)
+                email_subject=email_subject
             )
             
             # Update status (pass is_resend to track resend count)
@@ -647,8 +650,6 @@ async def send_invitation_notifications(
     
     # Send SMS
     if channel in [InvitationChannel.SMS, InvitationChannel.BOTH]:
-        import logging
-        logger = logging.getLogger(__name__)
         logger.info(f"🔵 SMS channel requested for invitation {invitation.id}, phone: {invitation.phone}")
         
         if invitation.phone:
@@ -684,25 +685,17 @@ async def send_invitation_notifications(
                     logger.error("🔴 No SMS service configured or available")
                     raise Exception("No SMS service configured or available")
                 
-                # Create shortened URL for better SMS delivery
-                from services.url_shortener import URLShortener
-                
                 # Use production URL instead of localhost
-                production_link = invitation_link.replace('http://localhost:3000', settings.app_url) if 'localhost' in invitation_link else invitation_link
+                sms_link = invitation_link.replace('http://localhost:3000', settings.app_url) if 'localhost' in invitation_link else invitation_link
                 
-                # Create short URL
-                shortener = URLShortener(db)
-                short_url = await shortener.create_short_url(production_link)
-                
-                logger.info(f"🔵 Created short URL: {short_url} for {production_link}")
-                
-                # Create SMS message with shortened URL
+                # Send the full registration link - SimpleTexting's [url=] markup
+                # (applied at the send layer) handles shortening + click tracking.
                 if custom_message:
-                    sms_message = f"{custom_message}\n\nRegister: {short_url}"
+                    sms_message = f"{custom_message}\n\nRegister: {sms_link}"
                 else:
                     sms_message = (
-                        f"Hi {invitation.name}! You're invited to join USVedika.\n\n"
-                        f"Register here: {short_url}\n\n"
+                        f"Hi {invitation.name}! You're invited to join L3V3L Matches.\n\n"
+                        f"Register here: {sms_link}\n\n"
                         f"This invitation expires soon. Join now!"
                     )
                 
@@ -732,6 +725,25 @@ async def send_invitation_notifications(
                         InvitationStatus.FAILED,
                         failed_reason=result.get("error", "SMS service unavailable")
                     )
+                
+                # Log to notification_log so it appears in the admin SMS log tab
+                try:
+                    await db.notification_log.insert_one({
+                        "username": invitation.email or invitation.phone,
+                        "trigger": "invitation_sent",
+                        "channel": "sms",
+                        "priority": "medium",
+                        "status": "sent" if result.get("success") else "failed",
+                        "subject": f"Invitation SMS → {invitation.name or invitation.phone}",
+                        "preview": sms_message,
+                        "recipientPhone": invitation.phone,
+                        "invitationId": str(getattr(invitation, 'id', '') or ''),
+                        "error": None if result.get("success") else result.get("error", "SMS service unavailable"),
+                        "sentAt": datetime.utcnow(),
+                        "createdAt": datetime.utcnow(),
+                    })
+                except Exception as log_err:
+                    logger.warning(f"⚠️ Failed to log invitation SMS: {log_err}")
             except Exception as e:
                 await invitation_service.update_invitation_status(
                     invitation.id,
@@ -739,6 +751,21 @@ async def send_invitation_notifications(
                     InvitationStatus.FAILED,
                     failed_reason=str(e)
                 )
+                try:
+                    await db.notification_log.insert_one({
+                        "username": invitation.email or invitation.phone,
+                        "trigger": "invitation_sent",
+                        "channel": "sms",
+                        "priority": "medium",
+                        "status": "failed",
+                        "subject": f"Invitation SMS → {invitation.name or invitation.phone}",
+                        "recipientPhone": invitation.phone,
+                        "invitationId": str(getattr(invitation, 'id', '') or ''),
+                        "error": str(e),
+                        "createdAt": datetime.utcnow(),
+                    })
+                except Exception as log_err:
+                    logger.warning(f"⚠️ Failed to log invitation SMS failure: {log_err}")
 
 
 # Import datetime for update_invitation
