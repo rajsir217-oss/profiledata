@@ -372,6 +372,10 @@ class SMSNotifierTemplate(JobTemplate):
         SENDER_TAG = f"[L3V3LMATCHES][{sender_username}] " if sender_username else PREFIX
         REQUESTER_TAG = f"[{sender_username}] " if sender_username else f"{requester_name} "
 
+        # Extra template_data fields used by specific fallbacks
+        profile_link = template_data.get("profile_link", "") if isinstance(template_data, dict) else ""
+        user_message = str(template_data.get("message", "") or "")[:60] if isinstance(template_data, dict) else ""
+
         if not template:
             # User-friendly fallback messages for each trigger type
             # Messages now include personalized greeting with recipient's name
@@ -384,6 +388,10 @@ class SMSNotifierTemplate(JobTemplate):
                 
                 # Messaging
                 "new_message": f"{SENDER_TAG}You have a new message! Login www.l3v3lmatches.com to read it.",
+                "message_sms": (
+                    f"{SENDER_TAG}New message from {requester_name}: \"{user_message}\""
+                    + (f" View profile: [url={profile_link}]" if profile_link else "")
+                ),
                 "unread_messages": f"{SENDER_TAG}You have unread messages waiting! Login www.l3v3lmatches.com to catch up.",
                 "conversation_cold": f"{SENDER_TAG}Your conversation is getting cold! Login www.l3v3lmatches.com to send a message.",
                 "message_reminder": f"{SENDER_TAG}You have an unread message! Login www.l3v3lmatches.com to respond.",

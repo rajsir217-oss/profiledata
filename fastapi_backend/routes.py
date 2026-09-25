@@ -9998,7 +9998,7 @@ async def send_message_enhanced(
                                 "firstName": (sender or {}).get("firstName", username),
                                 "username": username,
                             },
-                            "profile_link": f"https://l3v3lmatches.com/profile/{username}",
+                            "profile_link": f"{settings.frontend_url}/profile/{username}",
                         },
                         priority="high",
                         force_send=True,  # Explicit sender opt-in per message
