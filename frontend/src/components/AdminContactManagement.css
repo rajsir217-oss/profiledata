@@ -195,9 +195,6 @@
 
 .search-input {
   grid-column: 1 / -1;
-}
-
-.search-input {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border-color);
@@ -226,6 +223,81 @@
 .filter-select:focus {
   outline: none;
   border-color: var(--primary-color);
+}
+
+/* Status multi-select dropdown */
+.status-multiselect {
+  position: relative;
+}
+
+.status-filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  text-align: left;
+  color: var(--text-color);
+}
+
+.status-filter-caret {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.status-filter-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  padding: 6px;
+}
+
+.status-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-color);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.status-filter-option:hover {
+  background: var(--hover-background);
+}
+
+.status-filter-option input[type="checkbox"] {
+  accent-color: var(--primary-color);
+  cursor: pointer;
+  margin: 0;
+}
+
+.status-filter-actions {
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px 2px;
+  border-top: 1px solid var(--border-color);
+  margin-top: 4px;
+}
+
+.status-filter-actions button {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.status-filter-actions button:hover {
+  text-decoration: underline;
 }
 
 /* Ticket List */
@@ -525,37 +597,6 @@
   border-color: var(--primary-color);
 }
 
-/* Ticket Info Section - Compact 3-column grid */
-.ticket-info-section {
-  padding: 8px 20px;
-  background: var(--surface-color);
-  border-bottom: 1px solid var(--divider-color);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 20px;
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  margin: 0;
-}
-
-.info-row strong {
-  min-width: 80px;
-  color: #6c757d;
-  font-size: 12px;
-}
-
-.info-row code {
-  background: var(--code-background);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
 /* Conversation */
 .ticket-conversation {
   flex: 1;
@@ -752,11 +793,6 @@
 .reply-textarea:focus {
   outline: none;
   border-color: var(--primary-color);
-}
-
-.reply-actions {
-  display: flex;
-  gap: 8px;
 }
 
 .btn {
@@ -1030,21 +1066,6 @@
     padding: 12px 16px;
   }
   
-  .ticket-info-section {
-    padding: 12px;
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .info-row {
-    font-size: 12px;
-  }
-
-  .info-row strong {
-    min-width: 70px;
-    font-size: 11px;
-  }
-
   /* Conversation */
   .ticket-conversation {
     padding: 12px;
@@ -1124,20 +1145,6 @@
     cursor: not-allowed;
   }
 
-  .reply-actions {
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 12px;
-  }
-
-  .reply-actions .btn {
-    width: 100%;
-    margin: 0;
-    padding: 12px;
-    font-size: 18px;
-    border-radius: 8px;
-  }
-
   /* Hide text for delete button in ticket actions */
   .ticket-actions .btn-danger,
   .ticket-actions .btn-danger-confirm {
@@ -1152,16 +1159,6 @@
 
   .ticket-actions .btn-danger:before,
   .ticket-actions .btn-danger-confirm:before {
-    content: attr(data-emoji);
-    font-size: 18px;
-    display: inline-block;
-  }
-
-  .reply-actions .btn:not(.send-reply-btn) {
-    font-size: 0;
-  }
-
-  .reply-actions .btn:not(.send-reply-btn):before {
     content: attr(data-emoji);
     font-size: 18px;
     display: inline-block;
@@ -1352,24 +1349,6 @@ body.theme-dark .status-dropdown {
 
 body.theme-dark .status-dropdown:focus {
   border-color: #667eea;
-}
-
-body.theme-dark .ticket-info-section {
-  background: #111827;
-  border-bottom-color: #374151;
-}
-
-body.theme-dark .info-row {
-  color: #f9fafb;
-}
-
-body.theme-dark .info-row strong {
-  color: #9ca3af;
-}
-
-body.theme-dark .info-row code {
-  background: #374151;
-  color: #f9fafb;
 }
 
 body.theme-dark .message-bubble.user-message {

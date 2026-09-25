@@ -127,7 +127,11 @@ const Messages = () => {
           is_read: false
         };
         setMessages(prev => [...prev, newMessage]);
-        
+
+        // Conversation is open — mark as read immediately so the sender's
+        // read receipt flips to blue in real time
+        socketService.markAsRead(data.from);
+
         // Show browser notification if supported
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification(`New message from ${data.from}`, {
@@ -136,12 +140,28 @@ const Messages = () => {
           });
         }
       }
-      
+
       // Always reload conversations to update last message and unread count
       loadConversations();
     };
 
+    // Read receipt: the other participant read my messages
+    const handleMessagesRead = (data) => {
+      if (!selectedUserRef.current || data.reader !== selectedUserRef.current) return;
+      const readIds = new Set(data.messageIds || []);
+      setMessages(prev => prev.map(m => {
+        const from = m.from_username || m.fromUsername || m.senderUsername;
+        const mid = m.id || m._id;
+        if (from === currentUsername && !(m.isRead || m.is_read) &&
+            (readIds.size === 0 || readIds.has(mid))) {
+          return { ...m, isRead: true, is_read: true, readAt: data.readAt };
+        }
+        return m;
+      }));
+    };
+
     socketService.on('new_message', handleNewMessage);
+    socketService.on('messages_read', handleMessagesRead);
 
     // ESC key handler to close message window (deselect user)
     const handleEscKey = (e) => {
@@ -154,6 +174,7 @@ const Messages = () => {
 
     return () => {
       socketService.off('new_message', handleNewMessage);
+      socketService.off('messages_read', handleMessagesRead);
       document.removeEventListener('keydown', handleEscKey);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -10216,10 +10216,21 @@ async def get_conversation(
         # Mark messages as read - use bulk update instead of N+1 queries
         unread_ids = [msg["_id"] for msg in messages if msg["toUsername"] == username and not msg.get("isRead", False)]
         if unread_ids:
+            read_at = datetime.utcnow()
             await db.messages.update_many(
                 {"_id": {"$in": unread_ids}},
-                {"$set": {"isRead": True, "readAt": datetime.utcnow()}}
+                {"$set": {"isRead": True, "readAt": read_at}}
             )
+            # Real-time read receipt: notify the sender their messages were read
+            try:
+                from websocket_manager import sio
+                await sio.emit('messages_read', {
+                    'reader': username,
+                    'readAt': read_at.isoformat(),
+                    'messageIds': [str(mid) for mid in unread_ids]
+                }, room=f"user:{other_username}")
+            except Exception as ws_err:
+                logger.warning(f"⚠️ Failed to emit read receipt to {other_username}: {ws_err}")
         
         # Convert ObjectId to string + decrypt any legacy Fernet-encrypted content
         # (new sends store plaintext; old rows may still be encrypted).
@@ -10261,6 +10272,61 @@ async def get_conversation(
         }
     except Exception as e:
         logger.error(f"❌ Error fetching conversation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/messages/mark-read")
+async def mark_messages_read(
+    payload: dict = Body(...),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Mark all unread messages from `sender` to `reader` as read.
+    Used when a recipient has the conversation open and a new message
+    arrives via socket (the conversation GET only marks read on load).
+    Emits a `messages_read` socket event so the sender's UI flips the
+    read receipts to blue in real time.
+    """
+    reader = (payload.get("reader") or "").strip()
+    sender = (payload.get("sender") or "").strip()
+    if not reader or not sender:
+        raise HTTPException(status_code=400, detail="reader and sender are required")
+
+    if current_user["username"] != reader and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to mark messages for this user")
+
+    try:
+        read_at = datetime.utcnow()
+        unread_docs = await db.messages.find(
+            {"fromUsername": sender, "toUsername": reader, "isRead": {"$ne": True}},
+            {"_id": 1}
+        ).to_list(None)
+
+        if not unread_docs:
+            return {"success": True, "markedRead": 0}
+
+        unread_ids = [d["_id"] for d in unread_docs]
+        await db.messages.update_many(
+            {"_id": {"$in": unread_ids}},
+            {"$set": {"isRead": True, "readAt": read_at}}
+        )
+
+        # Real-time read receipt: notify the sender
+        try:
+            from websocket_manager import sio
+            await sio.emit('messages_read', {
+                'reader': reader,
+                'readAt': read_at.isoformat(),
+                'messageIds': [str(mid) for mid in unread_ids]
+            }, room=f"user:{sender}")
+        except Exception as ws_err:
+            logger.warning(f"⚠️ Failed to emit read receipt to {sender}: {ws_err}")
+
+        logger.info(f"✅ Marked {len(unread_ids)} messages as read: {sender} → {reader}")
+        return {"success": True, "markedRead": len(unread_ids)}
+    except Exception as e:
+        logger.error(f"❌ Error marking messages as read: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

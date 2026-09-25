@@ -26,7 +26,10 @@ const AdminContactManagement = () => {
   const [statusMessage, setStatusMessage] = useState(null); // { type: 'success'|'error', text: '...' }
   
   // Filters
-  const [statusFilter, setStatusFilter] = useState('all');
+  const STATUS_OPTIONS = ['open', 'in_progress', 'resolved', 'closed'];
+  const [statusFilters, setStatusFilters] = useState(['open', 'in_progress']);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef(null);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,7 +68,24 @@ const AdminContactManagement = () => {
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tickets, statusFilter, categoryFilter, priorityFilter, searchQuery]);
+  }, [tickets, statusFilters, categoryFilter, priorityFilter, searchQuery]);
+
+  // Close status dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target)) {
+        setStatusDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleStatusFilter = (status) => {
+    setStatusFilters(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -127,9 +147,9 @@ const AdminContactManagement = () => {
   const applyFilters = () => {
     let filtered = [...tickets];
     
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(t => t.status === statusFilter);
+    // Status filter (multi-select; empty or all-checked means no status filter)
+    if (statusFilters.length > 0 && statusFilters.length < STATUS_OPTIONS.length) {
+      filtered = filtered.filter(t => statusFilters.includes(t.status));
     }
     
     // Category filter
@@ -359,7 +379,7 @@ const AdminContactManagement = () => {
       {/* Status Bubble Notification */}
       {statusMessage && (
         <div className={`status-bubble ${statusMessage.type}`}>
-          {statusMessage.type === 'success' ? '✅' : '❌'} {statusMessage.text}
+          {statusMessage.type === 'success' ? '✅' : statusMessage.type === 'info' ? 'ℹ️' : '❌'} {statusMessage.text}
         </div>
       )}
 
@@ -402,17 +422,45 @@ const AdminContactManagement = () => {
           className="search-input"
         />
         
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="filter-select"
-        >
-          <option value="all">All Status</option>
-          <option value="open">🔵 Open</option>
-          <option value="in_progress">🟡 In Progress</option>
-          <option value="resolved">🟢 Resolved</option>
-          <option value="closed">⚫ Closed</option>
-        </select>
+        <div className="status-multiselect" ref={statusDropdownRef}>
+          <button
+            type="button"
+            className="filter-select status-filter-btn"
+            onClick={() => setStatusDropdownOpen(prev => !prev)}
+          >
+            <span>
+              {statusFilters.length === 0 || statusFilters.length === STATUS_OPTIONS.length
+                ? 'All Status'
+                : STATUS_OPTIONS
+                    .filter(s => statusFilters.includes(s))
+                    .map(s => `${getStatusBadge(s).icon} ${getStatusBadge(s).label}`)
+                    .join(' + ')}
+            </span>
+            <span className="status-filter-caret">{statusDropdownOpen ? '▴' : '▾'}</span>
+          </button>
+          {statusDropdownOpen && (
+            <div className="status-filter-dropdown">
+              {STATUS_OPTIONS.map(opt => {
+                const badge = getStatusBadge(opt);
+                const checked = statusFilters.includes(opt);
+                return (
+                  <label key={opt} className="status-filter-option">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleStatusFilter(opt)}
+                    />
+                    <span>{badge.icon} {badge.label}</span>
+                  </label>
+                );
+              })}
+              <div className="status-filter-actions">
+                <button type="button" onClick={() => setStatusFilters(STATUS_OPTIONS)}>Select all</button>
+                <button type="button" onClick={() => setStatusFilters([])}>Clear</button>
+              </div>
+            </div>
+          )}
+        </div>
         
         <select
           value={categoryFilter}
@@ -603,9 +651,6 @@ const AdminContactManagement = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Ticket Info */}
-              <div className="ticket-topic-gap" aria-hidden="true"></div>
 
               {/* Conversation */}
               <div className="ticket-conversation">

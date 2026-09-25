@@ -680,7 +680,19 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
                   )}
                   <div className="message-content">
                     <p>{msg.content || msg.message}</p>
-                    <span className="message-time">{formatTime(msg.createdAt || msg.timestamp)}</span>
+                    <span className="message-time">
+                      {formatTime(msg.createdAt || msg.timestamp)}
+                      {isOwnMessage && (
+                        <span
+                          className={`read-receipt ${(msg.isRead || msg.is_read) ? 'read' : 'sent'}`}
+                          title={(msg.isRead || msg.is_read)
+                            ? `Read${(msg.readAt || msg.read_at) ? ` ${formatTime(msg.readAt || msg.read_at)}` : ''}`
+                            : 'Sent'}
+                        >
+                          ✓✓
+                        </span>
+                      )}
+                    </span>
                   </div>
                   
                   {isOwnMessage && messageId && (

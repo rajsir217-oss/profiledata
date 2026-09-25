@@ -606,6 +606,23 @@
   text-align: right;
 }
 
+/* Read receipts — WhatsApp-style double tick on own messages */
+.read-receipt {
+  margin-left: 4px;
+  font-size: 11px;
+  letter-spacing: -2px;
+  opacity: 1;
+}
+
+.read-receipt.sent {
+  color: inherit;
+}
+
+.read-receipt.read {
+  color: var(--info-color);
+  font-weight: 600;
+}
+
 /* Quick Reply Templates */
 .quick-replies-panel {
   position: absolute;

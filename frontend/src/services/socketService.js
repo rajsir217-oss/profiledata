@@ -122,6 +122,12 @@ class SocketService {
       this.trigger('user_typing', data);
     });
 
+    // Read receipt: recipient marked my messages as read
+    this.socket.on('messages_read', (data) => {
+      logger.socket('Messages read receipt:', data);
+      this.trigger('messages_read', data);
+    });
+
     this.socket.on('unread_count_update', (data) => {
       // Handle server-side unread count updates
       logger.socket('Unread count update:', data);
